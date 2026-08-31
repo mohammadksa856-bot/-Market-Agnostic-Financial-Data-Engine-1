@@ -40,6 +40,38 @@ class SourceDocument:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 @dataclass(frozen=True)
+class ExtractedFact:
+    """A source-faithful staging fact. It is never publishable."""
+    company_id: str
+    raw_label: str
+    raw_value: Decimal
+    raw_currency: str
+    raw_unit: str
+    scale: Decimal
+    period_start: str | None
+    period_end: str
+    period_kind: PeriodKind
+    fiscal_year: int
+    fiscal_quarter: int | None
+    source_key: str
+    source_url: str
+    filed_at: str
+    accession: str | None = None
+    form: str | None = None
+    page: int | None = None
+    table_ref: str | None = None
+    location: dict[str, Any] = field(default_factory=dict)
+
+@dataclass(frozen=True)
+class MappedFact:
+    """A reviewed candidate mapping. Normalization still has to run."""
+    extracted: ExtractedFact
+    metric: str | None
+    confidence: Decimal
+    mapping_method: str
+    reason: str | None = None
+
+@dataclass(frozen=True)
 class Fact:
     company_id: str
     metric: str

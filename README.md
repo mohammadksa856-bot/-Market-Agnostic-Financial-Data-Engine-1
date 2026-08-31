@@ -1,6 +1,6 @@
 # Market-Agnostic Financial Data Engine
 
-An auditable, dependency-light pipeline for Saudi and US company filings. It stores raw documents, extracts reported facts into a shared canonical schema, validates them, preserves restatements, publishes versioned observations, calculates derived metrics, and exposes a read-only query boundary for an API or Telegram bot.
+An auditable, dependency-light financial data factory for Saudi and US company filings. Every automated or AI-assisted result is confined to staging. Only deterministic normalization and validation code can open the publication gate.
 
 ## What is implemented
 
@@ -10,6 +10,9 @@ An auditable, dependency-light pipeline for Saudi and US company filings. It sto
 - Configurable Saudi JSON manifest fetcher. This intentionally keeps unstable issuer/Saudi Exchange URLs in configuration rather than hard-coding private or undocumented endpoints.
 - SHA-256 raw archive and source-level idempotency.
 - US-GAAP and Arabic/English Saudi label mapping into canonical metrics.
+- Persistent `extracted_facts`, `mapped_facts`, and `normalized_facts` staging layers.
+- Source-faithful raw labels, values, page/table references, and XBRL taxonomy provenance.
+- Exact dictionary mappings carry a confidence of 1.0; anything below 0.95 is blocked for review.
 - Explicit instant, discrete-quarter, YTD, FY, and TTM semantics.
 - Deterministic normalization (scale, Decimal values, units and currencies).
 - Validation including the balance-sheet equation; failures go to an exception queue and do not publish.
@@ -20,11 +23,18 @@ An auditable, dependency-light pipeline for Saudi and US company filings. It sto
 
 ## Pipeline
 
-    monitor -> fetch -> raw archive -> extract -> canonical map -> normalize
-            -> validate -> publish/version -> calculate -> read-only query
-                         \-> exception queue
+    source monitor -> fetch -> immutable raw document
+                   -> extracted_facts (source-faithful staging)
+                   -> mapped_facts (canonical metric + confidence)
+                   -> normalized_facts (deterministic code)
+                   -> rules/validation gate
+                   -> deterministic calculations
+                   -> versioned production observations
+                   -> read-only API / Telegram bot
 
-AI-assisted PDF table extraction can be added before mapping, but it must emit the same structured manifest and never write directly to production.
+Any extraction, mapping, or validation ambiguity goes to `exceptions`; a blocked source publishes zero observations. There is no method that publishes an extracted or mapped fact directly.
+
+AI-assisted PDF table extraction belongs before mapping. It may write only source-faithful extracted facts, including location evidence, and never receives a production database write path.
 
 ## Quick start
 
@@ -46,6 +56,14 @@ Saudi ingest uses a public issuer/Exchange adapter that produces the documented 
 Read-only bot/API query:
 
     python -m finengine --db data/financial.sqlite3 query SA 2222 revenue
+
+Generate an Arabic browser report and Excel-compatible CSV:
+
+    python -m finengine --db data/financial.sqlite3 report
+
+Build staging audit rows for a database created by an older engine version (does not republish):
+
+    python -m finengine --db data/financial.sqlite3 backfill-staging
 
 Run tests:
 
@@ -73,3 +91,4 @@ For YTD values use period_kind=ytd; do not label them as a discrete quarter. TTM
 - SQLite is a working local store. For multiple writers, retain the model and migrate publication to PostgreSQL.
 - Add authentication/rate limiting in the API layer; keep FinancialQueryService read-only.
 - Review open exceptions before expanding the registry or enabling scheduled publication.
+- Treat the 0.95 confidence threshold as a minimum publication policy, not as evidence that probabilistic output is correct.

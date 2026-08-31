@@ -35,5 +35,18 @@ class EngineTests(unittest.TestCase):
     def test_validation_blocks_unbalanced(self):
         payload=sa_payload(); payload["facts"][4]["value"]=1000
         r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload)); self.assertEqual(r["status"],"exception"); self.assertEqual(self.db.conn.execute("SELECT count(*) FROM exceptions").fetchone()[0],1)
+    def test_staging_audit_trail_precedes_production(self):
+        r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(sa_payload()))
+        self.assertEqual(r["staging"]["extracted"],7)
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM extracted_facts").fetchone()[0],7)
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM mapped_facts WHERE status='accepted'").fetchone()[0],7)
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM normalized_facts WHERE status='published'").fetchone()[0],7)
+        self.assertEqual(self.db.conn.execute("SELECT status FROM source_documents").fetchone()[0],"published")
+    def test_unknown_mapping_never_reaches_production(self):
+        payload=sa_payload(); payload["facts"].append({"label":"Brand new ambiguous metric","value":42,"period_end":"2024-12-31","period_kind":"fy","fiscal_year":2024})
+        r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload))
+        self.assertEqual((r["status"],r["stage"]),("exception","mapping"))
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM observations").fetchone()[0],0)
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM mapped_facts WHERE status='review'").fetchone()[0],1)
 
 if __name__=="__main__": unittest.main()
