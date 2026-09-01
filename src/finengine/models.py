@@ -14,6 +14,16 @@ class PeriodKind(StrEnum):
     YTD = "ytd"
     FY = "fy"
     TTM = "ttm"
+    AS_OF = "as_of"
+    DAILY = "daily"
+    EVENT = "event"
+
+class ValueType(StrEnum):
+    DECIMAL = "decimal"
+    TEXT = "text"
+    DATE = "date"
+    BOOLEAN = "boolean"
+    JSON = "json"
 
 @dataclass(frozen=True)
 class Company:
@@ -26,6 +36,13 @@ class Company:
     isin: str | None = None
     fiscal_year_end: str = "12-31"
     sources: tuple[str, ...] = ()
+    exchange: str | None = None
+    country: str | None = None
+    sector: str | None = None
+    industry: str | None = None
+    timezone: str = "UTC"
+    locale: str = "en"
+    enabled: bool = True
 
 @dataclass(frozen=True)
 class SourceDocument:
@@ -90,7 +107,37 @@ class Fact:
     form: str | None = None
     is_calculated: bool = False
     calculation: str | None = None
+    scope: str = "consolidated"
+    dimensions: dict[str, str] = field(default_factory=dict)
+    quality_score: Decimal = Decimal("1")
+    metric_version: int = 1
 
     @property
     def natural_key(self) -> tuple[Any, ...]:
         return (self.company_id, self.metric, self.period_end, self.period_kind.value, self.fiscal_year, self.fiscal_quarter, self.currency, self.unit)
+
+@dataclass(frozen=True)
+class TypedFact:
+    """A production-ready typed fact for non-financial and operational domains."""
+    company_id: str
+    metric: str
+    value: Decimal | str | bool | dict[str, Any] | list[Any]
+    value_type: ValueType
+    period_end: str
+    period_kind: PeriodKind
+    source_key: str
+    source_url: str
+    filed_at: str
+    currency: str = ""
+    unit: str = "pure"
+    period_start: str | None = None
+    fiscal_year: int = 0
+    fiscal_quarter: int | None = None
+    scope: str = "consolidated"
+    dimensions: dict[str, str] = field(default_factory=dict)
+    accession: str | None = None
+    form: str | None = None
+    is_calculated: bool = False
+    calculation: str | None = None
+    quality_score: Decimal = Decimal("1")
+    metric_version: int = 1

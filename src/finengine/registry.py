@@ -9,7 +9,14 @@ class CompanyRegistry:
     @classmethod
     def from_json(cls, path: str | Path) -> "CompanyRegistry":
         rows = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls([Company(company_id=r["company_id"], market=Market(r["market"]), symbol=r["symbol"], name=r["name"], currency=r["currency"], cik=r.get("cik"), isin=r.get("isin"), fiscal_year_end=r.get("fiscal_year_end", "12-31"), sources=tuple(r.get("sources", []))) for r in rows])
+        return cls([Company(
+            company_id=r["company_id"], market=Market(r["market"]), symbol=r["symbol"],
+            name=r["name"], currency=r["currency"], cik=r.get("cik"), isin=r.get("isin"),
+            fiscal_year_end=r.get("fiscal_year_end", "12-31"), sources=tuple(r.get("sources", [])),
+            exchange=r.get("exchange"), country=r.get("country"), sector=r.get("sector"),
+            industry=r.get("industry"), timezone=r.get("timezone", "UTC"),
+            locale=r.get("locale", "en"), enabled=r.get("enabled", True)
+        ) for r in rows])
     def get(self, company_id: str) -> Company:
         return self._companies[company_id]
     def resolve(self, market: str, symbol: str) -> Company:

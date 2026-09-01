@@ -24,17 +24,20 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
-        """SELECT c.name,c.market,c.symbol,o.fiscal_year,o.fiscal_quarter,
-        o.period_end,o.period_kind,o.metric,o.value,o.currency,o.source_url
-        FROM observations o JOIN companies c USING(company_id)
-        WHERE o.is_current=1 ORDER BY c.market,c.symbol,o.period_end DESC,o.metric"""
+        """SELECT c.name,c.market,c.symbol,d.fiscal_year,NULLIF(d.fiscal_quarter,0) AS fiscal_quarter,
+        d.period_end,d.period_kind,d.metric_key AS metric,d.value_decimal AS value,d.currency,d.source_url
+        FROM data_points d JOIN companies c USING(company_id)
+        WHERE d.is_current=1 AND d.scope='consolidated' AND d.dimensions_json='{}'
+        ORDER BY c.market,c.symbol,d.period_end DESC,d.metric_key"""
     ).fetchall()
     audit = {
         "المصادر المحفوظة": conn.execute("SELECT count(*) FROM source_documents").fetchone()[0],
         "حقائق الاستخراج": conn.execute("SELECT count(*) FROM extracted_facts").fetchone()[0],
         "Mapping معتمد": conn.execute("SELECT count(*) FROM mapped_facts WHERE status='accepted'").fetchone()[0],
         "بانتظار المراجعة": conn.execute("SELECT count(*) FROM mapped_facts WHERE status='review'").fetchone()[0],
-        "حقائق منشورة": conn.execute("SELECT count(*) FROM observations WHERE is_current=1").fetchone()[0],
+        "حقائق منشورة": conn.execute("SELECT count(*) FROM data_points WHERE is_current=1").fetchone()[0],
+        "إدراجات نشطة": conn.execute("SELECT count(*) FROM listings WHERE active=1").fetchone()[0],
+        "فترات مقاسة التغطية": conn.execute("SELECT count(*) FROM coverage_status").fetchone()[0],
         "استثناءات مفتوحة": conn.execute("SELECT count(*) FROM exceptions WHERE status='open'").fetchone()[0],
     }
     conn.close()
