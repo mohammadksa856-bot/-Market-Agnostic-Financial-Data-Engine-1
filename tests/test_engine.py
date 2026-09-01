@@ -48,5 +48,12 @@ class EngineTests(unittest.TestCase):
         self.assertEqual((r["status"],r["stage"]),("exception","mapping"))
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM observations").fetchone()[0],0)
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM mapped_facts WHERE status='review'").fetchone()[0],1)
+    def test_crashed_source_restarts_and_pipeline_run_is_audited(self):
+        connector=FakeConnector(sa_payload(),"fixture:crash"); doc=connector.fetch(self.c)
+        self.db.register_company(self.c); self.db.save_source(doc,"crash",None); self.db.set_source_status(doc.source_key,"extracting")
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,connector)
+        self.assertEqual(result["status"],"published")
+        run=self.db.conn.execute("SELECT status,stage,source_key FROM pipeline_runs WHERE run_id=?",(result["run_id"],)).fetchone()
+        self.assertEqual((run["status"],run["stage"],run["source_key"]),("published","complete","fixture:crash"))
 
 if __name__=="__main__": unittest.main()
