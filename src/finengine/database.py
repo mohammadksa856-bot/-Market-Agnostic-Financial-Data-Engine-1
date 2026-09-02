@@ -12,7 +12,7 @@ from typing import Iterable
 from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, TypedFact, ValueType
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -195,6 +195,18 @@ CREATE TABLE IF NOT EXISTS jobs(
  last_error TEXT, result_json TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, finished_at TEXT);
 CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status,available_at,priority,created_at);
+CREATE TABLE IF NOT EXISTS backlog_items(
+ backlog_id TEXT PRIMARY KEY, company_id TEXT REFERENCES companies(company_id),
+ item_type TEXT NOT NULL, domain TEXT NOT NULL DEFAULT 'all', title TEXT NOT NULL,
+ description TEXT, period_end TEXT, period_kind TEXT, metric_key TEXT,
+ source_url TEXT, priority INTEGER NOT NULL DEFAULT 100,
+ status TEXT NOT NULL DEFAULT 'open'
+ CHECK(status IN ('open','ready','in_progress','blocked','completed','cancelled')),
+ payload_json TEXT NOT NULL DEFAULT '{}', idempotency_key TEXT NOT NULL UNIQUE,
+ job_id TEXT REFERENCES jobs(job_id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, completed_at TEXT);
+CREATE INDEX IF NOT EXISTS idx_backlog_work ON backlog_items(status,priority,created_at);
+CREATE INDEX IF NOT EXISTS idx_backlog_company ON backlog_items(company_id,domain,status,period_end);
 CREATE TABLE IF NOT EXISTS job_attempts(
  id INTEGER PRIMARY KEY, job_id TEXT NOT NULL REFERENCES jobs(job_id), attempt_number INTEGER NOT NULL,
  worker_id TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT, status TEXT NOT NULL,
@@ -227,22 +239,44 @@ CREATE TABLE IF NOT EXISTS publication_batches(
 
 
 DEFAULT_METRICS = {
-    "revenue": ("Revenue", "financial", "income_statement", "sum"),
-    "net_income": ("Net income", "financial", "income_statement", "sum"),
-    "net_income_parent": ("Net income attributable to parent", "financial", "income_statement", "sum"),
-    "total_assets": ("Total assets", "financial", "balance_sheet", "last"),
-    "total_liabilities": ("Total liabilities", "financial", "balance_sheet", "last"),
-    "total_equity": ("Total equity", "financial", "balance_sheet", "last"),
-    "cash": ("Cash and cash equivalents", "financial", "balance_sheet", "last"),
-    "operating_cash_flow": ("Operating cash flow", "financial", "cash_flow", "sum"),
-    "capex": ("Capital expenditure", "financial", "cash_flow", "sum"),
-    "eps_diluted": ("Diluted earnings per share", "financial", "income_statement", "none"),
-    "share_capital": ("Share capital", "financial", "balance_sheet", "last"),
-    "current_debt": ("Current debt", "financial", "balance_sheet", "last"),
-    "long_term_debt": ("Long-term debt", "financial", "balance_sheet", "last"),
-    "free_cash_flow": ("Free cash flow", "calculated", "cash_flow", "sum"),
-    "net_margin": ("Net margin", "ratio", "ratios", "none"),
-    "liabilities_to_equity": ("Liabilities to equity", "ratio", "ratios", "none"),
+    "revenue": ("Revenue", "financial", "income_statement", "sum", "currency"),
+    "other_income_related_to_sales": ("Other income related to sales", "financial", "income_statement", "sum", "currency"),
+    "revenue_and_other_income_related_to_sales": ("Revenue and other income related to sales", "financial", "income_statement", "sum", "currency"),
+    "operating_costs": ("Operating costs", "financial", "income_statement", "sum", "currency"),
+    "operating_income": ("Operating income", "financial", "income_statement", "sum", "currency"),
+    "income_before_income_taxes_and_zakat": ("Income before income taxes and zakat", "financial", "income_statement", "sum", "currency"),
+    "income_taxes_and_zakat": ("Income taxes and zakat", "financial", "income_statement", "sum", "currency"),
+    "net_income": ("Net income", "financial", "income_statement", "sum", "currency"),
+    "adjusted_net_income": ("Adjusted net income", "financial", "income_statement", "sum", "currency"),
+    "net_income_parent": ("Net income attributable to parent", "financial", "income_statement", "sum", "currency"),
+    "total_assets": ("Total assets", "financial", "balance_sheet", "last", "currency"),
+    "total_liabilities": ("Total liabilities", "financial", "balance_sheet", "last", "currency"),
+    "total_equity": ("Total equity", "financial", "balance_sheet", "last", "currency"),
+    "cash": ("Cash and cash equivalents", "financial", "balance_sheet", "last", "currency"),
+    "operating_cash_flow": ("Operating cash flow", "financial", "cash_flow", "sum", "currency"),
+    "capex": ("Capital expenditure", "financial", "cash_flow", "sum", "currency"),
+    "dividends_paid": ("Dividends paid", "financial", "cash_flow", "sum", "currency"),
+    "base_dividends_paid": ("Base dividends paid", "financial", "cash_flow", "sum", "currency"),
+    "performance_linked_dividends_paid": ("Performance-linked dividends paid", "financial", "cash_flow", "sum", "currency"),
+    "dividends_per_share": ("Dividends paid per share", "financial", "per_share", "none", "currency/share"),
+    "eps_diluted": ("Diluted earnings per share", "financial", "per_share", "none", "currency/share"),
+    "share_capital": ("Share capital", "financial", "balance_sheet", "last", "currency"),
+    "current_debt": ("Current debt", "financial", "balance_sheet", "last", "currency"),
+    "long_term_debt": ("Long-term debt", "financial", "balance_sheet", "last", "currency"),
+    "average_realized_crude_oil_price": ("Average realized crude oil price", "operational", "market_driver", "average", "USD/bbl"),
+    "total_hydrocarbon_production": ("Total hydrocarbon production", "operational", "production", "average", "mmboed"),
+    "total_liquids_production": ("Total liquids production", "operational", "production", "average", "mmbpd"),
+    "total_gas_production": ("Total gas production", "operational", "production", "average", "bscfd"),
+    "total_hydrocarbon_reserves": ("Total hydrocarbon reserves", "operational", "reserves", "last", "billion_boe"),
+    "maximum_sustainable_capacity": ("Maximum sustainable capacity", "operational", "capacity", "last", "mmbpd"),
+    "net_refining_capacity": ("Net refining capacity", "operational", "capacity", "last", "mmbpd"),
+    "net_chemicals_production_capacity": ("Net chemicals production capacity", "operational", "capacity", "last", "million_tonnes_per_year"),
+    "supply_reliability": ("Supply reliability", "operational", "reliability", "average", "percent"),
+    "free_cash_flow": ("Free cash flow", "calculated", "cash_flow", "sum", "currency"),
+    "net_margin": ("Net margin", "ratio", "ratios", "none", "ratio"),
+    "liabilities_to_equity": ("Liabilities to equity", "ratio", "ratios", "none", "ratio"),
+    "roace": ("Return on average capital employed", "ratio", "ratios", "none", "percent"),
+    "gearing": ("Gearing", "ratio", "ratios", "none", "percent"),
 }
 
 
@@ -326,12 +360,25 @@ class Database:
             "freshness_status": "TEXT NOT NULL DEFAULT 'unknown'", "age_seconds": "INTEGER",
         }.items():
             self._ensure_column("coverage_status", name, definition)
+        # Ratio outputs are dimensionless. Older databases inherited the source currency
+        # from their input fact, which made bot/report formatting misleading.
+        self.conn.execute(
+            "UPDATE observations SET currency='',unit='ratio' "
+            "WHERE is_calculated=1 AND metric IN ('net_margin','liabilities_to_equity')"
+        )
+        self.conn.execute(
+            "UPDATE data_points SET currency='',unit='ratio' "
+            "WHERE is_calculated=1 AND metric_key IN ('net_margin','liabilities_to_equity')"
+        )
         self.conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES(?)", (SCHEMA_VERSION,))
         self.conn.commit()
 
     def _seed_metric_catalog(self) -> None:
-        for key, (name, category, statement, aggregation) in DEFAULT_METRICS.items():
-            self.register_metric(key, name, category, statement, aggregation=aggregation, commit=False)
+        for key, (name, category, statement, aggregation, default_unit) in DEFAULT_METRICS.items():
+            self.register_metric(
+                key, name, category, statement, default_unit=default_unit,
+                aggregation=aggregation, commit=False,
+            )
         self.conn.commit()
 
     def _seed_calculation_definitions(self) -> None:
@@ -371,6 +418,35 @@ class Database:
         self.conn.executemany(
             """INSERT OR IGNORE INTO metric_applicability(metric_key,scope_type,scope_value,period_kind,requirement)
             VALUES(?,'all','*',?,?)""", policies)
+        integrated_oil_and_gas = (
+            ("other_income_related_to_sales", "fy", "recommended"),
+            ("revenue_and_other_income_related_to_sales", "fy", "recommended"),
+            ("operating_costs", "fy", "recommended"),
+            ("operating_income", "fy", "recommended"),
+            ("income_before_income_taxes_and_zakat", "fy", "recommended"),
+            ("income_taxes_and_zakat", "fy", "recommended"),
+            ("net_income_parent", "fy", "recommended"),
+            ("adjusted_net_income", "fy", "optional"),
+            ("dividends_paid", "fy", "recommended"),
+            ("base_dividends_paid", "fy", "recommended"),
+            ("performance_linked_dividends_paid", "fy", "recommended"),
+            ("dividends_per_share", "fy", "recommended"),
+            ("eps_diluted", "fy", "recommended"),
+            ("average_realized_crude_oil_price", "fy", "recommended"),
+            ("roace", "fy", "recommended"),
+            ("total_hydrocarbon_production", "fy", "recommended"),
+            ("total_liquids_production", "fy", "recommended"),
+            ("total_gas_production", "fy", "recommended"),
+            ("supply_reliability", "fy", "recommended"),
+            ("gearing", "instant", "recommended"),
+            ("total_hydrocarbon_reserves", "instant", "recommended"),
+            ("maximum_sustainable_capacity", "instant", "recommended"),
+            ("net_refining_capacity", "instant", "recommended"),
+            ("net_chemicals_production_capacity", "instant", "recommended"),
+        )
+        self.conn.executemany(
+            """INSERT OR IGNORE INTO metric_applicability(metric_key,scope_type,scope_value,period_kind,requirement)
+            VALUES(?,'industry','Integrated Oil & Gas',?,?)""", integrated_oil_and_gas)
         self.conn.commit()
 
     def _backfill_company_entities(self) -> None:
@@ -795,6 +871,78 @@ class Database:
             VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
             (company_id, source_key, stage, code, message, _json(payload or {}), severity)); self.conn.commit()
 
+    def upsert_backlog_item(
+        self, idempotency_key: str, item_type: str, domain: str, title: str,
+        company_id: str | None = None, description: str | None = None,
+        period_end: str | None = None, period_kind: str | None = None,
+        metric_key: str | None = None, source_url: str | None = None,
+        priority: int = 100, payload: dict | None = None,
+    ) -> str:
+        """Create durable data work without duplicating the same backlog item."""
+        if not 1 <= priority <= 1000:
+            raise ValueError("backlog priority must be between 1 and 1000")
+        encoded = _json(payload or {})
+        old = self.conn.execute(
+            "SELECT backlog_id,status FROM backlog_items WHERE idempotency_key=?",
+            (idempotency_key,),
+        ).fetchone()
+        if old:
+            with self.conn:
+                self.conn.execute(
+                    """UPDATE backlog_items SET item_type=?,domain=?,title=?,description=?,period_end=?,
+                    period_kind=?,metric_key=?,source_url=?,priority=?,payload_json=?,
+                    status=CASE WHEN status='completed' THEN 'open' ELSE status END,
+                    completed_at=CASE WHEN status='completed' THEN NULL ELSE completed_at END,
+                    updated_at=CURRENT_TIMESTAMP WHERE backlog_id=?""",
+                    (item_type, domain, title, description, period_end, period_kind, metric_key,
+                     source_url, priority, encoded, old["backlog_id"]),
+                )
+            return "reopened" if old["status"] == "completed" else "updated"
+        backlog_id = f"backlog:{hashlib.sha256(idempotency_key.encode('utf-8')).hexdigest()[:24]}"
+        with self.conn:
+            self.conn.execute(
+                """INSERT INTO backlog_items(backlog_id,company_id,item_type,domain,title,description,
+                period_end,period_kind,metric_key,source_url,priority,payload_json,idempotency_key)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (backlog_id, company_id, item_type, domain, title, description, period_end,
+                 period_kind, metric_key, source_url, priority, encoded, idempotency_key),
+            )
+        return "inserted"
+
+    def complete_backlog_item(self, idempotency_key: str) -> bool:
+        with self.conn:
+            cursor = self.conn.execute(
+                """UPDATE backlog_items SET status='completed',completed_at=CURRENT_TIMESTAMP,
+                updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?
+                AND status NOT IN ('completed','cancelled')""", (idempotency_key,))
+        return cursor.rowcount > 0
+
+    def sync_coverage_backlog(
+        self, company_id: str, period_end: str, period_kind: str, domain: str,
+        missing_metrics: dict[str, str],
+    ) -> dict:
+        """Mirror metric coverage gaps into a durable, automatically closing backlog."""
+        prefix = f"coverage:{company_id}:{period_end}:{period_kind}:{domain}:"
+        active_keys = {prefix + metric for metric in missing_metrics}
+        for metric, requirement in sorted(missing_metrics.items()):
+            self.upsert_backlog_item(
+                prefix + metric, "coverage_gap", domain,
+                f"Backfill {metric} for {period_end} ({period_kind})",
+                company_id=company_id, period_end=period_end, period_kind=period_kind,
+                metric_key=metric, priority=20 if requirement == "required" else 50,
+                payload={"requirement": requirement, "origin": "coverage_engine"},
+            )
+        rows = self.conn.execute(
+            """SELECT idempotency_key FROM backlog_items WHERE company_id=? AND item_type='coverage_gap'
+            AND period_end=? AND period_kind=? AND domain=? AND status NOT IN ('completed','cancelled')""",
+            (company_id, period_end, period_kind, domain),
+        ).fetchall()
+        completed = 0
+        for row in rows:
+            if row["idempotency_key"] not in active_keys:
+                completed += int(self.complete_backlog_item(row["idempotency_key"]))
+        return {"open": len(active_keys), "completed": completed}
+
     def health(self) -> dict:
         tables = {
             "companies": "companies", "sources": "source_documents",
@@ -803,6 +951,8 @@ class Database:
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",
             "coverage_rows": "coverage_status", "freshness_policies": "freshness_policies",
+            "open_backlog": "backlog_items WHERE status IN ('open','ready','in_progress','blocked')",
+            "completed_backlog": "backlog_items WHERE status='completed'",
             "open_exceptions": "exceptions WHERE status='open'", "queued_jobs": "jobs WHERE status='queued'",
             "dead_jobs": "jobs WHERE status='dead'",
         }

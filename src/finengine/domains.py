@@ -268,6 +268,10 @@ class CompanyDomainStore:
                 checked_at=CURRENT_TIMESTAMP""",
                 (company_id, period_end, period_kind, domain, len(expected), len(available_expected),
                  _json(missing_required), status, str(score), latest, freshness_status, age_seconds))
+        missing_expected = {metric: applicable[metric] for metric in sorted(expected - available)}
+        result["backlog"] = self.db.sync_coverage_backlog(
+            company_id, period_end, period_kind, domain, missing_expected,
+        )
         return result
 
     def refresh_company_coverage(self, company_id: str) -> list[dict]:
@@ -276,3 +280,68 @@ class CompanyDomainStore:
             WHERE company_id=? AND is_current=1 ORDER BY period_end,period_kind""", (company_id,)).fetchall()
         return [self.refresh_coverage(company_id, row["period_end"], row["period_kind"])
                 for row in periods]
+
+    def refresh_company_backlog(self, company_id: str) -> dict:
+        """Create backlog work for coverage gaps and still-empty company data domains."""
+        company = self.db.conn.execute(
+            "SELECT name FROM companies WHERE company_id=?", (company_id,)).fetchone()
+        if not company:
+            raise KeyError(company_id)
+        coverage = self.refresh_company_coverage(company_id)
+        source = self.db.conn.execute(
+            "SELECT url FROM company_sources WHERE company_id=? AND enabled=1 ORDER BY priority LIMIT 1",
+            (company_id,),
+        ).fetchone()
+        source_url = source["url"] if source else None
+        counts = {
+            "historical_financials": self.db.conn.execute(
+                "SELECT count(*) FROM data_points WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "company_profile": self.db.conn.execute(
+                "SELECT count(*) FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "disclosures": self.db.conn.execute(
+                "SELECT count(*) FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "ownership": self.db.conn.execute(
+                "SELECT count(*) FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "corporate_actions": self.db.conn.execute(
+                "SELECT count(*) FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "market_prices": self.db.conn.execute(
+                """SELECT count(*) FROM market_prices p JOIN listings l USING(listing_id)
+                JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1""",
+                (company_id,),
+            ).fetchone()[0],
+        }
+        tasks = {
+            "historical_financials": ("financial", "Ingest historical financial statements", 10),
+            "corporate_actions": ("corporate_actions", "Collect dividends, splits and corporate actions", 30),
+            "market_prices": ("market", "Load historical market prices", 30),
+            "disclosures": ("disclosures", "Archive and classify company disclosures", 40),
+            "ownership": ("ownership", "Load ownership and major-holder history", 40),
+            "company_profile": ("general", "Complete versioned company profile", 50),
+        }
+        created = 0
+        completed = 0
+        for key, (domain, title, priority) in tasks.items():
+            idempotency_key = f"domain:{company_id}:{key}"
+            if counts[key] == 0:
+                state = self.db.upsert_backlog_item(
+                    idempotency_key, "domain_backfill", domain,
+                    f"{title}: {company['name']}", company_id=company_id,
+                    description="This domain is empty and must remain outside production until validated.",
+                    source_url=source_url, priority=priority,
+                    payload={"origin": "domain_audit", "domain_key": key},
+                )
+                created += int(state in {"inserted", "reopened"})
+            else:
+                completed += int(self.db.complete_backlog_item(idempotency_key))
+        open_count = self.db.conn.execute(
+            """SELECT count(*) FROM backlog_items WHERE company_id=?
+            AND status IN ('open','ready','in_progress','blocked')""", (company_id,)).fetchone()[0]
+        return {
+            "company_id": company_id, "coverage_periods": len(coverage), "domain_counts": counts,
+            "created": created, "completed": completed, "open": open_count,
+        }
+
+    def refresh_all_backlog(self) -> list[dict]:
+        companies = self.db.conn.execute(
+            "SELECT company_id FROM companies WHERE enabled=1 ORDER BY company_id").fetchall()
+        return [self.refresh_company_backlog(row["company_id"]) for row in companies]

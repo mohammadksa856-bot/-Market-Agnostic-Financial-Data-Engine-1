@@ -1,6 +1,7 @@
 import json, tempfile, unittest
 from decimal import Decimal
 from pathlib import Path
+from finengine.connectors.file import LocalFileConnector
 from finengine.database import Database
 from finengine.models import Company, Market, SourceDocument
 from finengine.pipeline import Pipeline
@@ -27,6 +28,30 @@ class EngineTests(unittest.TestCase):
     def test_pipeline_calculation_and_query(self):
         r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(sa_payload())); self.assertEqual(r["status"],"published"); self.assertGreaterEqual(r["published"],9)
         q=FinancialQueryService(self.dbpath); h=q.metric_history("SA","2222","free_cash_flow"); q.close(); self.assertEqual(h[0]["value"],"170")
+    def test_calculated_ratios_are_dimensionless(self):
+        Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(sa_payload()))
+        rows=self.db.conn.execute("SELECT metric,currency,unit FROM observations WHERE metric IN ('net_margin','liabilities_to_equity') ORDER BY metric").fetchall()
+        self.assertEqual([(row["metric"],row["currency"],row["unit"]) for row in rows],[
+            ("liabilities_to_equity","","ratio"),("net_margin","","ratio")])
+    def test_non_monetary_fact_with_explicit_unit_is_valid(self):
+        payload={"period_end":"2024-12-31","filed_at":"2025-03-01","facts":[
+            {"label":"supply reliability","value":99.9,"currency":"","unit":"percent","period_start":"2024-01-01","period_end":"2024-12-31","period_kind":"fy","fiscal_year":2024}]}
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload,"fixture:operational"))
+        self.assertEqual(result["status"],"published")
+        row=self.db.conn.execute("SELECT metric,currency,unit,value FROM observations").fetchone()
+        self.assertEqual((row["metric"],row["currency"],row["unit"],row["value"]),("supply_reliability","","percent","99.9"))
+    def test_aramco_annual_metric_manifests_publish_and_restate(self):
+        imports=Path(__file__).resolve().parents[1]/"data"/"imports"
+        pipeline=Pipeline(self.db,Path(self.t.name)/"raw")
+        for year in range(2021,2026):
+            result=pipeline.run(self.c,LocalFileConnector(imports/f"aramco-{year}-annual-metrics.json"))
+            self.assertEqual(result["status"],"published",year)
+        current_roace=self.db.conn.execute("SELECT value,version FROM observations WHERE metric='roace' AND fiscal_year=2024 AND is_current=1").fetchone()
+        current_eps=self.db.conn.execute("SELECT value,version FROM observations WHERE metric='eps_diluted' AND fiscal_year=2022 AND is_current=1").fetchone()
+        self.assertEqual((current_roace["value"],current_roace["version"]),("21.1",2))
+        self.assertEqual((current_eps["value"],current_eps["version"]),("2.47",2))
+        count=self.db.conn.execute("SELECT count(*) FROM observations WHERE is_current=1").fetchone()[0]
+        self.assertGreaterEqual(count,120)
     def test_idempotent_source(self):
         p=Pipeline(self.db,Path(self.t.name)/"raw"); p.run(self.c,FakeConnector(sa_payload())); r=p.run(self.c,FakeConnector(sa_payload())); self.assertEqual(r["status"],"duplicate")
     def test_restatement_versions(self):

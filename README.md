@@ -30,7 +30,9 @@ An auditable financial data factory for Saudi and US companies. The production m
 - Typed production facts (`decimal`, `text`, `date`, `boolean`, `json`) for financial, operational and general company data.
 - A calculation registry that versions each formula and records its metric dependencies.
 - Market, sector, industry and company metric packs with required/recommended/optional applicability rules.
+- An Integrated Oil & Gas metric pack covering full statements, shareholder distributions, oil-price sensitivity and operating capacity.
 - Automatic coverage scoring for every processed period, including missing required metrics and source freshness.
+- A durable data backlog that turns metric coverage gaps and empty company domains into prioritized, idempotent work items and closes them automatically when filled.
 - Configurable freshness policies by market, sector, industry or company; no arbitrary SLA is imposed by default.
 - Unit/integration tests and GitHub Actions.
 
@@ -54,6 +56,7 @@ The other production domains are:
 - `freshness_policies`: reviewed age limits used to mark coverage as fresh or stale.
 - `source_documents`: immutable provenance for every published item.
 - `source_candidates`: the auditable discovery inbox, including queued, fetched, ignored and failed items.
+- `backlog_items`: prioritized missing-data work for historical statements, individual metrics, disclosures, profiles, prices, ownership and corporate actions. It is separate from production facts and execution jobs.
 
 Raw PDFs, HTML, XBRL and JSON are archived as files; the database stores their hashes, paths, content types and processing state.
 
@@ -123,6 +126,11 @@ Inspect the metric catalog and period coverage:
     python -m finengine --db data/financial.sqlite3 catalog --category financial
     python -m finengine --db data/financial.sqlite3 coverage SA 2222 --refresh
 
+Refresh and inspect the durable data backlog without publishing incomplete data:
+
+    python -m finengine --db data/financial.sqlite3 backlog --refresh
+    python -m finengine --db data/financial.sqlite3 backlog SA 2222 --status active
+
 Read structured market/company domains:
 
     python -m finengine --db data/financial.sqlite3 prices SA 2222
@@ -147,6 +155,25 @@ idempotent. Failed downloads are retried with exponential backoff and stay visib
 Generate an Arabic browser report and Excel-compatible CSV:
 
     python -m finengine --db data/financial.sqlite3 report
+
+The repository includes a portable read-only snapshot in `data/financial.sqlite3`, its
+Arabic browser view in `data/financial-report.html`, and the underlying reviewed import
+manifests. The Aramco snapshot has complete annual coverage for 2021-2025: 22 annual
+metrics and nine balance-sheet/capacity metrics per year. It includes statement lines,
+cash flow, dividends and per-share values, ROACE, gearing, realized crude price,
+production, reserves, refining, chemicals capacity and supply reliability. Comparative
+restatements remain versioned; they do not overwrite history.
+
+The bundled backlog also records what is not complete yet, including older Aramco periods,
+partial interim periods and empty domains for the US sample companies. Backlog entries are
+planning/audit records only; they never masquerade as verified production facts.
+
+Useful local checks against the bundled database:
+
+    python -m finengine --db data/financial.sqlite3 query SA 2222 average_realized_crude_oil_price
+    python -m finengine --db data/financial.sqlite3 query SA 2222 roace
+    python -m finengine --db data/financial.sqlite3 facts SA 2222 --category operational
+    python -m finengine --db data/financial.sqlite3 coverage SA 2222
 
 Build staging audit rows for a database created by an older engine version (does not republish):
 
