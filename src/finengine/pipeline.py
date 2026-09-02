@@ -53,10 +53,12 @@ class Pipeline:
         if gate_errors:
             self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(gate_errors),"stage":"mapping","minimum_confidence":"0.95"}
-        facts,validation=self.validator.validate(facts)
+        history_for_validation=self.db.validation_history(company.company_id,self.validator.FLOW_METRICS)
+        facts,validation=self.validator.validate(facts,history_for_validation)
         self.db.save_validation(doc.source_key,company.company_id,validation)
         for e in validation: self.db.exception(company.company_id,doc.source_key,"validation",e["code"],e["code"],e)
-        fatal={"required_field","balance_sheet_unbalanced"}
+        fatal={"required_field","invalid_period","invalid_fiscal_quarter","missing_period_start",
+               "balance_sheet_unbalanced","period_rollforward_mismatch"}
         if any(e["code"] in fatal for e in validation):
             self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation),"stage":"validation"}
@@ -79,10 +81,13 @@ class Pipeline:
         mapped_ids=self.db.save_mapped(mapped,extracted_ids)
         facts,normalization_errors,accepted_indexes=self.normalizer.normalize(mapped,Decimal("0.95"))
         normalized_ids=self.db.save_normalized(facts,mapped_ids,accepted_indexes)
-        facts,validation=self.validator.validate(facts)
+        history_for_validation=self.db.validation_history(company.company_id,self.validator.FLOW_METRICS)
+        facts,validation=self.validator.validate(facts,history_for_validation)
         self.db.save_validation(doc.source_key,company.company_id,validation)
         errors=extraction_errors+mapping_errors+normalization_errors+validation
-        fatal=bool(extraction_errors or normalization_errors or any(e["code"] in {"required_field","balance_sheet_unbalanced"} for e in validation))
+        fatal_codes={"required_field","invalid_period","invalid_fiscal_quarter","missing_period_start",
+                     "balance_sheet_unbalanced","period_rollforward_mismatch"}
+        fatal=bool(extraction_errors or normalization_errors or any(e["code"] in fatal_codes for e in validation))
         self.db.set_normalized_status(normalized_ids,"rejected" if fatal else "published")
         if fatal:
             for e in errors: self.db.exception(company.company_id,doc.source_key,"backfill",e["code"],e.get("message",e["code"]),e)

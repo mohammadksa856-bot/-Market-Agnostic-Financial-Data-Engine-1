@@ -33,7 +33,22 @@ class JsonExtractor:
                         kind,quarter=self._period(r)
                         try: value=Decimal(str(r["val"]))
                         except Exception: errors.append({"code":"invalid_value","tag":tag,"row":r}); continue
-                        facts.append(ExtractedFact(c.company_id,tag,value,c.currency,unit,Decimal(1),r.get("start"),r["end"],kind,int(r.get("fy") or r["end"][:4]),quarter,d.source_key,d.source_url,r.get("filed",d.filed_at),r.get("accn"),r.get("form"),location={"taxonomy":taxonomy,"tag":tag}))
+                        source_url=d.source_url
+                        if r.get("accn") and c.cik and "companyfacts" in d.source_url.lower():
+                            source_url=(
+                                f"https://www.sec.gov/Archives/edgar/data/{int(c.cik)}/"
+                                f"{r['accn'].replace('-', '')}/"
+                            )
+                        facts.append(ExtractedFact(
+                            company_id=c.company_id, raw_label=tag, raw_value=value,
+                            raw_currency=c.currency, raw_unit=unit, scale=Decimal(1),
+                            period_start=r.get("start"), period_end=r["end"], period_kind=kind,
+                            fiscal_year=int(r.get("fy") or r["end"][:4]), fiscal_quarter=quarter,
+                            source_key=d.source_key, source_url=source_url,
+                            filed_at=r.get("filed",d.filed_at), accession=r.get("accn"),
+                            form=r.get("form"),
+                            location={"taxonomy":taxonomy,"tag":tag,"frame":r.get("frame")},
+                        ))
         return self._latest_accession(facts),errors
 
     def _sa(self,c,d,p):
@@ -41,7 +56,26 @@ class JsonExtractor:
         for r in p.get("facts",[]):
             label=r.get("metric") or r.get("label","")
             try:
-                facts.append(ExtractedFact(c.company_id,label,Decimal(str(r["value"])),r.get("currency",c.currency),r.get("unit",c.currency),Decimal(str(r.get("scale",1))),r.get("period_start"),r["period_end"],PeriodKind(r["period_kind"]),int(r["fiscal_year"]),r.get("fiscal_quarter"),d.source_key,d.source_url,d.filed_at,r.get("accession"),d.filing_type,r.get("page"),r.get("table") or r.get("table_ref"),{"row":r.get("row"),"cell":r.get("cell")}))
+                dimensions=r.get("dimensions") or {}
+                if not isinstance(dimensions,dict) or not all(
+                    isinstance(key,str) and isinstance(value,str)
+                    for key,value in dimensions.items()
+                ):
+                    raise ValueError("dimensions must be a string-to-string object")
+                facts.append(ExtractedFact(
+                    company_id=c.company_id, raw_label=label,
+                    raw_value=Decimal(str(r["value"])),
+                    raw_currency=r.get("currency",c.currency),
+                    raw_unit=r.get("unit",c.currency), scale=Decimal(str(r.get("scale",1))),
+                    period_start=r.get("period_start"), period_end=r["period_end"],
+                    period_kind=PeriodKind(r["period_kind"]), fiscal_year=int(r["fiscal_year"]),
+                    fiscal_quarter=r.get("fiscal_quarter"), source_key=d.source_key,
+                    source_url=d.source_url, filed_at=d.filed_at, accession=r.get("accession"),
+                    form=d.filing_type, page=r.get("page"),
+                    table_ref=r.get("table") or r.get("table_ref"),
+                    location={"row":r.get("row"),"cell":r.get("cell")},
+                    scope=r.get("scope","consolidated"), dimensions=dimensions,
+                ))
             except Exception as e:
                 errors.append({"code":"invalid_fact","message":str(e),"row":r})
         return facts,errors

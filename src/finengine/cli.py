@@ -1,9 +1,12 @@
-import argparse, json, os, socket, time
+import argparse, json, os, socket, threading, time
 from pathlib import Path
 from .connectors import (
     IssuerReportsMonitor, LocalFileConnector, SecCompanyFactsConnector,
-    SecFilingsMonitor, SaudiManifestConnector,
+    SecFilingsMonitor, SaudiManifestConnector, StoredDocumentConnector,
 )
+from .api import create_api_server, serve_api
+from .audit import audit_release
+from .bootstrap import rebuild_snapshot
 from .database import Database
 from .pipeline import Pipeline
 from .query import FinancialQueryService
@@ -13,6 +16,7 @@ from .models import SourceDocument
 from .jobs import DurableJobQueue, DurableScheduler, Worker
 from .domains import CompanyDomainStore
 from .monitoring import DocumentArchiver, MonitorService
+from .telegram import TelegramBot
 
 
 def _sec_user_agent() -> str:
@@ -65,7 +69,9 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
         raise ValueError("issuer monitoring requires source_index or a registry source URL")
     monitor = IssuerReportsMonitor(source_index, max_documents=int(payload.get("source_limit", 12)))
     return service.poll(
-        company, monitor, "fetch_document", {"raw_dir": common_payload["raw_dir"]}, True,
+        company, monitor, "fetch_document", {
+            "raw_dir": common_payload["raw_dir"], "registry": registry_path,
+        }, True,
     )
 
 
@@ -75,19 +81,68 @@ def _monitor_job_handler(db: Database, queue: DurableJobQueue):
     return handle
 
 
-def _fetch_document_job_handler(db: Database):
+def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
     def handle(job):
         candidate_id = int(job.payload["candidate_id"])
         try:
-            return DocumentArchiver(db, job.payload.get("raw_dir", "data/raw")).fetch(candidate_id)
+            result=DocumentArchiver(db, job.payload.get("raw_dir", "data/raw")).fetch(candidate_id)
+            if result.get("next_stage") == "extraction":
+                extraction_payload={
+                    "source_key":result["source_key"],
+                    "raw_dir":job.payload.get("raw_dir","data/raw"),
+                    "registry":job.payload.get("registry","config/companies.json"),
+                }
+                extraction_job,created=queue.enqueue(
+                    "extract_document",extraction_payload,job.company_id,result["source_key"],
+                    idempotency_key=f"extract:{result['source_key']}",priority=20,
+                )
+                result["extraction_job_id"]=extraction_job
+                result["extraction_job_created"]=created
+            return result
         except Exception:
             db.set_source_candidate_status(candidate_id, "error")
             raise
     return handle
 
+
+def _extract_document_job_handler(db: Database):
+    def handle(job):
+        source_key=job.payload["source_key"]; row=db.stored_source(source_key)
+        registry=CompanyRegistry.from_json(job.payload.get("registry","config/companies.json"))
+        company=registry.get(row["company_id"]); path=Path(row["local_path"] or "")
+        if not path.is_file(): raise FileNotFoundError(f"archived source is missing: {path}")
+        document=SourceDocument(
+            row["company_id"],company.market,row["source_url"],row["source_key"],row["filing_type"],
+            row["filed_at"],path.read_bytes(),row["content_type"],json.loads(row["metadata_json"]),
+        )
+        if row["content_type"] == "application/json":
+            return Pipeline(db,job.payload.get("raw_dir","data/raw")).run(
+                company,StoredDocumentConnector(document),job.job_id,
+            )
+        code="binary_extractor_required"
+        db.exception(company.company_id,source_key,"extraction",code,
+                     "A reviewed PDF/XLSX extraction adapter must produce source-faithful facts.",
+                     {"content_type":row["content_type"],"local_path":row["local_path"]})
+        db.set_source_status(source_key,"review_required")
+        db.publication_batch(source_key,company.company_id,"blocked",0,0)
+        key=f"extraction:{source_key}"
+        db.upsert_backlog_item(
+            key,"document_extraction","financial",f"Extract {row['filing_type']}: {company.name}",
+            company_id=company.company_id,source_url=row["source_url"],priority=10,
+            payload={"source_key":source_key,"content_type":row["content_type"],
+                     "local_path":row["local_path"],"origin":"extraction_queue"},
+        )
+        with db.conn:
+            db.conn.execute("UPDATE backlog_items SET status='ready',updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?",(key,))
+        return {"status":"review_required","stage":"extraction","source_key":source_key,
+                "code":code,"published":0}
+    return handle
+
 def main():
     p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
     init=sub.add_parser("init"); init.add_argument("--registry",default="config/companies.json")
+    bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
+    audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
     report=sub.add_parser("report"); report.add_argument("--html",default="data/financial-report.html"); report.add_argument("--csv",default="data/financial-data.csv")
@@ -104,11 +159,24 @@ def main():
     actions=sub.add_parser("actions"); actions.add_argument("market"); actions.add_argument("symbol"); actions.add_argument("--type"); actions.add_argument("--limit",type=int,default=100)
     ownership=sub.add_parser("ownership"); ownership.add_argument("market"); ownership.add_argument("symbol"); ownership.add_argument("--as-of"); ownership.add_argument("--limit",type=int,default=100)
     catalog=sub.add_parser("catalog"); catalog.add_argument("--category"); catalog.add_argument("--limit",type=int,default=1000)
+    exceptions=sub.add_parser("exceptions"); exceptions.add_argument("market",nargs="?"); exceptions.add_argument("symbol",nargs="?"); exceptions.add_argument("--status",default="open",choices=["open","resolved","all"]); exceptions.add_argument("--limit",type=int,default=100)
+    resolve=sub.add_parser("resolve-exception"); resolve.add_argument("exception_id",type=int); resolve.add_argument("--resolution",required=True); resolve.add_argument("--assigned-to")
+    retry=sub.add_parser("retry-source"); retry.add_argument("source_key"); retry.add_argument("--registry",default="config/companies.json"); retry.add_argument("--raw-dir",default="data/raw")
+    serve=sub.add_parser("serve"); serve.add_argument("--host",default="127.0.0.1"); serve.add_argument("--port",type=int,default=8000); serve.add_argument("--api-key-env",default="FINENGINE_API_KEY")
+    run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id")
+    telegram=sub.add_parser("telegram"); telegram.add_argument("--token-env",default="TELEGRAM_BOT_TOKEN"); telegram.add_argument("--poll",type=int,default=2)
     a=p.parse_args(); Path(a.db).parent.mkdir(parents=True,exist_ok=True)
     if a.cmd=="init":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry)
         for c in reg.all(): db.register_company(c)
         db.close(); print(f"initialized {a.db} with {len(reg.all())} companies"); return
+    if a.cmd=="bootstrap":
+        result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every)
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="audit":
+        result=audit_release(a.db,a.project_root); print(json.dumps(result,indent=2))
+        if result["failures"] or (a.strict_warnings and result["warnings"]): raise SystemExit(1)
+        return
     if a.cmd=="ingest":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); c=reg.resolve(a.market,a.symbol)
         if a.file: connector=LocalFileConnector(a.file,a.source_url)
@@ -149,7 +217,8 @@ def main():
         db=Database(a.db); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
         worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
         handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
-                  "fetch_document":_fetch_document_job_handler(db)}
+                  "fetch_document":_fetch_document_job_handler(db,queue),
+                  "extract_document":_extract_document_job_handler(db)}
         runner=Worker(queue,worker_id,handlers)
         if a.once:
             created=scheduler.tick(); worked=runner.run_once(); print(json.dumps({"scheduled_jobs":len(created),"worked":worked,"worker_id":worker_id})); db.close(); return
@@ -159,6 +228,46 @@ def main():
                 if not runner.run_once(): time.sleep(max(1,min(a.poll,30)))
         except KeyboardInterrupt:
             db.close(); return
+    if a.cmd=="serve":
+        api_key=os.environ.get(a.api_key_env) or None
+        print(f"read-only API listening on http://{a.host}:{a.port}")
+        try: serve_api(a.db,a.host,a.port,api_key)
+        except KeyboardInterrupt: return
+    if a.cmd=="run":
+        db=Database(a.db); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
+        worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
+        handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
+                  "fetch_document":_fetch_document_job_handler(db,queue),
+                  "extract_document":_extract_document_job_handler(db)}
+        runner=Worker(queue,worker_id,handlers)
+        server=create_api_server(a.db,a.host,a.port,os.environ.get(a.api_key_env) or None)
+        api_thread=threading.Thread(target=server.serve_forever,name="finengine-api",daemon=True); api_thread.start()
+        print(f"engine worker and read-only API running on http://{a.host}:{a.port}")
+        try:
+            while True:
+                scheduler.tick()
+                if not runner.run_once(): time.sleep(max(1,min(a.poll,30)))
+        except KeyboardInterrupt: pass
+        finally:
+            server.shutdown(); server.server_close(); api_thread.join(timeout=5); db.close()
+        return
+    if a.cmd=="telegram":
+        token=os.environ.get(a.token_env,"").strip()
+        if not token: p.error(f"{a.token_env} is required")
+        try: TelegramBot(a.db,token).serve(a.poll)
+        except KeyboardInterrupt: return
+    if a.cmd=="exceptions":
+        if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
+        q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
+    if a.cmd=="resolve-exception":
+        db=Database(a.db); result=db.resolve_exception(a.exception_id,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="retry-source":
+        db=Database(a.db); row=db.stored_source(a.source_key); reg=CompanyRegistry.from_json(a.registry); company=reg.get(row["company_id"])
+        path=Path(row["local_path"] or "")
+        if not path.is_file(): db.close(); raise FileNotFoundError(f"archived source is missing: {path}")
+        document=SourceDocument(row["company_id"],company.market,row["source_url"],row["source_key"],row["filing_type"],row["filed_at"],path.read_bytes(),row["content_type"],json.loads(row["metadata_json"]))
+        db.reopen_source_for_retry(a.source_key)
+        result=Pipeline(db,a.raw_dir).run(company,StoredDocumentConnector(document)); db.close(); print(json.dumps(result,indent=2)); return
     if a.cmd=="facts":
         q=FinancialQueryService(a.db); print(json.dumps(q.facts(a.market,a.symbol,a.category,a.period_kind,a.limit),indent=2)); q.close(); return
     if a.cmd=="coverage":

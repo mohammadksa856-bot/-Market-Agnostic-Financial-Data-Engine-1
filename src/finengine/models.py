@@ -96,6 +96,8 @@ class ExtractedFact:
     page: int | None = None
     table_ref: str | None = None
     location: dict[str, Any] = field(default_factory=dict)
+    scope: str = "consolidated"
+    dimensions: dict[str, str] = field(default_factory=dict)
 
 @dataclass(frozen=True)
 class MappedFact:

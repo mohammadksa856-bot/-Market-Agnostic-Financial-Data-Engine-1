@@ -12,7 +12,7 @@ from typing import Iterable
 from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, TypedFact, ValueType
 
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -218,7 +218,9 @@ CREATE TABLE IF NOT EXISTS extracted_facts(
  id INTEGER PRIMARY KEY, source_key TEXT NOT NULL REFERENCES source_documents(source_key), company_id TEXT NOT NULL REFERENCES companies(company_id),
  raw_label TEXT NOT NULL, raw_value TEXT NOT NULL, raw_currency TEXT NOT NULL, raw_unit TEXT NOT NULL, scale TEXT NOT NULL,
  period_start TEXT, period_end TEXT NOT NULL, period_kind TEXT NOT NULL, fiscal_year INTEGER NOT NULL, fiscal_quarter INTEGER,
- accession TEXT, form TEXT, page INTEGER, table_ref TEXT, location_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+ accession TEXT, form TEXT, page INTEGER, table_ref TEXT, location_json TEXT NOT NULL DEFAULT '{}',
+ scope TEXT NOT NULL DEFAULT 'consolidated', dimensions_json TEXT NOT NULL DEFAULT '{}',
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS mapped_facts(
  id INTEGER PRIMARY KEY, extracted_fact_id INTEGER NOT NULL REFERENCES extracted_facts(id), canonical_metric TEXT,
  confidence TEXT NOT NULL, mapping_method TEXT NOT NULL, reason TEXT, status TEXT NOT NULL CHECK(status IN ('accepted','review')),
@@ -226,7 +228,8 @@ CREATE TABLE IF NOT EXISTS mapped_facts(
 CREATE TABLE IF NOT EXISTS normalized_facts(
  id INTEGER PRIMARY KEY, mapped_fact_id INTEGER NOT NULL REFERENCES mapped_facts(id), normalized_value TEXT NOT NULL,
  currency TEXT NOT NULL, unit TEXT NOT NULL, period_start TEXT, period_end TEXT NOT NULL, period_kind TEXT NOT NULL,
- fiscal_year INTEGER NOT NULL, fiscal_quarter INTEGER, status TEXT NOT NULL DEFAULT 'staged' CHECK(status IN ('staged','validated','rejected','published')),
+ fiscal_year INTEGER NOT NULL, fiscal_quarter INTEGER, scope TEXT NOT NULL DEFAULT 'consolidated',
+ dimensions_json TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'staged' CHECK(status IN ('staged','validated','rejected','published')),
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS validation_results(
  id INTEGER PRIMARY KEY, source_key TEXT NOT NULL REFERENCES source_documents(source_key), company_id TEXT NOT NULL,
@@ -360,6 +363,9 @@ class Database:
             "freshness_status": "TEXT NOT NULL DEFAULT 'unknown'", "age_seconds": "INTEGER",
         }.items():
             self._ensure_column("coverage_status", name, definition)
+        for table in ("extracted_facts", "normalized_facts"):
+            self._ensure_column(table, "scope", "TEXT NOT NULL DEFAULT 'consolidated'")
+            self._ensure_column(table, "dimensions_json", "TEXT NOT NULL DEFAULT '{}'")
         # Ratio outputs are dimensionless. Older databases inherited the source currency
         # from their input fact, which made bot/report formatting misleading.
         self.conn.execute(
@@ -666,11 +672,12 @@ class Database:
         for f in facts:
             cur = self.conn.execute(
                 """INSERT INTO extracted_facts(source_key,company_id,raw_label,raw_value,raw_currency,raw_unit,
-                scale,period_start,period_end,period_kind,fiscal_year,fiscal_quarter,accession,form,page,table_ref,location_json)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                scale,period_start,period_end,period_kind,fiscal_year,fiscal_quarter,accession,form,page,
+                table_ref,location_json,scope,dimensions_json)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (f.source_key, f.company_id, f.raw_label, str(f.raw_value), f.raw_currency, f.raw_unit, str(f.scale),
                  f.period_start, f.period_end, f.period_kind.value, f.fiscal_year, f.fiscal_quarter,
-                 f.accession, f.form, f.page, f.table_ref, _json(f.location)))
+                 f.accession, f.form, f.page, f.table_ref, _json(f.location), f.scope, _json(f.dimensions)))
             ids.append(cur.lastrowid)
         self.conn.commit(); return ids
 
@@ -689,11 +696,33 @@ class Database:
         for f, index in zip(facts, accepted_indexes):
             cur = self.conn.execute(
                 """INSERT INTO normalized_facts(mapped_fact_id,normalized_value,currency,unit,period_start,
-                period_end,period_kind,fiscal_year,fiscal_quarter) VALUES(?,?,?,?,?,?,?,?,?)""",
+                period_end,period_kind,fiscal_year,fiscal_quarter,scope,dimensions_json)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
                 (mapped_ids[index], str(f.value), f.currency, f.unit, f.period_start, f.period_end,
-                 f.period_kind.value, f.fiscal_year, f.fiscal_quarter))
+                 f.period_kind.value, f.fiscal_year, f.fiscal_quarter, f.scope, _json(f.dimensions)))
             ids.append(cur.lastrowid)
         self.conn.commit(); return ids
+
+    def validation_history(self, company_id: str, metrics: set[str]) -> list[Fact]:
+        """Return current published flow facts used by cross-period validation."""
+        if not metrics:
+            return []
+        placeholders = ",".join("?" for _ in metrics)
+        rows = self.conn.execute(
+            f"""SELECT * FROM data_points WHERE company_id=? AND metric_key IN ({placeholders})
+            AND period_kind IN ('quarter','ytd','fy') AND is_current=1""",
+            (company_id, *sorted(metrics)),
+        ).fetchall()
+        return [Fact(
+            company_id=row["company_id"], metric=row["metric_key"], value=Decimal(row["value_decimal"]),
+            currency=row["currency"], unit=row["unit"], period_start=row["period_start"] or None,
+            period_end=row["period_end"], period_kind=PeriodKind(row["period_kind"]),
+            fiscal_year=row["fiscal_year"], fiscal_quarter=row["fiscal_quarter"] or None,
+            source_key=row["source_key"], source_url=row["source_url"], filed_at=row["filed_at"],
+            accession=row["accession"], form=row["form"], scope=row["scope"],
+            dimensions=json.loads(row["dimensions_json"]), quality_score=Decimal(row["quality_score"]),
+            metric_version=row["metric_version"],
+        ) for row in rows]
 
     def save_validation(self, source_key: str, company_id: str, errors: list[dict]):
         if errors:
@@ -871,6 +900,45 @@ class Database:
             VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
             (company_id, source_key, stage, code, message, _json(payload or {}), severity)); self.conn.commit()
 
+    def resolve_exception(self, exception_id: int, resolution: str,
+                          assigned_to: str | None = None) -> dict:
+        if not resolution.strip():
+            raise ValueError("resolution is required")
+        row = self.conn.execute("SELECT * FROM exceptions WHERE id=?", (exception_id,)).fetchone()
+        if not row:
+            raise KeyError(f"unknown exception {exception_id}")
+        with self.conn:
+            self.conn.execute(
+                """UPDATE exceptions SET status='resolved',resolution=?,assigned_to=COALESCE(?,assigned_to),
+                updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                (resolution.strip(), assigned_to, exception_id),
+            )
+        return {"exception_id": exception_id, "status": "resolved", "source_key": row["source_key"]}
+
+    def reopen_source_for_retry(self, source_key: str) -> None:
+        row = self.conn.execute(
+            "SELECT status FROM source_documents WHERE source_key=?", (source_key,)
+        ).fetchone()
+        if not row:
+            raise KeyError(f"unknown source {source_key}")
+        if row["status"] != "review_required":
+            raise ValueError(f"source is not awaiting review: {source_key}")
+        open_count = self.conn.execute(
+            "SELECT count(*) FROM exceptions WHERE source_key=? AND status='open'", (source_key,)
+        ).fetchone()[0]
+        if open_count:
+            raise ValueError(f"source still has {open_count} open exception(s)")
+        self.reset_unfinished_source(source_key)
+
+    def stored_source(self, source_key: str) -> dict:
+        row = self.conn.execute(
+            """SELECT s.*,c.market,c.symbol FROM source_documents s
+            JOIN companies c USING(company_id) WHERE source_key=?""", (source_key,)
+        ).fetchone()
+        if not row:
+            raise KeyError(f"unknown source {source_key}")
+        return dict(row)
+
     def upsert_backlog_item(
         self, idempotency_key: str, item_type: str, domain: str, title: str,
         company_id: str | None = None, description: str | None = None,
@@ -954,7 +1022,8 @@ class Database:
             "open_backlog": "backlog_items WHERE status IN ('open','ready','in_progress','blocked')",
             "completed_backlog": "backlog_items WHERE status='completed'",
             "open_exceptions": "exceptions WHERE status='open'", "queued_jobs": "jobs WHERE status='queued'",
-            "dead_jobs": "jobs WHERE status='dead'",
+            "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
+            "active_schedules": "schedules WHERE enabled=1",
         }
         counts = {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] for key, table in tables.items()}
         counts["schema_version"] = SCHEMA_VERSION

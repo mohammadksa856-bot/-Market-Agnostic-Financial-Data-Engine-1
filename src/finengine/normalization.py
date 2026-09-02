@@ -16,6 +16,11 @@ class NormalizationEngine:
             value=raw.raw_value * raw.scale
             # Capex is stored as a positive investment amount; formulas apply its cash-flow sign explicitly.
             if item.metric == "capex": value=abs(value)
-            facts.append(Fact(raw.company_id,item.metric,value,raw.raw_currency,raw.raw_unit,raw.period_start,raw.period_end,raw.period_kind,raw.fiscal_year,raw.fiscal_quarter,raw.source_key,raw.source_url,raw.filed_at,raw.accession,raw.form))
+            facts.append(Fact(
+                raw.company_id,item.metric,value,raw.raw_currency,raw.raw_unit,
+                raw.period_start,raw.period_end,raw.period_kind,raw.fiscal_year,
+                raw.fiscal_quarter,raw.source_key,raw.source_url,raw.filed_at,
+                raw.accession,raw.form,scope=raw.scope,dimensions=raw.dimensions,
+            ))
             accepted.append(index)
         return facts,errors,accepted

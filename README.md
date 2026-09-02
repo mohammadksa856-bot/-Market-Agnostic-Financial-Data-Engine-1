@@ -1,210 +1,216 @@
-# Market-Agnostic Financial Data Engine
+# Market-Agnostic Financial Data Engine 1.0
 
-An auditable financial data factory for Saudi and US companies. The production model is row-based and can hold hundreds or thousands of facts per company without adding a column for every metric. Every automated or AI-assisted result is confined to staging. Only deterministic normalization and validation code can open the publication gate.
+An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
-## What is implemented
+AI or probabilistic extractors never write to production. PDF/XLSX output enters staging and must pass the same mapping, normalization, validation, and publication gate as deterministic connectors.
 
-- Company registry seeded with Saudi Aramco and AAPL, MSFT, and NVDA.
-- Stateful source monitoring with persistent cursors for SEC submissions and official issuer report pages.
-- Live SEC Company Facts (EDGAR/XBRL JSON) fetcher with SEC-compliant identifying User-Agent.
-- An official-domain issuer monitor for Saudi PDF/XLSX reports, plus the configurable Saudi JSON manifest fetcher for structured adapters.
-- A durable `source_candidates` inbox that records every newly discovered filing before download or processing.
-- SHA-256 raw archive and source-level idempotency.
-- US-GAAP and Arabic/English Saudi label mapping into canonical metrics.
-- Persistent `extracted_facts`, `mapped_facts`, and `normalized_facts` staging layers.
-- Source-faithful raw labels, values, page/table references, and XBRL taxonomy provenance.
-- Exact dictionary mappings carry a confidence of 1.0; anything below 0.95 is blocked for review.
-- Explicit instant, discrete-quarter, YTD, FY, and TTM semantics.
-- Deterministic normalization (scale, Decimal values, units and currencies).
-- Validation including the balance-sheet equation; failures go to an exception queue and do not publish.
-- Immutable versions for restatements with one current observation.
-- Multi-dimensional facts for segments, products, geographies, reserves, production and other company-specific details.
-- Separate versioned stores for numeric facts, disclosures, company attributes and corporate events.
-- A versioned metric catalog covering financial statements, ratios, calculated metrics and operational KPIs.
-- FCF, net margin, liabilities/equity, and historical four-discrete-quarter TTM calculations.
-- Atomic batch publication: a validated filing is fully published or fully rolled back.
-- A durable background job queue with idempotency keys, leases, retries, exponential backoff, worker heartbeats and attempt history.
-- Persistent schedules that survive restarts and a read-only query service with facts, snapshots, disclosures, attributes and health views.
-- Separate company, security and listing identities so one company can have multiple securities or market listings.
-- Dedicated versioned stores for daily/intraday market prices, ownership snapshots and structured corporate actions.
-- Typed production facts (`decimal`, `text`, `date`, `boolean`, `json`) for financial, operational and general company data.
-- A calculation registry that versions each formula and records its metric dependencies.
-- Market, sector, industry and company metric packs with required/recommended/optional applicability rules.
-- An Integrated Oil & Gas metric pack covering full statements, shareholder distributions, oil-price sensitivity and operating capacity.
-- Automatic coverage scoring for every processed period, including missing required metrics and source freshness.
-- A durable data backlog that turns metric coverage gaps and empty company domains into prioritized, idempotent work items and closes them automatically when filled.
-- Configurable freshness policies by market, sector, industry or company; no arbitrary SLA is imposed by default.
-- Unit/integration tests and GitHub Actions.
+## Release status
 
-## Data model
+The bundled portable snapshot is rebuilt from 26 reviewed manifests and currently contains:
 
-`data_points` is the canonical numeric/typed fact store. Its identity includes company, metric, period semantics, currency, unit, consolidation scope and an arbitrary dimension set. Examples of dimensions are `segment=Upstream`, `product=Crude oil`, `geography=Saudi Arabia` or `reserve_type=Proved`.
+- 4 enabled companies: Saudi Aramco, Apple, Microsoft, and NVIDIA.
+- 321 current facts and 323 total fact versions.
+- 216 current Aramco facts, including complete annual packs for 2021–2025 and discrete Q1/H1 2026 semantics.
+- 85 Apple facts, plus an audited FY 2026 baseline for Microsoft and NVIDIA.
+- 26 published source documents, four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
+- Schema version 7 and 38 unit/integration/release tests.
 
-The other production domains are:
+The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, and company coverage.
 
-- `metric_definitions`: the versioned master schema and aggregation rules.
-- `disclosures`: strategy, risks, guidance, management commentary and announcement text.
-- `company_attributes`: general information such as employees, headquarters, activities and governance attributes.
-- `corporate_events`: dividends, capital changes, acquisitions and other dated events.
-- `securities` and `listings`: company-issued instruments and their market-specific symbols.
-- `market_prices`: OHLCV/turnover time series kept outside filing facts.
-- `ownership_positions`: holder snapshots with shares, ownership percentages and versions.
-- `corporate_actions`: structured dividends, splits, rights issues, capital changes and their relevant dates.
-- `calculation_definitions` and `calculation_dependencies`: auditable deterministic formula versions.
-- `metric_applicability`: reusable market/sector/industry/company metric packs.
-- `coverage_status`: expected versus available metrics for each period and domain.
-- `freshness_policies`: reviewed age limits used to mark coverage as fresh or stale.
-- `source_documents`: immutable provenance for every published item.
-- `source_candidates`: the auditable discovery inbox, including queued, fetched, ignored and failed items.
-- `backlog_items`: prioritized missing-data work for historical statements, individual metrics, disclosures, profiles, prices, ownership and corporate actions. It is separate from production facts and execution jobs.
+## Architecture
 
-Raw PDFs, HTML, XBRL and JSON are archived as files; the database stores their hashes, paths, content types and processing state.
+    official issuer index / SEC submissions
+        -> source_candidates discovery inbox
+        -> durable fetch job and immutable source archive
+        -> extracted_facts (source label, value, page/table, scope, dimensions)
+        -> mapped_facts (canonical metric, method, confidence)
+        -> normalized_facts (deterministic units, scale, sign and periods)
+        -> validation gate (required fields, balance sheet, YTD/FY roll-forwards)
+        -> calculated metrics (FCF, margins, leverage and TTM)
+        -> versioned production stores
+        -> read-only HTTP API / Telegram bot / Arabic report
 
-## Pipeline
+For Saudi PDF/XLSX documents, the worker archives the binary and creates a durable `document_extraction` backlog item. A reviewed extractor can then produce source-faithful staging facts. Unsupported binary formats never disappear silently and never publish placeholder values.
 
-    official index / SEC submissions -> source_candidates
-                   -> durable fetch/ingest job -> immutable raw document
-                   -> extracted_facts (source-faithful staging)
-                   -> mapped_facts (canonical metric + confidence)
-                   -> normalized_facts (deterministic code)
-                   -> rules/validation gate
-                   -> deterministic calculations
-                   -> versioned production observations
-                   -> read-only API / Telegram bot
+## Fastest way to inspect the bundled data
 
-Any extraction, mapping, or validation ambiguity goes to `exceptions`; a blocked source publishes zero observations. There is no method that publishes an extracted or mapped fact directly.
-
-AI-assisted PDF table extraction belongs before mapping. It may write only source-faithful extracted facts, including location evidence, and never receives a production database write path.
-
-## Quick start
-
-Requires Python 3.11+ and no runtime packages.
+Python 3.11+ is required. There are no runtime package dependencies.
 
     python -m venv .venv
-    .venv/Scripts/pip install -e .       # Windows
-    python -m finengine --db data/financial.sqlite3 init
+    .venv/Scripts/pip install -e .
+    finengine --db data/financial.sqlite3 audit --project-root . --strict-warnings
+    finengine --db data/financial.sqlite3 query SA 2222 revenue
+    finengine --db data/financial.sqlite3 facts SA 2222 --category operational
+    finengine --db data/financial.sqlite3 report
 
-SEC live ingest (replace the contact identity):
+Open `data/financial-report.html` for the Arabic searchable report. It has company, period, and category filters and links every fact to its official source. `data/financial-data.csv` is Excel-compatible.
+
+## Rebuild the database from source manifests
+
+The snapshot is reproducible; the binary database is not the only copy of the data.
+
+    finengine --db data/financial.sqlite3 bootstrap --replace --schedule-every 21600
+
+This command builds a temporary database, ingests every reviewed manifest, refreshes coverage and backlog, creates monitoring schedules, verifies database integrity, keeps a `.bak` safety copy, atomically replaces the snapshot, and regenerates the HTML/CSV outputs.
+
+To build a separate verification copy, omit `--replace` and choose another database path:
+
+    finengine --db data/verification.sqlite3 bootstrap
+
+## Run continuously
+
+Set a real SEC operator identity before enabling US monitoring:
 
     set SEC_USER_AGENT=YourProduct your-email@example.com
-    python -m finengine --db data/financial.sqlite3 ingest US AAPL
 
-Poll the live sources once. SEC detects new filing accessions before refreshing Company Facts;
-Aramco discovers only report files hosted on the official issuer domain:
+Optionally protect the API:
 
-    set SEC_USER_AGENT=YourProduct your-email@example.com
-    python -m finengine --db data/financial.sqlite3 monitor US AAPL
-    python -m finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 12
+    set FINENGINE_API_KEY=replace-with-a-long-random-secret
 
-For a deliberate historical backfill, increase `--source-limit` (up to 1000). The same
-idempotency rules prevent already recorded reports from being queued again:
+Start the durable scheduler, worker, and read-only API together:
 
-    python -m finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 500
+    finengine --db data/financial.sqlite3 run --host 127.0.0.1 --port 8000
 
-Inspect the discovery inbox without changing data:
+The worker survives normal restarts because schedules, jobs, attempts, leases, cursors, source candidates, and backlog are stored in SQLite. Repeated polling and ingestion are idempotent. Failed jobs retry with exponential backoff; expired leases are recovered; terminal failures remain visible as dead jobs.
 
-    python -m finengine --db data/financial.sqlite3 sources SA 2222
+For separate processes, use:
 
-Saudi ingest uses a public issuer/Exchange adapter that produces the documented manifest contract:
+    finengine --db data/financial.sqlite3 worker
+    finengine --db data/financial.sqlite3 serve --host 127.0.0.1 --port 8000
 
-    python -m finengine --db data/financial.sqlite3 ingest SA 2222 --sa-manifest https://your-source/aramco-2024.json
+SQLite is intended for one publishing worker. Migrate the same model to PostgreSQL before running multiple concurrent publishers or multi-host workers.
 
-Read-only bot/API query:
+## Read-only API
 
-    python -m finengine --db data/financial.sqlite3 query SA 2222 revenue
+All API database connections use SQLite `mode=ro`. Only `GET` is supported; write requests return `405 read_only_service`.
 
-List up to 500 current facts, optionally filtered by category or period semantics:
+Examples:
 
-    python -m finengine --db data/financial.sqlite3 facts SA 2222 --category financial
+    GET /health
+    GET /v1/companies/SA/2222
+    GET /v1/companies/SA/2222/facts?category=financial&limit=100
+    GET /v1/companies/SA/2222/snapshot?period_end=2025-12-31
+    GET /v1/companies/SA/2222/metrics/revenue?limit=10
+    GET /v1/companies/SA/2222/coverage
+    GET /v1/companies/SA/2222/backlog
+    GET /v1/companies/SA/2222/disclosures
+    GET /v1/companies/SA/2222/attributes
+    GET /v1/companies/SA/2222/prices
+    GET /v1/companies/SA/2222/ownership
+    GET /v1/companies/SA/2222/actions
+    GET /v1/exceptions?status=open
 
-Show database and worker health:
+When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
 
-    python -m finengine --db data/financial.sqlite3 status
+## Telegram bot
 
-Inspect the metric catalog and period coverage:
+Create a bot with BotFather, keep the token outside the repository, then run:
 
-    python -m finengine --db data/financial.sqlite3 catalog --category financial
-    python -m finengine --db data/financial.sqlite3 coverage SA 2222 --refresh
+    set TELEGRAM_BOT_TOKEN=123456:replace-me
+    finengine --db data/financial.sqlite3 telegram
 
-Refresh and inspect the durable data backlog without publishing incomplete data:
+Supported commands:
 
-    python -m finengine --db data/financial.sqlite3 backlog --refresh
-    python -m finengine --db data/financial.sqlite3 backlog SA 2222 --status active
+    /company SA 2222
+    /metric SA 2222 revenue
+    /snapshot SA 2222 2025-12-31
+    /coverage SA 2222
+    /health
 
-Read structured market/company domains:
+The Telegram adapter uses `FinancialQueryService`, so it has no production write path.
 
-    python -m finengine --db data/financial.sqlite3 prices SA 2222
-    python -m finengine --db data/financial.sqlite3 ownership SA 2222
-    python -m finengine --db data/financial.sqlite3 actions SA 2222 --type cash_dividend
+## Period semantics and validation
 
-Create persistent monitoring schedules and run the background worker:
+`period_kind` is explicit and never inferred at query time:
 
-    python -m finengine --db data/financial.sqlite3 schedule US AAPL --every 21600
-    python -m finengine --db data/financial.sqlite3 schedule SA 2222 --every 21600 --source-limit 12
-    python -m finengine --db data/financial.sqlite3 worker
+- `instant`: a balance at one date.
+- `quarter`: one discrete fiscal quarter.
+- `ytd`: cumulative from fiscal-year start through the stated quarter.
+- `fy`: the full fiscal year.
+- `ttm`: four published discrete quarters only.
+- `as_of`, `daily`, and `event`: non-filing company domains.
 
-The Saudi monitor archives discovered PDF/XLSX files as `awaiting_extraction`; it never
-publishes them directly. For an approved structured manifest adapter, use ingest mode:
+The publication gate validates required fields and dates, requires valid fiscal-quarter numbers, checks `Assets = Liabilities + Equity`, and checks YTD/FY totals against discrete quarters whenever all required quarters exist. A mismatch blocks the whole source batch atomically.
 
-    python -m finengine --db data/financial.sqlite3 schedule SA 2222 --every 21600 --mode ingest --sa-manifest https://your-source/aramco-latest.json
+Aramco Q1 and Q2 2026 demonstrate the roll-forward rule: the Q2 H1 values reconcile to Q1 plus discrete Q2 for revenue, net income, operating cash flow, and capex.
 
-The scheduler writes durable `jobs`; workers claim them with renewable leases. A crash or
-restart does not lose queued work. Repeated source polls, schedule ticks and downloads are
-idempotent. Failed downloads are retried with exponential backoff and stay visible in the inbox.
+Restatements never overwrite history. A changed source creates a new version and marks exactly one observation current. Identity includes company, canonical metric, period semantics, currency, unit, consolidation scope, and an arbitrary dimension set such as `segment=Upstream`, `product=Crude oil`, or `geography=Saudi Arabia`.
 
-Generate an Arabic browser report and Excel-compatible CSV:
+## Exception review
 
-    python -m finengine --db data/financial.sqlite3 report
+Inspect unresolved issues:
 
-The repository includes a portable read-only snapshot in `data/financial.sqlite3`, its
-Arabic browser view in `data/financial-report.html`, and the underlying reviewed import
-manifests. The Aramco snapshot has complete annual coverage for 2021-2025: 22 annual
-metrics and nine balance-sheet/capacity metrics per year. It includes statement lines,
-cash flow, dividends and per-share values, ROACE, gearing, realized crude price,
-production, reserves, refining, chemicals capacity and supply reliability. Comparative
-restatements remain versioned; they do not overwrite history.
+    finengine --db data/financial.sqlite3 exceptions --status open
 
-The bundled backlog also records what is not complete yet, including older Aramco periods,
-partial interim periods and empty domains for the US sample companies. Backlog entries are
-planning/audit records only; they never masquerade as verified production facts.
+Record a reviewed resolution:
 
-Useful local checks against the bundled database:
+    finengine --db data/financial.sqlite3 resolve-exception 123 --resolution "Approved mapping rule v2" --assigned-to reviewer
 
-    python -m finengine --db data/financial.sqlite3 query SA 2222 average_realized_crude_oil_price
-    python -m finengine --db data/financial.sqlite3 query SA 2222 roace
-    python -m finengine --db data/financial.sqlite3 facts SA 2222 --category operational
-    python -m finengine --db data/financial.sqlite3 coverage SA 2222
+After every exception for the source is resolved, replay the exact archived document:
 
-Build staging audit rows for a database created by an older engine version (does not republish):
+    finengine --db data/financial.sqlite3 retry-source source-key-here
 
-    python -m finengine --db data/financial.sqlite3 backfill-staging
+A source cannot be reopened while it still has open exceptions. This prevents a reviewer from accidentally bypassing the publication gate.
 
-Run tests:
+## Monitoring and ingestion
 
+Poll official sources once:
+
+    finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 12
+    finengine --db data/financial.sqlite3 monitor US AAPL
+
+For a deliberate Saudi historical discovery pass:
+
+    finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 500
+
+Live SEC ingestion uses Company Facts/XBRL JSON:
+
+    finengine --db data/financial.sqlite3 ingest US AAPL
+
+An approved Saudi structured adapter can use the manifest contract:
+
+    finengine --db data/financial.sqlite3 ingest SA 2222 --sa-manifest https://your-source/report.json
+
+The source monitor never bypasses access controls, CAPTCHAs, rate limits, or paid exchange products. Aramco discovery is restricted to the configured official issuer domain. SEC requests require an operator-identifying User-Agent.
+
+## Canonical stores
+
+- `data_points`: versioned typed facts with period, scope, dimensions, quality, formula and source provenance.
+- `metric_definitions`: canonical schema, units, categories, statements and aggregation rules.
+- `source_documents` and `source_candidates`: immutable archives and the discovery inbox.
+- `extracted_facts`, `mapped_facts`, `normalized_facts`: auditable staging layers.
+- `disclosures`: risks, strategy, guidance and management commentary.
+- `company_attributes`: general, governance and company-profile fields.
+- `market_prices`, `ownership_positions`, and `corporate_actions`: dedicated versioned domains.
+- `calculation_definitions` and dependencies: formula versions and lineage.
+- `metric_applicability` and `coverage_status`: company/market/industry metric packs and gaps.
+- `exceptions`, `backlog_items`, `jobs`, `job_attempts`, `workers`, and `schedules`: durable operations.
+
+The row-based model can hold hundreds or thousands of facts per company without adding a database column for every metric.
+
+## Backlog versus production data
+
+The bundled backlog deliberately records missing historical periods, partial interim coverage, and empty domains such as prices, ownership, disclosures, profiles, and corporate actions. A backlog item is a planning/audit record, not a fact, and can never appear in production queries.
+
+Refresh it at any time:
+
+    finengine --db data/financial.sqlite3 backlog --refresh
+    finengine --db data/financial.sqlite3 backlog SA 2222 --status active
+
+Coverage gaps close automatically when validated facts arrive. Domain tasks close when their dedicated production store is populated.
+
+## Quality checks
+
+    finengine --db data/financial.sqlite3 audit --project-root . --strict-warnings
     python -m unittest discover -s tests -v
 
-## Saudi manifest contract
+GitHub Actions runs the same test suite on every push and pull request.
 
-    {
-      "filing_type": "annual-results", "filed_at": "2025-03-01",
-      "period_end": "2024-12-31",
-      "facts": [{
-        "label": "Revenue", "value": 1000, "scale": 1000000,
-        "currency": "SAR", "unit": "SAR",
-        "period_start": "2024-01-01", "period_end": "2024-12-31",
-        "period_kind": "fy", "fiscal_year": 2024, "fiscal_quarter": null
-      }]
-    }
+## Production boundaries
 
-For YTD values use period_kind=ytd; do not label them as a discrete quarter. TTM is calculated only from four discrete quarter observations. Restated sources receive a new source key and produce a new observation version.
-
-## Production notes
-
-- Use only sources whose terms permit your intended collection and redistribution. Do not bypass login, CAPTCHA, rate limits, or paid Saudi Exchange products.
-- SEC requests must identify the operator and respect current SEC fair-access guidance.
-- SQLite uses WAL, atomic publication and a durable queue and is suitable for local/single-writer operation. Use PostgreSQL before enabling several concurrent publisher processes or production-scale multi-host workers.
-- Keep filing facts, market prices, ownership snapshots, disclosures and corporate actions in their dedicated stores; do not flatten them into one company spreadsheet.
-- Metric packs express applicability rather than forcing every metric onto every company. Sector-specific KPIs remain optional until a reviewed pack enables them.
-- Add authentication/rate limiting in the API layer; keep FinancialQueryService read-only.
-- Review open exceptions before expanding the registry or enabling scheduled publication.
-- Treat the 0.95 confidence threshold as a minimum publication policy, not as evidence that probabilistic output is correct.
+- Confirm that source terms permit the intended collection, storage, and redistribution.
+- Keep raw archives in durable object storage and back them up separately from the relational database.
+- Use a secret manager for SEC contact details, API keys, and Telegram tokens.
+- Add TLS, authentication, authorization, rate limiting, metrics, logs, and backups before exposing the service publicly.
+- Treat the current Saudi and US datasets as a reviewed seed and coverage example, not a promise that every company domain is already complete.
+- Keep probabilistic extraction below the publication boundary. Confidence thresholds reduce risk but do not replace reviewed mappings and deterministic validation.

@@ -15,3 +15,16 @@ class LocalFileConnector:
         if not filed: raise ValueError("local filing must contain a filed date")
         url=self.source_url or payload.get("source_url") or self.path.resolve().as_uri()
         return SourceDocument(company.company_id,company.market,url,"file:"+hashlib.sha256(content).hexdigest(),payload.get("filing_type","companyfacts"),filed,content)
+
+
+class StoredDocumentConnector:
+    """Replays an immutable archived document with its original identity."""
+    name = "stored-document"
+
+    def __init__(self, document: SourceDocument):
+        self.document = document
+
+    def fetch(self, company: Company) -> SourceDocument:
+        if company.company_id != self.document.company_id:
+            raise ValueError("stored document belongs to another company")
+        return self.document
