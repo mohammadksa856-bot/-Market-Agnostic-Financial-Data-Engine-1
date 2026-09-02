@@ -5,9 +5,10 @@ An auditable financial data factory for Saudi and US companies. The production m
 ## What is implemented
 
 - Company registry seeded with Saudi Aramco and AAPL, MSFT, and NVDA.
-- Source monitoring primitives and an interval scheduler.
+- Stateful source monitoring with persistent cursors for SEC submissions and official issuer report pages.
 - Live SEC Company Facts (EDGAR/XBRL JSON) fetcher with SEC-compliant identifying User-Agent.
-- Configurable Saudi JSON manifest fetcher. This intentionally keeps unstable issuer/Saudi Exchange URLs in configuration rather than hard-coding private or undocumented endpoints.
+- An official-domain issuer monitor for Saudi PDF/XLSX reports, plus the configurable Saudi JSON manifest fetcher for structured adapters.
+- A durable `source_candidates` inbox that records every newly discovered filing before download or processing.
 - SHA-256 raw archive and source-level idempotency.
 - US-GAAP and Arabic/English Saudi label mapping into canonical metrics.
 - Persistent `extracted_facts`, `mapped_facts`, and `normalized_facts` staging layers.
@@ -52,12 +53,14 @@ The other production domains are:
 - `coverage_status`: expected versus available metrics for each period and domain.
 - `freshness_policies`: reviewed age limits used to mark coverage as fresh or stale.
 - `source_documents`: immutable provenance for every published item.
+- `source_candidates`: the auditable discovery inbox, including queued, fetched, ignored and failed items.
 
 Raw PDFs, HTML, XBRL and JSON are archived as files; the database stores their hashes, paths, content types and processing state.
 
 ## Pipeline
 
-    source monitor -> fetch -> immutable raw document
+    official index / SEC submissions -> source_candidates
+                   -> durable fetch/ingest job -> immutable raw document
                    -> extracted_facts (source-faithful staging)
                    -> mapped_facts (canonical metric + confidence)
                    -> normalized_facts (deterministic code)
@@ -82,6 +85,22 @@ SEC live ingest (replace the contact identity):
 
     set SEC_USER_AGENT=YourProduct your-email@example.com
     python -m finengine --db data/financial.sqlite3 ingest US AAPL
+
+Poll the live sources once. SEC detects new filing accessions before refreshing Company Facts;
+Aramco discovers only report files hosted on the official issuer domain:
+
+    set SEC_USER_AGENT=YourProduct your-email@example.com
+    python -m finengine --db data/financial.sqlite3 monitor US AAPL
+    python -m finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 12
+
+For a deliberate historical backfill, increase `--source-limit` (up to 1000). The same
+idempotency rules prevent already recorded reports from being queued again:
+
+    python -m finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 500
+
+Inspect the discovery inbox without changing data:
+
+    python -m finengine --db data/financial.sqlite3 sources SA 2222
 
 Saudi ingest uses a public issuer/Exchange adapter that produces the documented manifest contract:
 
@@ -110,16 +129,20 @@ Read structured market/company domains:
     python -m finengine --db data/financial.sqlite3 ownership SA 2222
     python -m finengine --db data/financial.sqlite3 actions SA 2222 --type cash_dividend
 
-Create a persistent US schedule and run the background worker:
+Create persistent monitoring schedules and run the background worker:
 
     python -m finengine --db data/financial.sqlite3 schedule US AAPL --every 21600
+    python -m finengine --db data/financial.sqlite3 schedule SA 2222 --every 21600 --source-limit 12
     python -m finengine --db data/financial.sqlite3 worker
 
-Saudi schedules require the approved public manifest adapter URL:
+The Saudi monitor archives discovered PDF/XLSX files as `awaiting_extraction`; it never
+publishes them directly. For an approved structured manifest adapter, use ingest mode:
 
-    python -m finengine --db data/financial.sqlite3 schedule SA 2222 --every 21600 --sa-manifest https://your-source/aramco-latest.json
+    python -m finengine --db data/financial.sqlite3 schedule SA 2222 --every 21600 --mode ingest --sa-manifest https://your-source/aramco-latest.json
 
-The scheduler writes durable `jobs`; workers claim them with renewable leases. A crash or restart does not lose queued work. Repeated schedule ticks do not duplicate the same logical job.
+The scheduler writes durable `jobs`; workers claim them with renewable leases. A crash or
+restart does not lose queued work. Repeated source polls, schedule ticks and downloads are
+idempotent. Failed downloads are retried with exponential backoff and stay visible in the inbox.
 
 Generate an Arabic browser report and Excel-compatible CSV:
 
