@@ -1,4 +1,5 @@
-from .sec import SecCompanyFactsConnector
+from .sec import SecCompanyFactsConnector, SecFilingsMonitor
 from .saudi import SaudiManifestConnector
 from .file import LocalFileConnector
-__all__=["SecCompanyFactsConnector","SaudiManifestConnector","LocalFileConnector"]
+from .issuer import IssuerReportsMonitor
+__all__=["SecCompanyFactsConnector","SecFilingsMonitor","SaudiManifestConnector","LocalFileConnector","IssuerReportsMonitor"]
