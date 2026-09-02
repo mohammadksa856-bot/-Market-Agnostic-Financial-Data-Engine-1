@@ -279,6 +279,29 @@ class FinancialQueryService:
             result.append(item)
         return result
 
+    def exceptions(self, market: str | None = None, symbol: str | None = None,
+                   status: str = "open", limit: int = 100) -> list[dict]:
+        filters=[]; args=[]
+        if market or symbol:
+            if not market or not symbol:
+                raise ValueError("market and symbol must be supplied together")
+            filters.extend(["c.market=?", "c.symbol=?"])
+            args.extend([market.upper(), symbol.upper()])
+        if status != "all":
+            filters.append("e.status=?"); args.append(status)
+        args.append(min(max(limit,1),1000))
+        where=" WHERE " + " AND ".join(filters) if filters else ""
+        rows=self.conn.execute(
+            """SELECT e.id,e.source_key,c.market,c.symbol,e.stage,e.code,e.message,e.payload_json,
+            e.severity,e.status,e.assigned_to,e.resolution,e.retry_count,e.created_at,e.updated_at
+            FROM exceptions e LEFT JOIN companies c USING(company_id)""" + where +
+            " ORDER BY CASE e.severity WHEN 'error' THEN 0 ELSE 1 END,e.created_at LIMIT ?", args,
+        ).fetchall()
+        result=[]
+        for row in rows:
+            item=dict(row); item["payload"]=json.loads(item.pop("payload_json")); result.append(item)
+        return result
+
     def attributes(self, market: str, symbol: str) -> dict:
         rows = self.conn.execute(
             """SELECT a.attribute_key,a.value_json,a.category,a.language,a.effective_at,a.version
@@ -302,6 +325,7 @@ class FinancialQueryService:
             "completed_backlog": "backlog_items WHERE status='completed'",
             "open_exceptions": "exceptions WHERE status='open'", "queued_jobs": "jobs WHERE status='queued'",
             "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
+            "active_schedules": "schedules WHERE enabled=1",
         }
         return {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 for key, table in tables.items()}

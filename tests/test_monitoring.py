@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
+from finengine.cli import _extract_document_job_handler
 from finengine.database import Database
 from finengine.jobs import DurableJobQueue
 from finengine.models import Company, Market, SourceCandidate
@@ -132,6 +133,18 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(self.db.source_status(result["source_key"]), "awaiting_extraction")
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM data_points").fetchone()[0], 0)
         self.assertEqual(self.db.get_source_candidate(candidate_id)["status"], "fetched")
+
+        queue=DurableJobQueue(self.db)
+        registry=Path(__file__).resolve().parents[1]/"config"/"companies.json"
+        queue.enqueue("extract_document",{"source_key":result["source_key"],"registry":str(registry)},
+                      self.aramco.company_id,result["source_key"],"extract:test")
+        job=queue.claim("extractor",("extract_document",))
+        extraction=_extract_document_job_handler(self.db)(job); queue.complete(job,extraction)
+        self.assertEqual(extraction["status"],"review_required")
+        self.assertEqual(self.db.source_status(result["source_key"]),"review_required")
+        backlog=self.db.conn.execute("SELECT status,item_type FROM backlog_items").fetchone()
+        self.assertEqual((backlog["status"],backlog["item_type"]),("ready","document_extraction"))
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM data_points").fetchone()[0],0)
 
 
 if __name__ == "__main__":

@@ -81,4 +81,38 @@ class EngineTests(unittest.TestCase):
         run=self.db.conn.execute("SELECT status,stage,source_key FROM pipeline_runs WHERE run_id=?",(result["run_id"],)).fetchone()
         self.assertEqual((run["status"],run["stage"],run["source_key"]),("published","complete","fixture:crash"))
 
+    def test_dimensions_survive_every_staging_layer(self):
+        payload={"period_end":"2024-12-31","filed_at":"2025-03-01","facts":[
+            {"metric":"revenue","value":60,"period_start":"2024-01-01","period_end":"2024-12-31",
+             "period_kind":"fy","fiscal_year":2024,"scope":"segment",
+             "dimensions":{"segment":"Upstream"}}]}
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload,"fixture:dimension"))
+        self.assertEqual(result["status"],"published")
+        row=self.db.conn.execute("SELECT scope,dimensions_json FROM extracted_facts").fetchone()
+        self.assertEqual((row["scope"],json.loads(row["dimensions_json"])),("segment",{"segment":"Upstream"}))
+        query=FinancialQueryService(self.dbpath); rows=query.facts("SA","2222"); query.close()
+        self.assertEqual((rows[0]["scope"],rows[0]["dimensions"]),("segment",{"segment":"Upstream"}))
+
+    def test_ytd_rollforward_mismatch_is_blocked(self):
+        q1={"facts":[
+            {"metric":"revenue","value":10,"period_start":"2026-01-01","period_end":"2026-03-31","period_kind":"quarter","fiscal_year":2026,"fiscal_quarter":1}]}
+        q2={"facts":[
+            {"metric":"revenue","value":20,"period_start":"2026-04-01","period_end":"2026-06-30","period_kind":"quarter","fiscal_year":2026,"fiscal_quarter":2},
+            {"metric":"revenue","value":35,"period_start":"2026-01-01","period_end":"2026-06-30","period_kind":"ytd","fiscal_year":2026,"fiscal_quarter":2}]}
+        pipeline=Pipeline(self.db,Path(self.t.name)/"raw")
+        self.assertEqual(pipeline.run(self.c,FakeConnector(q1,"fixture:q1"))["status"],"published")
+        result=pipeline.run(self.c,FakeConnector(q2,"fixture:q2"))
+        self.assertEqual((result["status"],result["stage"]),("exception","validation"))
+        self.assertEqual(self.db.conn.execute("SELECT code FROM exceptions").fetchone()[0],"period_rollforward_mismatch")
+
+    def test_reviewed_exception_can_reopen_source_for_retry(self):
+        payload={"facts":[{"label":"Unknown metric","value":1,"period_start":"2026-01-01",
+            "period_end":"2026-12-31","period_kind":"fy","fiscal_year":2026}]}
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload,"fixture:review"))
+        self.assertEqual(result["status"],"exception")
+        exception_id=self.db.conn.execute("SELECT id FROM exceptions WHERE status='open'").fetchone()[0]
+        self.db.resolve_exception(exception_id,"mapping rule reviewed","reviewer")
+        self.db.reopen_source_for_retry("fixture:review")
+        self.assertEqual(self.db.source_status("fixture:review"),"fetched")
+
 if __name__=="__main__": unittest.main()
