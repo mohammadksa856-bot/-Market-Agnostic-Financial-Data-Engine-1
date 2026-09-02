@@ -9,10 +9,10 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Iterable
 
-from .models import Company, Fact, PeriodKind, SourceDocument, TypedFact, ValueType
+from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, TypedFact, ValueType
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -32,6 +32,17 @@ CREATE TABLE IF NOT EXISTS source_documents(
  content_hash TEXT NOT NULL, local_path TEXT, content_type TEXT NOT NULL DEFAULT 'application/json',
  status TEXT NOT NULL DEFAULT 'fetched', metadata_json TEXT NOT NULL DEFAULT '{}',
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS source_candidates(
+ id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
+ connector TEXT NOT NULL, external_id TEXT NOT NULL, source_url TEXT NOT NULL,
+ title TEXT NOT NULL, document_type TEXT NOT NULL, published_at TEXT,
+ content_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+ status TEXT NOT NULL DEFAULT 'discovered'
+ CHECK(status IN ('discovered','queued','fetched','ignored','error')),
+ metadata_json TEXT NOT NULL DEFAULT '{}', discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(company_id,connector,external_id));
+CREATE INDEX IF NOT EXISTS idx_source_candidate_status ON source_candidates(company_id,status,discovered_at);
 CREATE TABLE IF NOT EXISTS metric_definitions(
  metric_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, category TEXT NOT NULL,
  statement TEXT, value_type TEXT NOT NULL DEFAULT 'decimal', default_unit TEXT,
@@ -461,6 +472,77 @@ class Database:
         row = self.conn.execute("SELECT status FROM source_documents WHERE source_key=?", (key,)).fetchone()
         return row["status"] if row else None
 
+    def get_monitor_state(self, company_id: str, connector: str) -> dict:
+        row = self.conn.execute(
+            "SELECT * FROM monitor_state WHERE company_id=? AND connector=?",
+            (company_id, connector),
+        ).fetchone()
+        return dict(row) if row else {"company_id": company_id, "connector": connector, "cursor": None,
+                                      "error_count": 0}
+
+    def mark_monitor_success(self, company_id: str, connector: str, cursor: str) -> None:
+        self.conn.execute(
+            """INSERT INTO monitor_state(company_id,connector,cursor,last_checked_at,last_success_at,error_count,last_error)
+            VALUES(?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,0,NULL)
+            ON CONFLICT(company_id,connector) DO UPDATE SET cursor=excluded.cursor,
+            last_checked_at=CURRENT_TIMESTAMP,last_success_at=CURRENT_TIMESTAMP,error_count=0,last_error=NULL""",
+            (company_id, connector, cursor),
+        )
+        self.conn.commit()
+
+    def mark_monitor_failure(self, company_id: str, connector: str, error: str) -> None:
+        self.conn.execute(
+            """INSERT INTO monitor_state(company_id,connector,last_checked_at,error_count,last_error)
+            VALUES(?,?,CURRENT_TIMESTAMP,1,?)
+            ON CONFLICT(company_id,connector) DO UPDATE SET last_checked_at=CURRENT_TIMESTAMP,
+            error_count=monitor_state.error_count+1,last_error=excluded.last_error""",
+            (company_id, connector, error[:4000]),
+        )
+        self.conn.commit()
+
+    def save_source_candidate(self, candidate: SourceCandidate) -> tuple[int, bool]:
+        existing = self.conn.execute(
+            "SELECT id FROM source_candidates WHERE company_id=? AND connector=? AND external_id=?",
+            (candidate.company_id, candidate.connector, candidate.external_id),
+        ).fetchone()
+        if existing:
+            self.conn.execute(
+                """UPDATE source_candidates SET source_url=?,title=?,document_type=?,published_at=?,
+                content_type=?,metadata_json=?,last_seen_at=CURRENT_TIMESTAMP WHERE id=?""",
+                (candidate.source_url, candidate.title, candidate.document_type, candidate.published_at,
+                 candidate.content_type, _json(candidate.metadata), existing["id"]),
+            )
+            self.conn.commit()
+            return existing["id"], False
+        cursor = self.conn.execute(
+            """INSERT INTO source_candidates(company_id,connector,external_id,source_url,title,
+            document_type,published_at,content_type,metadata_json) VALUES(?,?,?,?,?,?,?,?,?)""",
+            (candidate.company_id, candidate.connector, candidate.external_id, candidate.source_url,
+             candidate.title, candidate.document_type, candidate.published_at, candidate.content_type,
+             _json(candidate.metadata)),
+        )
+        self.conn.commit()
+        return cursor.lastrowid, True
+
+    def get_source_candidate(self, candidate_id: int) -> dict:
+        row = self.conn.execute("SELECT * FROM source_candidates WHERE id=?", (candidate_id,)).fetchone()
+        if not row:
+            raise KeyError(f"unknown source candidate {candidate_id}")
+        result = dict(row)
+        result["metadata"] = json.loads(result.pop("metadata_json"))
+        return result
+
+    def set_source_candidate_status(self, candidate_id: int, status: str) -> None:
+        if status not in {"discovered", "queued", "fetched", "ignored", "error"}:
+            raise ValueError(f"invalid source candidate status: {status}")
+        updated = self.conn.execute(
+            "UPDATE source_candidates SET status=?,last_seen_at=CURRENT_TIMESTAMP WHERE id=?",
+            (status, candidate_id),
+        )
+        if updated.rowcount != 1:
+            raise KeyError(f"unknown source candidate {candidate_id}")
+        self.conn.commit()
+
     def reset_unfinished_source(self, source_key: str) -> None:
         """Clear only unpublished staging rows so a crashed job can safely restart."""
         with self.conn:
@@ -715,7 +797,8 @@ class Database:
 
     def health(self) -> dict:
         tables = {
-            "companies": "companies", "sources": "source_documents", "facts": "data_points",
+            "companies": "companies", "sources": "source_documents",
+            "source_candidates": "source_candidates", "facts": "data_points",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",

@@ -57,6 +57,24 @@ class SourceDocument:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 @dataclass(frozen=True)
+class SourceCandidate:
+    """A document discovered by a monitor but not yet trusted or published."""
+    company_id: str
+    connector: str
+    external_id: str
+    source_url: str
+    title: str
+    document_type: str
+    published_at: str | None = None
+    content_type: str = "application/octet-stream"
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+@dataclass(frozen=True)
+class DiscoveryResult:
+    cursor: str
+    candidates: tuple[SourceCandidate, ...] = ()
+
+@dataclass(frozen=True)
 class ExtractedFact:
     """A source-faithful staging fact. It is never publishable."""
     company_id: str

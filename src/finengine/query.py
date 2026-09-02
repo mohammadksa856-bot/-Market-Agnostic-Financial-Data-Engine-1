@@ -224,6 +224,28 @@ class FinancialQueryService:
             item = dict(row); item["metadata"] = json.loads(item.pop("metadata_json")); result.append(item)
         return result
 
+    def source_candidates(self, market: str, symbol: str, status: str | None = None,
+                          limit: int = 100) -> list[dict]:
+        filters = ["c.market=?", "c.symbol=?"]
+        args: list = [market.upper(), symbol.upper()]
+        if status:
+            filters.append("s.status=?")
+            args.append(status)
+        args.append(min(max(limit, 1), 2000))
+        rows = self.conn.execute(
+            """SELECT s.id,s.connector,s.external_id,s.source_url,s.title,s.document_type,
+            s.published_at,s.content_type,s.status,s.metadata_json,s.discovered_at,s.last_seen_at
+            FROM source_candidates s JOIN companies c USING(company_id) WHERE """ +
+            " AND ".join(filters) + " ORDER BY COALESCE(s.published_at,s.discovered_at) DESC LIMIT ?",
+            args,
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["metadata"] = json.loads(item.pop("metadata_json"))
+            result.append(item)
+        return result
+
     def attributes(self, market: str, symbol: str) -> dict:
         rows = self.conn.execute(
             """SELECT a.attribute_key,a.value_json,a.category,a.language,a.effective_at,a.version
@@ -237,7 +259,8 @@ class FinancialQueryService:
 
     def health(self) -> dict:
         tables = {
-            "companies": "companies", "sources": "source_documents", "facts": "data_points",
+            "companies": "companies", "sources": "source_documents",
+            "source_candidates": "source_candidates", "facts": "data_points",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",

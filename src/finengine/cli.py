@@ -1,6 +1,9 @@
 import argparse, json, os, socket, time
 from pathlib import Path
-from .connectors import LocalFileConnector, SecCompanyFactsConnector, SaudiManifestConnector
+from .connectors import (
+    IssuerReportsMonitor, LocalFileConnector, SecCompanyFactsConnector,
+    SecFilingsMonitor, SaudiManifestConnector,
+)
 from .database import Database
 from .pipeline import Pipeline
 from .query import FinancialQueryService
@@ -9,6 +12,16 @@ from .report import export_readable_report
 from .models import SourceDocument
 from .jobs import DurableJobQueue, DurableScheduler, Worker
 from .domains import CompanyDomainStore
+from .monitoring import DocumentArchiver, MonitorService
+
+
+def _sec_user_agent() -> str:
+    value = os.environ.get("SEC_USER_AGENT", "").strip()
+    if "@" not in value:
+        raise ValueError(
+            "live SEC access requires SEC_USER_AGENT='Product operator@example.com'"
+        )
+    return value
 
 
 def _ingest_job_handler(db: Database):
@@ -16,12 +29,60 @@ def _ingest_job_handler(db: Database):
         payload=job.payload; reg=CompanyRegistry.from_json(payload.get("registry","config/companies.json"))
         company=reg.resolve(payload["market"],payload["symbol"])
         if company.market.value=="US":
-            connector=SecCompanyFactsConnector(os.environ.get("SEC_USER_AGENT","finengine contact@example.com"))
+            connector=SecCompanyFactsConnector(_sec_user_agent())
         else:
             manifest=payload.get("sa_manifest")
             if not manifest: raise ValueError("Saudi scheduled ingestion requires sa_manifest")
             connector=SaudiManifestConnector(manifest)
-        return Pipeline(db,payload.get("raw_dir","data/raw")).run(company,connector,job.job_id)
+        candidate_ids = [int(value) for value in payload.get("candidate_ids", [])]
+        try:
+            result = Pipeline(db,payload.get("raw_dir","data/raw")).run(company,connector,job.job_id)
+        except Exception:
+            for candidate_id in candidate_ids:
+                db.set_source_candidate_status(candidate_id, "error")
+            raise
+        for candidate_id in candidate_ids:
+            db.set_source_candidate_status(candidate_id, "fetched")
+        return result
+    return handle
+
+
+def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
+    registry_path = payload.get("registry", "config/companies.json")
+    registry = CompanyRegistry.from_json(registry_path)
+    company = registry.resolve(payload["market"], payload["symbol"])
+    common_payload = {
+        "market": payload["market"], "symbol": payload["symbol"],
+        "registry": registry_path, "raw_dir": payload.get("raw_dir", "data/raw"),
+        "sa_manifest": payload.get("sa_manifest"),
+    }
+    service = MonitorService(db, queue)
+    if company.market.value == "US":
+        monitor = SecFilingsMonitor(_sec_user_agent())
+        return service.poll(company, monitor, "ingest", common_payload)
+    source_index = payload.get("source_index") or (company.sources[0] if company.sources else None)
+    if not source_index:
+        raise ValueError("issuer monitoring requires source_index or a registry source URL")
+    monitor = IssuerReportsMonitor(source_index, max_documents=int(payload.get("source_limit", 12)))
+    return service.poll(
+        company, monitor, "fetch_document", {"raw_dir": common_payload["raw_dir"]}, True,
+    )
+
+
+def _monitor_job_handler(db: Database, queue: DurableJobQueue):
+    def handle(job):
+        return _monitor_once(db, queue, job.payload)
+    return handle
+
+
+def _fetch_document_job_handler(db: Database):
+    def handle(job):
+        candidate_id = int(job.payload["candidate_id"])
+        try:
+            return DocumentArchiver(db, job.payload.get("raw_dir", "data/raw")).fetch(candidate_id)
+        except Exception:
+            db.set_source_candidate_status(candidate_id, "error")
+            raise
     return handle
 
 def main():
@@ -33,7 +94,9 @@ def main():
     backfill=sub.add_parser("backfill-staging"); backfill.add_argument("--registry",default="config/companies.json"); backfill.add_argument("--raw-dir",default="data/raw")
     facts=sub.add_parser("facts"); facts.add_argument("market"); facts.add_argument("symbol"); facts.add_argument("--category"); facts.add_argument("--period-kind"); facts.add_argument("--limit",type=int,default=500)
     sub.add_parser("status")
-    schedule=sub.add_parser("schedule"); schedule.add_argument("market",choices=["SA","US"]); schedule.add_argument("symbol"); schedule.add_argument("--every",type=int,required=True); schedule.add_argument("--registry",default="config/companies.json"); schedule.add_argument("--raw-dir",default="data/raw"); schedule.add_argument("--sa-manifest")
+    monitor=sub.add_parser("monitor"); monitor.add_argument("market",choices=["SA","US"]); monitor.add_argument("symbol"); monitor.add_argument("--registry",default="config/companies.json"); monitor.add_argument("--raw-dir",default="data/raw"); monitor.add_argument("--source-index"); monitor.add_argument("--source-limit",type=int,default=12); monitor.add_argument("--sa-manifest")
+    sources=sub.add_parser("sources"); sources.add_argument("market"); sources.add_argument("symbol"); sources.add_argument("--status"); sources.add_argument("--limit",type=int,default=100)
+    schedule=sub.add_parser("schedule"); schedule.add_argument("market",choices=["SA","US"]); schedule.add_argument("symbol"); schedule.add_argument("--every",type=int,required=True); schedule.add_argument("--mode",choices=["monitor","ingest"],default="monitor"); schedule.add_argument("--registry",default="config/companies.json"); schedule.add_argument("--raw-dir",default="data/raw"); schedule.add_argument("--sa-manifest"); schedule.add_argument("--source-index"); schedule.add_argument("--source-limit",type=int,default=12)
     worker=sub.add_parser("worker"); worker.add_argument("--once",action="store_true"); worker.add_argument("--poll",type=int,default=10); worker.add_argument("--worker-id")
     coverage=sub.add_parser("coverage"); coverage.add_argument("market"); coverage.add_argument("symbol"); coverage.add_argument("--refresh",action="store_true")
     prices=sub.add_parser("prices"); prices.add_argument("market"); prices.add_argument("symbol"); prices.add_argument("--interval",default="1d"); prices.add_argument("--limit",type=int,default=100)
@@ -48,7 +111,7 @@ def main():
     if a.cmd=="ingest":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); c=reg.resolve(a.market,a.symbol)
         if a.file: connector=LocalFileConnector(a.file,a.source_url)
-        elif a.market=="US": connector=SecCompanyFactsConnector(os.environ.get("SEC_USER_AGENT","finengine contact@example.com"))
+        elif a.market=="US": connector=SecCompanyFactsConnector(_sec_user_agent())
         else:
             if not a.sa_manifest: p.error("--sa-manifest is required for SA")
             connector=SaudiManifestConnector(a.sa_manifest)
@@ -68,15 +131,25 @@ def main():
         export_readable_report(a.db,a.html,a.csv); print(f"created {a.html} and {a.csv}"); return
     if a.cmd=="status":
         db=Database(a.db); result=db.health(); result["jobs_by_status"]={row["status"]:row["n"] for row in db.conn.execute("SELECT status,count(*) n FROM jobs GROUP BY status")}; db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="monitor":
+        db=Database(a.db); queue=DurableJobQueue(db)
+        payload={"market":a.market,"symbol":a.symbol,"registry":a.registry,"raw_dir":a.raw_dir,
+                 "source_index":a.source_index,"source_limit":a.source_limit,"sa_manifest":a.sa_manifest}
+        result=_monitor_once(db,queue,payload); db.close(); print(json.dumps(result,indent=2)); return
     if a.cmd=="schedule":
-        if a.market=="SA" and not a.sa_manifest: p.error("--sa-manifest is required for scheduled Saudi ingestion")
+        if a.mode=="ingest" and a.market=="SA" and not a.sa_manifest:
+            p.error("--sa-manifest is required for scheduled Saudi ingestion")
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); company=reg.resolve(a.market,a.symbol); db.register_company(company)
-        payload={"market":a.market,"symbol":a.symbol,"registry":a.registry,"raw_dir":a.raw_dir,"sa_manifest":a.sa_manifest}
-        DurableScheduler(db).upsert(f"ingest:{a.market}:{a.symbol}",f"Ingest {a.market}:{a.symbol}","ingest",a.every,payload,company.company_id)
-        db.close(); print(f"scheduled {a.market}:{a.symbol} every {a.every} seconds"); return
+        payload={"market":a.market,"symbol":a.symbol,"registry":a.registry,"raw_dir":a.raw_dir,
+                 "sa_manifest":a.sa_manifest,"source_index":a.source_index,"source_limit":a.source_limit}
+        DurableScheduler(db).upsert(f"{a.mode}:{a.market}:{a.symbol}",f"{a.mode.title()} {a.market}:{a.symbol}",a.mode,a.every,payload,company.company_id)
+        db.close(); print(f"scheduled {a.mode} for {a.market}:{a.symbol} every {a.every} seconds"); return
     if a.cmd=="worker":
         db=Database(a.db); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
-        worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"; runner=Worker(queue,worker_id,{"ingest":_ingest_job_handler(db)})
+        worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
+        handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
+                  "fetch_document":_fetch_document_job_handler(db)}
+        runner=Worker(queue,worker_id,handlers)
         if a.once:
             created=scheduler.tick(); worked=runner.run_once(); print(json.dumps({"scheduled_jobs":len(created),"worked":worked,"worker_id":worker_id})); db.close(); return
         try:
@@ -101,6 +174,8 @@ def main():
         q=FinancialQueryService(a.db); print(json.dumps(q.ownership(a.market,a.symbol,a.as_of,a.limit),indent=2)); q.close(); return
     if a.cmd=="catalog":
         q=FinancialQueryService(a.db); print(json.dumps(q.metric_catalog(a.category,a.limit),indent=2)); q.close(); return
+    if a.cmd=="sources":
+        q=FinancialQueryService(a.db); print(json.dumps(q.source_candidates(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
     q=FinancialQueryService(a.db); print(json.dumps(q.metric_history(a.market,a.symbol,a.metric,a.limit),indent=2)); q.close()
 
 if __name__=="__main__": main()
