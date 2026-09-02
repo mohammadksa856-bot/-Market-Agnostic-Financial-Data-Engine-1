@@ -108,9 +108,14 @@ class CompanyDomainTests(unittest.TestCase):
         partial = self.store.refresh_coverage("sa:TST", "2025-12-31", "fy", "financial")
         self.assertEqual((partial["expected_count"], partial["available_count"], partial["status"]),
                          (4, 2, "partial"))
+        self.assertEqual(partial["backlog"]["open"], 2)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM backlog_items WHERE item_type='coverage_gap' AND status='open'"
+        ).fetchone()[0], 2)
         self.db.publish_batch([self.fact("operating_cash_flow", "20"), self.fact("capex", "5")])
         complete = self.store.refresh_coverage("sa:TST", "2025-12-31", "fy", "financial")
         self.assertEqual(complete["status"], "complete")
+        self.assertEqual(complete["backlog"], {"open": 0, "completed": 2})
         self.store.set_freshness_policy("company", "sa:TST", "financial", 86400)
         stale = self.store.refresh_coverage("sa:TST", "2025-12-31", "fy", "financial",
                                             datetime(2026, 3, 3, tzinfo=timezone.utc))
@@ -122,6 +127,16 @@ class CompanyDomainTests(unittest.TestCase):
         }])
         energy = self.store.refresh_coverage("sa:TST", "2025-12-31", "fy", "operational")
         self.assertEqual((energy["expected_count"], energy["status"]), (1, "missing"))
+
+    def test_company_backlog_tracks_empty_domains_and_is_queryable(self):
+        result = self.store.refresh_company_backlog("sa:TST")
+        self.assertEqual((result["created"], result["open"]), (6, 6))
+        query = FinancialQueryService(self.path)
+        items = query.backlog("SA", "TST")
+        query.close()
+        self.assertEqual(len(items), 6)
+        self.assertEqual({item["item_type"] for item in items}, {"domain_backfill"})
+        self.assertIn("financial", {item["domain"] for item in items})
 
 
 if __name__ == "__main__":

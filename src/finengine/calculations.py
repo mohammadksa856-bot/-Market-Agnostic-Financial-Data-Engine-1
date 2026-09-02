@@ -10,11 +10,15 @@ class Calculator:
         for f in facts: by[(f.company_id,f.period_end,f.period_kind,f.fiscal_year,f.fiscal_quarter)][f.metric]=f
         for _,g in by.items():
             base=next(iter(g.values()))
-            def add(metric,value,formula):
-                out.append(Fact(base.company_id,metric,value,base.currency,base.unit,base.period_start,base.period_end,base.period_kind,base.fiscal_year,base.fiscal_quarter,base.source_key,base.source_url,base.filed_at,is_calculated=True,calculation=formula))
-            if "operating_cash_flow" in g and "capex" in g: add("free_cash_flow",g["operating_cash_flow"].value-abs(g["capex"].value),"operating_cash_flow - abs(capex)")
-            if "net_income" in g and "revenue" in g and g["revenue"].value: add("net_margin",g["net_income"].value/g["revenue"].value, "net_income / revenue")
-            if "total_liabilities" in g and "total_equity" in g and g["total_equity"].value: add("liabilities_to_equity",g["total_liabilities"].value/g["total_equity"].value,"total_liabilities / total_equity")
+            def add(metric,value,formula,reference=None,currency=None,unit=None):
+                source=reference or base
+                out.append(Fact(source.company_id,metric,value,source.currency if currency is None else currency,source.unit if unit is None else unit,source.period_start,source.period_end,source.period_kind,source.fiscal_year,source.fiscal_quarter,source.source_key,source.source_url,source.filed_at,is_calculated=True,calculation=formula))
+            if "operating_cash_flow" in g and "capex" in g:
+                add("free_cash_flow",g["operating_cash_flow"].value-abs(g["capex"].value),"operating_cash_flow - abs(capex)",g["operating_cash_flow"])
+            if "net_income" in g and "revenue" in g and g["revenue"].value:
+                add("net_margin",g["net_income"].value/g["revenue"].value, "net_income / revenue",g["net_income"],"","ratio")
+            if "total_liabilities" in g and "total_equity" in g and g["total_equity"].value:
+                add("liabilities_to_equity",g["total_liabilities"].value/g["total_equity"].value,"total_liabilities / total_equity",g["total_liabilities"],"","ratio")
         target_periods = {f.period_end for f in facts if f.period_kind == PeriodKind.QUARTER}
         return out + self._ttm([*(history or []), *facts, *out], target_periods)
 

@@ -195,6 +195,39 @@ class FinancialQueryService:
             item=dict(row); item["required_missing"]=json.loads(item.pop("required_missing_json")); result.append(item)
         return result
 
+    def backlog(
+        self, market: str | None = None, symbol: str | None = None,
+        status: str = "active", limit: int = 500,
+    ) -> list[dict]:
+        filters = []
+        args: list = []
+        if market or symbol:
+            if not market or not symbol:
+                raise ValueError("market and symbol must be supplied together")
+            filters.extend(["c.market=?", "c.symbol=?"])
+            args.extend([market.upper(), symbol.upper()])
+        if status == "active":
+            filters.append("b.status IN ('open','ready','in_progress','blocked')")
+        elif status != "all":
+            filters.append("b.status=?")
+            args.append(status)
+        args.append(min(max(limit, 1), 5000))
+        where = " WHERE " + " AND ".join(filters) if filters else ""
+        rows = self.conn.execute(
+            """SELECT b.backlog_id,c.market,c.symbol,c.name AS company,b.item_type,b.domain,
+            b.title,b.description,b.period_end,b.period_kind,b.metric_key,b.source_url,b.priority,
+            b.status,b.payload_json,b.job_id,b.created_at,b.updated_at,b.completed_at
+            FROM backlog_items b LEFT JOIN companies c USING(company_id)""" + where +
+            " ORDER BY CASE b.status WHEN 'in_progress' THEN 0 WHEN 'ready' THEN 1 WHEN 'open' THEN 2 ELSE 3 END,b.priority,b.created_at LIMIT ?",
+            args,
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["payload"] = json.loads(item.pop("payload_json"))
+            result.append(item)
+        return result
+
     def metric_catalog(self, category: str | None = None, limit: int = 1000) -> list[dict]:
         where="WHERE enabled=1"; args:list=[]
         if category:
@@ -265,6 +298,8 @@ class FinancialQueryService:
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",
             "coverage_rows": "coverage_status", "freshness_policies": "freshness_policies",
+            "open_backlog": "backlog_items WHERE status IN ('open','ready','in_progress','blocked')",
+            "completed_backlog": "backlog_items WHERE status='completed'",
             "open_exceptions": "exceptions WHERE status='open'", "queued_jobs": "jobs WHERE status='queued'",
             "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
         }
