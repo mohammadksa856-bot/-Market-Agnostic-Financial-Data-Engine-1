@@ -145,7 +145,7 @@ def main():
     bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
-    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end",required=True); read.add_argument("--fiscal-year",type=int,required=True); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out")
+    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end",required=True); read.add_argument("--fiscal-year",type=int,required=True); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true",help="fall back to the LLM reader if the deterministic pass fails verify"); read.add_argument("--llm-only",action="store_true",help="skip the deterministic pass"); read.add_argument("--model",default="claude-opus-5")
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true",help="run a visible browser instead of headless")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
@@ -188,14 +188,32 @@ def main():
         if result["failures"] or result["unmapped_labels"] or (a.strict_warnings and result["warnings"]): raise SystemExit(1)
         return
     if a.cmd=="read":
-        from .reading import StatementReader
+        import tempfile
+        from .verification import ManifestVerifier
         company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
-        manifest=StatementReader(a.pdf).read(
-            market=a.market,symbol=a.symbol,currency=company.currency,source_url=a.source_url,
-            filed_at=a.filed_at,period_end=a.period_end,fiscal_year=a.fiscal_year,filing_type=a.filing_type)
+        kw=dict(market=a.market,symbol=a.symbol,currency=company.currency,source_url=a.source_url,
+                filed_at=a.filed_at,period_end=a.period_end,fiscal_year=a.fiscal_year,filing_type=a.filing_type)
+        def _verify(manifest):
+            with tempfile.TemporaryDirectory() as d:
+                Path(d,"m.json").write_text(json.dumps(manifest),encoding="utf-8")
+                return ManifestVerifier(d).verify()
+        manifest=None; source="deterministic"
+        if not a.llm_only:
+            from .reading import StatementReader
+            manifest=StatementReader(a.pdf).read(**kw)
+            report=_verify(manifest)
+            if not report["ok"] and (a.llm or a.llm_only):
+                print(f"deterministic reader: {report['failures']} verify failure(s), falling back to the LLM reader",flush=True)
+                manifest=None
+        if manifest is None:
+            from .reading_llm import llm_read
+            manifest=llm_read(a.pdf,model=a.model,**kw); source=f"llm:{a.model}"
+        report=_verify(manifest)
+        manifest["verify"]={"ok":report["ok"],"passed":report["passed"],"failures":report["failures"],"source":source}
         text=json.dumps(manifest,indent=2,ensure_ascii=False)
-        if a.out: Path(a.out).write_text(text,encoding="utf-8"); print(f"wrote {len(manifest['facts'])} facts to {a.out}")
+        if a.out: Path(a.out).write_text(text,encoding="utf-8"); print(f"wrote {len(manifest['facts'])} facts ({source}) to {a.out}; verify ok={report['ok']}")
         else: print(text)
+        if not report["ok"]: raise SystemExit(1)
         return
     if a.cmd=="fetch":
         from .fetching import BrowserFetcher

@@ -244,10 +244,26 @@ each fact keeps its page number and the raw label it came from. It never invents
 a number and never writes to production; the manifest still goes through
 `finengine verify` and the full publication gate. A missed line shows up as a
 broken identity in `verify` - the deterministic reader is a fast path, not a
-guarantee of completeness. A probabilistic/LLM pass belongs behind it, only for
-pages this cannot read (scans, Arabic-only bidi tables), writing the same
-manifest shape. Requires the optional `pymupdf` extra; the core engine stays
-dependency-free.
+guarantee of completeness. Requires the optional `pymupdf` extra; the core
+engine stays dependency-free.
+
+### LLM fallback
+
+    pip install -e ".[llm]"          # adds anthropic + pymupdf
+    export ANTHROPIC_API_KEY=...
+    finengine read <report.pdf> SA 2280 --llm ...           # deterministic, then LLM if verify fails
+    finengine read <report.pdf> SA 2280 --llm-only ...       # skip the deterministic pass
+    finengine read ... --llm --model claude-haiku-4-5        # cheaper for high volume
+
+`--llm` runs the deterministic reader first and only calls the model when the
+result fails `verify` (no surprise API charges otherwise). The LLM pass reads the
+*extracted text* of the statement pages - never the raw PDF - and is held to the
+same rules: copy digits verbatim, current period only, map to the engine's
+canonical metrics or omit the line, never compute. Its output is validated
+against the metric vocabulary, re-checked by `verify`, and still passes through
+the deterministic publication gate. Use it for scans, Arabic-only right-to-left
+tables, and layouts the deterministic reader cannot follow. Typical cost is a
+couple of US cents per report.
 
 ## Quality checks
 
