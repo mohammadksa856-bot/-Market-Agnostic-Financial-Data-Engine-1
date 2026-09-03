@@ -1,0 +1,25 @@
+# Source-of-truth data and code: byte-identical LF on every platform.
+# The SHA-256 of each data/imports manifest is the immutable source_key in the
+# bundled snapshot, so a CRLF conversion on a Windows checkout forks the
+# provenance and breaks `finengine audit` and `finengine bootstrap`.
+*.json            text eol=lf
+config/*.json     text eol=lf
+data/imports/*.json text eol=lf
+*.py              text eol=lf
+*.md              text eol=lf
+*.toml            text eol=lf
+*.yml             text eol=lf
+*.yaml            text eol=lf
+.gitattributes    text eol=lf
+.gitignore        text eol=lf
+
+# Generated artifacts: keep as committed, do not normalize or diff.
+data/financial.sqlite3      binary
+data/financial-report.html  -text
+data/financial-data.csv     -text
+
+# Other binaries.
+*.sqlite3         binary
+*.pdf             binary
+*.xlsx            binary
+*.png             binary
