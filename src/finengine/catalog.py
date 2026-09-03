@@ -18,7 +18,8 @@ GROUPS = (
     ("income_statement", "data_points", "income_statement", "flow", "currency", "sum", "all", "*", _keys(
         "revenue other_income_related_to_sales revenue_and_other_income_related_to_sales cost_of_revenue gross_profit "
         "selling_general_administrative_expense research_and_development_expense exploration_expense depreciation_amortization "
-        "operating_costs operating_expenses operating_income interest_income interest_expense finance_income finance_costs "
+        "royalties_and_other_taxes purchases producing_manufacturing_expense operating_costs operating_expenses operating_income "
+        "interest_income interest_expense finance_income finance_and_other_income finance_costs "
         "investment_income share_of_profit_associates impairment_charges gain_loss_asset_sales other_income other_expense "
         "income_before_income_taxes_and_zakat zakat_expense income_tax_expense income_taxes_and_zakat net_income "
         "net_income_parent net_income_noncontrolling continuing_operations_income discontinued_operations_income "
@@ -26,11 +27,11 @@ GROUPS = (
         "weighted_average_shares_diluted minority_interest_income"
     )),
     ("balance_sheet", "data_points", "balance_sheet", "instant", "currency", "last", "all", "*", _keys(
-        "cash cash_restricted short_term_investments accounts_receivable inventory current_tax_assets other_current_assets "
+        "cash cash_restricted short_term_investments accounts_receivable inventory due_from_government current_tax_assets other_current_assets assets_held_for_sale "
         "current_assets property_plant_equipment gross_property_plant_equipment accumulated_depreciation right_of_use_assets "
-        "goodwill intangible_assets investments_associates long_term_investments deferred_tax_assets other_noncurrent_assets "
+        "goodwill intangible_assets investments_associates long_term_investments deferred_tax_assets employee_benefits_asset other_noncurrent_assets "
         "noncurrent_assets total_assets accounts_payable accrued_expenses employee_benefits_current current_debt lease_liabilities_current "
-        "tax_payable other_current_liabilities current_liabilities long_term_debt lease_liabilities_noncurrent provisions "
+        "tax_payable royalties_payable trade_payables_other_liabilities liabilities_held_for_sale other_current_liabilities current_liabilities long_term_debt lease_liabilities_noncurrent provisions "
         "employee_benefits_noncurrent deferred_tax_liabilities other_noncurrent_liabilities noncurrent_liabilities total_liabilities "
         "share_capital additional_paid_in_capital treasury_shares retained_earnings statutory_reserve other_reserves "
         "accumulated_other_comprehensive_income equity_parent noncontrolling_interests total_equity total_liabilities_equity "
@@ -39,9 +40,11 @@ GROUPS = (
     ("cash_flow", "data_points", "cash_flow", "flow", "currency", "sum", "all", "*", _keys(
         "net_income_cash_flow depreciation_amortization_cash_flow impairment_cash_flow share_based_compensation deferred_tax "
         "gain_loss_investing working_capital_change accounts_receivable_change inventory_change accounts_payable_change "
-        "other_operating_changes operating_cash_flow capex acquisitions proceeds_asset_sales purchases_investments "
+        "other_operating_changes exploration_evaluation_written_off investment_fair_value_change due_from_government_change "
+        "royalties_payable_change operating_cash_flow capex acquisitions proceeds_asset_sales purchases_investments "
         "proceeds_investments loans_to_affiliates investing_cash_flow debt_issued debt_repaid lease_payments shares_issued "
-        "shares_repurchased dividends_paid base_dividends_paid performance_linked_dividends_paid financing_cash_flow "
+        "shares_repurchased dividends_paid dividends_noncontrolling base_dividends_paid performance_linked_dividends_paid "
+        "proceeds_noncontrolling_sale short_term_borrowings_net distributions_joint_ventures_associates dividends_from_investments financing_cash_flow "
         "foreign_exchange_effect cash_change cash_beginning cash_end interest_paid interest_received taxes_paid zakat_paid "
         "free_cash_flow owner_earnings discretionary_cash_flow"
     )),
@@ -89,7 +92,8 @@ GROUPS = (
     )),
     ("segments", "data_points", "segments", "flow", "currency", "sum", "industry", "Integrated Oil & Gas", _keys(
         "upstream_revenue downstream_revenue corporate_revenue upstream_operating_income downstream_operating_income "
-        "upstream_ebitda downstream_ebitda upstream_capex downstream_capex domestic_revenue international_revenue "
+        "upstream_ebit upstream_adjusted_ebit downstream_ebit downstream_adjusted_ebit corporate_ebit corporate_adjusted_ebit "
+        "upstream_ebitda downstream_ebitda upstream_capex downstream_capex corporate_capex domestic_revenue international_revenue "
         "crude_oil_revenue refined_products_revenue chemicals_revenue natural_gas_revenue lng_revenue"
     )),
     ("oil_gas_operations", "data_points", "operational", "flow", "decimal", "average", "industry", "Integrated Oil & Gas", _keys(
@@ -98,8 +102,10 @@ GROUPS = (
         "net_refining_capacity gross_refining_capacity chemicals_production chemicals_sales net_chemicals_production_capacity "
         "total_hydrocarbon_reserves crude_oil_reserves gas_reserves reserve_replacement_ratio reserve_life_index "
         "maximum_sustainable_capacity spare_capacity supply_reliability average_realized_crude_oil_price average_realized_gas_price "
-        "average_realized_refined_product_price lifting_cost_per_boe finding_development_cost_per_boe upstream_carbon_intensity "
-        "scope_1_emissions scope_2_emissions methane_intensity flaring_intensity water_withdrawal energy_intensity"
+        "average_realized_refined_product_price lifting_cost_per_boe upstream_capex_per_boe finding_development_cost_per_boe upstream_carbon_intensity "
+        "downstream_crude_utilization base_oils_sold finished_lubricants_sold liquid_chemicals_traded crude_refined_products_traded "
+        "scope_1_emissions scope_2_emissions methane_intensity flaring_intensity water_withdrawal water_consumption energy_intensity "
+        "hydrocarbon_discharge_to_water sox_emissions industrial_waste_disposed"
     )),
 )
 

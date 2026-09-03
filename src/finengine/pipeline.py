@@ -63,7 +63,7 @@ class Pipeline:
             self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation),"stage":"validation"}
         self.db.set_normalized_status(normalized_ids,"validated")
-        history=self.db.quarter_history(company.company_id,self.calculator.TTM_FLOWS)
+        history=self.db.calculation_history(company.company_id,self.calculator.HISTORY_METRICS)
         calculated=self.calculator.calculate(facts,history); states=self.db.publish_batch(facts+calculated)
         coverage=[]
         for period_end,period_kind in sorted({(f.period_end,f.period_kind.value) for f in facts}):

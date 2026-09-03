@@ -114,6 +114,31 @@ class FinancialQueryService:
         result["completeness"] = self.completeness(market, symbol)
         return result
 
+    def company_dossier(self, market: str, symbol: str) -> dict:
+        """One read-only response containing everything known about a company."""
+        overview = self.company_overview(market, symbol)
+        facts = self.facts(market, symbol, limit=2000)
+        categories: dict[str, list[dict]] = {}
+        for fact in facts:
+            categories.setdefault(fact["category"], []).append(fact)
+        sources = self.conn.execute(
+            """SELECT s.filing_type,s.filed_at,s.source_url,s.status,s.content_hash
+            FROM source_documents s JOIN companies c USING(company_id)
+            WHERE c.market=? AND c.symbol=? ORDER BY s.filed_at DESC""",
+            (market.upper(), symbol.upper()),
+        ).fetchall()
+        return {
+            "overview": overview,
+            "attributes": self.attributes(market, symbol),
+            "ownership": self.ownership(market, symbol, limit=1000),
+            "corporate_actions": self.corporate_actions(market, symbol, limit=1000),
+            "disclosures": self.disclosures(market, symbol, limit=200),
+            "latest_snapshot": self.snapshot(market, symbol),
+            "facts_by_category": categories,
+            "coverage": self.coverage(market, symbol, limit=1000),
+            "sources": [dict(row) for row in sources],
+        }
+
     def listings(self, market: str, symbol: str) -> list[dict]:
         rows = self.conn.execute(
             """SELECT s.security_id,s.security_type,s.name AS security_name,s.isin,

@@ -10,6 +10,7 @@ from .query import FinancialQueryService
 
 HELP = """الأوامر المتاحة:
 /company SA 2222
+/profile SA 2222
 /metric SA 2222 revenue
 /snapshot SA 2222 2025-12-31
 /coverage SA 2222
@@ -37,6 +38,26 @@ def answer_command(db_path: str, text: str) -> str:
             item=query.company_overview(parts[1],parts[2])
             counts="، ".join(f"{key}: {value}" for key,value in item["fact_counts"].items()) or "لا توجد بيانات"
             return f"{item['name']} ({item['market']}:{item['symbol']})\nالعملة: {item['currency']}\nآخر تقرير: {item['latest_filing']}\nالحقائق: {counts}"
+        if command == "/profile" and len(parts)==3:
+            dossier=query.company_dossier(parts[1],parts[2]); overview=dossier["overview"]
+            attributes=dossier["attributes"]
+            def attribute(key, default="غير متوفر"):
+                return attributes.get(key,{}).get("value",default)
+            def metric(key):
+                rows=query.metric_history(parts[1],parts[2],key,1)
+                return _shown(rows[0]["value"],rows[0]["unit"],rows[0]["currency"]) if rows else "غير متوفر"
+            return (
+                f"{attribute('company_name_ar',overview['name'])} ({overview['market']}:{overview['symbol']})\n"
+                f"النشاط: {attribute('business_description_ar',attribute('business_description'))}\n"
+                f"الرئيس التنفيذي: {attribute('ceo_name')}\n"
+                f"الرئيس: {attribute('chairman_name')}\n"
+                f"الموظفون: {attribute('employees')}\n"
+                f"الإيرادات: {metric('revenue')}\nصافي الدخل: {metric('net_income')}\n"
+                f"التدفق التشغيلي: {metric('operating_cash_flow')}\nالأصول: {metric('total_assets')}\n"
+                f"الإنتاج: {metric('total_hydrocarbon_production')}\n"
+                f"الملكية المسجلة: {len(dossier['ownership'])}، الإفصاحات: {len(dossier['disclosures'])}، "
+                f"الحقائق: {sum(overview['fact_counts'].values())}"
+            )
         if command == "/metric" and len(parts) in {4,5}:
             limit=int(parts[4]) if len(parts)==5 else 8
             rows=query.metric_history(parts[1],parts[2],parts[3],limit)

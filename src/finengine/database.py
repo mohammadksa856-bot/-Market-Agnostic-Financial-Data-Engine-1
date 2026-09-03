@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import iter_catalog_fields
 
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -439,7 +439,36 @@ class Database:
             "free_cash_flow": ("operating_cash_flow - abs(capex)", "same_period", ("operating_cash_flow", "capex")),
             "net_margin": ("net_income / revenue", "same_period", ("net_income", "revenue")),
             "liabilities_to_equity": ("total_liabilities / total_equity", "same_period", ("total_liabilities", "total_equity")),
+            "operating_margin": ("operating_income / revenue", "same_period", ("operating_income", "revenue")),
+            "pretax_margin": ("income_before_income_taxes_and_zakat / revenue", "same_period", ("income_before_income_taxes_and_zakat", "revenue")),
+            "cfo_margin": ("operating_cash_flow / revenue", "same_period", ("operating_cash_flow", "revenue")),
+            "fcf_margin": ("free_cash_flow / revenue", "same_period", ("free_cash_flow", "revenue")),
+            "liabilities_to_assets": ("total_liabilities / total_assets", "same_period", ("total_liabilities", "total_assets")),
+            "equity_ratio": ("total_equity / total_assets", "same_period", ("total_equity", "total_assets")),
+            "current_ratio": ("current_assets / current_liabilities", "same_period", ("current_assets", "current_liabilities")),
+            "cash_ratio": ("cash / current_liabilities", "same_period", ("cash", "current_liabilities")),
+            "debt_to_equity": ("(current_debt + long_term_debt) / total_equity", "same_period", ("current_debt", "long_term_debt", "total_equity")),
+            "debt_to_assets": ("(current_debt + long_term_debt) / total_assets", "same_period", ("current_debt", "long_term_debt", "total_assets")),
+            "capex_to_revenue": ("abs(capex) / revenue", "same_period", ("capex", "revenue")),
+            "capex_to_cfo": ("abs(capex) / operating_cash_flow", "same_period", ("capex", "operating_cash_flow")),
+            "receivables_to_revenue": ("accounts_receivable / revenue", "same_period", ("accounts_receivable", "revenue")),
+            "inventory_to_assets": ("inventory / total_assets", "same_period", ("inventory", "total_assets")),
+            "ppe_to_assets": ("property_plant_equipment / total_assets", "same_period", ("property_plant_equipment", "total_assets")),
+            "return_on_assets": ("net_income / average(total_assets)", "annual_average_balance", ("net_income", "total_assets")),
+            "return_on_equity": ("net_income / average(total_equity)", "annual_average_balance", ("net_income", "total_equity")),
+            "asset_turnover": ("revenue / average(total_assets)", "annual_average_balance", ("revenue", "total_assets")),
         }
+        growth_sources = {
+            "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",
+            "operating_income_growth": "operating_income", "net_income_growth": "net_income",
+            "eps_growth": "eps_diluted", "asset_growth": "total_assets",
+            "equity_growth": "total_equity", "operating_cash_flow_growth": "operating_cash_flow",
+            "free_cash_flow_growth": "free_cash_flow",
+        }
+        definitions.update({
+            output: (f"{source} / prior_fy({source}) - 1", "prior_fiscal_year", (source,))
+            for output, source in growth_sources.items()
+        })
         for metric, (expression, period_rule, dependencies) in definitions.items():
             self.conn.execute(
                 """INSERT OR IGNORE INTO calculation_definitions(metric_key,formula_version,expression,period_rule)
@@ -888,6 +917,28 @@ class Database:
             f"""SELECT * FROM data_points WHERE company_id=? AND metric_key IN ({placeholders})
             AND period_kind='quarter' AND is_current=1 AND scope='consolidated' AND dimensions_hash=?
             ORDER BY period_end""",
+            (company_id, *sorted(metrics), empty_dimensions),
+        ).fetchall()
+        return [Fact(
+            company_id=row["company_id"], metric=row["metric_key"], value=Decimal(row["value_decimal"]),
+            currency=row["currency"], unit=row["unit"], period_start=row["period_start"] or None,
+            period_end=row["period_end"], period_kind=PeriodKind(row["period_kind"]),
+            fiscal_year=row["fiscal_year"], fiscal_quarter=row["fiscal_quarter"] or None,
+            source_key=row["source_key"], source_url=row["source_url"], filed_at=row["filed_at"],
+            accession=row["accession"], form=row["form"], is_calculated=bool(row["is_calculated"]),
+            calculation=row["calculation"], scope=row["scope"], dimensions=json.loads(row["dimensions_json"]),
+            quality_score=Decimal(row["quality_score"]), metric_version=row["metric_version"],
+        ) for row in rows]
+
+    def calculation_history(self, company_id: str, metrics: set[str]) -> list[Fact]:
+        """Return current consolidated observations needed by deterministic formulas."""
+        if not metrics:
+            return []
+        placeholders = ",".join("?" for _ in metrics)
+        empty_dimensions = _dimensions({})[1]
+        rows = self.conn.execute(
+            f"""SELECT * FROM data_points WHERE company_id=? AND metric_key IN ({placeholders})
+            AND is_current=1 AND scope='consolidated' AND dimensions_hash=? ORDER BY period_end""",
             (company_id, *sorted(metrics), empty_dimensions),
         ).fetchall()
         return [Fact(
