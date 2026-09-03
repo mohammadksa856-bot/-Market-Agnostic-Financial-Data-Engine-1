@@ -10,7 +10,7 @@ from .query import FinancialQueryService
 def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                       api_key: str | None = None) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
-        server_version = "FinEngineAPI/1.1"
+        server_version = "FinEngineAPI/1.2"
 
         def _send(self, status: int, payload: dict | list):
             body=json.dumps(payload,ensure_ascii=False,default=str).encode("utf-8")
@@ -45,6 +45,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     market,symbol=parts[2],parts[3]
                     tail=parts[4:]
                     if not tail: result=query.company_overview(market,symbol)
+                    elif tail==["dossier"]: result=query.company_dossier(market,symbol)
                     elif tail==["facts"]:
                         result=query.facts(market,symbol,params.get("category",[None])[0],
                             params.get("period_kind",[None])[0],self._int(params,"limit",500),

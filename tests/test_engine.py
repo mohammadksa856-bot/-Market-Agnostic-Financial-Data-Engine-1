@@ -105,6 +105,19 @@ class EngineTests(unittest.TestCase):
         self.assertEqual((result["status"],result["stage"]),("exception","validation"))
         self.assertEqual(self.db.conn.execute("SELECT code FROM exceptions").fetchone()[0],"period_rollforward_mismatch")
 
+    def test_calculations_keep_quarter_and_ytd_separate_on_same_date(self):
+        payload={"facts":[
+            {"metric":"net cash from operating activities","value":20,"period_start":"2026-04-01","period_end":"2026-06-30","period_kind":"quarter","fiscal_year":2026,"fiscal_quarter":2},
+            {"metric":"capital expenditure","value":5,"period_start":"2026-04-01","period_end":"2026-06-30","period_kind":"quarter","fiscal_year":2026,"fiscal_quarter":2},
+            {"metric":"net cash from operating activities","value":50,"period_start":"2026-01-01","period_end":"2026-06-30","period_kind":"ytd","fiscal_year":2026,"fiscal_quarter":2},
+            {"metric":"capital expenditure","value":12,"period_start":"2026-01-01","period_end":"2026-06-30","period_kind":"ytd","fiscal_year":2026,"fiscal_quarter":2}]}
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload,"fixture:q2-semantics"))
+        self.assertEqual(result["status"],"published")
+        rows=self.db.conn.execute(
+            "SELECT period_kind,value FROM observations WHERE metric='free_cash_flow' ORDER BY period_kind"
+        ).fetchall()
+        self.assertEqual([(row["period_kind"],row["value"]) for row in rows],[("quarter","15"),("ytd","38")])
+
     def test_reviewed_exception_can_reopen_source_for_retry(self):
         payload={"facts":[{"label":"Unknown metric","value":1,"period_start":"2026-01-01",
             "period_end":"2026-12-31","period_kind":"fy","fiscal_year":2026}]}

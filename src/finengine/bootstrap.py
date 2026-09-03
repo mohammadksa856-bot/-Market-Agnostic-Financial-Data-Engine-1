@@ -39,6 +39,50 @@ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
     raise ValueError(f"cannot identify company for manifest: {path}")
 
 
+def _publish_manifest_domains(
+    db: Database, company, payload: dict, source_key: str,
+) -> dict[str, dict[str, int]]:
+    """Publish reviewed non-financial domains from the same immutable manifest.
+
+    Domain records deliberately bypass the numeric extractor, but retain the
+    manifest's content-addressed source key and their own version history.
+    """
+    store = CompanyDomainStore(db)
+    counts: dict[str, dict[str, int]] = {}
+
+    def record(domain: str, state: str) -> None:
+        bucket = counts.setdefault(domain, {"inserted": 0, "restated": 0, "duplicate": 0})
+        bucket[state] += 1
+
+    effective_at = payload.get("period_end") or payload.get("filed_at")
+    for item in payload.get("company_attributes", []):
+        state = db.publish_company_attribute(
+            company.company_id, item["attribute_key"], item["value"],
+            item.get("effective_at", effective_at), source_key,
+            item.get("category", "general"), item.get("language", "en"),
+        )
+        record("company_attributes", state)
+    for item in payload.get("disclosures", []):
+        state = db.publish_disclosure(
+            company.company_id, item["disclosure_type"], item["title"], item["body_text"],
+            item.get("published_at", payload.get("filed_at")), source_key,
+            item.get("period_end", payload.get("period_end")), item.get("language", "en"),
+            item.get("metadata"),
+        )
+        record("disclosures", state)
+    for item in payload.get("ownership_positions", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_ownership_position(**values)
+        record("ownership_positions", state)
+    for item in payload.get("corporate_actions", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_corporate_action(**values)
+        record("corporate_actions", state)
+    return counts
+
+
 def rebuild_snapshot(
     output_path: str | Path,
     imports_dir: str | Path = "data/imports",
@@ -83,9 +127,11 @@ def rebuild_snapshot(
                 (portable_path, source_key),
             )
             db.conn.commit()
+            domains = _publish_manifest_domains(db, company, payload, source_key)
             results.append({
                 "manifest": manifest.name, "company_id": company.company_id,
                 "status": result["status"], "published": result.get("published", 0),
+                "domains": domains,
             })
         CompanyDomainStore(db).refresh_all_backlog()
         if schedule_every is not None:

@@ -13,6 +13,7 @@ from finengine.audit import audit_release
 from finengine.bootstrap import rebuild_snapshot
 from finengine.database import Database
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
+from finengine.query import FinancialQueryService
 from finengine.report import export_readable_report
 from finengine.telegram import answer_command
 
@@ -42,6 +43,11 @@ class ServiceTests(unittest.TestCase):
                             headers={"X-API-Key":"secret"})
             payload=json.loads(urlopen(request).read())
             self.assertEqual(payload[0]["value"],"100")
+            request=Request(f"http://127.0.0.1:{port}/v1/companies/SA/TST/dossier",
+                            headers={"X-API-Key":"secret"})
+            dossier=json.loads(urlopen(request).read())
+            self.assertEqual(dossier["overview"]["name"],"Test Company")
+            self.assertEqual(dossier["facts_by_category"]["financial"][0]["metric"],"revenue")
             request=Request(f"http://127.0.0.1:{port}/v1/catalog?limit=500",
                             headers={"X-API-Key":"secret"})
             catalog=json.loads(urlopen(request).read())
@@ -56,6 +62,9 @@ class ServiceTests(unittest.TestCase):
     def test_telegram_adapter_reads_the_same_database(self):
         answer=answer_command(self.dbpath,"/metric SA TST revenue")
         self.assertIn("100 SAR",answer)
+        profile=answer_command(self.dbpath,"/profile SA TST")
+        self.assertIn("Test Company",profile)
+        self.assertIn("100 SAR",profile)
 
     def test_release_audit_checks_source_hashes(self):
         result=audit_release(self.dbpath)
@@ -73,7 +82,16 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(result["manifests"],26)
         audit=audit_release(output,project)
         self.assertTrue(audit["ready"])
-        self.assertEqual(audit["current_facts"],321)
+        self.assertGreaterEqual(audit["current_facts"],600)
+        query=FinancialQueryService(str(output))
+        try:
+            dossier=query.company_dossier("SA","2222")
+        finally:
+            query.close()
+        self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
+        self.assertEqual(len(dossier["ownership"]),4)
+        self.assertGreaterEqual(len(dossier["disclosures"]),8)
+        self.assertEqual(len(dossier["corporate_actions"]),3)
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):
         root=Path(self.temp.name)

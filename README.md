@@ -1,4 +1,4 @@
-# Market-Agnostic Financial Data Engine 1.1
+# Market-Agnostic Financial Data Engine 1.2
 
 An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
@@ -9,12 +9,12 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 The bundled portable snapshot is rebuilt from 26 reviewed manifests and currently contains:
 
 - 4 enabled companies: Saudi Aramco, Apple, Microsoft, and NVIDIA.
-- 321 current facts and 323 total fact versions.
-- 216 current Aramco facts, including complete annual packs for 2021–2025 and discrete Q1/H1 2026 semantics.
-- 85 Apple facts, plus an audited FY 2026 baseline for Microsoft and NVIDIA.
+- 664 current facts and 721 total fact versions.
+- 469 current Aramco facts: 35 profile attributes, four ownership positions, eight disclosures, three corporate actions, detailed financial/segment/operational/ESG data, annual history for 2019–2025, and discrete Q1/H1 2026 semantics.
+- 167 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
 - 26 published source documents, four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
-- A reviewed 355-field commercial data catalog: 303 universal company fields plus a 52-field Integrated Oil & Gas sector pack.
-- Schema version 8 and 39 unit/integration/release tests.
+- A reviewed 391-field commercial data catalog: 322 universal company fields plus a 69-field Integrated Oil & Gas sector pack.
+- Schema version 9 and 40 unit/integration/release tests.
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -41,6 +41,7 @@ Python 3.11+ is required. There are no runtime package dependencies.
     .venv/Scripts/pip install -e .
     finengine --db data/financial.sqlite3 audit --project-root . --strict-warnings
     finengine --db data/financial.sqlite3 query SA 2222 revenue
+    finengine --db data/financial.sqlite3 dossier SA 2222
     finengine --db data/financial.sqlite3 facts SA 2222 --category operational
     finengine --db data/financial.sqlite3 completeness SA 2222 --refresh
     finengine --db data/financial.sqlite3 catalog --limit 500
@@ -91,6 +92,7 @@ Examples:
 
     GET /health
     GET /v1/companies/SA/2222
+    GET /v1/companies/SA/2222/dossier
     GET /v1/companies/SA/2222/facts?category=financial&limit=100
     GET /v1/companies/SA/2222/snapshot?period_end=2025-12-31
     GET /v1/companies/SA/2222/metrics/revenue?limit=10
@@ -117,6 +119,7 @@ Create a bot with BotFather, keep the token outside the repository, then run:
 Supported commands:
 
     /company SA 2222
+    /profile SA 2222
     /metric SA 2222 revenue
     /snapshot SA 2222 2025-12-31
     /coverage SA 2222
@@ -197,7 +200,7 @@ The row-based model can hold hundreds of target fields and thousands of period, 
 
 ## Backlog versus production data
 
-The bundled backlog deliberately records missing historical periods, partial interim coverage, and empty domains such as prices, ownership, disclosures, profiles, and corporate actions. A backlog item is a planning/audit record, not a fact, and can never appear in production queries.
+The bundled backlog deliberately records missing historical periods, partial interim coverage, and any still-empty domain (for example market prices). Aramco's profile, ownership, disclosures, and corporate-action domain tasks now close automatically because those stores are populated. A backlog item is a planning/audit record, not a fact, and can never appear in production queries.
 
 Refresh it at any time:
 
