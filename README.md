@@ -209,6 +209,26 @@ Refresh it at any time:
 
 Coverage gaps close automatically when validated facts arrive. Domain tasks close when their dedicated production store is populated. Catalog backfill is aggregated by category, so a company with hundreds of missing target fields remains operationally manageable while the exact missing keys stay queryable through completeness.
 
+## Reader agent
+
+    pip install -e ".[reader]"
+    finengine read <report.pdf> SA 2280 \
+      --period-end 2025-12-31 --fiscal-year 2025 --filed-at 2026-02-25 \
+      --source-url https://issuer.example/fy-2025.pdf --out data/imports/almarai-2025-fy.json
+
+Turns a filed PDF into a source-faithful manifest. It reconstructs the three
+primary statement tables from the PDF's own text-with-coordinates, picks the
+current-period column from the statement's year header, reads the reporting
+scale (`'000` / millions), and maps only the lines it can name with confidence -
+each fact keeps its page number and the raw label it came from. It never invents
+a number and never writes to production; the manifest still goes through
+`finengine verify` and the full publication gate. A missed line shows up as a
+broken identity in `verify` - the deterministic reader is a fast path, not a
+guarantee of completeness. A probabilistic/LLM pass belongs behind it, only for
+pages this cannot read (scans, Arabic-only bidi tables), writing the same
+manifest shape. Requires the optional `pymupdf` extra; the core engine stays
+dependency-free.
+
 ## Quality checks
 
     finengine --db data/financial.sqlite3 verify                 # all manifests
