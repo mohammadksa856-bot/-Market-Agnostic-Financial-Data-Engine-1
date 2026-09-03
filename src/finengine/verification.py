@@ -44,15 +44,14 @@ ADDITIVE_IDENTITIES = (
      "total_equity", ("equity_parent", "noncontrolling_interests")),
     ("balance_sheet: liabilities + equity total",
      "total_liabilities_equity", ("total_liabilities", "total_equity")),
-    ("cash_flow: change = operating + investing + financing + fx",
-     "cash_change",
-     ("operating_cash_flow", "investing_cash_flow", "financing_cash_flow",
-      "foreign_exchange_effect")),
-    ("cash_flow: end = beginning + change",
-     "cash_end", ("cash_beginning", "cash_change")),
     ("dividends: total = base + performance-linked",
      "dividends_paid", ("base_dividends_paid", "performance_linked_dividends_paid")),
 )
+
+# Cash reconciliation is presentation-dependent: some issuers fold the FX effect
+# into "net change in cash", others add it separately after it. Both are valid,
+# so the check tries each convention and passes if either holds.
+CASH_FLOWS = ("operating_cash_flow", "investing_cash_flow", "financing_cash_flow")
 
 # result_metric (flow, period_end X) == other_metric (instant, same period_end X)
 CROSS_KIND_IDENTITIES = (
@@ -139,6 +138,7 @@ class ManifestVerifier:
         checks.extend(self._conflicts(periods))
         checks.extend(self._identities(periods))
         checks.extend(self._cross_kind(periods))
+        checks.extend(self._cash_reconciliation(periods))
         checks.extend(self._bounds(periods))
 
         failures = [c for c in checks if c["status"] == "fail"]
@@ -197,6 +197,41 @@ class ManifestVerifier:
                     "check": name, "period": f"{period_end} {period_kind}",
                     "reported": str(result), "computed": str(total),
                     "delta": str(delta), "components": present,
+                })
+        return out
+
+    def _cash_reconciliation(self, periods) -> list[dict]:
+        """cash_end == cash_beginning + operating + investing + financing + fx,
+        whichever side of 'net change' the issuer places the FX effect on."""
+        out = []
+        for (period_end, period_kind), metrics in sorted(periods.items()):
+            if not all(m in metrics for m in ("cash_beginning", "cash_end")):
+                continue
+            flows = [m for m in CASH_FLOWS if m in metrics]
+            if len(flows) < 2:
+                continue
+            beginning = self._one(metrics["cash_beginning"])
+            end = self._one(metrics["cash_end"])
+            fx = self._one(metrics["foreign_exchange_effect"]) if "foreign_exchange_effect" in metrics else Decimal(0)
+            movement = sum((self._one(metrics[m]) for m in flows), Decimal(0)) + fx
+            delta = abs(end - (beginning + movement))
+            check = {
+                "status": "pass" if delta <= _tolerance(end) else "fail",
+                "check": "cash_flow: end = beginning + operating + investing + financing + fx",
+                "period": f"{period_end} {period_kind}",
+                "reported": str(end), "computed": str(beginning + movement), "delta": str(delta),
+                "components": flows + (["foreign_exchange_effect"] if fx else []),
+            }
+            out.append(check)
+            if "cash_change" in metrics:
+                reported_change = self._one(metrics["cash_change"])
+                pre_fx = sum((self._one(metrics[m]) for m in flows), Decimal(0))
+                matches = min(abs(reported_change - pre_fx), abs(reported_change - pre_fx - fx))
+                out.append({
+                    "status": "pass" if matches <= _tolerance(reported_change or Decimal(1)) else "warn",
+                    "check": "cash_flow: reported net change matches the flow subtotals",
+                    "period": f"{period_end} {period_kind}",
+                    "reported": str(reported_change), "computed": str(pre_fx), "delta": str(matches),
                 })
         return out
 

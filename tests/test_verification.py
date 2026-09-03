@@ -59,6 +59,38 @@ class ManifestVerificationTests(unittest.TestCase):
                 c["check"] == "cross-manifest value conflict" and c["status"] == "fail"
                 for c in report["detail"]))
 
+    def test_cash_reconciliation_handles_fx_on_either_side_of_net_change(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            # Issuer that adds the FX effect *after* net change (Almarai convention).
+            _write(directory, "acme-2025-fy.json", [
+                _fy("operating_cash_flow", 500),
+                _fy("investing_cash_flow", -300),
+                _fy("financing_cash_flow", -150),
+                _fy("cash_change", 50),            # net change excludes FX
+                _fy("foreign_exchange_effect", 10),
+                _fy("cash_beginning", 100),
+                _fy("cash_end", 160),              # 100 + 50 + 10
+            ])
+            report = ManifestVerifier(directory).verify()
+            self.assertTrue(report["ok"], report["detail"])
+            self.assertTrue(any(
+                c["check"].startswith("cash_flow: end = beginning")
+                and c["status"] == "pass" for c in report["detail"]))
+
+    def test_missing_cash_flow_line_is_caught(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "acme-2025-fy.json", [
+                _fy("operating_cash_flow", 500),
+                _fy("investing_cash_flow", -300),
+                _fy("financing_cash_flow", -150),
+                _fy("cash_beginning", 100),
+                _fy("cash_end", 160),  # 100 + 50 + 10(fx, not extracted) -> 150 computed, off by 10
+            ])
+            report = ManifestVerifier(directory).verify()
+            self.assertFalse(report["ok"])
+
     def test_clean_income_statement_passes(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)
