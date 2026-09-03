@@ -211,8 +211,22 @@ Coverage gaps close automatically when validated facts arrive. Domain tasks clos
 
 ## Quality checks
 
+    finengine --db data/financial.sqlite3 verify                 # all manifests
+    finengine --db data/financial.sqlite3 verify aramco-         # one company
     finengine --db data/financial.sqlite3 audit --project-root . --strict-warnings
     python -m unittest discover -s tests -v
+
+`verify` runs deterministic accounting identities on the reviewed manifests
+before the pipeline trusts them - balance sheet (`assets = liabilities + equity`,
+current + non-current), income statement (`revenue + other income`,
+`pre-tax - tax = net income`, `net income = owners + non-controlling`), cash flow
+(`change = operating + investing + financing`, `end = beginning + change`,
+period-end cash ties to the balance sheet), dividend build-up, and margin/tax-rate
+plausibility bounds. It also flags any canonical metric that appears with
+conflicting values across two manifests (a restatement or a transcription error)
+and any label it cannot map. A failure means the numbers are not source-faithful,
+whichever agent or person produced them. It exits non-zero on any failure, any
+unmapped label, or - with `--strict-warnings` - any warning.
 
 GitHub Actions runs the same test suite on every push and pull request.
 
