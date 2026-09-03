@@ -146,6 +146,7 @@ def main():
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
     read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end",required=True); read.add_argument("--fiscal-year",type=int,required=True); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out")
+    fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true",help="run a visible browser instead of headless")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
     dossier=sub.add_parser("dossier"); dossier.add_argument("market"); dossier.add_argument("symbol")
@@ -195,6 +196,14 @@ def main():
         text=json.dumps(manifest,indent=2,ensure_ascii=False)
         if a.out: Path(a.out).write_text(text,encoding="utf-8"); print(f"wrote {len(manifest['facts'])} facts to {a.out}")
         else: print(text)
+        return
+    if a.cmd=="fetch":
+        from .fetching import BrowserFetcher
+        fetcher=BrowserFetcher(raw_dir=a.raw_dir,headless=not a.show)
+        if a.discover:
+            print(json.dumps(fetcher.discover(a.url),indent=2,ensure_ascii=False))
+        else:
+            print(json.dumps(fetcher.fetch(a.url,a.market,a.symbol),indent=2,ensure_ascii=False))
         return
     if a.cmd=="ingest":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); c=reg.resolve(a.market,a.symbol)

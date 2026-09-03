@@ -12,6 +12,10 @@ requires-python = ">=3.11"
 # The reader agent (`finengine read`) parses filed PDFs. The core engine and
 # every other command stay dependency-free.
 reader = ["pymupdf>=1.24"]
+# The fetch agent (`finengine fetch`) pulls documents through headless Chromium
+# past CDN bot protection. After install: `playwright install chromium`.
+browser = ["playwright>=1.40"]
+agents = ["pymupdf>=1.24", "playwright>=1.40"]
 
 [project.scripts]
 finengine = "finengine.cli:main"

@@ -209,6 +209,26 @@ Refresh it at any time:
 
 Coverage gaps close automatically when validated facts arrive. Domain tasks close when their dedicated production store is populated. Catalog backfill is aggregated by category, so a company with hundreds of missing target fields remains operationally manageable while the exact missing keys stay queryable through completeness.
 
+## Fetch agent
+
+    pip install -e ".[browser]" && playwright install chromium
+    finengine fetch SA 2280 https://issuer.example/investors/financial-statements/ --discover
+    finengine fetch SA 2280 https://issuer.example/reports/fy-2025.pdf
+
+Pulls a filed document through headless Chromium. Simple HTTP clients are
+rejected by the CDN bot protection in front of several issuer sites; a real
+browser context presents a genuine TLS/HTTP2 fingerprint and downloads through
+the same context, so referer and hotlink checks pass. `--discover` renders an
+investor-relations page and lists the financial-report PDF links it finds; the
+plain form downloads one PDF and archives it into `data/raw/<market>/<symbol>/`
+with a SHA-256. It only archives - extraction and publication stay downstream
+(`finengine read`, then `verify`, then the pipeline).
+
+Bot protection is partly IP-reputation based: a residential connection in the
+issuer's country passes sites that reject a datacenter IP, and `--show` (visible
+browser) helps with the strictest. Tadawul stays hostile to automation - prefer
+issuer investor-relations pages.
+
 ## Reader agent
 
     pip install -e ".[reader]"
