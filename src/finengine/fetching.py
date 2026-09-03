@@ -61,7 +61,12 @@ class BrowserFetcher:
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
             page = context.new_page()
-            page.goto(index_url, timeout=self.timeout_ms, wait_until="networkidle")
+            page.goto(index_url, timeout=self.timeout_ms, wait_until="domcontentloaded")
+            # give client-rendered link lists a moment; do not wait for networkidle -
+            # corporate sites keep long-poll / analytics connections open forever.
+            with contextlib.suppress(Exception):
+                page.wait_for_load_state("load", timeout=8000)
+            page.wait_for_timeout(2500)
             raw = page.eval_on_selector_all(
                 "a[href]", "els => els.map(e => [e.href, (e.textContent||'').trim()])")
         seen, out = set(), []
