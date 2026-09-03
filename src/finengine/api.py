@@ -10,7 +10,7 @@ from .query import FinancialQueryService
 def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                       api_key: str | None = None) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
-        server_version = "FinEngineAPI/1.0"
+        server_version = "FinEngineAPI/1.1"
 
         def _send(self, status: int, payload: dict | list):
             body=json.dumps(payload,ensure_ascii=False,default=str).encode("utf-8")
@@ -54,6 +54,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     elif len(tail)==2 and tail[0]=="metrics":
                         result=query.metric_history(market,symbol,tail[1],self._int(params,"limit",20))
                     elif tail==["coverage"]: result=query.coverage(market,symbol,self._int(params,"limit",100))
+                    elif tail==["completeness"]: result=query.completeness(market,symbol)
                     elif tail==["backlog"]: result=query.backlog(market,symbol,params.get("status",["active"])[0],self._int(params,"limit",500))
                     elif tail==["disclosures"]: result=query.disclosures(market,symbol,params.get("type",[None])[0],self._int(params,"limit",50))
                     elif tail==["attributes"]: result=query.attributes(market,symbol)
@@ -64,6 +65,8 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     else: raise KeyError("unknown endpoint")
                 elif parts == ["v1","exceptions"]:
                     result=query.exceptions(status=params.get("status",["open"])[0],limit=self._int(params,"limit",100))
+                elif parts == ["v1","catalog"]:
+                    result=query.data_catalog(params.get("category",[None])[0],params.get("domain",[None])[0],self._int(params,"limit",1000))
                 else:
                     raise KeyError("unknown endpoint")
                 self._send(200,result)

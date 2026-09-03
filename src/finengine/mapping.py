@@ -35,10 +35,15 @@ from .models import ExtractedFact, MappedFact
 
 class MappingEngine:
     """Deterministic exact mapping. Fuzzy/AI suggestions must remain below the publication threshold."""
+    def __init__(self, allowed_metrics: set[str] | None = None):
+        self.allowed_metrics = allowed_metrics or set()
+
     def map(self, facts: list[ExtractedFact], market: str) -> tuple[list[MappedFact], list[dict]]:
         mapped=[]; errors=[]
         for fact in facts:
             metric=canonicalize(fact.raw_label,market)
+            if metric is None and fact.raw_label in self.allowed_metrics:
+                metric=fact.raw_label
             if metric:
                 mapped.append(MappedFact(fact,metric,Decimal("1.0"),"exact_dictionary"))
             else:

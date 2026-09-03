@@ -181,6 +181,73 @@ class CompanyDomainStore:
                 DO UPDATE SET max_age_seconds=excluded.max_age_seconds,enabled=1""",
                 (scope_type, scope_value, domain, max_age_seconds))
 
+    def refresh_catalog_completeness(self, company_id: str) -> dict:
+        """Measure the commercial data model without pretending missing fields are facts."""
+        company = self.db.conn.execute("SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
+        if not company:
+            raise KeyError(company_id)
+        expected_rows = self.db.conn.execute(
+            """SELECT * FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed' AND
+            (scope_type='all' OR (scope_type='market' AND scope_value=?) OR
+             (scope_type='sector' AND scope_value=?) OR (scope_type='industry' AND scope_value=?) OR
+             (scope_type='company' AND scope_value=?))""",
+            (company["market"], company["sector"] or "", company["industry"] or "", company_id),
+        ).fetchall()
+        available = {
+            "data_points": {row["metric_key"] for row in self.db.conn.execute(
+                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},
+            "company_profile": {row["attribute_key"] for row in self.db.conn.execute(
+                "SELECT DISTINCT attribute_key FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))},
+            "market_prices": set(), "ownership_positions": set(),
+            "corporate_actions": set(), "disclosures": set(),
+        }
+        profile_map = {
+            "company_name": "name", "symbol": "symbol", "isin": "isin", "cik": "cik", "exchange": "exchange",
+            "market": "market", "country": "country", "currency": "currency", "fiscal_year_end": "fiscal_year_end",
+            "sector": "sector", "industry": "industry", "timezone": "timezone",
+        }
+        available["company_profile"].update(key for key, column in profile_map.items() if company[column])
+        price = self.db.conn.execute(
+            """SELECT max(p.open) open,max(p.high) high,max(p.low) low,max(p.close) close,
+            max(p.adjusted_close) adjusted_close,max(p.volume) volume,max(p.turnover) turnover
+            FROM market_prices p JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1""", (company_id,)).fetchone()
+        price_map = {"price_open":"open","price_high":"high","price_low":"low","price_close":"close",
+                     "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover"}
+        available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
+        ownership = self.db.conn.execute(
+            "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1 LIMIT 1", (company_id,)).fetchone()
+        if ownership:
+            ownership_map = {"holder_name":"holder_name","holder_type":"holder_type","shares_held":"shares",
+                             "ownership_percentage":"ownership_pct"}
+            available["ownership_positions"].update(key for key,column in ownership_map.items() if ownership[column] is not None)
+        available["corporate_actions"].update(row["action_type"] for row in self.db.conn.execute(
+            "SELECT DISTINCT action_type FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)))
+        available["disclosures"].update(row["disclosure_type"] for row in self.db.conn.execute(
+            "SELECT DISTINCT disclosure_type FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)))
+        by_category = {}
+        for row in expected_rows:
+            by_category.setdefault(row["category"], []).append(row)
+        results=[]
+        for category, rows in sorted(by_category.items()):
+            expected={row["field_key"] for row in rows}; present={key for key in expected if key in available[rows[0]["storage_domain"]]}
+            missing=sorted(expected-present); score=Decimal(len(present))/Decimal(len(expected)) if expected else Decimal(1)
+            status="complete" if not missing else ("partial" if present else "missing")
+            with self.db.conn:
+                self.db.conn.execute(
+                    """INSERT INTO company_completeness(company_id,category,expected_fields,populated_fields,
+                    completeness_score,status,missing_fields_json) VALUES(?,?,?,?,?,?,?)
+                    ON CONFLICT(company_id,category) DO UPDATE SET expected_fields=excluded.expected_fields,
+                    populated_fields=excluded.populated_fields,completeness_score=excluded.completeness_score,
+                    status=excluded.status,missing_fields_json=excluded.missing_fields_json,checked_at=CURRENT_TIMESTAMP""",
+                    (company_id,category,len(expected),len(present),str(score),status,_json(missing)))
+            results.append({"category":category,"expected":len(expected),"populated":len(present),
+                            "score":str(score),"status":status,"missing":missing})
+        total_expected=sum(row["expected"] for row in results); total_populated=sum(row["populated"] for row in results)
+        return {"company_id":company_id,"expected":total_expected,"populated":total_populated,
+                "score":str(Decimal(total_populated)/Decimal(total_expected) if total_expected else Decimal(1)),
+                "categories":results}
+
     def refresh_coverage(self, company_id: str, period_end: str, period_kind: str,
                          domain: str = "all", now: datetime | None = None) -> dict:
         company = self.db.conn.execute(
@@ -333,12 +400,27 @@ class CompanyDomainStore:
                 created += int(state in {"inserted", "reopened"})
             else:
                 completed += int(self.db.complete_backlog_item(idempotency_key))
+        catalog = self.refresh_catalog_completeness(company_id)
+        for row in catalog["categories"]:
+            key=f"catalog:{company_id}:{row['category']}"
+            if row["status"] != "complete":
+                self.db.upsert_backlog_item(
+                    key,"catalog_backfill",row["category"],
+                    f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
+                    description=f"{row['populated']} of {row['expected']} reviewed catalog fields are populated.",
+                    source_url=source_url,priority=20,
+                    payload={"origin":"data_catalog_v2","missing_fields":row["missing"]},
+                )
+            else:
+                self.db.complete_backlog_item(key)
         open_count = self.db.conn.execute(
             """SELECT count(*) FROM backlog_items WHERE company_id=?
             AND status IN ('open','ready','in_progress','blocked')""", (company_id,)).fetchone()[0]
         return {
             "company_id": company_id, "coverage_periods": len(coverage), "domain_counts": counts,
             "created": created, "completed": completed, "open": open_count,
+            "catalog_expected": catalog["expected"], "catalog_populated": catalog["populated"],
+            "catalog_score": catalog["score"],
         }
 
     def refresh_all_backlog(self) -> list[dict]:

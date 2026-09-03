@@ -1,4 +1,4 @@
-# Market-Agnostic Financial Data Engine 1.0
+# Market-Agnostic Financial Data Engine 1.1
 
 An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
@@ -13,9 +13,10 @@ The bundled portable snapshot is rebuilt from 26 reviewed manifests and currentl
 - 216 current Aramco facts, including complete annual packs for 2021–2025 and discrete Q1/H1 2026 semantics.
 - 85 Apple facts, plus an audited FY 2026 baseline for Microsoft and NVIDIA.
 - 26 published source documents, four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
-- Schema version 7 and 38 unit/integration/release tests.
+- A reviewed 355-field commercial data catalog: 303 universal company fields plus a 52-field Integrated Oil & Gas sector pack.
+- Schema version 8 and 39 unit/integration/release tests.
 
-The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, and company coverage.
+The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
 ## Architecture
 
@@ -41,6 +42,8 @@ Python 3.11+ is required. There are no runtime package dependencies.
     finengine --db data/financial.sqlite3 audit --project-root . --strict-warnings
     finengine --db data/financial.sqlite3 query SA 2222 revenue
     finengine --db data/financial.sqlite3 facts SA 2222 --category operational
+    finengine --db data/financial.sqlite3 completeness SA 2222 --refresh
+    finengine --db data/financial.sqlite3 catalog --limit 500
     finengine --db data/financial.sqlite3 report
 
 Open `data/financial-report.html` for the Arabic searchable report. It has company, period, and category filters and links every fact to its official source. `data/financial-data.csv` is Excel-compatible.
@@ -92,12 +95,14 @@ Examples:
     GET /v1/companies/SA/2222/snapshot?period_end=2025-12-31
     GET /v1/companies/SA/2222/metrics/revenue?limit=10
     GET /v1/companies/SA/2222/coverage
+    GET /v1/companies/SA/2222/completeness
     GET /v1/companies/SA/2222/backlog
     GET /v1/companies/SA/2222/disclosures
     GET /v1/companies/SA/2222/attributes
     GET /v1/companies/SA/2222/prices
     GET /v1/companies/SA/2222/ownership
     GET /v1/companies/SA/2222/actions
+    GET /v1/catalog?category=oil_gas_operations&limit=500
     GET /v1/exceptions?status=open
 
 When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
@@ -175,6 +180,8 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 
 ## Canonical stores
 
+- `data_catalog_fields`: reviewed commercial target fields, storage domain, period behavior, applicability, and pack lineage.
+- `company_completeness`: category-level expected/populated counts and exact missing-field lists per company.
 - `data_points`: versioned typed facts with period, scope, dimensions, quality, formula and source provenance.
 - `metric_definitions`: canonical schema, units, categories, statements and aggregation rules.
 - `source_documents` and `source_candidates`: immutable archives and the discovery inbox.
@@ -186,7 +193,7 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 - `metric_applicability` and `coverage_status`: company/market/industry metric packs and gaps.
 - `exceptions`, `backlog_items`, `jobs`, `job_attempts`, `workers`, and `schedules`: durable operations.
 
-The row-based model can hold hundreds or thousands of facts per company without adding a database column for every metric.
+The row-based model can hold hundreds of target fields and thousands of period, segment, product, geography, and versioned facts per company without adding a database column for every metric. `company_core_v2` applies to every company; `oil_gas_v1` adds sector-specific segments, production, reserves, capacity, realized prices, costs, reliability, and environmental intensity measures.
 
 ## Backlog versus production data
 
@@ -197,7 +204,7 @@ Refresh it at any time:
     finengine --db data/financial.sqlite3 backlog --refresh
     finengine --db data/financial.sqlite3 backlog SA 2222 --status active
 
-Coverage gaps close automatically when validated facts arrive. Domain tasks close when their dedicated production store is populated.
+Coverage gaps close automatically when validated facts arrive. Domain tasks close when their dedicated production store is populated. Catalog backfill is aggregated by category, so a company with hundreds of missing target fields remains operationally manageable while the exact missing keys stay queryable through completeness.
 
 ## Quality checks
 

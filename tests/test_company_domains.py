@@ -17,7 +17,8 @@ class CompanyDomainTests(unittest.TestCase):
         self.db = Database(self.path)
         self.company = Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR",
                                isin="SA0000000001", exchange="Saudi Exchange",
-                               country="SA", sector="Energy", timezone="Asia/Riyadh")
+                               country="SA", sector="Energy", industry="Test Energy",
+                               timezone="Asia/Riyadh")
         self.db.register_company(self.company)
         self.source = SourceDocument("sa:TST", Market.SA, "https://example.test/source", "source:domain",
                                      "annual-results", "2026-03-01", b"{}")
@@ -130,13 +131,31 @@ class CompanyDomainTests(unittest.TestCase):
 
     def test_company_backlog_tracks_empty_domains_and_is_queryable(self):
         result = self.store.refresh_company_backlog("sa:TST")
-        self.assertEqual((result["created"], result["open"]), (6, 6))
+        self.assertEqual(result["created"], 6)
+        self.assertGreater(result["open"], 6)
+        self.assertGreaterEqual(result["catalog_expected"], 300)
+        self.assertGreater(result["catalog_populated"], 0)
         query = FinancialQueryService(self.path)
         items = query.backlog("SA", "TST")
         query.close()
-        self.assertEqual(len(items), 6)
-        self.assertEqual({item["item_type"] for item in items}, {"domain_backfill"})
+        self.assertIn("domain_backfill", {item["item_type"] for item in items})
+        self.assertIn("catalog_backfill", {item["item_type"] for item in items})
         self.assertIn("financial", {item["domain"] for item in items})
+
+    def test_commercial_catalog_has_core_and_oil_gas_layers(self):
+        catalog_count=self.db.conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1").fetchone()[0]
+        oil_count=self.db.conn.execute("SELECT count(*) FROM data_catalog_fields WHERE pack_key='oil_gas_v1'").fetchone()[0]
+        self.assertGreaterEqual(catalog_count,300)
+        self.assertGreaterEqual(oil_count,40)
+        with self.db.conn:
+            self.db.conn.execute("UPDATE companies SET industry='Integrated Oil & Gas' WHERE company_id='sa:TST'")
+        result=self.store.refresh_catalog_completeness("sa:TST")
+        categories={row["category"] for row in result["categories"]}
+        self.assertIn("company_model",categories)
+        self.assertIn("oil_gas_operations",categories)
+        query=FinancialQueryService(self.path)
+        completeness=query.completeness("SA","TST"); query.close()
+        self.assertEqual(completeness["expected_fields"],result["expected"])
 
 
 if __name__ == "__main__":

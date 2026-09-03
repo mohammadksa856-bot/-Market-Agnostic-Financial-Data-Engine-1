@@ -158,7 +158,8 @@ def main():
     prices=sub.add_parser("prices"); prices.add_argument("market"); prices.add_argument("symbol"); prices.add_argument("--interval",default="1d"); prices.add_argument("--limit",type=int,default=100)
     actions=sub.add_parser("actions"); actions.add_argument("market"); actions.add_argument("symbol"); actions.add_argument("--type"); actions.add_argument("--limit",type=int,default=100)
     ownership=sub.add_parser("ownership"); ownership.add_argument("market"); ownership.add_argument("symbol"); ownership.add_argument("--as-of"); ownership.add_argument("--limit",type=int,default=100)
-    catalog=sub.add_parser("catalog"); catalog.add_argument("--category"); catalog.add_argument("--limit",type=int,default=1000)
+    catalog=sub.add_parser("catalog"); catalog.add_argument("--category"); catalog.add_argument("--domain"); catalog.add_argument("--limit",type=int,default=1000)
+    completeness=sub.add_parser("completeness"); completeness.add_argument("market"); completeness.add_argument("symbol"); completeness.add_argument("--refresh",action="store_true")
     exceptions=sub.add_parser("exceptions"); exceptions.add_argument("market",nargs="?"); exceptions.add_argument("symbol",nargs="?"); exceptions.add_argument("--status",default="open",choices=["open","resolved","all"]); exceptions.add_argument("--limit",type=int,default=100)
     resolve=sub.add_parser("resolve-exception"); resolve.add_argument("exception_id",type=int); resolve.add_argument("--resolution",required=True); resolve.add_argument("--assigned-to")
     retry=sub.add_parser("retry-source"); retry.add_argument("source_key"); retry.add_argument("--registry",default="config/companies.json"); retry.add_argument("--raw-dir",default="data/raw")
@@ -276,6 +277,12 @@ def main():
             if not row: raise KeyError(f"unknown company {a.market}:{a.symbol}")
             CompanyDomainStore(db).refresh_company_coverage(row["company_id"]); db.close()
         q=FinancialQueryService(a.db); print(json.dumps(q.coverage(a.market,a.symbol),indent=2)); q.close(); return
+    if a.cmd=="completeness":
+        if a.refresh:
+            db=Database(a.db); row=db.conn.execute("SELECT company_id FROM companies WHERE market=? AND symbol=?",(a.market.upper(),a.symbol.upper())).fetchone()
+            if not row: db.close(); raise KeyError(f"unknown company {a.market}:{a.symbol}")
+            CompanyDomainStore(db).refresh_catalog_completeness(row["company_id"]); db.close()
+        q=FinancialQueryService(a.db); print(json.dumps(q.completeness(a.market,a.symbol),indent=2)); q.close(); return
     if a.cmd=="backlog":
         if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
         if a.refresh:
@@ -294,7 +301,7 @@ def main():
     if a.cmd=="ownership":
         q=FinancialQueryService(a.db); print(json.dumps(q.ownership(a.market,a.symbol,a.as_of,a.limit),indent=2)); q.close(); return
     if a.cmd=="catalog":
-        q=FinancialQueryService(a.db); print(json.dumps(q.metric_catalog(a.category,a.limit),indent=2)); q.close(); return
+        q=FinancialQueryService(a.db); print(json.dumps(q.data_catalog(a.category,a.domain,a.limit),indent=2)); q.close(); return
     if a.cmd=="sources":
         q=FinancialQueryService(a.db); print(json.dumps(q.source_candidates(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
     q=FinancialQueryService(a.db); print(json.dumps(q.metric_history(a.market,a.symbol,a.metric,a.limit),indent=2)); q.close()

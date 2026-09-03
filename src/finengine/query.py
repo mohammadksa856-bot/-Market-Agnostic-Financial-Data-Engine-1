@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from decimal import Decimal
 
 
 class FinancialQueryService:
@@ -110,6 +111,7 @@ class FinancialQueryService:
         result["fact_counts"] = {row["category"]: row["facts"] for row in counts}
         result["latest_filing"] = latest["latest_filing"]
         result["listings"] = self.listings(market, symbol)
+        result["completeness"] = self.completeness(market, symbol)
         return result
 
     def listings(self, market: str, symbol: str) -> list[dict]:
@@ -239,6 +241,36 @@ class FinancialQueryService:
             " ORDER BY category,metric_key LIMIT ?",args).fetchall()
         return [dict(row) for row in rows]
 
+    def data_catalog(self, category: str | None = None, storage_domain: str | None = None,
+                     limit: int = 1000) -> list[dict]:
+        filters=["enabled=1"]; args=[]
+        if category: filters.append("category=?"); args.append(category)
+        if storage_domain: filters.append("storage_domain=?"); args.append(storage_domain)
+        args.append(min(max(limit,1),5000))
+        rows=self.conn.execute(
+            """SELECT field_key,display_name,category,storage_domain,statement,period_behavior,
+            value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement,review_state,
+            schema_version FROM data_catalog_fields WHERE """+" AND ".join(filters)+
+            " ORDER BY pack_key,category,field_key LIMIT ?",args).fetchall()
+        return [dict(row) for row in rows]
+
+    def completeness(self, market: str, symbol: str) -> dict:
+        company=self.conn.execute(
+            "SELECT company_id FROM companies WHERE market=? AND symbol=?",(market.upper(),symbol.upper())).fetchone()
+        if not company: raise KeyError(f"unknown company {market}:{symbol}")
+        rows=self.conn.execute(
+            """SELECT category,expected_fields,populated_fields,completeness_score,status,
+            missing_fields_json,checked_at FROM company_completeness WHERE company_id=? ORDER BY category""",
+            (company["company_id"],)).fetchall()
+        categories=[]
+        for row in rows:
+            item=dict(row); item["missing_fields"]=json.loads(item.pop("missing_fields_json")); categories.append(item)
+        expected=sum(item["expected_fields"] for item in categories)
+        populated=sum(item["populated_fields"] for item in categories)
+        return {"expected_fields":expected,"populated_fields":populated,
+                "completeness_score":str(Decimal(populated)/Decimal(expected) if expected else Decimal(1)),
+                "categories":categories}
+
     def disclosures(self, market: str, symbol: str, disclosure_type: str | None = None,
                     limit: int = 50) -> list[dict]:
         filters = ["c.market=?", "c.symbol=?", "d.is_current=1"]
@@ -326,6 +358,8 @@ class FinancialQueryService:
             "open_exceptions": "exceptions WHERE status='open'", "queued_jobs": "jobs WHERE status='queued'",
             "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
             "active_schedules": "schedules WHERE enabled=1",
+            "catalog_fields": "data_catalog_fields WHERE enabled=1",
+            "completeness_rows": "company_completeness",
         }
         return {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 for key, table in tables.items()}

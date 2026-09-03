@@ -10,9 +10,10 @@ from pathlib import Path
 from typing import Iterable
 
 from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, TypedFact, ValueType
+from .catalog import iter_catalog_fields
 
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -49,6 +50,22 @@ CREATE TABLE IF NOT EXISTS metric_definitions(
  aggregation TEXT NOT NULL DEFAULT 'none', description TEXT,
  schema_version INTEGER NOT NULL DEFAULT 1, enabled INTEGER NOT NULL DEFAULT 1,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS data_catalog_fields(
+ field_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, category TEXT NOT NULL,
+ storage_domain TEXT NOT NULL, statement TEXT, period_behavior TEXT NOT NULL,
+ value_type TEXT NOT NULL, default_unit TEXT, aggregation TEXT NOT NULL DEFAULT 'none',
+ pack_key TEXT NOT NULL, scope_type TEXT NOT NULL CHECK(scope_type IN ('all','market','sector','industry','company')),
+ scope_value TEXT NOT NULL DEFAULT '*', requirement TEXT NOT NULL CHECK(requirement IN ('required','recommended','optional')),
+ review_state TEXT NOT NULL DEFAULT 'reviewed' CHECK(review_state IN ('candidate','reviewed','deprecated')),
+ schema_version INTEGER NOT NULL DEFAULT 2, enabled INTEGER NOT NULL DEFAULT 1,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS idx_catalog_scope ON data_catalog_fields(scope_type,scope_value,storage_domain,enabled);
+CREATE TABLE IF NOT EXISTS company_completeness(
+ company_id TEXT NOT NULL REFERENCES companies(company_id), category TEXT NOT NULL,
+ expected_fields INTEGER NOT NULL, populated_fields INTEGER NOT NULL,
+ completeness_score TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('complete','partial','missing','not_applicable')),
+ missing_fields_json TEXT NOT NULL DEFAULT '[]', checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(company_id,category));
 CREATE TABLE IF NOT EXISTS observations(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id), metric TEXT NOT NULL,
  value TEXT NOT NULL, currency TEXT NOT NULL, unit TEXT NOT NULL, period_start TEXT,
@@ -325,6 +342,7 @@ class Database:
         self.conn.executescript(SCHEMA)
         self._migrate_legacy_schema()
         self._seed_metric_catalog()
+        self._seed_data_catalog()
         self._seed_calculation_definitions()
         self._seed_metric_applicability()
         self._backfill_data_points()
@@ -385,6 +403,35 @@ class Database:
                 key, name, category, statement, default_unit=default_unit,
                 aggregation=aggregation, commit=False,
             )
+        self.conn.commit()
+
+    def _seed_data_catalog(self) -> None:
+        metric_categories = {
+            "income_statement": "financial", "balance_sheet": "financial", "cash_flow": "financial",
+            "per_share": "financial", "segments": "operational", "oil_gas_operations": "operational",
+            "profitability": "ratio", "liquidity_solvency": "ratio", "efficiency": "ratio",
+            "growth": "calculated", "valuation": "calculated",
+        }
+        for item in iter_catalog_fields():
+            self.conn.execute(
+                """INSERT INTO data_catalog_fields(field_key,display_name,category,storage_domain,statement,
+                period_behavior,value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(field_key) DO UPDATE SET
+                display_name=excluded.display_name,category=excluded.category,storage_domain=excluded.storage_domain,
+                statement=excluded.statement,period_behavior=excluded.period_behavior,value_type=excluded.value_type,
+                default_unit=excluded.default_unit,aggregation=excluded.aggregation,pack_key=excluded.pack_key,
+                scope_type=excluded.scope_type,scope_value=excluded.scope_value,requirement=excluded.requirement,
+                schema_version=2,updated_at=CURRENT_TIMESTAMP""",
+                tuple(item[key] for key in ("field_key","display_name","category","storage_domain","statement",
+                    "period_behavior","value_type","default_unit","aggregation","pack_key","scope_type",
+                    "scope_value","requirement")),
+            )
+            if item["storage_domain"] == "data_points":
+                self.register_metric(
+                    item["field_key"], item["display_name"], metric_categories[item["category"]],
+                    item["statement"], "decimal", item["default_unit"], item["aggregation"],
+                    f"Reviewed {item['pack_key']} catalog field", schema_version=2, commit=False,
+                )
         self.conn.commit()
 
     def _seed_calculation_definitions(self) -> None:
@@ -1024,6 +1071,8 @@ class Database:
             "open_exceptions": "exceptions WHERE status='open'", "queued_jobs": "jobs WHERE status='queued'",
             "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
             "active_schedules": "schedules WHERE enabled=1",
+            "catalog_fields": "data_catalog_fields WHERE enabled=1",
+            "completeness_rows": "company_completeness",
         }
         counts = {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] for key, table in tables.items()}
         counts["schema_version"] = SCHEMA_VERSION
