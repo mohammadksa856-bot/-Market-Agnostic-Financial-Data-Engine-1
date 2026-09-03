@@ -42,6 +42,10 @@ class ServiceTests(unittest.TestCase):
                             headers={"X-API-Key":"secret"})
             payload=json.loads(urlopen(request).read())
             self.assertEqual(payload[0]["value"],"100")
+            request=Request(f"http://127.0.0.1:{port}/v1/catalog?limit=500",
+                            headers={"X-API-Key":"secret"})
+            catalog=json.loads(urlopen(request).read())
+            self.assertGreaterEqual(len(catalog),300)
             request=Request(f"http://127.0.0.1:{port}/health",data=b"{}",method="POST",
                             headers={"X-API-Key":"secret"})
             with self.assertRaises(HTTPError) as readonly: urlopen(request)

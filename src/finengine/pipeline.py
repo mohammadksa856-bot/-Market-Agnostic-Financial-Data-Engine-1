@@ -13,7 +13,7 @@ from .validation import Validator
 
 class Pipeline:
     def __init__(self, db: Database, raw_dir: str | Path):
-        self.db=db; self.raw_dir=Path(raw_dir); self.extractor=JsonExtractor(); self.mapper=MappingEngine(); self.normalizer=NormalizationEngine(); self.validator=Validator(); self.calculator=Calculator(); self.domains=CompanyDomainStore(db)
+        self.db=db; self.raw_dir=Path(raw_dir); self.extractor=JsonExtractor(); self.mapper=MappingEngine({row["metric_key"] for row in db.conn.execute("SELECT metric_key FROM metric_definitions WHERE enabled=1")}); self.normalizer=NormalizationEngine(); self.validator=Validator(); self.calculator=Calculator(); self.domains=CompanyDomainStore(db)
 
     def run(self, company: Company, connector, job_id: str | None = None) -> dict:
         self.db.register_company(company); run_id=self.db.start_pipeline_run(company.company_id,job_id)

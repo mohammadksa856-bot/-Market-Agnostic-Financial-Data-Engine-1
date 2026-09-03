@@ -73,7 +73,7 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
-        """SELECT c.name,c.market,c.symbol,d.fiscal_year,NULLIF(d.fiscal_quarter,0) AS fiscal_quarter,
+        """SELECT c.company_id,c.name,c.market,c.symbol,d.fiscal_year,NULLIF(d.fiscal_quarter,0) AS fiscal_quarter,
         d.period_end,d.period_kind,d.metric_key AS metric,d.value_decimal AS value,d.currency,d.unit,d.source_url,
         m.category
         FROM data_points d JOIN companies c USING(company_id) JOIN metric_definitions m USING(metric_key)
@@ -86,11 +86,16 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
         "Mapping معتمد": conn.execute("SELECT count(*) FROM mapped_facts WHERE status='accepted'").fetchone()[0],
         "بانتظار المراجعة": conn.execute("SELECT count(*) FROM mapped_facts WHERE status='review'").fetchone()[0],
         "حقائق منشورة": conn.execute("SELECT count(*) FROM data_points WHERE is_current=1").fetchone()[0],
+        "حقول الكتالوج": conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1").fetchone()[0],
+        "قياسات الاكتمال": conn.execute("SELECT count(*) FROM company_completeness").fetchone()[0],
         "إدراجات نشطة": conn.execute("SELECT count(*) FROM listings WHERE active=1").fetchone()[0],
         "فترات مقاسة التغطية": conn.execute("SELECT count(*) FROM coverage_status").fetchone()[0],
         "عناصر الباكلوق المفتوحة": conn.execute("SELECT count(*) FROM backlog_items WHERE status IN ('open','ready','in_progress','blocked')").fetchone()[0],
         "استثناءات مفتوحة": conn.execute("SELECT count(*) FROM exceptions WHERE status='open'").fetchone()[0],
     }
+    completeness = {row["company_id"]: (row["populated"], row["expected"]) for row in conn.execute(
+        """SELECT company_id,sum(populated_fields) populated,sum(expected_fields) expected
+        FROM company_completeness GROUP BY company_id""").fetchall()}
     conn.close()
 
     csv_target = Path(csv_path)
@@ -111,7 +116,10 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
         symbol=company_rows[0]["symbol"]
         company_options.append(f'<option value="{html.escape(symbol)}">{html.escape(company)}</option>')
         latest=max(row["period_end"] for row in company_rows)
-        company_cards.append(f'<div class="company-card"><strong>{html.escape(company)}</strong><span>{len(company_rows):,} حقيقة حالية</span><span>أحدث فترة: {html.escape(latest)}</span></div>')
+        company_id = next(row["company_id"] for row in company_rows)
+        populated, expected = completeness.get(company_id, (0, 0))
+        score = (100 * populated / expected) if expected else 0
+        company_cards.append(f'<div class="company-card"><strong>{html.escape(company)}</strong><span>{len(company_rows):,} حقيقة حالية</span><span>اكتمال الكتالوج: {score:.1f}% ({populated:,}/{expected:,})</span><span>أحدث فترة: {html.escape(latest)}</span></div>')
         body = []
         for row in company_rows:
             value = float(row["value"])
