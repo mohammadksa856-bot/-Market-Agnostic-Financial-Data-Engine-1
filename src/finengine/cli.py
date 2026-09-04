@@ -6,6 +6,7 @@ from .connectors import (
 )
 from .api import create_api_server, serve_api
 from .audit import audit_release
+from .archive import archive_manifest_sources
 from .bootstrap import rebuild_snapshot
 from .database import Database
 from .pipeline import Pipeline
@@ -142,6 +143,7 @@ def main():
     p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
     init=sub.add_parser("init"); init.add_argument("--registry",default="config/companies.json")
     bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
+    archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
@@ -175,6 +177,10 @@ def main():
     if a.cmd=="bootstrap":
         result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every)
         print(json.dumps(result,indent=2)); return
+    if a.cmd=="archive-sources":
+        result=archive_manifest_sources(a.db,a.imports,a.registry,a.raw_dir,a.index,
+                                        a.project_root,a.market,a.symbol)
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="audit":
         result=audit_release(a.db,a.project_root); print(json.dumps(result,indent=2))
         if result["failures"] or (a.strict_warnings and result["warnings"]): raise SystemExit(1)

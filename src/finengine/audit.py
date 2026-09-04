@@ -57,6 +57,19 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     add("source_archive_present", "pass" if not missing_files else "fail", missing_files)
     add("source_archive_hashes", "pass" if not hash_mismatches else "fail", hash_mismatches)
 
+    missing_artifacts = []
+    artifact_hash_mismatches = []
+    for row in conn.execute("SELECT artifact_key,local_path,content_hash FROM source_artifacts"):
+        path = Path(row["local_path"])
+        if not path.is_absolute():
+            path = root / path
+        if not path.is_file():
+            missing_artifacts.append(row["artifact_key"]); continue
+        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+            artifact_hash_mismatches.append(row["artifact_key"])
+    add("raw_artifacts_present", "pass" if not missing_artifacts else "fail", missing_artifacts)
+    add("raw_artifact_hashes", "pass" if not artifact_hash_mismatches else "fail", artifact_hash_mismatches)
+
     balances = defaultdict(dict)
     for row in conn.execute(
         """SELECT company_id,period_end,metric_key,value_decimal FROM data_points
@@ -89,11 +102,13 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     schema = conn.execute("SELECT max(version) FROM schema_migrations").fetchone()[0]
     facts = conn.execute("SELECT count(*) FROM data_points WHERE is_current=1").fetchone()[0]
     sources = conn.execute("SELECT count(*) FROM source_documents").fetchone()[0]
+    artifacts = conn.execute("SELECT count(*) FROM source_artifacts").fetchone()[0]
     conn.close()
     failures=[check for check in checks if check["status"] == "fail"]
     warnings=[check for check in checks if check["status"] == "warn"]
     return {
         "ready": not failures, "schema_version": schema, "sources": sources,
+        "raw_artifacts": artifacts,
         "current_facts": facts, "companies": companies, "checks": checks,
         "failures": len(failures), "warnings": len(warnings),
     }

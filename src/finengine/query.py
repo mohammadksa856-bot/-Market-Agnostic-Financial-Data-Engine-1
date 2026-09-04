@@ -122,14 +122,19 @@ class FinancialQueryService:
         for fact in facts:
             categories.setdefault(fact["category"], []).append(fact)
         sources = self.conn.execute(
-            """SELECT s.filing_type,s.filed_at,s.source_url,s.status,s.content_hash
+            """SELECT s.filing_type,s.filed_at,s.source_url,s.status,s.content_hash,
+            a.artifact_key,a.local_path AS archived_path,a.content_hash AS artifact_hash,
+            a.content_type AS artifact_content_type,a.byte_size AS artifact_bytes
             FROM source_documents s JOIN companies c USING(company_id)
+            LEFT JOIN source_artifact_links l USING(source_key)
+            LEFT JOIN source_artifacts a USING(artifact_key)
             WHERE c.market=? AND c.symbol=? ORDER BY s.filed_at DESC""",
             (market.upper(), symbol.upper()),
         ).fetchall()
         return {
             "overview": overview,
             "attributes": self.attributes(market, symbol),
+            "market_prices": self.market_prices(market, symbol, limit=100),
             "ownership": self.ownership(market, symbol, limit=1000),
             "corporate_actions": self.corporate_actions(market, symbol, limit=1000),
             "disclosures": self.disclosures(market, symbol, limit=200),

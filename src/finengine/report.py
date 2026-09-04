@@ -82,6 +82,7 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
     ).fetchall()
     audit = {
         "المصادر المحفوظة": conn.execute("SELECT count(*) FROM source_documents").fetchone()[0],
+        "الملفات الخام المؤرشفة": conn.execute("SELECT count(*) FROM source_artifacts").fetchone()[0],
         "حقائق الاستخراج": conn.execute("SELECT count(*) FROM extracted_facts").fetchone()[0],
         "Mapping معتمد": conn.execute("SELECT count(*) FROM mapped_facts WHERE status='accepted'").fetchone()[0],
         "بانتظار المراجعة": conn.execute("SELECT count(*) FROM mapped_facts WHERE status='review'").fetchone()[0],

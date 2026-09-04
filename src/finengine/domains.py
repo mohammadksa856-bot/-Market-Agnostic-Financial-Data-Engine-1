@@ -4,6 +4,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 
 from .database import Database, _json
+from .models import Fact, PeriodKind
 
 
 class CompanyDomainStore:
@@ -56,6 +57,87 @@ class CompanyDomainStore:
                 adjusted_close,volume,turnover,currency,source_key,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (listing_id, observed_at, interval, *fields, currency, source_key, version))
         return "restated" if old else "inserted"
+
+    def refresh_market_valuations(self, company_id: str) -> dict:
+        """Publish point-in-time valuation facts from archived prices and filings.
+
+        Financial inputs must have been filed no later than the price date. This
+        prevents look-ahead bias and makes an offline rebuild deterministic.
+        """
+        price = self.db.conn.execute(
+            """SELECT p.*,d.source_url,d.filed_at,c.currency company_currency
+            FROM market_prices p JOIN listings l USING(listing_id)
+            JOIN securities s USING(security_id) JOIN companies c ON c.company_id=s.company_id
+            JOIN source_documents d ON d.source_key=p.source_key
+            WHERE s.company_id=? AND p.is_current=1
+            ORDER BY p.observed_at DESC LIMIT 1""", (company_id,)).fetchone()
+        if not price:
+            return {"company_id": company_id, "status": "skipped", "reason": "no_market_price", "published": 0}
+        rows = self.db.conn.execute(
+            """SELECT * FROM data_points WHERE company_id=? AND is_current=1
+            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
+            AND period_end<=? AND period_kind IN ('fy','instant')
+            ORDER BY period_end DESC,version DESC""",
+            (company_id, price["observed_at"], price["observed_at"]),
+        ).fetchall()
+        values = {}
+        for row in rows:
+            values.setdefault(row["metric_key"], Decimal(row["value_decimal"]))
+
+        close = Decimal(price["close"])
+        shares = values.get("shares_outstanding") or values.get("weighted_average_shares_diluted")
+        if not close or not shares:
+            return {"company_id": company_id, "status": "skipped", "reason": "missing_shares", "published": 0}
+        market_cap = close * shares
+        debt = values.get("current_debt", Decimal(0)) + values.get("long_term_debt", Decimal(0))
+        net_debt = values.get("net_debt", debt - values.get("cash", Decimal(0)))
+        enterprise_value = market_cap + net_debt
+        calculations: dict[str, tuple[Decimal, str, str, str]] = {
+            "market_cap": (market_cap, "price_close * shares_outstanding", price["company_currency"], price["company_currency"]),
+            "enterprise_value": (enterprise_value, "market_cap + net_debt", price["company_currency"], price["company_currency"]),
+        }
+
+        def ratio(metric: str, numerator: Decimal, denominator_key: str, formula: str) -> None:
+            denominator = values.get(denominator_key)
+            if denominator:
+                calculations[metric] = (numerator / denominator, formula, "", "ratio")
+
+        ratio("price_to_earnings", market_cap, "net_income", "market_cap / latest_filed_fy(net_income)")
+        ratio("price_to_sales", market_cap, "revenue", "market_cap / latest_filed_fy(revenue)")
+        ratio("price_to_book", market_cap, "total_equity", "market_cap / latest_filed(total_equity)")
+        ratio("price_to_tangible_book", market_cap, "tangible_book_value", "market_cap / latest_filed(tangible_book_value)")
+        ratio("price_to_cash_flow", market_cap, "operating_cash_flow", "market_cap / latest_filed_fy(operating_cash_flow)")
+        ratio("price_to_free_cash_flow", market_cap, "free_cash_flow", "market_cap / latest_filed_fy(free_cash_flow)")
+        ratio("enterprise_value_to_revenue", enterprise_value, "revenue", "enterprise_value / latest_filed_fy(revenue)")
+        ratio("enterprise_value_to_ebit", enterprise_value, "ebit", "enterprise_value / latest_filed_fy(ebit)")
+        ratio("enterprise_value_to_ebitda", enterprise_value, "ebitda", "enterprise_value / latest_filed_fy(ebitda)")
+        for metric, key, formula in (
+            ("earnings_yield", "net_income", "latest_filed_fy(net_income) / market_cap"),
+            ("fcf_yield", "free_cash_flow", "latest_filed_fy(free_cash_flow) / market_cap"),
+            ("dividend_yield", "dividends_paid", "abs(latest_filed_fy(dividends_paid)) / market_cap"),
+        ):
+            if key in values and market_cap:
+                numerator = abs(values[key]) if metric == "dividend_yield" else values[key]
+                calculations[metric] = (numerator / market_cap, formula, "", "ratio")
+        eps = values.get("eps_diluted") or values.get("basic_eps")
+        bvps = values.get("book_value_per_share")
+        if eps and bvps and eps > 0 and bvps > 0:
+            calculations["graham_number"] = (
+                (Decimal("22.5") * eps * bvps).sqrt(),
+                "sqrt(22.5 * latest_filed_fy(eps) * latest_filed(book_value_per_share))",
+                price["company_currency"], f"{price['company_currency']}/share",
+            )
+
+        fiscal_year = int(price["observed_at"][:4])
+        facts = [Fact(
+            company_id, metric, value, currency, unit, None, price["observed_at"], PeriodKind.AS_OF,
+            fiscal_year, None, price["source_key"], price["source_url"], price["filed_at"],
+            is_calculated=True, calculation=formula,
+        ) for metric, (value, formula, currency, unit) in calculations.items()]
+        states = self.db.publish_batch(facts)
+        return {"company_id": company_id, "status": "published", "published": len(states),
+                "inserted": states.count("inserted"), "restated": states.count("restated"),
+                "duplicates": states.count("duplicate")}
 
     def publish_ownership_position(
         self, company_id: str, holder_key: str, holder_name: str, ownership_type: str,
@@ -215,12 +297,20 @@ class CompanyDomainStore:
         price_map = {"price_open":"open","price_high":"high","price_low":"low","price_close":"close",
                      "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover"}
         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
-        ownership = self.db.conn.execute(
-            "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1 LIMIT 1", (company_id,)).fetchone()
-        if ownership:
+        ownership_rows = self.db.conn.execute(
+            "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+        if ownership_rows:
             ownership_map = {"holder_name":"holder_name","holder_type":"holder_type","shares_held":"shares",
                              "ownership_percentage":"ownership_pct"}
-            available["ownership_positions"].update(key for key,column in ownership_map.items() if ownership[column] is not None)
+            available["ownership_positions"].update(
+                key for key, column in ownership_map.items()
+                if any(row[column] is not None for row in ownership_rows))
+            if any(row["holder_type"] == "government" and row["ownership_pct"] is not None
+                   for row in ownership_rows):
+                available["ownership_positions"].add("government_ownership")
+            if any(row["ownership_type"] == "free_float" and row["ownership_pct"] is not None
+                   for row in ownership_rows):
+                available["market_prices"].add("free_float")
         available["corporate_actions"].update(row["action_type"] for row in self.db.conn.execute(
             "SELECT DISTINCT action_type FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)))
         available["disclosures"].update(row["disclosure_type"] for row in self.db.conn.execute(

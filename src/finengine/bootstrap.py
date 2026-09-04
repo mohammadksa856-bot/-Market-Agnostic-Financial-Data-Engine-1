@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 
 from .connectors import LocalFileConnector
+from .archive import load_archive_index
 from .database import Database
 from .domains import CompanyDomainStore
 from .jobs import DurableScheduler
@@ -80,7 +81,22 @@ def _publish_manifest_domains(
         values.update(company_id=company.company_id, source_key=source_key)
         state = store.publish_corporate_action(**values)
         record("corporate_actions", state)
+    for item in payload.get("market_prices", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_market_price(**values)
+        record("market_prices", state)
     return counts
+
+
+def _has_extractable_facts(payload: dict) -> bool:
+    """Whether a manifest contains facts for the numeric staging pipeline.
+
+    A domain-only manifest still receives an immutable source record and
+    versioned publication. It must not invent a placeholder financial fact.
+    """
+    facts = payload.get("facts")
+    return bool(facts) if isinstance(facts, (list, dict)) else False
 
 
 def rebuild_snapshot(
@@ -113,27 +129,43 @@ def rebuild_snapshot(
         for manifest in manifests:
             payload = json.loads(manifest.read_text(encoding="utf-8"))
             company = _manifest_company(manifest, payload, registry)
-            result = pipeline.run(company, LocalFileConnector(manifest))
-            if result["status"] not in {"published", "duplicate"}:
-                raise RuntimeError(f"manifest did not publish: {manifest.name}: {result}")
             digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
             source_key = f"file:{digest}"
             try:
                 portable_path = os.path.relpath(manifest.resolve(), Path.cwd().resolve())
             except ValueError:
                 portable_path = str(manifest.resolve())
-            db.conn.execute(
-                "UPDATE source_documents SET local_path=? WHERE source_key=?",
-                (portable_path, source_key),
-            )
-            db.conn.commit()
+            has_facts = _has_extractable_facts(payload)
+            if has_facts:
+                result = pipeline.run(company, LocalFileConnector(manifest))
+                if result["status"] not in {"published", "duplicate"}:
+                    raise RuntimeError(f"manifest did not publish: {manifest.name}: {result}")
+                db.conn.execute(
+                    "UPDATE source_documents SET local_path=? WHERE source_key=?",
+                    (portable_path, source_key),
+                )
+                db.conn.commit()
+            else:
+                document = LocalFileConnector(manifest).fetch(company)
+                db.save_source(document, digest, portable_path)
+                result = {"status": "published", "source_key": source_key, "published": 0}
             domains = _publish_manifest_domains(db, company, payload, source_key)
+            if not has_facts:
+                domain_rows = sum(sum(bucket.values()) for bucket in domains.values())
+                db.set_source_status(source_key, "published")
+                db.publication_batch(source_key, company.company_id, "published", 0, domain_rows)
             results.append({
                 "manifest": manifest.name, "company_id": company.company_id,
                 "status": result["status"], "published": result.get("published", 0),
                 "domains": domains,
             })
-        CompanyDomainStore(db).refresh_all_backlog()
+        archived_artifacts = load_archive_index(
+            db, Path(raw_dir) / "archive-index.json", Path.cwd(),
+        )
+        domain_store = CompanyDomainStore(db)
+        market_valuations = [domain_store.refresh_market_valuations(company.company_id)
+                             for company in registry.all()]
+        domain_store.refresh_all_backlog()
         if schedule_every is not None:
             scheduler=DurableScheduler(db)
             for company in registry.all():
@@ -168,5 +200,7 @@ def rebuild_snapshot(
     return {
         "status": "ready", "database": str(target), "backup": str(backup) if backup else None,
         "manifests": len(results), "results": results, "health": health,
+        "archived_artifacts": archived_artifacts,
+        "market_valuations": market_valuations,
         "scheduled": len(registry.all()) if schedule_every is not None else 0,
     }
