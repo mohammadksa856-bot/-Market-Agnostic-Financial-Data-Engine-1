@@ -14,6 +14,7 @@ SAUDI_LABELS = {
 "other income related to sales":"other_income_related_to_sales","revenue and other income related to sales":"revenue_and_other_income_related_to_sales",
 "operating costs":"operating_costs","operating income":"operating_income",
 "income before income taxes and zakat":"income_before_income_taxes_and_zakat","income taxes and zakat":"income_taxes_and_zakat",
+"net cash used in investing activities":"investing_cash_flow","net cash used in financing activities":"financing_cash_flow",
 "adjusted net income":"adjusted_net_income","dividends paid":"dividends_paid","base dividends paid":"base_dividends_paid",
 "performance-linked dividends paid":"performance_linked_dividends_paid","dividends paid per share":"dividends_per_share",
 "earnings per share basic and diluted":"eps_diluted","average realized crude oil price":"average_realized_crude_oil_price",
