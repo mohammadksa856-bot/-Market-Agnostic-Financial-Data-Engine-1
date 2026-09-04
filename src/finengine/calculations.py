@@ -18,6 +18,8 @@ class Calculator:
         "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
         "weighted_average_shares_basic", "weighted_average_shares_diluted",
         "adjusted_net_income", "dividends_paid",
+        "selling_general_administrative_expense", "research_and_development_expense",
+        "share_based_compensation",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -82,6 +84,14 @@ class Calculator:
                 ratio("fcf_margin", "free_cash_flow", "revenue")
                 ratio("capex_to_revenue", "capex", "revenue", "abs(capex) / revenue", True)
                 ratio("capex_to_cfo", "capex", "operating_cash_flow", "abs(capex) / operating_cash_flow", True)
+                ratio("income_quality", "operating_cash_flow", "net_income")
+                ratio("payout_ratio", "dividends_paid", "net_income", "abs(dividends_paid) / net_income", True)
+                ratio("capex_to_depreciation", "capex", "depreciation_amortization",
+                      "abs(capex) / abs(depreciation_amortization)", True)
+                ratio("selling_general_administrative_to_revenue",
+                      "selling_general_administrative_expense", "revenue")
+                ratio("research_development_to_revenue", "research_and_development_expense", "revenue")
+                ratio("share_based_compensation_to_revenue", "share_based_compensation", "revenue")
                 ratio("receivables_to_revenue", "accounts_receivable", "revenue")
                 if "ebit" in lookup and "depreciation_amortization" in lookup:
                     add("ebitda", lookup["ebit"].value + abs(lookup["depreciation_amortization"].value),
@@ -96,11 +106,21 @@ class Calculator:
                         ("revenue", "revenue_per_share"),
                         ("operating_cash_flow", "operating_cash_flow_per_share"),
                         ("free_cash_flow", "free_cash_flow_per_share"),
+                        ("cash", "cash_per_share"),
+                        ("capex", "capex_per_share"),
+                        ("ebitda", "ebitda_per_share"),
                     ):
                         if numerator in lookup:
-                            add(metric, lookup[numerator].value / shares.value,
+                            value = abs(lookup[numerator].value) if numerator == "capex" else lookup[numerator].value
+                            add(metric, value / shares.value,
                                 f"{numerator} / weighted_average_shares", lookup[numerator],
                                 f"{lookup[numerator].currency}/share", lookup[numerator].currency)
+                    debt = sum((lookup[key].value for key in ("current_debt", "long_term_debt") if key in lookup), Decimal(0))
+                    if debt:
+                        reference = lookup.get("current_debt") or lookup["long_term_debt"]
+                        add("debt_per_share", debt / shares.value,
+                            "(current_debt + long_term_debt) / weighted_average_shares",
+                            reference, f"{reference.currency}/share", reference.currency)
                     if "adjusted_net_income" in lookup:
                         add("earnings_per_share_normalized",
                             lookup["adjusted_net_income"].value / shares.value,
@@ -148,6 +168,18 @@ class Calculator:
                     add("working_capital", lookup["current_assets"].value - lookup["current_liabilities"].value,
                         "current_assets - current_liabilities", lookup["current_assets"],
                         lookup["current_assets"].unit, lookup["current_assets"].currency)
+                if "current_assets" in lookup and "total_liabilities" in lookup:
+                    add("net_current_asset_value",
+                        lookup["current_assets"].value - lookup["total_liabilities"].value,
+                        "current_assets - total_liabilities", lookup["current_assets"],
+                        lookup["current_assets"].unit, lookup["current_assets"].currency)
+                    if all(key in lookup for key in ("cash", "accounts_receivable", "inventory")):
+                        conservative = (lookup["cash"].value + Decimal("0.75") * lookup["accounts_receivable"].value +
+                                        Decimal("0.5") * lookup["inventory"].value - lookup["total_liabilities"].value)
+                        add("graham_net_net", conservative,
+                            "cash + 0.75 * accounts_receivable + 0.5 * inventory - total_liabilities",
+                            lookup["current_assets"], lookup["current_assets"].unit,
+                            lookup["current_assets"].currency)
                 if "total_equity" in lookup:
                     intangible = lookup.get("intangible_assets")
                     tangible = lookup["total_equity"].value - (intangible.value if intangible else Decimal(0))
@@ -182,6 +214,14 @@ class Calculator:
                     if average and "net_income" in lookup:
                         add("return_on_equity", lookup["net_income"].value / average,
                             "net_income / average(total_equity)", lookup["net_income"])
+                    current_intangible = lookup["intangible_assets"].value if "intangible_assets" in lookup else Decimal(0)
+                    prior_intangible = prior_instant["intangible_assets"].value if "intangible_assets" in prior_instant else Decimal(0)
+                    current_tangible = lookup["total_equity"].value - current_intangible
+                    prior_tangible = prior_instant["total_equity"].value - prior_intangible
+                    average_tangible = (current_tangible + prior_tangible) / 2
+                    if average_tangible and "net_income" in lookup:
+                        add("return_on_tangible_equity", lookup["net_income"].value / average_tangible,
+                            "net_income / average(total_equity - intangible_assets)", lookup["net_income"])
                 if "accounts_receivable" in lookup and "accounts_receivable" in prior_instant and "revenue" in lookup:
                     average = (lookup["accounts_receivable"].value + prior_instant["accounts_receivable"].value) / 2
                     if average:

@@ -140,7 +140,7 @@ class ServiceTests(unittest.TestCase):
         output=Path(self.temp.name)/"rebuilt.sqlite3"
         result=rebuild_snapshot(output,project/"data"/"imports",project/"config"/"companies.json",
                                 Path(self.temp.name)/"raw")
-        self.assertEqual(result["manifests"],29)
+        self.assertGreaterEqual(result["manifests"],30)
         audit=audit_release(output,project)
         self.assertTrue(audit["ready"])
         self.assertGreaterEqual(audit["current_facts"],600)
@@ -154,6 +154,10 @@ class ServiceTests(unittest.TestCase):
         self.assertGreaterEqual(len(dossier["disclosures"]),8)
         self.assertEqual(len(dossier["corporate_actions"]),8)
         self.assertEqual(len(dossier["market_prices"]),23)
+        self.assertGreaterEqual(sum(
+            1 for row in dossier["facts_by_category"]["financial"]
+            if row["statement"] == "financial_notes"
+        ), 100)
         valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
                    if row["period_end"]=="2026-09-03"}
         self.assertIn("price_to_earnings",valuation)

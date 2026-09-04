@@ -90,6 +90,37 @@ GROUPS = (
         "financial_results_announcement earnings_release annual_report interim_report board_change management_change contract_award "
         "litigation regulatory_action related_party_transaction guidance risk_factor strategy_update material_event"
     )),
+    ("financial_notes", "data_points", "financial_notes", "mixed", "currency", "none", "all", "*", _keys(
+        "revenue_by_product revenue_by_geography revenue_by_customer_type contract_assets contract_liabilities "
+        "remaining_performance_obligations customer_concentration property_plant_equipment_by_class "
+        "ppe_additions_by_class ppe_disposals_by_class depreciation_by_ppe_class accumulated_depreciation_by_class "
+        "capital_commitments intangible_assets_by_class intangible_additions_by_class intangible_amortization_by_class "
+        "goodwill_by_cash_generating_unit impairment_by_asset_class borrowings_by_instrument borrowings_by_currency "
+        "borrowings_by_maturity weighted_average_borrowing_rate undrawn_credit_facilities secured_borrowings "
+        "unsecured_borrowings finance_cost_by_type current_tax_expense deferred_tax_expense effective_tax_rate "
+        "tax_reconciliation_by_component deferred_tax_assets_by_component deferred_tax_liabilities_by_component "
+        "unrecognized_tax_losses defined_benefit_obligation fair_value_plan_assets employee_benefit_expense "
+        "service_cost_employee_benefits net_interest_employee_benefits actuarial_gain_loss plan_assets_by_class "
+        "benefit_obligation_by_geography financial_assets_by_class financial_liabilities_by_class "
+        "fair_value_assets_by_level fair_value_liabilities_by_level expected_credit_losses related_party_revenue "
+        "related_party_purchases related_party_receivables related_party_payables related_party_loans "
+        "key_management_compensation lease_maturity_by_band lease_interest_expense short_term_lease_expense "
+        "variable_lease_expense provisions_by_class provision_additions provision_utilization contingencies "
+        "purchase_commitments guarantees_issued"
+    )),
+    ("investor_analytics", "data_points", "analytics", "derived", "ratio", "none", "all", "*", _keys(
+        "return_on_tangible_assets return_on_tangible_equity income_quality payout_ratio capex_to_depreciation "
+        "selling_general_administrative_to_revenue research_development_to_revenue share_based_compensation_to_revenue "
+        "net_current_asset_value graham_net_net cash_per_share capex_per_share debt_per_share ebitda_per_share "
+        "revenue_cagr_10y net_income_cagr_10y eps_cagr_10y dividend_cagr_10y operating_cash_flow_cagr_10y "
+        "free_cash_flow_cagr_10y total_return_1y total_return_3y total_return_5y total_return_10y "
+        "simple_moving_average_20d simple_moving_average_50d simple_moving_average_200d price_to_sma_20d "
+        "price_to_sma_50d price_to_sma_200d"
+    )),
+    ("consensus", "consensus_estimates", "consensus", "forward", "decimal", "none", "all", "*", _keys(
+        "revenue_estimate ebitda_estimate ebit_estimate net_income_estimate "
+        "selling_general_administrative_expense_estimate eps_estimate"
+    )),
     ("segments", "data_points", "segments", "flow", "currency", "sum", "industry", "Integrated Oil & Gas", _keys(
         "upstream_revenue downstream_revenue corporate_revenue upstream_operating_income downstream_operating_income "
         "upstream_ebit upstream_adjusted_ebit downstream_ebit downstream_adjusted_ebit corporate_ebit corporate_adjusted_ebit "
@@ -130,7 +161,7 @@ def iter_catalog_fields():
                 "scope_type": scope_type,
                 "scope_value": scope_value,
                 "requirement": "recommended",
-                "pack_key": "oil_gas_v1" if scope_type == "industry" else "company_core_v2",
+                "pack_key": "oil_gas_v2" if scope_type == "industry" else "company_core_v3",
             }
 
 

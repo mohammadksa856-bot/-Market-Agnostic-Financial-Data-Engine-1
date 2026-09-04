@@ -169,6 +169,52 @@ class CompanyDomainStore:
                  share_value, str(pct_value) if pct_value is not None else None, country, source_key, encoded, version))
         return "restated" if old else "inserted"
 
+    def publish_consensus_estimate(
+        self, company_id: str, metric_key: str, target_period_end: str, period_kind: str,
+        estimate_type: str, value, estimate_as_of: str, source_key: str,
+        currency: str = "", unit: str = "pure", analyst_count: int | None = None,
+        metadata: dict | None = None,
+    ) -> str:
+        """Publish a point-in-time analyst estimate without overwriting its history."""
+        if period_kind not in {"quarter", "fy"}:
+            raise ValueError("consensus period_kind must be quarter or fy")
+        if estimate_type not in {"low", "high", "mean", "median"}:
+            raise ValueError("unsupported consensus estimate_type")
+        if analyst_count is not None and (not isinstance(analyst_count, int) or analyst_count < 0):
+            raise ValueError("analyst_count must be a non-negative integer")
+        datetime.fromisoformat(target_period_end.replace("Z", "+00:00"))
+        datetime.fromisoformat(estimate_as_of.replace("Z", "+00:00"))
+        metric = self.db.conn.execute(
+            "SELECT category FROM metric_definitions WHERE metric_key=? AND enabled=1", (metric_key,),
+        ).fetchone()
+        if not metric or metric["category"] != "consensus":
+            raise ValueError(f"metric is not a registered consensus field: {metric_key}")
+        decimal_value = str(Decimal(str(value)))
+        encoded = _json(metadata or {})
+        old = self.db.conn.execute(
+            """SELECT * FROM consensus_estimates WHERE company_id=? AND metric_key=?
+            AND target_period_end=? AND period_kind=? AND estimate_type=? AND estimate_as_of=?
+            AND is_current=1""",
+            (company_id, metric_key, target_period_end, period_kind, estimate_type, estimate_as_of),
+        ).fetchone()
+        fields = (decimal_value, currency, unit, analyst_count, source_key, encoded)
+        names = ("value_decimal", "currency", "unit", "analyst_count", "source_key", "metadata_json")
+        if old and tuple(old[name] for name in names) == fields:
+            return "duplicate"
+        version = old["version"] + 1 if old else 1
+        with self.db.conn:
+            if old:
+                self.db.conn.execute("UPDATE consensus_estimates SET is_current=0 WHERE id=?", (old["id"],))
+            self.db.conn.execute(
+                """INSERT INTO consensus_estimates(company_id,metric_key,target_period_end,period_kind,
+                estimate_type,value_decimal,currency,unit,analyst_count,estimate_as_of,source_key,
+                metadata_json,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (company_id, metric_key, target_period_end, period_kind, estimate_type,
+                 decimal_value, currency, unit, analyst_count, estimate_as_of, source_key,
+                 encoded, version),
+            )
+        return "restated" if old else "inserted"
+
     def publish_corporate_action(
         self, action_key: str, company_id: str, action_type: str, title: str,
         announcement_date: str, source_key: str, listing_id: str | None = None,
@@ -280,7 +326,7 @@ class CompanyDomainStore:
                 "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},
             "company_profile": {row["attribute_key"] for row in self.db.conn.execute(
                 "SELECT DISTINCT attribute_key FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))},
-            "market_prices": set(), "ownership_positions": set(),
+            "market_prices": set(), "ownership_positions": set(), "consensus_estimates": set(),
             "corporate_actions": set(), "disclosures": set(),
         }
         profile_map = {
@@ -315,6 +361,8 @@ class CompanyDomainStore:
             "SELECT DISTINCT action_type FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)))
         available["disclosures"].update(row["disclosure_type"] for row in self.db.conn.execute(
             "SELECT DISTINCT disclosure_type FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)))
+        available["consensus_estimates"].update(row["metric_key"] for row in self.db.conn.execute(
+            "SELECT DISTINCT metric_key FROM consensus_estimates WHERE company_id=? AND is_current=1", (company_id,)))
         by_category = {}
         for row in expected_rows:
             by_category.setdefault(row["category"], []).append(row)
@@ -466,6 +514,10 @@ class CompanyDomainStore:
                 JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1""",
                 (company_id,),
             ).fetchone()[0],
+            "consensus_estimates": self.db.conn.execute(
+                "SELECT count(*) FROM consensus_estimates WHERE company_id=? AND is_current=1",
+                (company_id,),
+            ).fetchone()[0],
         }
         tasks = {
             "historical_financials": ("financial", "Ingest historical financial statements", 10),
@@ -474,6 +526,7 @@ class CompanyDomainStore:
             "disclosures": ("disclosures", "Archive and classify company disclosures", 40),
             "ownership": ("ownership", "Load ownership and major-holder history", 40),
             "company_profile": ("general", "Complete versioned company profile", 50),
+            "consensus_estimates": ("consensus", "Load point-in-time analyst estimates", 60),
         }
         created = 0
         completed = 0
@@ -499,7 +552,7 @@ class CompanyDomainStore:
                     f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
                     description=f"{row['populated']} of {row['expected']} reviewed catalog fields are populated.",
                     source_url=source_url,priority=20,
-                    payload={"origin":"data_catalog_v2","missing_fields":row["missing"]},
+                    payload={"origin":"data_catalog_v3","missing_fields":row["missing"]},
                 )
             else:
                 self.db.complete_backlog_item(key)

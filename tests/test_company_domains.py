@@ -93,6 +93,25 @@ class CompanyDomainTests(unittest.TestCase):
         self.assertEqual(query.corporate_actions("SA", "TST")[0]["payment_date"], "2026-05-30")
         query.close()
 
+    def test_consensus_estimates_are_point_in_time_and_versioned(self):
+        values = dict(
+            company_id="sa:TST", metric_key="revenue_estimate", target_period_end="2026-12-31",
+            period_kind="fy", estimate_type="mean", estimate_as_of="2026-09-01",
+            source_key=self.source.source_key, currency="SAR", unit="SAR", analyst_count=12,
+        )
+        self.assertEqual(self.store.publish_consensus_estimate(value="110", **values), "inserted")
+        self.assertEqual(self.store.publish_consensus_estimate(value="110", **values), "duplicate")
+        self.assertEqual(self.store.publish_consensus_estimate(value="112", **values), "restated")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM consensus_estimates WHERE company_id='sa:TST'"
+        ).fetchone()[0], 2)
+        query = FinancialQueryService(self.path)
+        estimates = query.consensus_estimates("SA", "TST", "revenue_estimate")
+        query.close()
+        self.assertEqual((len(estimates), estimates[0]["value"], estimates[0]["version"]), (1, "112", 2))
+        with self.assertRaises(ValueError):
+            self.store.publish_consensus_estimate(value="1", **{**values, "period_kind": "ttm"})
+
     def test_formula_registry_tracks_dependencies(self):
         self.store.register_calculation("return_on_assets", "net_income / average(total_assets)",
                                         ["net_income", "total_assets"], 1, output_unit="ratio",
@@ -131,7 +150,7 @@ class CompanyDomainTests(unittest.TestCase):
 
     def test_company_backlog_tracks_empty_domains_and_is_queryable(self):
         result = self.store.refresh_company_backlog("sa:TST")
-        self.assertEqual(result["created"], 6)
+        self.assertEqual(result["created"], 7)
         self.assertGreater(result["open"], 6)
         self.assertGreaterEqual(result["catalog_expected"], 300)
         self.assertGreater(result["catalog_populated"], 0)
@@ -144,7 +163,7 @@ class CompanyDomainTests(unittest.TestCase):
 
     def test_commercial_catalog_has_core_and_oil_gas_layers(self):
         catalog_count=self.db.conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1").fetchone()[0]
-        oil_count=self.db.conn.execute("SELECT count(*) FROM data_catalog_fields WHERE pack_key='oil_gas_v1'").fetchone()[0]
+        oil_count=self.db.conn.execute("SELECT count(*) FROM data_catalog_fields WHERE pack_key='oil_gas_v2'").fetchone()[0]
         self.assertGreaterEqual(catalog_count,300)
         self.assertGreaterEqual(oil_count,40)
         with self.db.conn:
@@ -153,6 +172,8 @@ class CompanyDomainTests(unittest.TestCase):
         categories={row["category"] for row in result["categories"]}
         self.assertIn("company_model",categories)
         self.assertIn("oil_gas_operations",categories)
+        self.assertIn("financial_notes",categories)
+        self.assertIn("consensus",categories)
         query=FinancialQueryService(self.path)
         completeness=query.completeness("SA","TST"); query.close()
         self.assertEqual(completeness["expected_fields"],result["expected"])

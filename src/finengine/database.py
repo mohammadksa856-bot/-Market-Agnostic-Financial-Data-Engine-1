@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import iter_catalog_fields
 
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS data_catalog_fields(
  pack_key TEXT NOT NULL, scope_type TEXT NOT NULL CHECK(scope_type IN ('all','market','sector','industry','company')),
  scope_value TEXT NOT NULL DEFAULT '*', requirement TEXT NOT NULL CHECK(requirement IN ('required','recommended','optional')),
  review_state TEXT NOT NULL DEFAULT 'reviewed' CHECK(review_state IN ('candidate','reviewed','deprecated')),
- schema_version INTEGER NOT NULL DEFAULT 2, enabled INTEGER NOT NULL DEFAULT 1,
+ schema_version INTEGER NOT NULL DEFAULT 3, enabled INTEGER NOT NULL DEFAULT 1,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX IF NOT EXISTS idx_catalog_scope ON data_catalog_fields(scope_type,scope_value,storage_domain,enabled);
 CREATE TABLE IF NOT EXISTS company_completeness(
@@ -162,6 +162,17 @@ CREATE TABLE IF NOT EXISTS corporate_actions(
  version INTEGER NOT NULL, is_current INTEGER NOT NULL DEFAULT 1,
  published_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(action_key,version));
 CREATE INDEX IF NOT EXISTS idx_action_query ON corporate_actions(company_id,action_type,is_current,announcement_date);
+CREATE TABLE IF NOT EXISTS consensus_estimates(
+ id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
+ metric_key TEXT NOT NULL REFERENCES metric_definitions(metric_key), target_period_end TEXT NOT NULL,
+ period_kind TEXT NOT NULL CHECK(period_kind IN ('quarter','fy')),
+ estimate_type TEXT NOT NULL CHECK(estimate_type IN ('low','high','mean','median')),
+ value_decimal TEXT NOT NULL, currency TEXT NOT NULL DEFAULT '', unit TEXT NOT NULL DEFAULT 'pure',
+ analyst_count INTEGER, estimate_as_of TEXT NOT NULL, source_key TEXT NOT NULL REFERENCES source_documents(source_key),
+ metadata_json TEXT NOT NULL DEFAULT '{}', version INTEGER NOT NULL, is_current INTEGER NOT NULL DEFAULT 1,
+ published_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(company_id,metric_key,target_period_end,period_kind,estimate_type,estimate_as_of,version));
+CREATE INDEX IF NOT EXISTS idx_consensus_query ON consensus_estimates(company_id,metric_key,is_current,target_period_end,estimate_as_of);
 CREATE TABLE IF NOT EXISTS calculation_definitions(
  metric_key TEXT NOT NULL REFERENCES metric_definitions(metric_key), formula_version INTEGER NOT NULL,
  expression TEXT NOT NULL, output_unit TEXT, period_rule TEXT NOT NULL DEFAULT 'same_period',
@@ -421,27 +432,28 @@ class Database:
             "income_statement": "financial", "balance_sheet": "financial", "cash_flow": "financial",
             "per_share": "financial", "segments": "operational", "oil_gas_operations": "operational",
             "profitability": "ratio", "liquidity_solvency": "ratio", "efficiency": "ratio",
-            "growth": "calculated", "valuation": "calculated",
+            "growth": "calculated", "valuation": "calculated", "financial_notes": "financial",
+            "investor_analytics": "calculated", "consensus": "consensus",
         }
         for item in iter_catalog_fields():
             self.conn.execute(
                 """INSERT INTO data_catalog_fields(field_key,display_name,category,storage_domain,statement,
-                period_behavior,value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(field_key) DO UPDATE SET
+                period_behavior,value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement,schema_version)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,3) ON CONFLICT(field_key) DO UPDATE SET
                 display_name=excluded.display_name,category=excluded.category,storage_domain=excluded.storage_domain,
                 statement=excluded.statement,period_behavior=excluded.period_behavior,value_type=excluded.value_type,
                 default_unit=excluded.default_unit,aggregation=excluded.aggregation,pack_key=excluded.pack_key,
                 scope_type=excluded.scope_type,scope_value=excluded.scope_value,requirement=excluded.requirement,
-                schema_version=2,updated_at=CURRENT_TIMESTAMP""",
+                schema_version=3,updated_at=CURRENT_TIMESTAMP""",
                 tuple(item[key] for key in ("field_key","display_name","category","storage_domain","statement",
                     "period_behavior","value_type","default_unit","aggregation","pack_key","scope_type",
                     "scope_value","requirement")),
             )
-            if item["storage_domain"] == "data_points":
+            if item["storage_domain"] in {"data_points", "consensus_estimates"}:
                 self.register_metric(
                     item["field_key"], item["display_name"], metric_categories[item["category"]],
                     item["statement"], "decimal", item["default_unit"], item["aggregation"],
-                    f"Reviewed {item['pack_key']} catalog field", schema_version=2, commit=False,
+                    f"Reviewed {item['pack_key']} catalog field", schema_version=3, commit=False,
                 )
         self.conn.commit()
 
@@ -506,6 +518,19 @@ class Database:
             "fcf_yield": ("latest_filed_fy(free_cash_flow) / market_cap", "point_in_time", ("free_cash_flow", "market_cap")),
             "dividend_yield": ("abs(latest_filed_fy(dividends_paid)) / market_cap", "point_in_time", ("dividends_paid", "market_cap")),
             "graham_number": ("sqrt(22.5 * latest_filed_fy(eps) * latest_filed(book_value_per_share))", "point_in_time", ("eps_diluted", "book_value_per_share")),
+            "income_quality": ("operating_cash_flow / net_income", "same_period", ("operating_cash_flow", "net_income")),
+            "payout_ratio": ("abs(dividends_paid) / net_income", "same_period", ("dividends_paid", "net_income")),
+            "capex_to_depreciation": ("abs(capex) / abs(depreciation_amortization)", "same_period", ("capex", "depreciation_amortization")),
+            "selling_general_administrative_to_revenue": ("selling_general_administrative_expense / revenue", "same_period", ("selling_general_administrative_expense", "revenue")),
+            "research_development_to_revenue": ("research_and_development_expense / revenue", "same_period", ("research_and_development_expense", "revenue")),
+            "share_based_compensation_to_revenue": ("share_based_compensation / revenue", "same_period", ("share_based_compensation", "revenue")),
+            "cash_per_share": ("cash / weighted_average_shares", "same_period", ("cash", "weighted_average_shares_diluted")),
+            "capex_per_share": ("abs(capex) / weighted_average_shares", "same_period", ("capex", "weighted_average_shares_diluted")),
+            "debt_per_share": ("(current_debt + long_term_debt) / weighted_average_shares", "same_period", ("current_debt", "long_term_debt", "weighted_average_shares_diluted")),
+            "ebitda_per_share": ("ebitda / weighted_average_shares", "same_period", ("ebitda", "weighted_average_shares_diluted")),
+            "net_current_asset_value": ("current_assets - total_liabilities", "same_period", ("current_assets", "total_liabilities")),
+            "graham_net_net": ("cash + 0.75 * accounts_receivable + 0.5 * inventory - total_liabilities", "same_period", ("cash", "accounts_receivable", "inventory", "total_liabilities")),
+            "return_on_tangible_equity": ("net_income / average(total_equity - intangible_assets)", "annual_average_balance", ("net_income", "total_equity", "intangible_assets")),
         }
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",
@@ -1194,6 +1219,7 @@ class Database:
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",
+            "consensus_estimates": "consensus_estimates",
             "coverage_rows": "coverage_status", "freshness_policies": "freshness_policies",
             "open_backlog": "backlog_items WHERE status IN ('open','ready','in_progress','blocked')",
             "completed_backlog": "backlog_items WHERE status='completed'",

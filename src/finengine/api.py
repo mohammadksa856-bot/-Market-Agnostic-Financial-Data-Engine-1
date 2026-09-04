@@ -10,7 +10,7 @@ from .query import FinancialQueryService
 def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                       api_key: str | None = None) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
-        server_version = "FinEngineAPI/1.2"
+        server_version = "FinEngineAPI/1.4"
 
         def _send(self, status: int, payload: dict | list):
             body=json.dumps(payload,ensure_ascii=False,default=str).encode("utf-8")
@@ -62,6 +62,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     elif tail==["sources"]: result=query.source_candidates(market,symbol,params.get("status",[None])[0],self._int(params,"limit",100))
                     elif tail==["prices"]: result=query.market_prices(market,symbol,params.get("interval",["1d"])[0],self._int(params,"limit",100))
                     elif tail==["ownership"]: result=query.ownership(market,symbol,params.get("as_of",[None])[0],self._int(params,"limit",100))
+                    elif tail==["estimates"]: result=query.consensus_estimates(market,symbol,params.get("metric",[None])[0],params.get("period_end",[None])[0],self._int(params,"limit",100))
                     elif tail==["actions"]: result=query.corporate_actions(market,symbol,params.get("type",[None])[0],self._int(params,"limit",100))
                     else: raise KeyError("unknown endpoint")
                 elif parts == ["v1","exceptions"]:

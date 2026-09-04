@@ -86,6 +86,11 @@ def _publish_manifest_domains(
         values.update(company_id=company.company_id, source_key=source_key)
         state = store.publish_market_price(**values)
         record("market_prices", state)
+    for item in payload.get("consensus_estimates", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_consensus_estimate(**values)
+        record("consensus_estimates", state)
     return counts
 
 

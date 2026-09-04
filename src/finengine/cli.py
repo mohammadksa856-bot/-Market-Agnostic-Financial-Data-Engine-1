@@ -147,7 +147,7 @@ def main():
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
-    dossier=sub.add_parser("dossier"); dossier.add_argument("market"); dossier.add_argument("symbol")
+    dossier=sub.add_parser("dossier"); dossier.add_argument("market"); dossier.add_argument("symbol"); dossier.add_argument("--output")
     report=sub.add_parser("report"); report.add_argument("--html",default="data/financial-report.html"); report.add_argument("--csv",default="data/financial-data.csv")
     backfill=sub.add_parser("backfill-staging"); backfill.add_argument("--registry",default="config/companies.json"); backfill.add_argument("--raw-dir",default="data/raw")
     facts=sub.add_parser("facts"); facts.add_argument("market"); facts.add_argument("symbol"); facts.add_argument("--category"); facts.add_argument("--period-kind"); facts.add_argument("--limit",type=int,default=500)
@@ -279,7 +279,12 @@ def main():
     if a.cmd=="facts":
         q=FinancialQueryService(a.db); print(json.dumps(q.facts(a.market,a.symbol,a.category,a.period_kind,a.limit),indent=2)); q.close(); return
     if a.cmd=="dossier":
-        q=FinancialQueryService(a.db); print(json.dumps(q.company_dossier(a.market,a.symbol),ensure_ascii=False,indent=2)); q.close(); return
+        q=FinancialQueryService(a.db); payload=json.dumps(q.company_dossier(a.market,a.symbol),ensure_ascii=False,indent=2); q.close()
+        if a.output:
+            target=Path(a.output); target.parent.mkdir(parents=True,exist_ok=True); target.write_text(payload+"\n",encoding="utf-8")
+            print(f"created {target}")
+        else: print(payload)
+        return
     if a.cmd=="coverage":
         if a.refresh:
             db=Database(a.db); row=db.conn.execute("SELECT company_id FROM companies WHERE market=? AND symbol=?",(a.market.upper(),a.symbol.upper())).fetchone()

@@ -39,7 +39,7 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     add("mapping_review", "pass" if review_mappings == 0 else "fail", review_mappings)
     catalog_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed'").fetchone()[0]
     add("commercial_catalog", "pass" if catalog_count >= 300 else "fail", catalog_count)
-    oil_gas_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND pack_key='oil_gas_v1'").fetchone()[0]
+    oil_gas_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND pack_key='oil_gas_v2'").fetchone()[0]
     add("oil_gas_sector_pack", "pass" if oil_gas_count >= 40 else "fail", oil_gas_count)
 
     missing_files = []

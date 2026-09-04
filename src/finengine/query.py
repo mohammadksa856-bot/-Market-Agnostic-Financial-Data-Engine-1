@@ -137,6 +137,7 @@ class FinancialQueryService:
             "market_prices": self.market_prices(market, symbol, limit=100),
             "ownership": self.ownership(market, symbol, limit=1000),
             "corporate_actions": self.corporate_actions(market, symbol, limit=1000),
+            "consensus_estimates": self.consensus_estimates(market, symbol, limit=1000),
             "disclosures": self.disclosures(market, symbol, limit=200),
             "latest_snapshot": self.snapshot(market, symbol),
             "facts_by_category": categories,
@@ -179,6 +180,30 @@ class FinancialQueryService:
         result=[]
         for row in rows:
             item=dict(row); item["metadata"]=json.loads(item.pop("metadata_json")); result.append(item)
+        return result
+
+    def consensus_estimates(
+        self, market: str, symbol: str, metric: str | None = None,
+        target_period_end: str | None = None, limit: int = 100,
+    ) -> list[dict]:
+        filters = ["c.market=?", "c.symbol=?", "e.is_current=1"]
+        args: list = [market.upper(), symbol.upper()]
+        if metric:
+            filters.append("e.metric_key=?"); args.append(metric)
+        if target_period_end:
+            filters.append("e.target_period_end=?"); args.append(target_period_end)
+        args.append(min(max(limit, 1), 2000))
+        rows = self.conn.execute(
+            """SELECT e.metric_key AS metric,e.target_period_end,e.period_kind,e.estimate_type,
+            e.value_decimal AS value,e.currency,e.unit,e.analyst_count,e.estimate_as_of,
+            e.metadata_json,e.version,s.source_url
+            FROM consensus_estimates e JOIN companies c USING(company_id)
+            JOIN source_documents s USING(source_key) WHERE """ + " AND ".join(filters) +
+            " ORDER BY e.target_period_end,e.metric_key,e.estimate_type,e.estimate_as_of DESC LIMIT ?", args,
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row); item["metadata"] = json.loads(item.pop("metadata_json")); result.append(item)
         return result
 
     def corporate_actions(self, market: str, symbol: str, action_type: str | None = None,
@@ -382,6 +407,7 @@ class FinancialQueryService:
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",
+            "consensus_estimates": "consensus_estimates",
             "coverage_rows": "coverage_status", "freshness_policies": "freshness_policies",
             "open_backlog": "backlog_items WHERE status IN ('open','ready','in_progress','blocked')",
             "completed_backlog": "backlog_items WHERE status='completed'",
