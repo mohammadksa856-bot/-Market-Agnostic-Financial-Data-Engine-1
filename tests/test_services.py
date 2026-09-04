@@ -147,6 +147,7 @@ class ServiceTests(unittest.TestCase):
         query=FinancialQueryService(str(output))
         try:
             dossier=query.company_dossier("SA","2222")
+            backlog=query.backlog("SA","2222")
         finally:
             query.close()
         self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
@@ -182,9 +183,25 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(len(undrawn), 9)
         self.assertTrue(any("do not sum" in row["dimensions"].get("overlap_note", "")
                             for row in undrawn))
+        accounts_payable = next(row for row in financial_2025 if row["metric"] == "accounts_payable")
+        self.assertEqual(accounts_payable["value"], "79054000000")
+        self.assertEqual(accounts_payable["provenance"]["extraction"]["page"], 66)
+        geography = [row for row in financial_2025 if row["metric"] == "revenue_by_geography"]
+        self.assertEqual(sum(int(row["value"]) for row in geography), 1559342000000)
+        service_cost = [row for row in financial_2025
+                        if row["metric"] == "service_cost_employee_benefits"]
+        self.assertEqual(len(service_cost), 2)
         commercial_disclosures = [row for row in dossier["disclosures"]
                                   if row["disclosure_type"] == "commercial_contract"]
         self.assertEqual(commercial_disclosures[0]["metadata"]["quantitative_volume_disclosed"], False)
+        commercial_backlog = next(row for row in backlog
+                                  if row["domain"] == "commercial_pipeline")
+        availability = {row["field_key"]: row["availability"]
+                        for row in commercial_backlog["payload"]["field_assessments"]}
+        self.assertEqual(availability["minimum_volume_commitments"],
+                         "qualitative_disclosure_only")
+        self.assertEqual(availability["sales_order_backlog"],
+                         "not_disclosed_in_archived_filings")
         valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
                    if row["period_end"]=="2026-09-03"}
         self.assertIn("price_to_earnings",valuation)

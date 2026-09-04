@@ -490,7 +490,7 @@ class CompanyDomainStore:
     def refresh_company_backlog(self, company_id: str) -> dict:
         """Create backlog work for coverage gaps and still-empty company data domains."""
         company = self.db.conn.execute(
-            "SELECT name FROM companies WHERE company_id=?", (company_id,)).fetchone()
+            "SELECT name,market FROM companies WHERE company_id=?", (company_id,)).fetchone()
         if not company:
             raise KeyError(company_id)
         coverage = self.refresh_company_coverage(company_id)
@@ -561,6 +561,33 @@ class CompanyDomainStore:
                             "title": evidence["title"], "source_key": evidence["source_key"],
                             "source_url": evidence["source_url"], "metadata": json.loads(evidence["metadata_json"]),
                         })
+                qualitative_fields = {
+                    field
+                    for evidence in qualitative_evidence
+                    for field in evidence["metadata"].get("related_metric_keys", [])
+                }
+                field_assessments = []
+                for field in row["missing"]:
+                    if row["category"] == "consensus":
+                        availability = "licensed_source_required"
+                    elif row["category"] in {"corporate_actions", "disclosures"}:
+                        availability = "event_driven_no_event_observed"
+                    elif row["category"] == "commercial_pipeline":
+                        availability = (
+                            "qualitative_disclosure_only" if field in qualitative_fields
+                            else "not_disclosed_in_archived_filings"
+                        )
+                    elif row["category"] == "company_model" and field == "cik" and company["market"] != "US":
+                        availability = "not_applicable_market_identifier"
+                    elif row["category"] == "company_model":
+                        availability = "authoritative_registry_source_required"
+                    elif row["category"] in {"market_data", "investor_analytics"}:
+                        availability = "calculation_requires_sufficient_market_history"
+                    elif row["category"] in {"growth", "profitability", "efficiency", "liquidity_solvency", "valuation"}:
+                        availability = "calculation_requires_missing_dependencies"
+                    else:
+                        availability = "pending_official_source_extraction"
+                    field_assessments.append({"field_key": field, "availability": availability})
                 self.db.upsert_backlog_item(
                     key,"catalog_backfill",row["category"],
                     f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
@@ -574,6 +601,7 @@ class CompanyDomainStore:
                         ),
                         "no_inference": True,
                         "qualitative_evidence": qualitative_evidence,
+                        "field_assessments": field_assessments,
                     },
                 )
             else:
