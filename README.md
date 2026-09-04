@@ -9,8 +9,8 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 The bundled portable snapshot is rebuilt from 29 reviewed manifests and currently contains:
 
 - 4 enabled companies: Saudi Aramco, Apple, Microsoft, and NVIDIA.
-- 825 current facts and 904 total fact versions.
-- 610 current Aramco data points, plus 37 profile attributes, four ownership positions, 11 disclosures, eight corporate actions, 23 official daily market-price rows, and 15 point-in-time valuation metrics. Coverage includes detailed financial, segment, operational, ESG, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics.
+- 847 current facts and 926 total fact versions.
+- 632 current Aramco data points, plus 37 profile attributes, four ownership positions, 11 disclosures, eight corporate actions, 23 official daily market-price rows, and 15 point-in-time valuation metrics. Coverage includes detailed financial, segment, operational, ESG, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2019–2020 history includes the summarized income statement and all three headline cash-flow lines sourced to page 118 of the archived 2022 annual report.
 - 185 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
 - 29 published source documents, eight independently hashed raw artifacts (seven issuer PDFs and one Saudi Exchange price snapshot), four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
 - A reviewed 391-field commercial data catalog: 322 universal company fields plus a 69-field Integrated Oil & Gas sector pack.
