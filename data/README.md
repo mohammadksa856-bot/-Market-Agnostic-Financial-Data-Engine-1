@@ -1,20 +1,21 @@
 # Bundled release snapshot
 
-`financial.sqlite3` is the reproducible v1.4 snapshot used by the read-only query service,
+`financial.sqlite3` is the reproducible v1.5 snapshot used by the read-only query service,
 API, and Telegram adapter. It is built from 30 reviewed manifests and currently contains
-1,009 current facts across Saudi Aramco, Apple, Microsoft, and NVIDIA. Aramco contributes 783
-current facts (868 total versions), 23 official daily price rows, and 15 point-in-time valuation metrics. The seed
+1,011 current facts across Saudi Aramco, Apple, Microsoft, and NVIDIA. Aramco contributes 785
+current facts (870 total versions), 23 official daily price rows, and 15 point-in-time valuation metrics. The seed
 covers annual 2019-2025 facts plus Q1/H1 2026; US samples demonstrate the same canonical schema
 with SEC EDGAR/XBRL provenance.
 
-Every fact keeps its source, staging path, period semantics, version history, consolidation
-scope, and optional dimensions. The active `backlog_items` ledger describes known coverage
+Every fact keeps its source, page/table extraction location, archived artifact path and SHA-256,
+mapping confidence, staging path, period semantics, version history, consolidation scope, and optional dimensions.
+Calculated facts carry their deterministic formula and dependencies. The active `backlog_items` ledger describes known coverage
 and domain gaps; backlog rows are planning records and are never counted as verified facts.
 
-Schema v11 includes a reviewed 489-field commercial target catalog. The universal company pack
-contains 420 fields across company model, statements, dimensional financial notes, investor analytics,
+Schema v12 includes a reviewed 502-field commercial target catalog. The universal company pack
+contains 433 fields across company model, statements, dimensional financial notes, commercial sales/order backlog, investor analytics,
 consensus estimates, market data, ownership, corporate actions, and disclosures. Integrated Oil & Gas
-companies receive another 69 segment and operating fields. Aramco currently populates 338 fields (69.1%);
+companies receive another 69 segment and operating fields. Aramco currently populates 339 fields (67.5%);
 the lower percentage reflects the expanded target model rather than removed data.
 `company_completeness` records what is actually populated;
 catalog definitions and backlog items are never presented as sourced production facts.

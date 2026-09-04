@@ -1,4 +1,4 @@
-# Market-Agnostic Financial Data Engine 1.4
+# Market-Agnostic Financial Data Engine 1.5
 
 An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
@@ -9,13 +9,14 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 The bundled portable snapshot is rebuilt from 30 reviewed manifests and currently contains:
 
 - 4 enabled companies: Saudi Aramco, Apple, Microsoft, and NVIDIA.
-- 1,009 current facts and 1,094 total fact versions.
-- 783 current Aramco data points and 868 total versions, plus 37 profile attributes, four ownership positions, 11 disclosures, eight corporate actions, 23 official daily market-price rows, and 15 point-in-time valuation metrics. Aramco 2025 alone contains 344 current rows across 265 distinct metrics. Coverage includes detailed financial, segment, operational, ESG, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics.
+- 1,011 current facts and 1,096 total fact versions.
+- 785 current Aramco data points and 870 total versions, plus 37 profile attributes, four ownership positions, 11 disclosures, eight corporate actions, 23 official daily market-price rows, and 15 point-in-time valuation metrics. Aramco 2025 alone contains 345 current rows across 266 distinct metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics.
 - 195 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
 - 30 published source documents, eight independently hashed raw artifacts (seven issuer PDFs and one Saudi Exchange price snapshot), four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
-- A reviewed 489-field commercial data catalog: 420 universal company fields plus a 69-field Integrated Oil & Gas sector pack. Version 3 adds a dimensional financial-note taxonomy, investor analytics, and a dedicated point-in-time consensus-estimate domain.
-- Aramco currently populates 338 of 489 applicable catalog fields (69.1%). The larger denominator is deliberate: the prior 391-field score is not comparable. Financial notes are 30/62, investor analytics 13/30, valuation 15/17, per-share 6/6, and liquidity/solvency 13/14; every remaining field is listed explicitly in the backlog.
-- Schema version 11 and 43 unit/integration/release tests.
+- A reviewed 502-field commercial data catalog: 433 universal company fields plus a 69-field Integrated Oil & Gas sector pack. Version 4 adds a dedicated sales/order-backlog and commercial-contract taxonomy.
+- Aramco currently populates 339 of 502 applicable catalog fields (67.5%). The denominator grew because the commercial pipeline is now explicit. Its currently disclosed field is the SAR 5.358 billion advance tied to a long-term sales agreement; the other 12 fields remain named in backlog and are never inferred. Financial notes are 30/62, investor analytics 13/30, valuation 15/17, per-share 6/6, and liquidity/solvency 13/14.
+- All 500 directly sourced Aramco facts resolve to an extraction row and archived official artifact. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
+- Schema version 12 and 43 unit/integration/release tests.
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -49,7 +50,7 @@ Python 3.11+ is required. There are no runtime package dependencies.
     finengine --db data/financial.sqlite3 catalog --limit 500
     finengine --db data/financial.sqlite3 report
 
-Open `data/financial-report.html` for the Arabic searchable report. It has company, period, and category filters and links every fact to its official source. `data/financial-data.csv` is Excel-compatible.
+Open `data/financial-report.html` for the Arabic searchable report. It has company, period, and category filters; every direct fact shows its official source, page/table, archived file and hash, while derived facts show their formula. `data/financial-data.csv` carries the same audit columns and is Excel-compatible.
 
 ## Rebuild the database from source manifests
 
@@ -209,7 +210,7 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 - `metric_applicability` and `coverage_status`: company/market/industry metric packs and gaps.
 - `exceptions`, `backlog_items`, `jobs`, `job_attempts`, `workers`, and `schedules`: durable operations.
 
-The row-based model can hold hundreds of target fields and thousands of period, segment, product, geography, counterparty, debt-instrument, asset-class, fair-value-level, and versioned facts per company without adding a database column for every metric. `company_core_v3` applies to every company; `oil_gas_v2` adds sector-specific segments, production, reserves, capacity, realized prices, costs, reliability, and environmental intensity measures.
+The row-based model can hold hundreds of target fields and thousands of period, segment, product, geography, counterparty, debt-instrument, asset-class, fair-value-level, and versioned facts per company without adding a database column for every metric. `company_core_v4` applies to every company; `oil_gas_v2` adds sector-specific segments, production, reserves, capacity, realized prices, costs, reliability, and environmental intensity measures.
 
 ## Backlog versus production data
 

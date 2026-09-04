@@ -552,7 +552,14 @@ class CompanyDomainStore:
                     f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
                     description=f"{row['populated']} of {row['expected']} reviewed catalog fields are populated.",
                     source_url=source_url,priority=20,
-                    payload={"origin":"data_catalog_v3","missing_fields":row["missing"]},
+                    payload={
+                        "origin":"data_catalog_v4","missing_fields":row["missing"],
+                        "source_policy": (
+                            "official_filing_or_exchange_disclosure" if row["category"] != "consensus"
+                            else "licensed_point_in_time_consensus_provider_required"
+                        ),
+                        "no_inference": True,
+                    },
                 )
             else:
                 self.db.complete_backlog_item(key)

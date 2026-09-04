@@ -108,6 +108,12 @@ GROUPS = (
         "variable_lease_expense provisions_by_class provision_additions provision_utilization contingencies "
         "purchase_commitments guarantees_issued"
     )),
+    ("commercial_pipeline", "data_points", "commercial", "mixed", "currency", "none", "all", "*", _keys(
+        "sales_order_backlog contracted_sales_value contracted_sales_volume committed_offtake_volume "
+        "take_or_pay_commitments minimum_volume_commitments average_selling_price_by_product "
+        "sales_volume_by_product sales_volume_by_geography sales_contract_count contract_renewal_profile "
+        "book_to_bill_ratio advance_payment_long_term_sales_agreement"
+    )),
     ("investor_analytics", "data_points", "analytics", "derived", "ratio", "none", "all", "*", _keys(
         "return_on_tangible_assets return_on_tangible_equity income_quality payout_ratio capex_to_depreciation "
         "selling_general_administrative_to_revenue research_development_to_revenue share_based_compensation_to_revenue "
@@ -161,7 +167,7 @@ def iter_catalog_fields():
                 "scope_type": scope_type,
                 "scope_value": scope_value,
                 "requirement": "recommended",
-                "pack_key": "oil_gas_v2" if scope_type == "industry" else "company_core_v3",
+                "pack_key": "oil_gas_v2" if scope_type == "industry" else "company_core_v4",
             }
 
 

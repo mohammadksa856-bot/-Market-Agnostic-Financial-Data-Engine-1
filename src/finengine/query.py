@@ -15,6 +15,66 @@ class FinancialQueryService:
     def close(self):
         self.conn.close()
 
+    def _source_trace(self, source_key: str | None) -> dict | None:
+        if not source_key:
+            return None
+        row = self.conn.execute(
+            """SELECT s.source_key,s.source_url,s.filing_type,s.filed_at,s.content_hash,
+            s.local_path AS manifest_path,a.artifact_key,a.local_path AS archived_path,
+            a.content_hash AS artifact_sha256,a.content_type,a.byte_size
+            FROM source_documents s LEFT JOIN source_artifact_links l USING(source_key)
+            LEFT JOIN source_artifacts a USING(artifact_key) WHERE s.source_key=?
+            ORDER BY a.archived_at DESC LIMIT 1""", (source_key,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def _fact_trace(self, point_id: int) -> dict:
+        point = self.conn.execute(
+            "SELECT source_key,is_calculated,calculation,metric_key FROM data_points WHERE id=?", (point_id,),
+        ).fetchone()
+        if not point:
+            return {}
+        trace = {"source": self._source_trace(point["source_key"])}
+        if point["is_calculated"]:
+            trace["derivation"] = {
+                "type": "deterministic_calculation",
+                "calculation": point["calculation"],
+                "definition": self.calculation_definition(point["metric_key"]),
+            }
+            return trace
+        extracted = self.conn.execute(
+            """SELECT e.raw_label,e.raw_value,e.raw_currency,e.raw_unit,e.scale,e.page,e.table_ref,
+            e.location_json,m.confidence,m.mapping_method,m.reason
+            FROM data_points d JOIN extracted_facts e ON e.source_key=d.source_key
+             AND e.company_id=d.company_id AND e.period_end=d.period_end
+             AND e.period_kind=d.period_kind AND e.fiscal_year=d.fiscal_year
+             AND COALESCE(e.fiscal_quarter,0)=d.fiscal_quarter AND e.scope=d.scope
+             AND e.dimensions_json=d.dimensions_json
+            JOIN mapped_facts m ON m.extracted_fact_id=e.id AND m.canonical_metric=d.metric_key
+            JOIN normalized_facts n ON n.mapped_fact_id=m.id AND n.normalized_value=d.value_decimal
+             AND n.currency=d.currency AND n.unit=d.unit
+            WHERE d.id=? ORDER BY e.id DESC LIMIT 1""", (point_id,),
+        ).fetchone()
+        if extracted:
+            item = dict(extracted)
+            item["location"] = json.loads(item.pop("location_json"))
+            trace["extraction"] = item
+        else:
+            trace["extraction"] = None
+        return trace
+
+    def _point_with_trace(self, row: sqlite3.Row) -> dict:
+        point_id = row["data_point_id"]
+        item = self._point(row)
+        item.pop("data_point_id", None)
+        item["provenance"] = self._fact_trace(point_id)
+        return item
+
+    def _attach_source(self, item: dict) -> dict:
+        source_key = item.get("source_key")
+        item["provenance"] = {"source": self._source_trace(source_key)}
+        return item
+
     @staticmethod
     def _point(row: sqlite3.Row) -> dict:
         item = dict(row)
@@ -33,16 +93,16 @@ class FinancialQueryService:
 
     def metric_history(self, market: str, symbol: str, metric: str, limit: int = 20) -> list[dict]:
         rows = self.conn.execute(
-            """SELECT d.metric_key AS metric,d.value_decimal AS value,d.value_text,d.value_json,d.value_type,d.currency,d.unit,d.period_start,
+            """SELECT d.id AS data_point_id,d.metric_key AS metric,d.value_decimal AS value,d.value_text,d.value_json,d.value_type,d.currency,d.unit,d.period_start,
             d.period_end,d.period_kind,d.fiscal_year,d.fiscal_quarter,d.scope,d.dimensions_json,
-            d.version,d.source_url,d.is_calculated,d.quality_score,m.category,m.statement
+            d.version,d.source_key,d.source_url,d.is_calculated,d.calculation,d.quality_score,m.category,m.statement
             FROM data_points d JOIN companies c USING(company_id)
             JOIN metric_definitions m ON m.metric_key=d.metric_key
             WHERE c.market=? AND c.symbol=? AND d.metric_key=? AND d.is_current=1
             ORDER BY d.period_end DESC,d.period_kind LIMIT ?""",
             (market.upper(), symbol.upper(), metric, min(max(limit, 1), 500)),
         ).fetchall()
-        return [self._point(row) for row in rows]
+        return [self._point_with_trace(row) for row in rows]
 
     def facts(
         self, market: str, symbol: str, category: str | None = None,
@@ -56,15 +116,15 @@ class FinancialQueryService:
             filters.append("d.period_kind=?"); args.append(period_kind)
         args.extend([min(max(limit, 1), 2000), max(offset, 0)])
         rows = self.conn.execute(
-            """SELECT d.metric_key AS metric,m.display_name,m.category,m.statement,
+            """SELECT d.id AS data_point_id,d.metric_key AS metric,m.display_name,m.category,m.statement,
             d.value_decimal AS value,d.value_text,d.value_json,d.value_type,d.currency,d.unit,
             d.period_start,d.period_end,d.period_kind,d.fiscal_year,d.fiscal_quarter,d.scope,
-            d.dimensions_json,d.version,d.quality_score,d.source_url,d.filed_at,d.is_calculated
+            d.dimensions_json,d.version,d.quality_score,d.source_key,d.source_url,d.filed_at,d.is_calculated,d.calculation
             FROM data_points d JOIN companies c USING(company_id)
             JOIN metric_definitions m ON m.metric_key=d.metric_key WHERE """ + " AND ".join(filters) +
             " ORDER BY d.period_end DESC,m.category,d.metric_key LIMIT ? OFFSET ?", args,
         ).fetchall()
-        return [self._point(row) for row in rows]
+        return [self._point_with_trace(row) for row in rows]
 
     def snapshot(self, market: str, symbol: str, period_end: str | None = None) -> dict:
         if period_end is None:
@@ -75,8 +135,8 @@ class FinancialQueryService:
             ).fetchone()
             period_end = row["p"]
         rows = self.conn.execute(
-            """SELECT d.metric_key AS metric,d.value_decimal AS value,d.value_text,d.value_json,d.value_type,d.currency,d.unit,d.period_kind,
-            d.fiscal_quarter,d.scope,d.dimensions_json,d.version,d.quality_score,d.source_url,m.category
+            """SELECT d.id AS data_point_id,d.metric_key AS metric,d.value_decimal AS value,d.value_text,d.value_json,d.value_type,d.currency,d.unit,d.period_kind,
+            d.fiscal_quarter,d.scope,d.dimensions_json,d.version,d.quality_score,d.source_key,d.source_url,d.is_calculated,d.calculation,m.category
             FROM data_points d JOIN companies c USING(company_id)
             JOIN metric_definitions m ON m.metric_key=d.metric_key
             WHERE c.market=? AND c.symbol=? AND d.period_end=? AND d.is_current=1
@@ -85,7 +145,7 @@ class FinancialQueryService:
         ).fetchall()
         grouped: dict[str, list[dict]] = {}
         for row in rows:
-            item = self._point(row)
+            item = self._point_with_trace(row)
             grouped.setdefault(item.pop("metric"), []).append(item)
         return {"market": market.upper(), "symbol": symbol.upper(), "period_end": period_end, "metrics": grouped}
 
@@ -157,13 +217,13 @@ class FinancialQueryService:
     def market_prices(self, market: str, symbol: str, interval: str = "1d", limit: int = 100) -> list[dict]:
         rows = self.conn.execute(
             """SELECT p.observed_at,p.interval,p.open,p.high,p.low,p.close,p.adjusted_close,
-            p.volume,p.turnover,p.currency,p.version,s.source_url
+            p.volume,p.turnover,p.currency,p.version,p.source_key,s.source_url
             FROM market_prices p JOIN listings l USING(listing_id) JOIN securities sec USING(security_id)
             JOIN companies c ON c.company_id=sec.company_id JOIN source_documents s USING(source_key)
             WHERE c.market=? AND c.symbol=? AND p.interval=? AND p.is_current=1
             ORDER BY p.observed_at DESC LIMIT ?""",
             (market.upper(), symbol.upper(), interval, min(max(limit, 1), 2000))).fetchall()
-        return [dict(row) for row in rows]
+        return [self._attach_source(dict(row)) for row in rows]
 
     def ownership(self, market: str, symbol: str, as_of_date: str | None = None, limit: int = 100) -> list[dict]:
         filters = ["c.market=?", "c.symbol=?", "o.is_current=1"]
@@ -173,13 +233,13 @@ class FinancialQueryService:
         args.append(min(max(limit, 1), 1000))
         rows = self.conn.execute(
             """SELECT o.holder_key,o.holder_name,o.holder_type,o.ownership_type,o.as_of_date,
-            o.shares,o.ownership_pct,o.country,o.metadata_json,o.version,s.source_url
+            o.shares,o.ownership_pct,o.country,o.metadata_json,o.version,o.source_key,s.source_url
             FROM ownership_positions o JOIN companies c USING(company_id)
             JOIN source_documents s USING(source_key) WHERE """ + " AND ".join(filters) +
             " ORDER BY o.as_of_date DESC,o.ownership_pct DESC LIMIT ?", args).fetchall()
         result=[]
         for row in rows:
-            item=dict(row); item["metadata"]=json.loads(item.pop("metadata_json")); result.append(item)
+            item=dict(row); item["metadata"]=json.loads(item.pop("metadata_json")); result.append(self._attach_source(item))
         return result
 
     def consensus_estimates(
@@ -196,14 +256,14 @@ class FinancialQueryService:
         rows = self.conn.execute(
             """SELECT e.metric_key AS metric,e.target_period_end,e.period_kind,e.estimate_type,
             e.value_decimal AS value,e.currency,e.unit,e.analyst_count,e.estimate_as_of,
-            e.metadata_json,e.version,s.source_url
+            e.metadata_json,e.version,e.source_key,s.source_url
             FROM consensus_estimates e JOIN companies c USING(company_id)
             JOIN source_documents s USING(source_key) WHERE """ + " AND ".join(filters) +
             " ORDER BY e.target_period_end,e.metric_key,e.estimate_type,e.estimate_as_of DESC LIMIT ?", args,
         ).fetchall()
         result = []
         for row in rows:
-            item = dict(row); item["metadata"] = json.loads(item.pop("metadata_json")); result.append(item)
+            item = dict(row); item["metadata"] = json.loads(item.pop("metadata_json")); result.append(self._attach_source(item))
         return result
 
     def corporate_actions(self, market: str, symbol: str, action_type: str | None = None,
@@ -216,13 +276,13 @@ class FinancialQueryService:
         rows = self.conn.execute(
             """SELECT a.action_key,a.action_type,a.title,a.announcement_date,a.ex_date,a.record_date,
             a.eligibility_date,a.payment_date,a.effective_date,a.cash_amount,a.currency,
-            a.ratio_numerator,a.ratio_denominator,a.status,a.details_json,a.version,s.source_url
+            a.ratio_numerator,a.ratio_denominator,a.status,a.details_json,a.version,a.source_key,s.source_url
             FROM corporate_actions a JOIN companies c USING(company_id)
             JOIN source_documents s USING(source_key) WHERE """ + " AND ".join(filters) +
             " ORDER BY a.announcement_date DESC LIMIT ?", args).fetchall()
         result=[]
         for row in rows:
-            item=dict(row); item["details"]=json.loads(item.pop("details_json")); result.append(item)
+            item=dict(row); item["details"]=json.loads(item.pop("details_json")); result.append(self._attach_source(item))
         return result
 
     def calculation_definition(self, metric: str) -> dict | None:
@@ -335,13 +395,13 @@ class FinancialQueryService:
         args.append(min(max(limit, 1), 200))
         rows = self.conn.execute(
             """SELECT d.disclosure_type,d.title,d.body_text,d.language,d.published_at,d.period_end,
-            d.metadata_json,d.version,s.source_url FROM disclosures d JOIN companies c USING(company_id)
+            d.metadata_json,d.version,d.source_key,s.source_url FROM disclosures d JOIN companies c USING(company_id)
             LEFT JOIN source_documents s ON s.source_key=d.source_key WHERE """ + " AND ".join(filters) +
             " ORDER BY d.published_at DESC LIMIT ?", args,
         ).fetchall()
         result = []
         for row in rows:
-            item = dict(row); item["metadata"] = json.loads(item.pop("metadata_json")); result.append(item)
+            item = dict(row); item["metadata"] = json.loads(item.pop("metadata_json")); result.append(self._attach_source(item))
         return result
 
     def source_candidates(self, market: str, symbol: str, status: str | None = None,
@@ -391,14 +451,14 @@ class FinancialQueryService:
 
     def attributes(self, market: str, symbol: str) -> dict:
         rows = self.conn.execute(
-            """SELECT a.attribute_key,a.value_json,a.category,a.language,a.effective_at,a.version
+            """SELECT a.attribute_key,a.value_json,a.category,a.language,a.effective_at,a.version,a.source_key
             FROM company_attributes a JOIN companies c USING(company_id)
             WHERE c.market=? AND c.symbol=? AND a.is_current=1 ORDER BY a.category,a.attribute_key""",
             (market.upper(), symbol.upper()),
         ).fetchall()
-        return {row["attribute_key"]: {"value": json.loads(row["value_json"]),
-                "category": row["category"], "language": row["language"],
-                "effective_at": row["effective_at"], "version": row["version"]} for row in rows}
+        return {row["attribute_key"]: self._attach_source({"value": json.loads(row["value_json"]),
+                "category": row["category"], "language": row["language"], "source_key": row["source_key"],
+                "effective_at": row["effective_at"], "version": row["version"]}) for row in rows}
 
     def health(self) -> dict:
         tables = {

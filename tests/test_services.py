@@ -158,9 +158,18 @@ class ServiceTests(unittest.TestCase):
             1 for row in dossier["facts_by_category"]["financial"]
             if row["statement"] == "financial_notes"
         ), 100)
+        commercial = {row["metric"]: row for row in dossier["facts_by_category"]["commercial"]
+                      if row["period_end"] == "2025-12-31"}
+        advance = commercial["advance_payment_long_term_sales_agreement"]
+        self.assertEqual(advance["value"], "5358000000")
+        self.assertEqual(advance["provenance"]["extraction"]["page"], 48)
+        self.assertIn("long-term sales", advance["provenance"]["extraction"]["table_ref"])
+        self.assertTrue(advance["provenance"]["source"]["content_hash"])
         valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
                    if row["period_end"]=="2026-09-03"}
         self.assertIn("price_to_earnings",valuation)
+        self.assertEqual(valuation["price_to_earnings"]["provenance"]["derivation"]["type"],
+                         "deterministic_calculation")
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):
         root=Path(self.temp.name)

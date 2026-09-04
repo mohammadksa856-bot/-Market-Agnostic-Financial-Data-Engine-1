@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import iter_catalog_fields
 
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -433,18 +433,18 @@ class Database:
             "per_share": "financial", "segments": "operational", "oil_gas_operations": "operational",
             "profitability": "ratio", "liquidity_solvency": "ratio", "efficiency": "ratio",
             "growth": "calculated", "valuation": "calculated", "financial_notes": "financial",
-            "investor_analytics": "calculated", "consensus": "consensus",
+            "commercial_pipeline": "commercial", "investor_analytics": "calculated", "consensus": "consensus",
         }
         for item in iter_catalog_fields():
             self.conn.execute(
                 """INSERT INTO data_catalog_fields(field_key,display_name,category,storage_domain,statement,
                 period_behavior,value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement,schema_version)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,3) ON CONFLICT(field_key) DO UPDATE SET
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,4) ON CONFLICT(field_key) DO UPDATE SET
                 display_name=excluded.display_name,category=excluded.category,storage_domain=excluded.storage_domain,
                 statement=excluded.statement,period_behavior=excluded.period_behavior,value_type=excluded.value_type,
                 default_unit=excluded.default_unit,aggregation=excluded.aggregation,pack_key=excluded.pack_key,
                 scope_type=excluded.scope_type,scope_value=excluded.scope_value,requirement=excluded.requirement,
-                schema_version=3,updated_at=CURRENT_TIMESTAMP""",
+                schema_version=4,updated_at=CURRENT_TIMESTAMP""",
                 tuple(item[key] for key in ("field_key","display_name","category","storage_domain","statement",
                     "period_behavior","value_type","default_unit","aggregation","pack_key","scope_type",
                     "scope_value","requirement")),
