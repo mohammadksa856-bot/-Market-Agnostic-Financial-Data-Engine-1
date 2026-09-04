@@ -8,6 +8,18 @@ version = "1.3.0"
 description = "Auditable SA/US financial filings pipeline"
 requires-python = ">=3.11"
 
+[project.optional-dependencies]
+# The reader agent (`finengine read`) parses filed PDFs. The core engine and
+# every other command stay dependency-free.
+reader = ["pymupdf>=1.24"]
+# The fetch agent (`finengine fetch`) pulls documents through headless Chromium
+# past CDN bot protection. After install: `playwright install chromium`.
+browser = ["playwright>=1.40"]
+# The LLM reader pass (`finengine read --llm`) - fallback behind the
+# deterministic reader. Needs an ANTHROPIC_API_KEY at run time.
+llm = ["anthropic>=0.40", "pymupdf>=1.24"]
+agents = ["pymupdf>=1.24", "playwright>=1.40", "anthropic>=0.40"]
+
 [project.scripts]
 finengine = "finengine.cli:main"
 
