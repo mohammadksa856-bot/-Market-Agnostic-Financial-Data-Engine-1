@@ -104,13 +104,23 @@ def _detect_scale(pages: list[tuple[int, str]]) -> str:
 
 
 def llm_read(pdf_path: str | Path, *, market: str, symbol: str, currency: str,
-             source_url: str, filed_at: str, period_end: str, fiscal_year: int,
-             filing_type: str = "financial-statements",
+             source_url: str, filed_at: str, period_end: str | None = None,
+             fiscal_year: int | None = None, filing_type: str = "financial-statements",
              model: str = DEFAULT_MODEL, client=None) -> dict:
     pdf_path = Path(pdf_path)
     pages = _statement_pages(pdf_path)
     if not pages:
         raise RuntimeError(f"no primary-statement pages found in {pdf_path.name}")
+
+    if fiscal_year is None:
+        from .reading import StatementReader
+        fiscal_year = StatementReader(pdf_path).infer_fiscal_year()
+        if fiscal_year is None:
+            raise ValueError(
+                f"could not infer the reporting year from {pdf_path.name}; "
+                "pass fiscal_year explicitly")
+    if period_end is None:
+        period_end = f"{fiscal_year}-12-31"
 
     if client is None:
         try:

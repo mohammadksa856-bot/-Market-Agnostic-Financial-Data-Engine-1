@@ -85,8 +85,10 @@ class BrowserFetcher:
             out.append({"url": full, "title": text.strip() or _slug(full)})
         return out
 
-    def fetch(self, url: str, market: str, symbol: str) -> dict:
-        """Download one PDF through the browser context and archive it immutably."""
+    def download_bytes(self, url: str) -> bytes:
+        """Fetch one URL's raw bytes through a real browser context - the piece
+        `DocumentArchiver` plugs in as its `content_fetcher` for sites a plain
+        HTTP client can't pass. Validates the result is a PDF."""
         import contextlib
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
@@ -101,6 +103,11 @@ class BrowserFetcher:
             content = response.body()
         if not content.startswith(b"%PDF"):
             raise RuntimeError(f"downloaded content is not a PDF: {url}")
+        return content
+
+    def fetch(self, url: str, market: str, symbol: str) -> dict:
+        """Download one PDF through the browser context and archive it immutably."""
+        content = self.download_bytes(url)
         digest = hashlib.sha256(content).hexdigest()
         target = self.raw_dir / market.upper() / symbol.upper() / "documents" / f"{digest}.pdf"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -113,3 +120,41 @@ class BrowserFetcher:
             "bytes": len(content), "local_path": str(target),
             "fetched_at": date.today().isoformat(), "next_stage": "read",
         }
+
+
+class BrowserIssuerMonitor:
+    """Durable discovery for issuer pages a plain HTTP client can't render or
+    pass bot protection on. Same idempotency contract as
+    `connectors.issuer.IssuerReportsMonitor` (cursor = hash of the candidate
+    set) so it plugs into `MonitorService.poll` / the job queue / scheduler
+    unchanged - the only difference is *how* the page is rendered."""
+
+    name = "browser-issuer-reports"
+
+    def __init__(self, index_url: str, fetcher: "BrowserFetcher | None" = None,
+                 max_documents: int = 20):
+        parsed = urlparse(index_url)
+        if parsed.scheme != "https" or not parsed.hostname:
+            raise ValueError("issuer report index must be an HTTPS URL")
+        self.index_url = index_url
+        self.fetcher = fetcher or BrowserFetcher()
+        self.max_documents = max(1, min(max_documents, 200))
+
+    def discover(self, company, cursor: str | None = None):
+        from .models import DiscoveryResult, SourceCandidate
+
+        found = self.fetcher.discover(self.index_url)[: self.max_documents]
+        digest = hashlib.sha256(
+            "\n".join(sorted(item["url"] for item in found)).encode("utf-8")).hexdigest()
+        if cursor == digest:
+            return DiscoveryResult(digest, ())
+        candidates = tuple(
+            SourceCandidate(
+                company.company_id, self.name,
+                hashlib.sha256(item["url"].encode("utf-8")).hexdigest(),
+                item["url"], item["title"], "issuer-report", None, "application/pdf",
+                {"index_url": self.index_url},
+            )
+            for item in found
+        )
+        return DiscoveryResult(digest, candidates)

@@ -27,12 +27,21 @@ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
         if len(matches) == 1:
             return matches[0]
     stem = path.stem.lower()
-    matches = [company for company in registry.all() if
-               company.symbol.lower() in stem or company.name.split()[0].lower() in stem]
+
+    def _tokens(company) -> set[str]:
+        name = company.name.lower()
+        tokens = {company.symbol.lower()}
+        if "(" in name and ")" in name:
+            tokens.add(name[name.index("(") + 1:name.index(")")].strip())
+        tokens.update(word.strip(",.") for word in name.split())
+        return {token for token in tokens if len(token) > 2}  # skip "sa", "co", ...
+
+    matches = [company for company in registry.all()
+               if any(token in stem for token in _tokens(company))]
     if len(matches) == 1:
         return matches[0]
     # The Saudi manifest contract has a flat facts list. This fallback is safe only
-    # while the selected registry contains one Saudi issuer.
+    # while the filename/name matching above left exactly one Saudi issuer.
     if isinstance(payload.get("facts"), list):
         matches = [company for company in registry.all() if company.market.value == "SA"]
         if len(matches) == 1:

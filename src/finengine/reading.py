@@ -141,9 +141,20 @@ def _rows(words, y_tol: float = 3.0):
 
 
 def _resolve_line(label: str, statement: str) -> str | None:
+    # A stock line ("property, plant and equipment") also appears inside a
+    # cash-flow note ("purchase of property, plant and equipment") or an
+    # equity roll-forward; only accept a match on the statement its LINE_MAP
+    # kind actually belongs to, or a balance-sheet line reads as a bogus
+    # extra fact wherever else that phrase happens to occur.
+    wants_instant = statement == "balance_sheet"
     norm = " ".join(label.lower().split())
     best = None
-    for phrase, (metric, _kind) in LINE_MAP.items():
+    for phrase, (metric, kind) in LINE_MAP.items():
+        compatible = (kind == "instant") == wants_instant
+        if not compatible and statement == "income_statement" and metric in _PL_OVERRIDES:
+            compatible = True  # e.g. "non-controlling interest" reread as a P&L split
+        if not compatible:
+            continue
         if phrase in norm and (best is None or len(phrase) > len(best[0])):
             best = (phrase, metric)
     if best is None:
@@ -162,10 +173,47 @@ class StatementReader:
             raise RuntimeError("the reader agent needs the optional 'pymupdf' package") from error
         self.pdf_path = Path(pdf_path)
 
-    def read(self, market: str, symbol: str, currency: str,
-             source_url: str, filed_at: str, period_end: str,
-             fiscal_year: int, filing_type: str = "financial-statements") -> dict:
+    def infer_fiscal_year(self) -> int | None:
+        """The reporting year printed on the statements themselves - the
+        left (current-period) column of whichever confirmed statement pages
+        exist. Used so an unattended job never has to be told the period."""
         import pymupdf
+
+        doc = pymupdf.open(self.pdf_path)
+        try:
+            votes: dict[int, int] = {}
+            for page_index in range(doc.page_count):
+                page = doc[page_index]
+                words = page.get_text("words")
+                if not self._heading_statement(page, words):
+                    continue
+                columns = self._year_columns(page, words)
+                if not columns:
+                    continue
+                top = (page.rect.height or 1000) * 0.45
+                years = [int(w[4]) for w in words
+                         if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035
+                         and abs((w[0] + w[2]) / 2 - columns[0]) < 20]
+                if years:
+                    year = max(years)  # the current period is the newest year in its column
+                    votes[year] = votes.get(year, 0) + 1
+            return max(votes, key=votes.get) if votes else None
+        finally:
+            doc.close()
+
+    def read(self, market: str, symbol: str, currency: str,
+             source_url: str, filed_at: str, period_end: str | None = None,
+             fiscal_year: int | None = None, filing_type: str = "financial-statements") -> dict:
+        import pymupdf
+
+        if fiscal_year is None:
+            fiscal_year = self.infer_fiscal_year()
+            if fiscal_year is None:
+                raise ValueError(
+                    f"could not infer the reporting year from {self.pdf_path.name}; "
+                    "pass fiscal_year explicitly")
+        if period_end is None:
+            period_end = f"{fiscal_year}-12-31"
 
         doc = pymupdf.open(self.pdf_path)
         facts: list[dict] = []
@@ -175,7 +223,8 @@ class StatementReader:
         for page_index in range(doc.page_count):
             page = doc[page_index]
             words = page.get_text("words")
-            columns = self._year_columns(page, words)
+            blocks = self._column_blocks(page, words)
+            columns = blocks[0] if blocks else []
             heading = self._heading_statement(page, words)
             continuation = bool(
                 carry and page_index - carry_page == 1 and columns
@@ -187,13 +236,13 @@ class StatementReader:
             else:
                 carry = None
                 continue
-            if not columns:
+            if not blocks:
                 carry = None
                 continue
             carry, carry_page = statement, page_index
             scale = self._scale(page.get_text().lower())
             page_facts: list = []
-            for label, kind, value in self._statement_facts(words, statement, columns):
+            for label, kind, value in self._statement_facts(words, statement, blocks):
                 metric = _resolve_line(label, statement)
                 if metric is None:
                     continue
@@ -255,30 +304,66 @@ class StatementReader:
         top = (page.rect.height or 1000) * 0.42
         for row in _rows([w for w in words if w[1] < top]):
             text = " ".join(w[4] for w in row).lower().strip()
-            if any(bad in text for bad in self._NEGATIVE):
-                return None
+            # A persistent side-nav ("At a glance", "Financial review", ...)
+            # sits in this same zone on every page of a glossy annual report
+            # and must not veto pages it happens to share the top-42% band
+            # with - only distrust a row that itself looks like a heading.
             if len(text) > 75 or not self._HEADING_PREFIX.match(text):
                 continue
+            if any(bad in text for bad in self._NEGATIVE):
+                return None
             for name, anchors in ANCHORS.items():
                 if any(a in text for a in anchors):
                     return name
         return None
 
     @staticmethod
-    def _year_columns(page, words) -> list[float]:
-        """x-centres of the period columns, current period first (leftmost)."""
+    def _column_blocks(page, words) -> list[list[float]]:
+        """Up to two side-by-side statement panels on one page (e.g. assets on
+        the left, equity and liabilities on the right of a landscape balance
+        sheet) - each with its own period columns, current period first
+        (leftmost) within its panel. A gap over 150pt between consecutive
+        year hits marks a new panel."""
         top = (page.rect.height or 1000) * 0.45
-        hits = [((w[0] + w[2]) / 2, int(w[4])) for w in words
-                if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035]
+        hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
+                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035})
         if not hits:
             return []
-        hits.sort(key=lambda h: h[0])
-        # collapse duplicate x (e.g. "31 December 2025" wrapping) and keep distinct columns
-        columns: list[float] = []
-        for x, _year in hits:
-            if not columns or abs(x - columns[-1]) > 25:
-                columns.append(x)
-        return columns[:3]
+        blocks: list[list[float]] = [[hits[0]]]
+        for x in hits[1:]:
+            (blocks.append([x]) if x - blocks[-1][-1] > 150 else blocks[-1].append(x))
+        result = []
+        for block in blocks:
+            columns: list[float] = []
+            for x in block:
+                if not columns or x - columns[-1] > 25:
+                    columns.append(x)
+            result.append(columns[:2])
+        return result[:2]
+
+    @staticmethod
+    def _year_columns(page, words) -> list[float]:
+        """x-centres of the first panel's period columns, current period first."""
+        blocks = StatementReader._column_blocks(page, words)
+        return blocks[0] if blocks else []
+
+    @staticmethod
+    def _block_boundary(words, blocks: list[list[float]]) -> float | None:
+        """The x that separates a two-panel page's left and right blocks.
+        The right panel's own labels ("Share capital", "Total equity", ...)
+        sit well before its value columns, so the boundary is not the gap
+        around the value columns themselves - it is just before whichever
+        label text is the first thing found strictly between the two
+        panels' own column geometry (left panel's rightmost column and
+        right panel's leftmost column)."""
+        if len(blocks) < 2:
+            return None
+        left_edge, right_edge = max(blocks[0]), min(blocks[1])
+        if right_edge <= left_edge:
+            return None
+        labels_between = [w[0] for w in words
+                          if left_edge < w[0] < right_edge and not _NUMBER.match(w[4])]
+        return (min(labels_between) - 5) if labels_between else (left_edge + right_edge) / 2
 
     @staticmethod
     def _aligned_rows(words, columns) -> int:
@@ -294,33 +379,41 @@ class StatementReader:
     def _looks_tabular(self, words, columns) -> bool:
         return self._aligned_rows(words, columns) >= 6
 
-    def _statement_facts(self, words, statement: str, columns: list[float]):
-        current = columns[0]
-        note_zone = (min(columns) - 90, min(columns) - 25)  # lone note refs sit just left of the values
+    def _statement_facts(self, words, statement: str, blocks: list[list[float]]):
+        boundary = self._block_boundary(words, blocks) if len(blocks) > 1 else None
         magnitudes = []
         parsed_rows = []
         for row in _rows(words):
-            text_tokens, number_tokens = [], []
-            for w in row:
-                token = w[4]
-                center = (w[0] + w[2]) / 2
-                if _NUMBER.match(token) and any(abs(center - c) < 45 for c in columns):
-                    value = _parse_number(token)
-                    if value is not None:
-                        number_tokens.append((center, value))
-                elif token.isdigit() and len(token) <= 3 and note_zone[0] < center < note_zone[1]:
-                    continue  # a note-reference number, not part of the label
-                else:
-                    text_tokens.append(token)
-            if not text_tokens or not number_tokens:
-                continue
-            label = " ".join(text_tokens).strip(" :.-")
-            words_in_label = label.split()
-            if not 1 <= len(words_in_label) <= 13 or "%" in label or _YEAR.search(label):
-                continue
-            value = min(number_tokens, key=lambda t: abs(t[0] - current))[1]
-            magnitudes.append(abs(value))
-            parsed_rows.append((label, value))
+            if boundary is None:
+                panels = [(row, blocks[0])]
+            else:
+                left = [w for w in row if w[0] < boundary]
+                right = [w for w in row if w[0] >= boundary]
+                panels = [seg for seg in ((left, blocks[0]), (right, blocks[1])) if seg[0]]
+            for panel_words, columns in panels:
+                current = columns[0]
+                note_zone = (min(columns) - 90, min(columns) - 25)  # lone note refs sit just left of the values
+                text_tokens, number_tokens = [], []
+                for w in panel_words:
+                    token = w[4]
+                    center = (w[0] + w[2]) / 2
+                    if _NUMBER.match(token) and any(abs(center - c) < 45 for c in columns):
+                        value = _parse_number(token)
+                        if value is not None:
+                            number_tokens.append((center, value))
+                    elif token.isdigit() and len(token) <= 3 and note_zone[0] < center < note_zone[1]:
+                        continue  # a note-reference number, not part of the label
+                    else:
+                        text_tokens.append(token)
+                if not text_tokens or not number_tokens:
+                    continue
+                label = " ".join(text_tokens).strip(" :.-")
+                words_in_label = label.split()
+                if not 1 <= len(words_in_label) <= 13 or "%" in label or _YEAR.search(label):
+                    continue
+                value = min(number_tokens, key=lambda t: abs(t[0] - current))[1]
+                magnitudes.append(abs(value))
+                parsed_rows.append((label, value))
         if not magnitudes:
             return
         floor = sorted(magnitudes)[len(magnitudes) // 2] / Decimal(1000)  # 0.1% of median
