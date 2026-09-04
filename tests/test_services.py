@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 from finengine.api import create_api_server
 from finengine.audit import audit_release
+from finengine.archive import archive_manifest_sources
 from finengine.bootstrap import rebuild_snapshot
 from finengine.database import Database
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
@@ -74,12 +75,72 @@ class ServiceTests(unittest.TestCase):
         self.assertFalse(result["ready"])
         self.assertEqual(next(check for check in result["checks"] if check["name"]=="source_archive_hashes")["status"],"fail")
 
+    def test_official_source_artifact_is_archived_and_indexed(self):
+        root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()
+        manifest=imports/"aramco-2025.json"
+        manifest.write_text(json.dumps({
+            "company_id":"sa:TST","source_url":"https://example.test/report.pdf","facts":[]
+        }),encoding="utf-8")
+        registry=root/"companies.json"
+        registry.write_text(json.dumps([{
+            "company_id":"sa:TST","market":"SA","symbol":"TST","name":"Test Company",
+            "currency":"SAR"
+        }]),encoding="utf-8")
+
+        class Headers(dict):
+            def get_content_type(self): return "application/pdf"
+        class Response:
+            headers=Headers()
+            def __init__(self): self.sent=False
+            def __enter__(self): return self
+            def __exit__(self,*_): return None
+            def read(self,_size):
+                if self.sent: return b""
+                self.sent=True; return b"%PDF-1.7 archived"
+        def opener(_request,timeout=0): return Response()
+
+        result=archive_manifest_sources(
+            self.dbpath,imports,registry,root/"raw",project_root=root,opener=opener,
+        )
+        self.assertEqual(result["archived"],1)
+        self.assertTrue((root/"raw"/"archive-index.json").is_file())
+        db=Database(self.dbpath)
+        try:
+            row=db.conn.execute("SELECT local_path,content_hash FROM source_artifacts").fetchone()
+            self.assertTrue((root/row["local_path"]).is_file())
+            self.assertEqual(db.health()["source_artifacts"],1)
+        finally: db.close()
+
+    def test_domain_only_manifest_publishes_market_prices(self):
+        root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()
+        manifest=imports/"aramco-market.json"
+        manifest.write_text(json.dumps({
+            "company_id":"sa:2222",
+            "filing_type":"Saudi Exchange historical price snapshot",
+            "filed_at":"2026-09-04",
+            "source_url":"https://example.test/historical-prices",
+            "facts":[],
+            "market_prices":[{
+                "observed_at":"2026-09-03","interval":"1d",
+                "open":"26.02","high":"26.10","low":"25.90","close":"25.96",
+                "volume":"6688799","turnover":"173977896.58","currency":"SAR"
+            }]
+        }),encoding="utf-8")
+        output=root/"snapshot.sqlite3"
+        result=rebuild_snapshot(output,imports,Path(__file__).resolve().parents[1]/"config"/"companies.json",
+                                root/"raw")
+        self.assertEqual(result["manifests"],1)
+        query=FinancialQueryService(output)
+        try: prices=query.market_prices("SA","2222")
+        finally: query.close()
+        self.assertEqual((len(prices),prices[0]["close"]),(1,"25.96"))
+
     def test_reviewed_manifests_rebuild_portable_snapshot(self):
         project=Path(__file__).resolve().parents[1]
         output=Path(self.temp.name)/"rebuilt.sqlite3"
         result=rebuild_snapshot(output,project/"data"/"imports",project/"config"/"companies.json",
                                 Path(self.temp.name)/"raw")
-        self.assertEqual(result["manifests"],26)
+        self.assertEqual(result["manifests"],29)
         audit=audit_release(output,project)
         self.assertTrue(audit["ready"])
         self.assertGreaterEqual(audit["current_facts"],600)
@@ -91,7 +152,11 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
         self.assertEqual(len(dossier["ownership"]),4)
         self.assertGreaterEqual(len(dossier["disclosures"]),8)
-        self.assertEqual(len(dossier["corporate_actions"]),3)
+        self.assertEqual(len(dossier["corporate_actions"]),8)
+        self.assertEqual(len(dossier["market_prices"]),23)
+        valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
+                   if row["period_end"]=="2026-09-03"}
+        self.assertIn("price_to_earnings",valuation)
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):
         root=Path(self.temp.name)

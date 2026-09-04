@@ -14,6 +14,10 @@ class Calculator:
         "total_equity", "total_liabilities", "current_assets", "current_liabilities",
         "cash", "inventory", "accounts_receivable", "property_plant_equipment",
         "current_debt", "long_term_debt", "shares_outstanding", "eps_diluted",
+        "short_term_investments", "current_assets", "current_liabilities", "intangible_assets",
+        "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
+        "weighted_average_shares_basic", "weighted_average_shares_diluted",
+        "adjusted_net_income", "dividends_paid",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -21,6 +25,7 @@ class Calculator:
         "eps_diluted": "eps_growth", "total_assets": "asset_growth",
         "total_equity": "equity_growth", "operating_cash_flow": "operating_cash_flow_growth",
         "free_cash_flow": "free_cash_flow_growth",
+        "ebitda": "ebitda_growth", "dividends_paid": "dividend_growth",
     }
 
     def calculate(self, facts: list[Fact], history: list[Fact] | None = None) -> list[Fact]:
@@ -28,6 +33,9 @@ class Calculator:
         out: list[Fact] = []
         groups = defaultdict(dict)
         combined = defaultdict(dict)
+        for fact in all_facts:
+            if fact.scope == "consolidated" and not fact.dimensions:
+                combined[(fact.company_id, fact.period_end)].setdefault(fact.metric, fact)
         for fact in facts:
             if fact.scope == "consolidated" and not fact.dimensions:
                 groups[(fact.company_id, fact.period_end, fact.period_kind,
@@ -40,9 +48,11 @@ class Calculator:
 
         for (company_id, _, _, _, _), group in groups.items():
             base = next(iter(group.values()))
-            lookup = combined[(company_id, base.period_end)] if base.period_kind == PeriodKind.FY else group
+            lookup = combined[(company_id, base.period_end)] if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT} else group
 
             def add(metric, value, formula, reference=None, unit="ratio", currency=""):
+                if metric in group:
+                    return
                 source = reference or base
                 calculated = Fact(
                     source.company_id, metric, value, currency, unit, source.period_start,
@@ -73,12 +83,42 @@ class Calculator:
                 ratio("capex_to_revenue", "capex", "revenue", "abs(capex) / revenue", True)
                 ratio("capex_to_cfo", "capex", "operating_cash_flow", "abs(capex) / operating_cash_flow", True)
                 ratio("receivables_to_revenue", "accounts_receivable", "revenue")
+                if "ebit" in lookup and "depreciation_amortization" in lookup:
+                    add("ebitda", lookup["ebit"].value + abs(lookup["depreciation_amortization"].value),
+                        "ebit + abs(depreciation_amortization)", lookup["ebit"],
+                        lookup["ebit"].unit, lookup["ebit"].currency)
+                ratio("ebit_margin", "ebit", "revenue")
+                ratio("ebitda_margin", "ebitda", "revenue")
+                ratio("interest_coverage", "ebit", "finance_costs", "ebit / abs(finance_costs)", True)
+                shares = lookup.get("weighted_average_shares_diluted") or lookup.get("weighted_average_shares_basic")
+                if shares and shares.value:
+                    for numerator, metric in (
+                        ("revenue", "revenue_per_share"),
+                        ("operating_cash_flow", "operating_cash_flow_per_share"),
+                        ("free_cash_flow", "free_cash_flow_per_share"),
+                    ):
+                        if numerator in lookup:
+                            add(metric, lookup[numerator].value / shares.value,
+                                f"{numerator} / weighted_average_shares", lookup[numerator],
+                                f"{lookup[numerator].currency}/share", lookup[numerator].currency)
+                    if "adjusted_net_income" in lookup:
+                        add("earnings_per_share_normalized",
+                            lookup["adjusted_net_income"].value / shares.value,
+                            "adjusted_net_income / weighted_average_shares_diluted",
+                            lookup["adjusted_net_income"],
+                            f"{lookup['adjusted_net_income'].currency}/share",
+                            lookup["adjusted_net_income"].currency)
             if base.period_kind == PeriodKind.INSTANT:
                 ratio("liabilities_to_equity", "total_liabilities", "total_equity")
                 ratio("liabilities_to_assets", "total_liabilities", "total_assets")
                 ratio("equity_ratio", "total_equity", "total_assets")
                 ratio("current_ratio", "current_assets", "current_liabilities")
                 ratio("cash_ratio", "cash", "current_liabilities")
+                if all(key in lookup for key in ("cash", "short_term_investments", "accounts_receivable", "current_liabilities")) and lookup["current_liabilities"].value:
+                    add("quick_ratio", (lookup["cash"].value + lookup["short_term_investments"].value +
+                                        lookup["accounts_receivable"].value) / lookup["current_liabilities"].value,
+                        "(cash + short_term_investments + accounts_receivable) / current_liabilities",
+                        lookup["current_liabilities"])
                 ratio("inventory_to_assets", "inventory", "total_assets")
                 ratio("ppe_to_assets", "property_plant_equipment", "total_assets")
                 debt = sum((lookup[key].value for key in ("current_debt", "long_term_debt") if key in lookup), Decimal(0))
@@ -90,6 +130,39 @@ class Calculator:
                     if "total_assets" in lookup and lookup["total_assets"].value:
                         add("debt_to_assets", debt / lookup["total_assets"].value,
                             "(current_debt + long_term_debt) / total_assets", reference)
+                    if "cash" in lookup:
+                        net_debt = debt - lookup["cash"].value
+                        if "total_equity" in lookup and lookup["total_equity"].value:
+                            add("net_debt_to_equity", net_debt / lookup["total_equity"].value,
+                                "(current_debt + long_term_debt - cash) / total_equity", reference)
+                        if "invested_capital" not in lookup and "total_equity" in lookup:
+                            add("invested_capital", lookup["total_equity"].value + net_debt,
+                                "total_equity + current_debt + long_term_debt - cash", reference,
+                                lookup["total_equity"].unit, lookup["total_equity"].currency)
+                    prior_debt_rows = historical.get((company_id, base.fiscal_year - 1, PeriodKind.INSTANT), {})
+                    prior_debt = sum((prior_debt_rows[key].value for key in ("current_debt", "long_term_debt") if key in prior_debt_rows), Decimal(0))
+                    if prior_debt:
+                        add("debt_growth", debt / prior_debt - 1,
+                            "(current_debt + long_term_debt) / prior_fy(total_debt) - 1", reference)
+                if "current_assets" in lookup and "current_liabilities" in lookup:
+                    add("working_capital", lookup["current_assets"].value - lookup["current_liabilities"].value,
+                        "current_assets - current_liabilities", lookup["current_assets"],
+                        lookup["current_assets"].unit, lookup["current_assets"].currency)
+                if "total_equity" in lookup:
+                    intangible = lookup.get("intangible_assets")
+                    tangible = lookup["total_equity"].value - (intangible.value if intangible else Decimal(0))
+                    add("tangible_book_value", tangible, "total_equity - intangible_assets",
+                        lookup["total_equity"], lookup["total_equity"].unit,
+                        lookup["total_equity"].currency)
+                    shares = lookup.get("shares_outstanding")
+                    if shares and shares.value:
+                        add("book_value_per_share", lookup["total_equity"].value / shares.value,
+                            "total_equity / shares_outstanding", lookup["total_equity"],
+                            f"{lookup['total_equity'].currency}/share", lookup["total_equity"].currency)
+                        add("tangible_book_value_per_share", tangible / shares.value,
+                            "(total_equity - intangible_assets) / shares_outstanding",
+                            lookup["total_equity"], f"{lookup['total_equity'].currency}/share",
+                            lookup["total_equity"].currency)
 
             if base.period_kind == PeriodKind.FY:
                 prior_instant = historical.get((company_id, base.fiscal_year - 1, PeriodKind.INSTANT), {})
@@ -101,11 +174,40 @@ class Calculator:
                     if average and "revenue" in lookup:
                         add("asset_turnover", lookup["revenue"].value / average,
                             "revenue / average(total_assets)", lookup["revenue"])
+                    if average and "operating_cash_flow" in lookup:
+                        add("cash_return_on_assets", lookup["operating_cash_flow"].value / average,
+                            "operating_cash_flow / average(total_assets)", lookup["operating_cash_flow"])
                 if "total_equity" in lookup and "total_equity" in prior_instant:
                     average = (lookup["total_equity"].value + prior_instant["total_equity"].value) / 2
                     if average and "net_income" in lookup:
                         add("return_on_equity", lookup["net_income"].value / average,
                             "net_income / average(total_equity)", lookup["net_income"])
+                if "accounts_receivable" in lookup and "accounts_receivable" in prior_instant and "revenue" in lookup:
+                    average = (lookup["accounts_receivable"].value + prior_instant["accounts_receivable"].value) / 2
+                    if average:
+                        add("receivables_turnover", lookup["revenue"].value / average,
+                            "revenue / average(accounts_receivable)", lookup["revenue"])
+                        add("days_sales_outstanding", average / lookup["revenue"].value * Decimal(365),
+                            "average(accounts_receivable) / revenue * 365", lookup["revenue"])
+                instant_now = historical.get((company_id, base.fiscal_year, PeriodKind.INSTANT), {})
+                debt = sum((instant_now[key].value for key in ("current_debt", "long_term_debt") if key in instant_now), Decimal(0))
+                if debt and "ebitda" in lookup and lookup["ebitda"].value:
+                    add("debt_to_ebitda", debt / lookup["ebitda"].value,
+                        "(current_debt + long_term_debt) / ebitda", lookup["ebitda"])
+                    net_debt = instant_now.get("net_debt")
+                    if net_debt:
+                        add("net_debt_to_ebitda", net_debt.value / lookup["ebitda"].value,
+                            "net_debt / ebitda", lookup["ebitda"])
+                for source_metric in ("revenue", "net_income", "eps_diluted"):
+                    if source_metric not in lookup or not lookup[source_metric].value:
+                        continue
+                    for years in (3, 5):
+                        prior = historical.get((company_id, base.fiscal_year - years, PeriodKind.FY), {})
+                        if source_metric in prior and prior[source_metric].value > 0 and lookup[source_metric].value > 0:
+                            add(f"{source_metric.replace('eps_diluted','eps')}_cagr_{years}y",
+                                (lookup[source_metric].value / prior[source_metric].value) ** (Decimal(1) / Decimal(years)) - 1,
+                                f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
+                                lookup[source_metric])
             if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT}:
                 prior = historical.get((company_id, base.fiscal_year - 1, base.period_kind), {})
                 for source_metric, output_metric in self.GROWTH_METRICS.items():

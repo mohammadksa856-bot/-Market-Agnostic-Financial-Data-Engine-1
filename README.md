@@ -1,4 +1,4 @@
-# Market-Agnostic Financial Data Engine 1.2
+# Market-Agnostic Financial Data Engine 1.3
 
 An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
@@ -6,15 +6,16 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 
 ## Release status
 
-The bundled portable snapshot is rebuilt from 26 reviewed manifests and currently contains:
+The bundled portable snapshot is rebuilt from 29 reviewed manifests and currently contains:
 
 - 4 enabled companies: Saudi Aramco, Apple, Microsoft, and NVIDIA.
-- 664 current facts and 721 total fact versions.
-- 469 current Aramco data points, plus 35 profile attributes, four ownership positions, eight disclosures, and three corporate actions; these cover detailed financial/segment/operational/ESG data, annual history for 2019–2025, and discrete Q1/H1 2026 semantics.
-- 167 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
-- 26 published source documents, four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
+- 825 current facts and 904 total fact versions.
+- 610 current Aramco data points, plus 37 profile attributes, four ownership positions, 11 disclosures, eight corporate actions, 23 official daily market-price rows, and 15 point-in-time valuation metrics. Coverage includes detailed financial, segment, operational, ESG, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics.
+- 185 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
+- 29 published source documents, eight independently hashed raw artifacts (seven issuer PDFs and one Saudi Exchange price snapshot), four persistent monitoring schedules, zero open publication exceptions, and zero dead jobs.
 - A reviewed 391-field commercial data catalog: 322 universal company fields plus a 69-field Integrated Oil & Gas sector pack.
-- Schema version 9 and 40 unit/integration/release tests.
+- Aramco currently populates 295 of 391 applicable catalog fields (75.4%); valuation is 15/17, per-share is 6/6, liquidity/solvency is 13/14, and every remaining field is listed explicitly in the backlog.
+- Schema version 10 and 42 unit/integration/release tests.
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -60,6 +61,16 @@ This command builds a temporary database, ingests every reviewed manifest, refre
 To build a separate verification copy, omit `--replace` and choose another database path:
 
     finengine --db data/verification.sqlite3 bootstrap
+
+## Archive official sources for offline use
+
+Download every distinct official source used by the reviewed manifests, verify its content, store it under a content-addressed local path, and update the portable archive index:
+
+    finengine --db data/financial.sqlite3 archive-sources --market SA --symbol 2222 --project-root .
+
+`data/raw/archive-index.json` records the URL, SHA-256 hash, media type, byte size, local path, and linked manifests for every artifact. Rebuilds verify each local artifact against the index and link it to its source rows. Queries and reports therefore read the local SQLite snapshot; they do not fetch the Internet at request time.
+
+The seven Aramco PDF binaries total about 70.5 MB and are intentionally excluded from ordinary Git commits. Keep that local archive in backed-up object storage or Git LFS for production. The small Saudi Exchange JSON capture and the full archive index are tracked directly in Git.
 
 ## Run continuously
 
@@ -187,7 +198,7 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 - `company_completeness`: category-level expected/populated counts and exact missing-field lists per company.
 - `data_points`: versioned typed facts with period, scope, dimensions, quality, formula and source provenance.
 - `metric_definitions`: canonical schema, units, categories, statements and aggregation rules.
-- `source_documents` and `source_candidates`: immutable archives and the discovery inbox.
+- `source_documents`, `source_artifacts`, `source_artifact_links`, and `source_candidates`: reviewed manifests, independently hashed raw files, provenance links, and the discovery inbox.
 - `extracted_facts`, `mapped_facts`, `normalized_facts`: auditable staging layers.
 - `disclosures`: risks, strategy, guidance and management commentary.
 - `company_attributes`: general, governance and company-profile fields.

@@ -126,6 +126,7 @@
     {"metric":"corporate_adjusted_ebit","value":-18118,"scale":1000000,"currency":"SAR","unit":"SAR","period_start":"2025-01-01","period_end":"2025-12-31","period_kind":"fy","fiscal_year":2025,"scope":"segment","dimensions":{"segment":"Corporate"},"page":54,"table":"corporate results"},
     {"metric":"corporate_capex","value":4978,"scale":1000000,"currency":"SAR","unit":"SAR","period_start":"2025-01-01","period_end":"2025-12-31","period_kind":"fy","fiscal_year":2025,"scope":"segment","dimensions":{"segment":"Corporate"},"page":54,"table":"corporate results"},
     {"metric":"gas_reserves","value":211.7,"currency":"","unit":"tscf","period_end":"2025-12-31","period_kind":"instant","fiscal_year":2025,"page":15,"table":"reserves"},
+    {"metric":"crude_oil_reserves","value":186.5,"currency":"","unit":"billion_barrels","period_end":"2025-12-31","period_kind":"instant","fiscal_year":2025,"page":48,"table":"reserves under the Concession; crude oil and condensate"},
     {"metric":"gross_refining_capacity","value":7.8,"currency":"","unit":"mmbpd","period_end":"2025-12-31","period_kind":"instant","fiscal_year":2025,"page":29,"table":"operational highlights"},
     {"metric":"lifting_cost_per_boe","value":3.51,"currency":"USD","unit":"USD/boe","period_start":"2025-01-01","period_end":"2025-12-31","period_kind":"fy","fiscal_year":2025,"page":44,"table":"upstream performance"},
     {"metric":"upstream_capex_per_boe","value":8.0,"currency":"USD","unit":"USD/boe","period_start":"2025-01-01","period_end":"2025-12-31","period_kind":"fy","fiscal_year":2025,"page":44,"table":"upstream performance"},
@@ -196,6 +197,7 @@
     {"attribute_key":"fiscal_year_end","value":"12-31","category":"reporting"},
     {"attribute_key":"sector","value":"Energy","category":"classification"},
     {"attribute_key":"industry","value":"Integrated Oil & Gas","category":"classification"},
+    {"attribute_key":"sub_industry","value":"Integrated Energy and Chemicals","category":"classification"},
     {"attribute_key":"business_description","value":"A globally integrated energy and chemicals company with Upstream and Downstream businesses, supported by corporate technology and services.","category":"business_model"},
     {"attribute_key":"business_description_ar","value":"شركة طاقة وكيميائيات متكاملة عالميًا، تعمل عبر قطاعي التنقيب والإنتاج وقطاع التكرير والكيميائيات والتسويق، وتدعمها التقنية والخدمات المؤسسية.","category":"business_model","language":"ar"},
     {"attribute_key":"business_segments","value":{"upstream":["crude oil and condensate","natural gas","natural gas liquids","exploration and production"],"downstream":["refining","chemicals","base oils and lubricants","retail","pipelines and terminals","supply and trading","power"]},"category":"business_model"},
@@ -208,6 +210,7 @@
     {"attribute_key":"legal_form","value":"Saudi joint stock company","category":"identity"},
     {"attribute_key":"employees","value":76664,"category":"workforce"},
     {"attribute_key":"auditor","value":"PricewaterhouseCoopers (PwC), Omar Al Sagga","category":"governance"},
+    {"attribute_key":"credit_rating","value":{"moodys":{"long_term":"Aa3","outlook":"Stable","short_term":"P-1"},"fitch":{"long_term":"A+","outlook":"Stable","short_term":"F1+"}},"category":"capital_markets"},
     {"attribute_key":"reporting_standard","value":"IFRS Accounting Standards endorsed in the Kingdom of Saudi Arabia and other standards and pronouncements endorsed by SOCPA","category":"reporting"},
     {"attribute_key":"reporting_languages","value":["Arabic","English"],"category":"reporting"},
     {"attribute_key":"ceo_name","value":"Amin H. Nasser","category":"governance"},
@@ -227,7 +230,12 @@
   "corporate_actions": [
     {"action_key":"sa:2222:dividends:fy2025-paid","action_type":"cash_dividend","title":"FY 2025 dividends paid (aggregate)","announcement_date":"2026-03-09","effective_date":"2025-12-31","cash_amount":320447000000,"currency":"SAR","status":"paid","details":{"base_dividends_sar":317159000000,"performance_linked_dividends_sar":3288000000,"dividends_per_share_sar":1.3248}},
     {"action_key":"sa:2222:dividend:2025:q4-base","action_type":"cash_dividend","title":"Fourth quarter 2025 base dividend","announcement_date":"2026-03-09","cash_amount":82080000000,"currency":"SAR","status":"announced","details":{"usd_amount":21890000000,"quarter":"Q4 2025"}},
-    {"action_key":"sa:2222:buyback:2026","action_type":"share_buyback","title":"Share buyback program up to SAR 11.3 billion","announcement_date":"2026-03-09","cash_amount":11300000000,"currency":"SAR","status":"announced","details":{"maximum_usd":3000000000,"duration_months":18}}
+    {"action_key":"sa:2222:buyback:2026","action_type":"share_buyback","title":"Share buyback program up to SAR 11.3 billion","announcement_date":"2026-03-09","cash_amount":11300000000,"currency":"SAR","status":"announced","details":{"maximum_usd":3000000000,"duration_months":18}},
+    {"action_key":"sa:2222:bonus:2022","action_type":"bonus_shares","title":"2022 bonus share issue","announcement_date":"2022-05-12","effective_date":"2022-05-12","ratio_numerator":1,"ratio_denominator":10,"status":"completed","details":{"shares_added":20000000000,"source_page":139}},
+    {"action_key":"sa:2222:capital-increase:2022","action_type":"capital_increase","title":"2022 capital increase through retained earnings capitalization","announcement_date":"2022-05-12","effective_date":"2022-05-12","cash_amount":15000000000,"currency":"SAR","status":"completed","details":{"method":"capitalization of retained earnings","source_page":139}},
+    {"action_key":"sa:2222:bonus:2023","action_type":"bonus_shares","title":"2023 bonus share issue","announcement_date":"2023-05-08","effective_date":"2023-05-08","ratio_numerator":1,"ratio_denominator":10,"status":"completed","details":{"shares_added":22000000000,"source_page":139}},
+    {"action_key":"sa:2222:capital-increase:2023","action_type":"capital_increase","title":"2023 capital increase through retained earnings capitalization","announcement_date":"2023-05-08","effective_date":"2023-05-08","cash_amount":15000000000,"currency":"SAR","status":"completed","details":{"method":"capitalization of retained earnings","source_page":139}},
+    {"action_key":"sa:2222:acquisition:petro-rabigh:2025","action_type":"acquisition","title":"Acquisition of an additional 22.5% stake in Petro Rabigh","announcement_date":"2025-10-09","effective_date":"2025-10-09","cash_amount":2632000000,"currency":"SAR","status":"completed","details":{"additional_ownership_pct":22.5,"accounting":"associate","source_page":232}}
   ],
   "disclosures": [
     {"disclosure_type":"annual_report","title":"Saudi Aramco Annual Report 2025","body_text":"Audited 2025 annual report covering consolidated financial statements, operations, strategy, governance and sustainability performance.","published_at":"2026-03-09","period_end":"2025-12-31","metadata":{"audited":true,"reporting_standard":"IFRS endorsed in Saudi Arabia"}},
@@ -236,6 +244,7 @@
     {"disclosure_type":"guidance","title":"2026 capital investment guidance","body_text":"Aramco stated 2026 capital investment guidance of USD 50 billion to USD 55 billion.","published_at":"2026-03-09","period_end":"2025-12-31","metadata":{"low_usd":50000000000,"high_usd":55000000000}},
     {"disclosure_type":"risk_factor","title":"Hydrocarbon market and production risks","body_text":"Results are exposed to crude oil and gas prices, global demand, regulation and government production decisions, in addition to operational, project and geopolitical risks.","published_at":"2026-03-09","period_end":"2025-12-31"},
     {"disclosure_type":"financial_results_announcement","title":"FY 2025 financial results","body_text":"2025 revenue was SAR 1,559.342 billion, net income was SAR 350.210 billion, operating cash flow was SAR 510.798 billion and capital expenditure was SAR 190.444 billion.","published_at":"2026-03-09","period_end":"2025-12-31"},
+    {"disclosure_type":"earnings_release","title":"FY 2025 earnings release","body_text":"Audited annual earnings release with income statement, balance sheet, cash flow, segment and per-share results for 2025 and comparative 2024 amounts.","published_at":"2026-03-09","period_end":"2025-12-31"},
     {"disclosure_type":"guidance","title":"Fourth quarter 2025 base dividend","body_text":"The Board declared a fourth-quarter 2025 base dividend of SAR 82.08 billion, equivalent to USD 21.89 billion.","published_at":"2026-03-09","period_end":"2025-12-31"},
     {"disclosure_type":"material_event","title":"Share buyback program","body_text":"Aramco announced a share buyback program of up to SAR 11.3 billion, equivalent to USD 3 billion, over 18 months.","published_at":"2026-03-09","period_end":"2025-12-31"}
   ]

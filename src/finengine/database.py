@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import iter_catalog_fields
 
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -33,6 +33,17 @@ CREATE TABLE IF NOT EXISTS source_documents(
  content_hash TEXT NOT NULL, local_path TEXT, content_type TEXT NOT NULL DEFAULT 'application/json',
  status TEXT NOT NULL DEFAULT 'fetched', metadata_json TEXT NOT NULL DEFAULT '{}',
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS source_artifacts(
+ artifact_key TEXT PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
+ source_url TEXT NOT NULL, content_hash TEXT NOT NULL, local_path TEXT NOT NULL,
+ content_type TEXT NOT NULL, byte_size INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'archived',
+ metadata_json TEXT NOT NULL DEFAULT '{}', archived_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(company_id,source_url,content_hash));
+CREATE INDEX IF NOT EXISTS idx_source_artifact_url ON source_artifacts(company_id,source_url);
+CREATE TABLE IF NOT EXISTS source_artifact_links(
+ source_key TEXT NOT NULL REFERENCES source_documents(source_key),
+ artifact_key TEXT NOT NULL REFERENCES source_artifacts(artifact_key),
+ PRIMARY KEY(source_key,artifact_key));
 CREATE TABLE IF NOT EXISTS source_candidates(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
  connector TEXT NOT NULL, external_id TEXT NOT NULL, source_url TEXT NOT NULL,
@@ -435,6 +446,9 @@ class Database:
         self.conn.commit()
 
     def _seed_calculation_definitions(self) -> None:
+        # Market prices live in their own versioned store, but point-in-time
+        # formula lineage still references the canonical close-price key.
+        self.register_metric("price_close", category="market", aggregation="last", commit=False)
         definitions = {
             "free_cash_flow": ("operating_cash_flow - abs(capex)", "same_period", ("operating_cash_flow", "capex")),
             "net_margin": ("net_income / revenue", "same_period", ("net_income", "revenue")),
@@ -457,6 +471,41 @@ class Database:
             "return_on_assets": ("net_income / average(total_assets)", "annual_average_balance", ("net_income", "total_assets")),
             "return_on_equity": ("net_income / average(total_equity)", "annual_average_balance", ("net_income", "total_equity")),
             "asset_turnover": ("revenue / average(total_assets)", "annual_average_balance", ("revenue", "total_assets")),
+            "ebitda": ("ebit + abs(depreciation_amortization)", "same_period", ("ebit", "depreciation_amortization")),
+            "ebit_margin": ("ebit / revenue", "same_period", ("ebit", "revenue")),
+            "ebitda_margin": ("ebitda / revenue", "same_period", ("ebitda", "revenue")),
+            "interest_coverage": ("ebit / abs(finance_costs)", "same_period", ("ebit", "finance_costs")),
+            "quick_ratio": ("(cash + short_term_investments + accounts_receivable) / current_liabilities", "same_period", ("cash", "short_term_investments", "accounts_receivable", "current_liabilities")),
+            "net_debt_to_equity": ("(current_debt + long_term_debt - cash) / total_equity", "same_period", ("current_debt", "long_term_debt", "cash", "total_equity")),
+            "invested_capital": ("total_equity + current_debt + long_term_debt - cash", "same_period", ("total_equity", "current_debt", "long_term_debt", "cash")),
+            "working_capital": ("current_assets - current_liabilities", "same_period", ("current_assets", "current_liabilities")),
+            "tangible_book_value": ("total_equity - intangible_assets", "same_period", ("total_equity", "intangible_assets")),
+            "book_value_per_share": ("total_equity / shares_outstanding", "same_period", ("total_equity", "shares_outstanding")),
+            "tangible_book_value_per_share": ("(total_equity - intangible_assets) / shares_outstanding", "same_period", ("total_equity", "intangible_assets", "shares_outstanding")),
+            "cash_return_on_assets": ("operating_cash_flow / average(total_assets)", "annual_average_balance", ("operating_cash_flow", "total_assets")),
+            "receivables_turnover": ("revenue / average(accounts_receivable)", "annual_average_balance", ("revenue", "accounts_receivable")),
+            "days_sales_outstanding": ("average(accounts_receivable) / revenue * 365", "annual_average_balance", ("revenue", "accounts_receivable")),
+            "debt_to_ebitda": ("(current_debt + long_term_debt) / ebitda", "same_period", ("current_debt", "long_term_debt", "ebitda")),
+            "net_debt_to_ebitda": ("net_debt / ebitda", "same_period", ("net_debt", "ebitda")),
+            "revenue_per_share": ("revenue / weighted_average_shares_diluted", "same_period", ("revenue", "weighted_average_shares_diluted")),
+            "operating_cash_flow_per_share": ("operating_cash_flow / weighted_average_shares_diluted", "same_period", ("operating_cash_flow", "weighted_average_shares_diluted")),
+            "free_cash_flow_per_share": ("free_cash_flow / weighted_average_shares_diluted", "same_period", ("free_cash_flow", "weighted_average_shares_diluted")),
+            "earnings_per_share_normalized": ("adjusted_net_income / weighted_average_shares_diluted", "same_period", ("adjusted_net_income", "weighted_average_shares_diluted")),
+            "market_cap": ("price_close * shares_outstanding", "latest_archived_market_price", ("price_close", "shares_outstanding")),
+            "enterprise_value": ("market_cap + net_debt", "latest_archived_market_price", ("market_cap", "net_debt")),
+            "price_to_earnings": ("market_cap / latest_filed_fy(net_income)", "point_in_time", ("market_cap", "net_income")),
+            "price_to_sales": ("market_cap / latest_filed_fy(revenue)", "point_in_time", ("market_cap", "revenue")),
+            "price_to_book": ("market_cap / latest_filed(total_equity)", "point_in_time", ("market_cap", "total_equity")),
+            "price_to_tangible_book": ("market_cap / latest_filed(tangible_book_value)", "point_in_time", ("market_cap", "tangible_book_value")),
+            "price_to_cash_flow": ("market_cap / latest_filed_fy(operating_cash_flow)", "point_in_time", ("market_cap", "operating_cash_flow")),
+            "price_to_free_cash_flow": ("market_cap / latest_filed_fy(free_cash_flow)", "point_in_time", ("market_cap", "free_cash_flow")),
+            "enterprise_value_to_revenue": ("enterprise_value / latest_filed_fy(revenue)", "point_in_time", ("enterprise_value", "revenue")),
+            "enterprise_value_to_ebit": ("enterprise_value / latest_filed_fy(ebit)", "point_in_time", ("enterprise_value", "ebit")),
+            "enterprise_value_to_ebitda": ("enterprise_value / latest_filed_fy(ebitda)", "point_in_time", ("enterprise_value", "ebitda")),
+            "earnings_yield": ("latest_filed_fy(net_income) / market_cap", "point_in_time", ("net_income", "market_cap")),
+            "fcf_yield": ("latest_filed_fy(free_cash_flow) / market_cap", "point_in_time", ("free_cash_flow", "market_cap")),
+            "dividend_yield": ("abs(latest_filed_fy(dividends_paid)) / market_cap", "point_in_time", ("dividends_paid", "market_cap")),
+            "graham_number": ("sqrt(22.5 * latest_filed_fy(eps) * latest_filed(book_value_per_share))", "point_in_time", ("eps_diluted", "book_value_per_share")),
         }
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",
@@ -464,11 +513,19 @@ class Database:
             "eps_growth": "eps_diluted", "asset_growth": "total_assets",
             "equity_growth": "total_equity", "operating_cash_flow_growth": "operating_cash_flow",
             "free_cash_flow_growth": "free_cash_flow",
+            "ebitda_growth": "ebitda", "dividend_growth": "dividends_paid",
         }
         definitions.update({
             output: (f"{source} / prior_fy({source}) - 1", "prior_fiscal_year", (source,))
             for output, source in growth_sources.items()
         })
+        for source in ("revenue", "net_income", "eps_diluted"):
+            prefix = "eps" if source == "eps_diluted" else source
+            for years in (3, 5):
+                definitions[f"{prefix}_cagr_{years}y"] = (
+                    f"({source} / prior_{years}y({source})) ^ (1/{years}) - 1",
+                    f"prior_{years}_fiscal_years", (source,),
+                )
         for metric, (expression, period_rule, dependencies) in definitions.items():
             self.conn.execute(
                 """INSERT OR IGNORE INTO calculation_definitions(metric_key,formula_version,expression,period_rule)
@@ -738,6 +795,26 @@ class Database:
             content_hash,local_path,content_type,metadata_json) VALUES(?,?,?,?,?,?,?,?,?)""",
             (d.source_key, d.company_id, d.source_url, d.filing_type, d.filed_at, content_hash,
              local_path, d.content_type, _json(d.metadata)))
+        self.conn.commit()
+
+    def save_source_artifact(
+        self, artifact_key: str, company_id: str, source_url: str, content_hash: str,
+        local_path: str, content_type: str, byte_size: int, metadata: dict | None = None,
+    ) -> None:
+        """Register one immutable raw filing independently from its reviewed manifest."""
+        self.conn.execute(
+            """INSERT INTO source_artifacts(artifact_key,company_id,source_url,content_hash,
+            local_path,content_type,byte_size,metadata_json) VALUES(?,?,?,?,?,?,?,?)
+            ON CONFLICT(artifact_key) DO UPDATE SET local_path=excluded.local_path,
+            status='archived',metadata_json=excluded.metadata_json""",
+            (artifact_key, company_id, source_url, content_hash, local_path, content_type,
+             byte_size, _json(metadata or {})),
+        )
+        self.conn.execute(
+            """INSERT OR IGNORE INTO source_artifact_links(source_key,artifact_key)
+            SELECT source_key,? FROM source_documents WHERE company_id=? AND source_url=?""",
+            (artifact_key, company_id, source_url),
+        )
         self.conn.commit()
 
     def set_source_status(self, source_key: str, status: str):
@@ -1112,6 +1189,7 @@ class Database:
     def health(self) -> dict:
         tables = {
             "companies": "companies", "sources": "source_documents",
+            "source_artifacts": "source_artifacts",
             "source_candidates": "source_candidates", "facts": "data_points",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
