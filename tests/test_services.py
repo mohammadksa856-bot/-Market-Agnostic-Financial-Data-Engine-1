@@ -165,11 +165,36 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(advance["provenance"]["extraction"]["page"], 48)
         self.assertIn("long-term sales", advance["provenance"]["extraction"]["table_ref"])
         self.assertTrue(advance["provenance"]["source"]["content_hash"])
+        financial_2025 = [row for row in dossier["facts_by_category"]["financial"]
+                          if row["period_end"] == "2025-12-31"]
+        commitments = {row["metric"]: row for row in financial_2025
+                       if row["metric"] in {"capital_commitments", "lease_commitments_not_commenced"}}
+        self.assertEqual(commitments["capital_commitments"]["value"], "174551000000")
+        self.assertEqual(commitments["capital_commitments"]["provenance"]["extraction"]["page"], 69)
+        self.assertEqual(commitments["lease_commitments_not_commenced"]["value"], "25357000000")
+        ecl = next(row for row in financial_2025 if row["metric"] == "expected_credit_losses")
+        self.assertEqual(ecl["value"], "246000000")
+        self.assertEqual(ecl["provenance"]["extraction"]["page"], 51)
+        goodwill = next(row for row in financial_2025
+                        if row["metric"] == "goodwill_by_cash_generating_unit")
+        self.assertEqual(goodwill["value"], "99116000000")
+        undrawn = [row for row in financial_2025 if row["metric"] == "undrawn_credit_facilities"]
+        self.assertEqual(len(undrawn), 9)
+        self.assertTrue(any("do not sum" in row["dimensions"].get("overlap_note", "")
+                            for row in undrawn))
+        commercial_disclosures = [row for row in dossier["disclosures"]
+                                  if row["disclosure_type"] == "commercial_contract"]
+        self.assertEqual(commercial_disclosures[0]["metadata"]["quantitative_volume_disclosed"], False)
         valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
                    if row["period_end"]=="2026-09-03"}
         self.assertIn("price_to_earnings",valuation)
         self.assertEqual(valuation["price_to_earnings"]["provenance"]["derivation"]["type"],
                          "deterministic_calculation")
+        ratios_2025 = {row["metric"]: row for row in dossier["facts_by_category"]["ratio"]
+                       if row["period_end"] == "2025-12-31"}
+        self.assertIn("effective_tax_rate", ratios_2025)
+        self.assertAlmostEqual(float(ratios_2025["effective_tax_rate"]["value"]),
+                               352650 / 702860, places=10)
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):
         root=Path(self.temp.name)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from datetime import datetime, timezone
 
@@ -547,6 +548,19 @@ class CompanyDomainStore:
         for row in catalog["categories"]:
             key=f"catalog:{company_id}:{row['category']}"
             if row["status"] != "complete":
+                qualitative_evidence = []
+                if row["category"] == "commercial_pipeline":
+                    for evidence in self.db.conn.execute(
+                        """SELECT d.title,d.metadata_json,d.source_key,s.source_url
+                        FROM disclosures d LEFT JOIN source_documents s USING(source_key)
+                        WHERE d.company_id=? AND d.is_current=1
+                        AND d.disclosure_type IN ('commercial_contract','purchase_commitment')
+                        ORDER BY d.published_at DESC""", (company_id,),
+                    ).fetchall():
+                        qualitative_evidence.append({
+                            "title": evidence["title"], "source_key": evidence["source_key"],
+                            "source_url": evidence["source_url"], "metadata": json.loads(evidence["metadata_json"]),
+                        })
                 self.db.upsert_backlog_item(
                     key,"catalog_backfill",row["category"],
                     f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
@@ -559,6 +573,7 @@ class CompanyDomainStore:
                             else "licensed_point_in_time_consensus_provider_required"
                         ),
                         "no_inference": True,
+                        "qualitative_evidence": qualitative_evidence,
                     },
                 )
             else:

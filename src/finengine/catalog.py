@@ -49,7 +49,7 @@ GROUPS = (
         "free_cash_flow owner_earnings discretionary_cash_flow"
     )),
     ("profitability", "data_points", "ratios", "derived", "ratio", "none", "all", "*", _keys(
-        "gross_margin operating_margin ebit_margin ebitda_margin pretax_margin net_margin fcf_margin cfo_margin return_on_assets "
+        "gross_margin operating_margin ebit_margin ebitda_margin pretax_margin effective_tax_rate net_margin fcf_margin cfo_margin return_on_assets "
         "return_on_equity return_on_invested_capital roace return_on_capital_employed cash_return_on_assets"
     )),
     ("liquidity_solvency", "data_points", "ratios", "derived", "ratio", "none", "all", "*", _keys(
@@ -97,16 +97,17 @@ GROUPS = (
         "capital_commitments intangible_assets_by_class intangible_additions_by_class intangible_amortization_by_class "
         "goodwill_by_cash_generating_unit impairment_by_asset_class borrowings_by_instrument borrowings_by_currency "
         "borrowings_by_maturity weighted_average_borrowing_rate undrawn_credit_facilities secured_borrowings "
-        "unsecured_borrowings finance_cost_by_type current_tax_expense deferred_tax_expense effective_tax_rate "
+        "unsecured_borrowings finance_cost_by_type current_tax_expense deferred_tax_expense "
         "tax_reconciliation_by_component deferred_tax_assets_by_component deferred_tax_liabilities_by_component "
         "unrecognized_tax_losses defined_benefit_obligation fair_value_plan_assets employee_benefit_expense "
         "service_cost_employee_benefits net_interest_employee_benefits actuarial_gain_loss plan_assets_by_class "
         "benefit_obligation_by_geography financial_assets_by_class financial_liabilities_by_class "
         "fair_value_assets_by_level fair_value_liabilities_by_level expected_credit_losses related_party_revenue "
         "related_party_purchases related_party_receivables related_party_payables related_party_loans "
-        "key_management_compensation lease_maturity_by_band lease_interest_expense short_term_lease_expense "
+        "key_management_compensation lease_maturity_by_band lease_interest_expense short_term_lease_expense low_value_lease_expense "
         "variable_lease_expense provisions_by_class provision_additions provision_utilization contingencies "
-        "purchase_commitments guarantees_issued"
+        "purchase_commitments purchase_commitment_units lease_commitments_not_commenced "
+        "cancellable_commitment_exposure other_commitments_by_type guarantees_issued"
     )),
     ("commercial_pipeline", "data_points", "commercial", "mixed", "currency", "none", "all", "*", _keys(
         "sales_order_backlog contracted_sales_value contracted_sales_volume committed_offtake_volume "

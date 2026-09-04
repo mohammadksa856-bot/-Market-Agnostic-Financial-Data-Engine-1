@@ -10,6 +10,7 @@ class Calculator:
     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
     HISTORY_METRICS = {
         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
+        "income_taxes_and_zakat",
         "net_income", "operating_cash_flow", "capex", "free_cash_flow", "total_assets",
         "total_equity", "total_liabilities", "current_assets", "current_liabilities",
         "cash", "inventory", "accounts_receivable", "property_plant_equipment",
@@ -80,6 +81,9 @@ class Calculator:
                 ratio("net_margin", "net_income", "revenue")
                 ratio("operating_margin", "operating_income", "revenue")
                 ratio("pretax_margin", "income_before_income_taxes_and_zakat", "revenue")
+                ratio("effective_tax_rate", "income_taxes_and_zakat",
+                      "income_before_income_taxes_and_zakat",
+                      "abs(income_taxes_and_zakat) / income_before_income_taxes_and_zakat", True)
                 ratio("cfo_margin", "operating_cash_flow", "revenue")
                 ratio("fcf_margin", "free_cash_flow", "revenue")
                 ratio("capex_to_revenue", "capex", "revenue", "abs(capex) / revenue", True)

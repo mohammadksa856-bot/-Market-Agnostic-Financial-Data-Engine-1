@@ -467,6 +467,7 @@ class Database:
             "liabilities_to_equity": ("total_liabilities / total_equity", "same_period", ("total_liabilities", "total_equity")),
             "operating_margin": ("operating_income / revenue", "same_period", ("operating_income", "revenue")),
             "pretax_margin": ("income_before_income_taxes_and_zakat / revenue", "same_period", ("income_before_income_taxes_and_zakat", "revenue")),
+            "effective_tax_rate": ("abs(income_taxes_and_zakat) / income_before_income_taxes_and_zakat", "same_period", ("income_taxes_and_zakat", "income_before_income_taxes_and_zakat")),
             "cfo_margin": ("operating_cash_flow / revenue", "same_period", ("operating_cash_flow", "revenue")),
             "fcf_margin": ("free_cash_flow / revenue", "same_period", ("free_cash_flow", "revenue")),
             "liabilities_to_assets": ("total_liabilities / total_assets", "same_period", ("total_liabilities", "total_assets")),
