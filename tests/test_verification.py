@@ -59,6 +59,16 @@ class ManifestVerificationTests(unittest.TestCase):
                 c["check"] == "cross-manifest value conflict" and c["status"] == "fail"
                 for c in report["detail"]))
 
+    def test_same_period_values_from_different_companies_do_not_conflict(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "alpha-2025-fy.json", [_fy("revenue", 1000)])
+            _write(directory, "beta-2025-fy.json", [_fy("revenue", 1400)])
+            report = ManifestVerifier(directory).verify()
+            self.assertTrue(report["ok"], report["detail"])
+            self.assertFalse(any(
+                c["check"] == "cross-manifest value conflict" for c in report["detail"]))
+
     def test_cash_reconciliation_handles_fx_on_either_side_of_net_change(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)
@@ -90,6 +100,23 @@ class ManifestVerificationTests(unittest.TestCase):
             ])
             report = ManifestVerifier(directory).verify()
             self.assertFalse(report["ok"])
+
+    def test_cash_flow_and_balance_sheet_cash_definition_difference_is_review_only(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "acme-2025-fy.json", [
+                _instant("cash", 100),
+                _fy("operating_cash_flow", 50),
+                _fy("investing_cash_flow", -20),
+                _fy("financing_cash_flow", -10),
+                _fy("cash_beginning", 90),
+                _fy("cash_end", 110),  # includes cash classified as held for sale
+            ])
+            report = ManifestVerifier(directory).verify()
+            self.assertTrue(report["ok"], report["detail"])
+            self.assertTrue(any(
+                c["check"].startswith("cash_flow: period-end cash")
+                and c["status"] == "warn" for c in report["detail"]))
 
     def test_clean_income_statement_passes(self):
         with tempfile.TemporaryDirectory() as name:

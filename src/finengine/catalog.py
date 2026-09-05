@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 5
+CATALOG_SCHEMA_VERSION = 6
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -151,7 +151,8 @@ GROUPS = (
     )),
     ("income_statement", "data_points", "income_statement", "flow", "currency", "sum", "all", "*", _keys(
         "revenue other_income_related_to_sales revenue_and_other_income_related_to_sales cost_of_revenue gross_profit "
-        "selling_general_administrative_expense research_and_development_expense exploration_expense depreciation_amortization "
+        "selling_general_administrative_expense general_and_administrative_expense selling_and_distribution_expense "
+        "research_and_development_expense exploration_expense depreciation_amortization "
         "royalties_and_other_taxes purchases producing_manufacturing_expense operating_costs operating_expenses operating_income "
         "interest_income interest_expense finance_income finance_and_other_income finance_costs "
         "investment_income share_of_profit_associates impairment_charges gain_loss_asset_sales other_income other_expense "

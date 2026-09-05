@@ -42,13 +42,25 @@ LINE_MAP = {
     "cost of sales": ("cost_of_revenue", "fy"),
     "cost of revenue": ("cost_of_revenue", "fy"),
     "gross profit": ("gross_profit", "fy"),
+    "income from operations": ("operating_income", "fy"),
     "operating profit": ("operating_income", "fy"),
     "operating income": ("operating_income", "fy"),
     "profit from operations": ("operating_income", "fy"),
     "results from operating activities": ("operating_income", "fy"),
+    "other operating income": ("other_income", "fy"),
+    "other operating expenses": ("other_expense", "fy"),
+    "general and administrative expenses": ("general_and_administrative_expense", "fy"),
+    "research and development expenses": ("research_and_development_expense", "fy"),
+    "selling and distribution expenses": ("selling_and_distribution_expense", "fy"),
+    "finance income": ("finance_income", "fy"),
+    "finance costs": ("finance_costs", "fy"),
+    "income before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
     "profit before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
     "profit before tax": ("income_before_income_taxes_and_zakat", "fy"),
     "income before income taxes and zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income from continuing operations": ("continuing_operations_income", "fy"),
+    "net loss from discontinued operation": ("discontinued_operations_income", "fy"),
+    "net income from discontinued operation": ("discontinued_operations_income", "fy"),
     "profit for the year": ("net_income", "fy"),
     "profit for the period": ("net_income", "fy"),
     "net income": ("net_income", "fy"),
@@ -57,6 +69,7 @@ LINE_MAP = {
     "attributable to shareholders of the company": ("net_income_parent", "fy"),
     "attributable to equity holders": ("net_income_parent", "fy"),
     "attributable to owners": ("net_income_parent", "fy"),
+    "equity holders of the parent": ("net_income_parent", "fy"),
     # balance sheet
     "total assets": ("total_assets", "instant"),
     "non-current assets": ("noncurrent_assets", "instant"),
@@ -73,12 +86,23 @@ LINE_MAP = {
     "total liabilities and equity": ("total_liabilities_equity", "instant"),
     "cash and cash equivalents": ("cash", "instant"),
     "property, plant and equipment": ("property_plant_equipment", "instant"),
+    "right-of-use assets": ("right_of_use_assets", "instant"),
+    "intangible assets": ("intangible_assets", "instant"),
+    "investments in associates and joint ventures": ("investments_associates", "instant"),
+    "deferred tax assets": ("deferred_tax_assets", "instant"),
+    "trade receivables": ("accounts_receivable", "instant"),
+    "short-term investments": ("short_term_investments", "instant"),
+    "assets held for sale": ("assets_held_for_sale", "instant"),
     "inventories": ("inventory", "instant"),
     "share capital": ("share_capital", "instant"),
     "retained earnings": ("retained_earnings", "instant"),
+    "other reserves": ("other_reserves", "instant"),
     "equity attributable to": ("equity_parent", "instant"),
     "equity attributable to equity holders": ("equity_parent", "instant"),
     "non-controlling interest": ("noncontrolling_interests", "instant"),
+    "deferred tax liabilities": ("deferred_tax_liabilities", "instant"),
+    "trade payables": ("accounts_payable", "instant"),
+    "liabilities directly associated with assets held for sale": ("liabilities_held_for_sale", "instant"),
     # cash flow
     "net cash from operating activities": ("operating_cash_flow", "fy"),
     "net cash generated from operating activities": ("operating_cash_flow", "fy"),
@@ -89,15 +113,27 @@ LINE_MAP = {
     "net cash from financing activities": ("financing_cash_flow", "fy"),
     "net cash used in financing activities": ("financing_cash_flow", "fy"),
     "net cash from/(used in) financing activities": ("financing_cash_flow", "fy"),
+    "purchase of property, plant and equipment": ("capex", "fy"),
+    "proceeds from sale of property, plant and equipment": ("proceeds_asset_sales", "fy"),
+    "proceeds from debt": ("debt_issued", "fy"),
+    "repayment of debt": ("debt_repaid", "fy"),
+    "lease payments": ("lease_payments", "fy"),
+    "dividends paid to shareholders": ("dividends_paid", "fy"),
+    "dividends paid to non-controlling interests": ("dividends_noncontrolling", "fy"),
+    "interest received": ("interest_received", "fy"),
+    "interest paid": ("interest_paid", "fy"),
+    "zakat and income tax paid": ("taxes_paid", "fy"),
     "net change in cash and cash equivalents": ("cash_change", "fy"),
     "net increase in cash and cash equivalents": ("cash_change", "fy"),
     "net decrease in cash and cash equivalents": ("cash_change", "fy"),
+    "decrease in cash and cash equivalents": ("cash_change", "fy"),
     "cash and cash equivalents at 1 january": ("cash_beginning", "fy"),
     "cash and cash equivalents at the beginning": ("cash_beginning", "fy"),
     "cash and cash equivalents at 31 december": ("cash_end", "fy"),
     "cash and cash equivalents at the end": ("cash_end", "fy"),
     "effect of movements in exchange rates on cash": ("foreign_exchange_effect", "fy"),
     "effect of exchange rate changes on cash": ("foreign_exchange_effect", "fy"),
+    "net foreign exchange gain (loss) on cash and cash equivalents": ("foreign_exchange_effect", "fy"),
 }
 
 # non-controlling interest inside the income statement means a different metric
@@ -241,7 +277,13 @@ class StatementReader:
                 continue
             carry, carry_page = statement, page_index
             scale = self._scale(page.get_text().lower())
-            page_facts: list = []
+            # A statement can present a continuing-operations subtotal and then
+            # the consolidated total using the same short attribution labels.
+            # Within one page the later row is the final reported total.  Keep
+            # one value per canonical identity so the staging manifest cannot
+            # contain contradictory duplicates merely because the PDF repeats
+            # a label in consecutive subtables.
+            page_facts: dict[tuple[str, str], dict] = {}
             for label, kind, value in self._statement_facts(words, statement, blocks):
                 metric = _resolve_line(label, statement)
                 if metric is None:
@@ -259,15 +301,18 @@ class StatementReader:
                     fact["period_start"] = f"{fiscal_year}-01-01"
                 if monetary:
                     fact.update(scale=str(scale), currency=currency, unit=currency)
-                page_facts.append((key, fact))
+                page_facts[key] = fact
             # The page is already a confirmed statement (leading-heading regex or a
             # continuation of one); a single new mapped line is enough to keep it,
             # and keeps `carry` alive for the rest of a multi-page statement.
-            for key, fact in page_facts:
+            for key, fact in page_facts.items():
                 seen.add(key)
                 facts.append(fact)
         doc.close()
         return {
+            "company_id": f"{market.lower()}:{symbol}",
+            "market": market,
+            "symbol": symbol,
             "filing_type": filing_type, "filed_at": filed_at, "period_end": period_end,
             "source_url": source_url, "reader": "finengine.reading/1",
             "facts": sorted(facts, key=lambda f: (f["page"], f["metric"])),
