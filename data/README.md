@@ -2,8 +2,8 @@
 
 `financial.sqlite3` is the reproducible v1.5 snapshot used by the read-only query service,
 API, and Telegram adapter. It is built from 30 reviewed manifests and currently contains
-1,184 current facts across Saudi Aramco, Apple, Microsoft, and NVIDIA. Aramco contributes 958
-current facts (1,048 total versions), 23 official daily price rows, and 15 point-in-time valuation metrics. The seed
+1,187 current facts across Saudi Aramco, Apple, Microsoft, and NVIDIA. Aramco contributes 961
+current facts (1,051 total versions), 23 official daily price rows, and 18 point-in-time market and valuation metrics. The seed
 covers annual 2019-2025 facts plus Q1/H1 2026; US samples demonstrate the same canonical schema
 with SEC EDGAR/XBRL provenance.
 
@@ -15,7 +15,7 @@ and domain gaps; backlog rows are planning records and are never counted as veri
 Schema v12 includes a reviewed 507-field commercial target catalog. The universal company pack
 contains 437 fields across company model, statements, dimensional financial notes, commercial sales/order backlog, investor analytics,
 consensus estimates, market data, ownership, corporate actions, and disclosures. Integrated Oil & Gas
-companies receive another 69 segment and operating fields. Aramco currently populates 374 fields (73.8% raw coverage and 81.0% evidence-aware coverage after excluding 45 verified unavailable fields);
+companies receive another 69 segment and operating fields. Aramco currently populates 377 fields (74.4% raw coverage and 81.6% evidence-aware coverage after excluding 45 verified unavailable fields);
 the lower percentage reflects the expanded target model rather than removed data.
 `company_completeness` records what is actually populated;
 catalog definitions and backlog items are never presented as sourced production facts.

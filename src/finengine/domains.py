@@ -97,6 +97,27 @@ class CompanyDomainStore:
             "market_cap": (market_cap, "price_close * shares_outstanding", price["company_currency"], price["company_currency"]),
             "enterprise_value": (enterprise_value, "market_cap + net_debt", price["company_currency"], price["company_currency"]),
         }
+        price_history = self.db.conn.execute(
+            """SELECT p.close,p.volume,p.turnover,p.observed_at FROM market_prices p
+            JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
+            ORDER BY p.observed_at DESC LIMIT 20""", (company_id,),
+        ).fetchall()
+        if len(price_history) == 20:
+            sma_20 = sum((Decimal(row["close"]) for row in price_history), Decimal(0)) / Decimal(20)
+            calculations["simple_moving_average_20d"] = (
+                sma_20, "average(latest_20_archived_daily_closes)",
+                price["company_currency"], f"{price['company_currency']}/share",
+            )
+            calculations["price_to_sma_20d"] = (
+                close / sma_20, "latest_archived_close / simple_moving_average_20d", "", "ratio",
+            )
+        if price["turnover"] is not None and price["volume"] is not None and Decimal(price["volume"]):
+            calculations["vwap"] = (
+                Decimal(price["turnover"]) / Decimal(price["volume"]),
+                "latest_archived_daily_turnover / latest_archived_daily_volume",
+                price["company_currency"], f"{price['company_currency']}/share",
+            )
 
         def ratio(metric: str, numerator: Decimal, denominator_key: str, formula: str) -> None:
             denominator = values.get(denominator_key)
@@ -344,6 +365,10 @@ class CompanyDomainStore:
         price_map = {"price_open":"open","price_high":"high","price_low":"low","price_close":"close",
                      "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover"}
         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
+        available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
+            """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
+            AND metric_key IN ('vwap')""", (company_id,)
+        ))
         ownership_rows = self.db.conn.execute(
             "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
         if ownership_rows:

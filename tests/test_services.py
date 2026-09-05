@@ -270,6 +270,13 @@ class ServiceTests(unittest.TestCase):
         self.assertIn("price_to_earnings",valuation)
         self.assertEqual(valuation["price_to_earnings"]["provenance"]["derivation"]["type"],
                          "deterministic_calculation")
+        self.assertIn("simple_moving_average_20d", valuation)
+        self.assertIn("price_to_sma_20d", valuation)
+        market_metrics = {row["metric"]: row for row in dossier["facts_by_category"]["market"]
+                          if row["period_end"] == "2026-09-03"}
+        self.assertIn("vwap", market_metrics)
+        self.assertAlmostEqual(float(market_metrics["vwap"]["value"]),
+                               173977896.58 / 6688799, places=10)
         ratios_2025 = {row["metric"]: row for row in dossier["facts_by_category"]["ratio"]
                        if row["period_end"] == "2025-12-31"}
         self.assertIn("effective_tax_rate", ratios_2025)

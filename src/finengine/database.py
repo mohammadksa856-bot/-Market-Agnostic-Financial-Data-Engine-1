@@ -319,6 +319,9 @@ DEFAULT_METRICS = {
     "corporate_depreciation_amortization": ("Corporate depreciation and amortization", "operational", "segments", "sum", "currency"),
     "corporate_ebitda": ("Corporate EBITDA", "operational", "segments", "sum", "currency"),
     "other_reserve_components": ("Other reserve components", "financial", "balance_sheet", "none", "currency"),
+    "vwap": ("Volume-weighted average price", "market", "market", "none", "price"),
+    "trading_volume": ("Trading volume", "market", "market", "sum", "shares"),
+    "trading_turnover": ("Trading turnover", "market", "market", "sum", "currency"),
     "free_cash_flow": ("Free cash flow", "calculated", "cash_flow", "sum", "currency"),
     "net_margin": ("Net margin", "ratio", "ratios", "none", "ratio"),
     "liabilities_to_equity": ("Liabilities to equity", "ratio", "ratios", "none", "ratio"),
@@ -553,6 +556,18 @@ class Database:
             "corporate_ebitda": (
                 "corporate_ebit + abs(corporate_depreciation_amortization)", "same_segment_period",
                 ("corporate_ebit", "corporate_depreciation_amortization"),
+            ),
+            "simple_moving_average_20d": (
+                "average(latest_20_archived_daily_closes)", "latest_20_trading_sessions",
+                ("price_close",),
+            ),
+            "price_to_sma_20d": (
+                "latest_archived_close / simple_moving_average_20d", "latest_20_trading_sessions",
+                ("price_close", "simple_moving_average_20d"),
+            ),
+            "vwap": (
+                "latest_archived_daily_turnover / latest_archived_daily_volume",
+                "latest_trading_session", ("trading_turnover", "trading_volume"),
             ),
         }
         growth_sources = {
