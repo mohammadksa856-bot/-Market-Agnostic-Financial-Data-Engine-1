@@ -202,6 +202,10 @@ class ServiceTests(unittest.TestCase):
                          "qualitative_disclosure_only")
         self.assertEqual(availability["sales_order_backlog"],
                          "not_disclosed_in_archived_filings")
+        commercial_coverage = commercial_backlog["payload"]["coverage_interpretation"]
+        self.assertGreater(commercial_coverage["verified_unavailable"], 0)
+        self.assertLess(commercial_coverage["actionable_missing"],
+                        len(commercial_backlog["payload"]["missing_fields"]))
         operations = {row["metric"]: row for row in dossier["facts_by_category"]["operational"]
                       if row["period_end"] == "2025-12-31" and not row["dimensions"]}
         self.assertEqual(operations["total_liquids_production"]["value"], "10.678")
@@ -219,6 +223,9 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(oil_gas_availability["spare_capacity"],
                          "not_disclosed_in_archived_annual_report")
         self.assertNotIn("reserve_life_index", oil_gas_availability)
+        oil_gas_coverage = oil_gas_backlog["payload"]["coverage_interpretation"]
+        self.assertEqual(oil_gas_coverage["verified_unavailable"], 15)
+        self.assertEqual(oil_gas_coverage["actionable_missing"], 0)
         valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
                    if row["period_end"]=="2026-09-03"}
         self.assertIn("price_to_earnings",valuation)

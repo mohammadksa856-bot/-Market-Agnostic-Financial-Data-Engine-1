@@ -545,6 +545,8 @@ class CompanyDomainStore:
             else:
                 completed += int(self.db.complete_backlog_item(idempotency_key))
         catalog = self.refresh_catalog_completeness(company_id)
+        verified_unavailable_total = 0
+        actionable_missing_total = 0
         for row in catalog["categories"]:
             key=f"catalog:{company_id}:{row['category']}"
             if row["status"] != "complete":
@@ -593,11 +595,33 @@ class CompanyDomainStore:
                         availability = "calculation_requires_sufficient_market_history"
                     elif row["category"] in {"growth", "profitability", "efficiency", "liquidity_solvency", "valuation"}:
                         availability = "calculation_requires_missing_dependencies"
-                    elif row["category"] in {"operational", "oil_gas_operations"} and field in oil_gas_not_disclosed:
+                    elif (company_id == "sa:2222" and
+                          row["category"] in {"operational", "oil_gas_operations"} and
+                          field in oil_gas_not_disclosed):
                         availability = "not_disclosed_in_archived_annual_report"
                     else:
                         availability = "pending_official_source_extraction"
                     field_assessments.append({"field_key": field, "availability": availability})
+                non_actionable_states = {
+                    "event_driven_no_event_observed", "not_applicable_market_identifier",
+                    "not_disclosed_in_archived_annual_report", "not_disclosed_in_archived_filings",
+                    "qualitative_disclosure_only",
+                }
+                verified_unavailable = [
+                    item for item in field_assessments
+                    if item["availability"] in non_actionable_states
+                ]
+                actionable_missing = [
+                    item for item in field_assessments
+                    if item["availability"] not in non_actionable_states
+                ]
+                verified_unavailable_total += len(verified_unavailable)
+                actionable_missing_total += len(actionable_missing)
+                actionable_expected = row["expected"] - len(verified_unavailable)
+                actionable_score = (
+                    Decimal(row["populated"]) / Decimal(actionable_expected)
+                    if actionable_expected else Decimal(1)
+                )
                 self.db.upsert_backlog_item(
                     key,"catalog_backfill",row["category"],
                     f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
@@ -612,6 +636,15 @@ class CompanyDomainStore:
                         "no_inference": True,
                         "qualitative_evidence": qualitative_evidence,
                         "field_assessments": field_assessments,
+                        "coverage_interpretation": {
+                            "raw_expected": row["expected"],
+                            "raw_populated": row["populated"],
+                            "verified_unavailable": len(verified_unavailable),
+                            "actionable_expected": actionable_expected,
+                            "actionable_populated": row["populated"],
+                            "actionable_missing": len(actionable_missing),
+                            "actionable_score": str(actionable_score),
+                        },
                     },
                 )
             else:
@@ -624,6 +657,14 @@ class CompanyDomainStore:
             "created": created, "completed": completed, "open": open_count,
             "catalog_expected": catalog["expected"], "catalog_populated": catalog["populated"],
             "catalog_score": catalog["score"],
+            "catalog_verified_unavailable": verified_unavailable_total,
+            "catalog_actionable_missing": actionable_missing_total,
+            "catalog_actionable_expected": catalog["expected"] - verified_unavailable_total,
+            "catalog_actionable_score": str(
+                Decimal(catalog["populated"]) /
+                Decimal(catalog["expected"] - verified_unavailable_total)
+                if catalog["expected"] > verified_unavailable_total else Decimal(1)
+            ),
         }
 
     def refresh_all_backlog(self) -> list[dict]:
