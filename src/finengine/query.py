@@ -369,20 +369,46 @@ class FinancialQueryService:
             " ORDER BY pack_key,category,field_key LIMIT ?",args).fetchall()
         return [dict(row) for row in rows]
 
+    def catalog_history(self, field_key: str) -> list[dict]:
+        rows = self.conn.execute(
+            """SELECT field_key,definition_version,definition_hash,definition_json,valid_from,valid_to,is_current
+            FROM data_catalog_field_versions WHERE field_key=? ORDER BY definition_version DESC""",
+            (field_key,),
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["definition"] = json.loads(item.pop("definition_json"))
+            result.append(item)
+        return result
+
+    def dimensions(self) -> list[dict]:
+        return [dict(row) for row in self.conn.execute(
+            """SELECT dimension_key,display_name,description,value_type,schema_version
+            FROM dimension_definitions WHERE enabled=1 ORDER BY dimension_key"""
+        ).fetchall()]
+
     def completeness(self, market: str, symbol: str) -> dict:
         company=self.conn.execute(
             "SELECT company_id FROM companies WHERE market=? AND symbol=?",(market.upper(),symbol.upper())).fetchone()
         if not company: raise KeyError(f"unknown company {market}:{symbol}")
         rows=self.conn.execute(
-            """SELECT category,expected_fields,populated_fields,completeness_score,status,
-            missing_fields_json,checked_at FROM company_completeness WHERE company_id=? ORDER BY category""",
+            """SELECT category,expected_fields,populated_fields,required_fields,populated_required_fields,
+            completeness_score,status,missing_fields_json,required_missing_json,checked_at
+            FROM company_completeness WHERE company_id=? ORDER BY category""",
             (company["company_id"],)).fetchall()
         categories=[]
         for row in rows:
-            item=dict(row); item["missing_fields"]=json.loads(item.pop("missing_fields_json")); categories.append(item)
+            item=dict(row)
+            item["missing_fields"]=json.loads(item.pop("missing_fields_json"))
+            item["required_missing"]=json.loads(item.pop("required_missing_json"))
+            categories.append(item)
         expected=sum(item["expected_fields"] for item in categories)
         populated=sum(item["populated_fields"] for item in categories)
+        required=sum(item["required_fields"] for item in categories)
+        populated_required=sum(item["populated_required_fields"] for item in categories)
         return {"expected_fields":expected,"populated_fields":populated,
+                "required_fields":required,"populated_required_fields":populated_required,
                 "completeness_score":str(Decimal(populated)/Decimal(expected) if expected else Decimal(1)),
                 "categories":categories}
 
@@ -475,6 +501,8 @@ class FinancialQueryService:
             "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
             "active_schedules": "schedules WHERE enabled=1",
             "catalog_fields": "data_catalog_fields WHERE enabled=1",
+            "catalog_versions": "data_catalog_field_versions",
+            "dimensions": "dimension_definitions WHERE enabled=1",
             "completeness_rows": "company_completeness",
         }
         return {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]

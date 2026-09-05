@@ -4,13 +4,14 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+from . import __version__
 from .query import FinancialQueryService
 
 
 def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                       api_key: str | None = None) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
-        server_version = "FinEngineAPI/1.4"
+        server_version = f"FinEngineAPI/{__version__}"
 
         def _send(self, status: int, payload: dict | list):
             body=json.dumps(payload,ensure_ascii=False,default=str).encode("utf-8")
@@ -69,6 +70,10 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     result=query.exceptions(status=params.get("status",["open"])[0],limit=self._int(params,"limit",100))
                 elif parts == ["v1","catalog"]:
                     result=query.data_catalog(params.get("category",[None])[0],params.get("domain",[None])[0],self._int(params,"limit",1000))
+                elif len(parts) == 4 and parts[:3] == ["v1","catalog","history"]:
+                    result=query.catalog_history(parts[3])
+                elif parts == ["v1","dimensions"]:
+                    result=query.dimensions()
                 else:
                     raise KeyError("unknown endpoint")
                 self._send(200,result)

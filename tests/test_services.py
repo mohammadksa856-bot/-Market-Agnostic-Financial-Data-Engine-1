@@ -53,6 +53,14 @@ class ServiceTests(unittest.TestCase):
                             headers={"X-API-Key":"secret"})
             catalog=json.loads(urlopen(request).read())
             self.assertGreaterEqual(len(catalog),300)
+            request=Request(f"http://127.0.0.1:{port}/v1/catalog/history/revenue",
+                            headers={"X-API-Key":"secret"})
+            history=json.loads(urlopen(request).read())
+            self.assertEqual(history[0]["definition"]["field_key"],"revenue")
+            request=Request(f"http://127.0.0.1:{port}/v1/dimensions",
+                            headers={"X-API-Key":"secret"})
+            dimensions=json.loads(urlopen(request).read())
+            self.assertIn("segment",{item["dimension_key"] for item in dimensions})
             request=Request(f"http://127.0.0.1:{port}/health",data=b"{}",method="POST",
                             headers={"X-API-Key":"secret"})
             with self.assertRaises(HTTPError) as readonly: urlopen(request)

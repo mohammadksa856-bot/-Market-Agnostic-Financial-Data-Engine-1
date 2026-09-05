@@ -120,6 +120,8 @@ Examples:
     GET /v1/companies/SA/2222/estimates?metric=revenue_estimate&period_end=2027-12-31
     GET /v1/companies/SA/2222/actions
     GET /v1/catalog?category=oil_gas_operations&limit=500
+    GET /v1/catalog/history/crude_oil_production
+    GET /v1/dimensions
     GET /v1/exceptions?status=open
 
 When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
@@ -210,8 +212,9 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 
 ## Canonical stores
 
-- `data_catalog_fields`: reviewed commercial target fields, storage domain, period behavior, applicability, and pack lineage.
-- `company_completeness`: category-level expected/populated counts and exact missing-field lists per company.
+- `data_catalog_fields` and `data_catalog_field_versions`: reviewed commercial target fields plus an immutable history of every definition change.
+- `dimension_definitions`: the governed vocabulary for segment, geography, product, instrument, maturity, note, and other fact axes; unknown production dimensions are rejected.
+- `company_completeness`: category-level expected/populated and required-field counts, with exact missing and required-missing lists per company.
 - `data_points`: versioned typed facts with period, scope, dimensions, quality, formula and source provenance.
 - `metric_definitions`: canonical schema, units, categories, statements and aggregation rules.
 - `source_documents`, `source_artifacts`, `source_artifact_links`, and `source_candidates`: reviewed manifests, independently hashed raw files, provenance links, and the discovery inbox.

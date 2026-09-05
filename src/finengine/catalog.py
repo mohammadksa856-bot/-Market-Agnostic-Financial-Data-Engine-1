@@ -3,6 +3,96 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
+CATALOG_SCHEMA_VERSION = 5
+
+# These are the minimum fields that make a company/period usable. Everything else
+# remains recommended until a market, sector, or company pack makes it required.
+CORE_REQUIRED_FIELDS = {
+    "company_name", "symbol", "exchange", "market", "country", "currency", "fiscal_year_end",
+    "sector", "industry", "business_description", "revenue", "operating_income", "net_income",
+    "net_income_parent", "basic_eps", "cash", "current_assets", "total_assets",
+    "current_liabilities", "total_liabilities", "total_equity", "total_liabilities_equity",
+    "operating_cash_flow", "capex", "investing_cash_flow", "financing_cash_flow", "cash_end",
+    "free_cash_flow",
+}
+
+# Group defaults are intentionally overridden where a metric's financial meaning
+# differs. This keeps unit/period/aggregation semantics attached to the field, not
+# inferred later from its name or the source presentation.
+FIELD_OVERRIDES = {
+    "weighted_average_shares_basic": {"default_unit": "shares", "aggregation": "average"},
+    "weighted_average_shares_diluted": {"default_unit": "shares", "aggregation": "average"},
+    "basic_eps": {"default_unit": "currency/share", "aggregation": "none"},
+    "eps_diluted": {"default_unit": "currency/share", "aggregation": "none"},
+    "shares_outstanding": {"default_unit": "shares", "aggregation": "last"},
+    "employees": {"default_unit": "people", "aggregation": "last"},
+    "subsidiaries_count": {"default_unit": "count", "aggregation": "last"},
+    "trading_volume": {"default_unit": "shares", "aggregation": "sum"},
+    "trading_turnover": {"default_unit": "currency", "aggregation": "sum"},
+    "ownership_percentage": {"default_unit": "ratio", "aggregation": "none"},
+    "government_ownership": {"default_unit": "ratio", "aggregation": "none"},
+    "institutional_ownership": {"default_unit": "ratio", "aggregation": "none"},
+    "insider_ownership": {"default_unit": "ratio", "aggregation": "none"},
+    "foreign_ownership": {"default_unit": "ratio", "aggregation": "none"},
+    "free_float": {"default_unit": "ratio", "aggregation": "none"},
+    "total_hydrocarbon_production": {"default_unit": "mboe/day", "aggregation": "average"},
+    "total_liquids_production": {"default_unit": "mbbl/day", "aggregation": "average"},
+    "crude_oil_production": {"default_unit": "mbbl/day", "aggregation": "average"},
+    "condensate_production": {"default_unit": "mbbl/day", "aggregation": "average"},
+    "natural_gas_liquids_production": {"default_unit": "mbbl/day", "aggregation": "average"},
+    "total_gas_production": {"default_unit": "mmscfd", "aggregation": "average"},
+    "natural_gas_sales": {"default_unit": "mmscfd", "aggregation": "average"},
+    "refinery_throughput": {"default_unit": "mbbl/day", "aggregation": "average"},
+    "refinery_utilization": {"default_unit": "ratio", "aggregation": "average"},
+    "net_refining_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
+    "gross_refining_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
+    "chemicals_production": {"default_unit": "million_tonnes", "aggregation": "sum"},
+    "chemicals_sales": {"default_unit": "million_tonnes", "aggregation": "sum"},
+    "net_chemicals_production_capacity": {"default_unit": "million_tonnes/year", "aggregation": "last"},
+    "total_hydrocarbon_reserves": {"default_unit": "million_boe", "aggregation": "last"},
+    "crude_oil_reserves": {"default_unit": "million_bbl", "aggregation": "last"},
+    "gas_reserves": {"default_unit": "bcf", "aggregation": "last"},
+    "reserve_replacement_ratio": {"default_unit": "ratio", "aggregation": "none"},
+    "reserve_life_index": {"default_unit": "years", "aggregation": "none"},
+    "maximum_sustainable_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
+    "spare_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
+    "supply_reliability": {"default_unit": "ratio", "aggregation": "average"},
+    "average_realized_crude_oil_price": {"default_unit": "USD/bbl", "aggregation": "weighted_average"},
+    "average_realized_gas_price": {"default_unit": "USD/mmbtu", "aggregation": "weighted_average"},
+    "lifting_cost_per_boe": {"default_unit": "USD/boe", "aggregation": "weighted_average"},
+    "upstream_capex_per_boe": {"default_unit": "USD/boe", "aggregation": "weighted_average"},
+    "upstream_carbon_intensity": {"default_unit": "kgCO2e/boe", "aggregation": "weighted_average"},
+    "scope_1_emissions": {"default_unit": "million_tCO2e", "aggregation": "sum"},
+    "scope_2_emissions": {"default_unit": "million_tCO2e", "aggregation": "sum"},
+    "methane_intensity": {"default_unit": "ratio", "aggregation": "weighted_average"},
+    "flaring_intensity": {"default_unit": "scf/boe", "aggregation": "weighted_average"},
+    "water_withdrawal": {"default_unit": "million_m3", "aggregation": "sum"},
+    "water_consumption": {"default_unit": "million_m3", "aggregation": "sum"},
+}
+
+
+DIMENSION_DEFINITIONS = {
+    "segment": "Reportable business segment", "geography": "Country or geographic region",
+    "product": "Product or service family", "asset_class": "Asset or liability class",
+    "instrument": "Financial instrument", "maturity_band": "Contractual maturity bucket",
+    "jurisdiction": "Tax or legal jurisdiction", "fair_value_level": "IFRS/GAAP fair-value hierarchy level",
+    "counterparty": "Named counterparty", "counterparty_type": "Counterparty classification",
+    "cash_generating_unit": "Cash-generating unit", "facility_type": "Financing facility type",
+    "financing_type": "Financing type", "financing_class": "Financing classification",
+    "plan_type": "Employee benefit plan type", "benefit_type": "Employee benefit type",
+    "balance_type": "Opening, movement, or closing balance", "direction": "Inflow or outflow",
+    "compensation_type": "Compensation component", "provision_class": "Provision class",
+    "asset_type": "Asset type", "commitment_type": "Commitment class", "beneficiary": "Guarantee beneficiary",
+    "guarantee_type": "Guarantee class", "reconciliation_component": "Reconciliation line",
+    "measure": "Reported measure", "origin": "Domestic or international origin",
+    "basis": "Measurement or presentation basis", "overlap_note": "Non-additivity disclosure",
+    "measurement": "Measurement basis", "security_basis": "Secured or unsecured basis",
+    "reported_label": "Source-native label", "component": "Statement or note component",
+    "reported_as": "Source-native presentation", "ledger": "Accounting ledger classification",
+    "cost_type": "Cost classification", "liability_class": "Liability classification",
+}
+
+
 def _keys(value: str) -> list[str]:
     return value.split()
 
@@ -155,7 +245,7 @@ def iter_catalog_fields():
             if key in seen:
                 raise ValueError(f"duplicate catalog field definition: {key}")
             seen.add(key)
-            yield {
+            item = {
                 "field_key": key,
                 "display_name": key.replace("_", " ").title(),
                 "category": category,
@@ -167,9 +257,11 @@ def iter_catalog_fields():
                 "aggregation": aggregation,
                 "scope_type": scope_type,
                 "scope_value": scope_value,
-                "requirement": "recommended",
+                "requirement": "required" if key in CORE_REQUIRED_FIELDS else "recommended",
                 "pack_key": "oil_gas_v2" if scope_type == "industry" else "company_core_v4",
             }
+            item.update(FIELD_OVERRIDES.get(key, {}))
+            yield item
 
 
 CATALOG_SIZE = sum(1 for _ in iter_catalog_fields())

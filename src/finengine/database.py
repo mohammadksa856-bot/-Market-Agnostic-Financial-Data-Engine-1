@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Iterable
 
 from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, TypedFact, ValueType
-from .catalog import iter_catalog_fields
+from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
+ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
 PRAGMA foreign_keys=ON;
@@ -71,11 +72,24 @@ CREATE TABLE IF NOT EXISTS data_catalog_fields(
  schema_version INTEGER NOT NULL DEFAULT 3, enabled INTEGER NOT NULL DEFAULT 1,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX IF NOT EXISTS idx_catalog_scope ON data_catalog_fields(scope_type,scope_value,storage_domain,enabled);
+CREATE TABLE IF NOT EXISTS data_catalog_field_versions(
+ field_key TEXT NOT NULL, definition_version INTEGER NOT NULL, definition_hash TEXT NOT NULL,
+ definition_json TEXT NOT NULL, valid_from TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, valid_to TEXT,
+ is_current INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(field_key,definition_version),
+ UNIQUE(field_key,definition_hash));
+CREATE INDEX IF NOT EXISTS idx_catalog_version_current ON data_catalog_field_versions(field_key,is_current);
+CREATE TABLE IF NOT EXISTS dimension_definitions(
+ dimension_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, description TEXT NOT NULL,
+ value_type TEXT NOT NULL DEFAULT 'text', enabled INTEGER NOT NULL DEFAULT 1,
+ schema_version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS company_completeness(
  company_id TEXT NOT NULL REFERENCES companies(company_id), category TEXT NOT NULL,
  expected_fields INTEGER NOT NULL, populated_fields INTEGER NOT NULL,
+ required_fields INTEGER NOT NULL DEFAULT 0, populated_required_fields INTEGER NOT NULL DEFAULT 0,
  completeness_score TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('complete','partial','missing','not_applicable')),
- missing_fields_json TEXT NOT NULL DEFAULT '[]', checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ missing_fields_json TEXT NOT NULL DEFAULT '[]', required_missing_json TEXT NOT NULL DEFAULT '[]',
+ checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  PRIMARY KEY(company_id,category));
 CREATE TABLE IF NOT EXISTS observations(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id), metric TEXT NOT NULL,
@@ -372,6 +386,7 @@ class Database:
         self.conn.executescript(SCHEMA)
         self._migrate_legacy_schema()
         self._seed_metric_catalog()
+        self._seed_dimension_catalog()
         self._seed_data_catalog()
         self._seed_calculation_definitions()
         self._seed_metric_applicability()
@@ -411,6 +426,12 @@ class Database:
             "freshness_status": "TEXT NOT NULL DEFAULT 'unknown'", "age_seconds": "INTEGER",
         }.items():
             self._ensure_column("coverage_status", name, definition)
+        for name, definition in {
+            "required_fields": "INTEGER NOT NULL DEFAULT 0",
+            "populated_required_fields": "INTEGER NOT NULL DEFAULT 0",
+            "required_missing_json": "TEXT NOT NULL DEFAULT '[]'",
+        }.items():
+            self._ensure_column("company_completeness", name, definition)
         for table in ("extracted_facts", "normalized_facts"):
             self._ensure_column(table, "scope", "TEXT NOT NULL DEFAULT 'consolidated'")
             self._ensure_column(table, "dimensions_json", "TEXT NOT NULL DEFAULT '{}'")
@@ -435,6 +456,17 @@ class Database:
             )
         self.conn.commit()
 
+    def _seed_dimension_catalog(self) -> None:
+        for key, description in DIMENSION_DEFINITIONS.items():
+            self.conn.execute(
+                """INSERT INTO dimension_definitions(dimension_key,display_name,description,schema_version)
+                VALUES(?,?,?,?) ON CONFLICT(dimension_key) DO UPDATE SET
+                display_name=excluded.display_name,description=excluded.description,enabled=1,
+                schema_version=excluded.schema_version,updated_at=CURRENT_TIMESTAMP""",
+                (key, key.replace("_", " ").title(), description, CATALOG_SCHEMA_VERSION),
+            )
+        self.conn.commit()
+
     def _seed_data_catalog(self) -> None:
         metric_categories = {
             "income_statement": "financial", "balance_sheet": "financial", "cash_flow": "financial",
@@ -444,18 +476,42 @@ class Database:
             "commercial_pipeline": "commercial", "investor_analytics": "calculated", "consensus": "consensus",
         }
         for item in iter_catalog_fields():
+            definition = {key: item[key] for key in (
+                "field_key", "display_name", "category", "storage_domain", "statement",
+                "period_behavior", "value_type", "default_unit", "aggregation", "pack_key",
+                "scope_type", "scope_value", "requirement",
+            )}
+            definition_json = _json(definition)
+            definition_hash = hashlib.sha256(definition_json.encode("utf-8")).hexdigest()
+            current = self.conn.execute(
+                "SELECT definition_version,definition_hash FROM data_catalog_field_versions "
+                "WHERE field_key=? AND is_current=1", (item["field_key"],),
+            ).fetchone()
+            if not current or current["definition_hash"] != definition_hash:
+                next_version = (current["definition_version"] + 1) if current else 1
+                if current:
+                    self.conn.execute(
+                        "UPDATE data_catalog_field_versions SET is_current=0,valid_to=CURRENT_TIMESTAMP "
+                        "WHERE field_key=? AND is_current=1", (item["field_key"],),
+                    )
+                self.conn.execute(
+                    """INSERT OR IGNORE INTO data_catalog_field_versions(
+                    field_key,definition_version,definition_hash,definition_json)
+                    VALUES(?,?,?,?)""",
+                    (item["field_key"], next_version, definition_hash, definition_json),
+                )
             self.conn.execute(
                 """INSERT INTO data_catalog_fields(field_key,display_name,category,storage_domain,statement,
                 period_behavior,value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement,schema_version)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,4) ON CONFLICT(field_key) DO UPDATE SET
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(field_key) DO UPDATE SET
                 display_name=excluded.display_name,category=excluded.category,storage_domain=excluded.storage_domain,
                 statement=excluded.statement,period_behavior=excluded.period_behavior,value_type=excluded.value_type,
                 default_unit=excluded.default_unit,aggregation=excluded.aggregation,pack_key=excluded.pack_key,
                 scope_type=excluded.scope_type,scope_value=excluded.scope_value,requirement=excluded.requirement,
-                schema_version=4,updated_at=CURRENT_TIMESTAMP""",
+                schema_version=excluded.schema_version,updated_at=CURRENT_TIMESTAMP""",
                 tuple(item[key] for key in ("field_key","display_name","category","storage_domain","statement",
                     "period_behavior","value_type","default_unit","aggregation","pack_key","scope_type",
-                    "scope_value","requirement")),
+                    "scope_value","requirement")) + (CATALOG_SCHEMA_VERSION,),
             )
             if item["storage_domain"] in {"data_points", "consensus_estimates"}:
                 self.register_metric(
@@ -464,6 +520,20 @@ class Database:
                     f"Reviewed {item['pack_key']} catalog field", schema_version=3, commit=False,
                 )
         self.conn.commit()
+
+    def _validate_fact_dimensions(self, metric: str, scope: str, dimensions: dict[str, str]) -> None:
+        if scope not in ALLOWED_SCOPES:
+            raise ValueError(f"unsupported fact scope: {scope}")
+        if not dimensions:
+            return
+        placeholders = ",".join("?" for _ in dimensions)
+        known = {row["dimension_key"] for row in self.conn.execute(
+            f"SELECT dimension_key FROM dimension_definitions WHERE enabled=1 AND dimension_key IN ({placeholders})",
+            tuple(dimensions),
+        )}
+        unknown = sorted(set(dimensions) - known)
+        if unknown:
+            raise ValueError(f"unregistered dimensions for {metric}: {', '.join(unknown)}")
 
     def _seed_calculation_definitions(self) -> None:
         # Market prices live in their own versioned store, but point-in-time
@@ -965,6 +1035,7 @@ class Database:
     def _publish_data_point(self, f: Fact) -> str:
         category = "calculated" if f.is_calculated else "financial"
         self.register_metric(f.metric, category=category, schema_version=f.metric_version, commit=False)
+        self._validate_fact_dimensions(f.metric, f.scope, f.dimensions)
         dimensions_json, dimensions_hash = _dimensions(f.dimensions)
         quarter = f.fiscal_quarter or 0
         where = """company_id=? AND metric_key=? AND period_end=? AND period_kind=? AND fiscal_year=?
@@ -1012,6 +1083,7 @@ class Database:
     def _publish_typed_data_point(self, f: TypedFact) -> str:
         self.register_metric(f.metric, category="general", value_type=f.value_type.value,
                              schema_version=f.metric_version, commit=False)
+        self._validate_fact_dimensions(f.metric, f.scope, f.dimensions)
         dimensions_json, dimensions_hash = _dimensions(f.dimensions)
         value_decimal, value_text, value_json = _typed_value(f.value, f.value_type)
         quarter = f.fiscal_quarter or 0
@@ -1264,6 +1336,8 @@ class Database:
             "running_jobs": "jobs WHERE status='running'", "dead_jobs": "jobs WHERE status='dead'",
             "active_schedules": "schedules WHERE enabled=1",
             "catalog_fields": "data_catalog_fields WHERE enabled=1",
+            "catalog_versions": "data_catalog_field_versions",
+            "dimensions": "dimension_definitions WHERE enabled=1",
             "completeness_rows": "company_completeness",
         }
         counts = {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] for key, table in tables.items()}

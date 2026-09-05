@@ -177,6 +177,19 @@ class CompanyDomainTests(unittest.TestCase):
         query=FinancialQueryService(self.path)
         completeness=query.completeness("SA","TST"); query.close()
         self.assertEqual(completeness["expected_fields"],result["expected"])
+        self.assertGreater(completeness["required_fields"], 0)
+        self.assertTrue(any(row["required_missing"] for row in completeness["categories"]))
+
+    def test_catalog_definitions_are_versioned_and_dimensions_are_queryable(self):
+        query = FinancialQueryService(self.path)
+        history = query.catalog_history("crude_oil_production")
+        dimensions = query.dimensions()
+        query.close()
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["definition"]["default_unit"], "mbbl/day")
+        self.assertTrue(history[0]["is_current"])
+        self.assertIn("segment", {item["dimension_key"] for item in dimensions})
+        self.assertGreaterEqual(len(dimensions), 30)
 
 
 if __name__ == "__main__":

@@ -395,18 +395,26 @@ class CompanyDomainStore:
         results=[]
         for category, rows in sorted(by_category.items()):
             expected={row["field_key"] for row in rows}; present={key for key in expected if key in available[rows[0]["storage_domain"]]}
+            required={row["field_key"] for row in rows if row["requirement"] == "required"}
+            present_required=required & present
+            missing_required=sorted(required-present)
             missing=sorted(expected-present); score=Decimal(len(present))/Decimal(len(expected)) if expected else Decimal(1)
             status="complete" if not missing else ("partial" if present else "missing")
             with self.db.conn:
                 self.db.conn.execute(
                     """INSERT INTO company_completeness(company_id,category,expected_fields,populated_fields,
-                    completeness_score,status,missing_fields_json) VALUES(?,?,?,?,?,?,?)
+                    required_fields,populated_required_fields,completeness_score,status,missing_fields_json,
+                    required_missing_json) VALUES(?,?,?,?,?,?,?,?,?,?)
                     ON CONFLICT(company_id,category) DO UPDATE SET expected_fields=excluded.expected_fields,
                     populated_fields=excluded.populated_fields,completeness_score=excluded.completeness_score,
-                    status=excluded.status,missing_fields_json=excluded.missing_fields_json,checked_at=CURRENT_TIMESTAMP""",
-                    (company_id,category,len(expected),len(present),str(score),status,_json(missing)))
+                    required_fields=excluded.required_fields,populated_required_fields=excluded.populated_required_fields,
+                    status=excluded.status,missing_fields_json=excluded.missing_fields_json,
+                    required_missing_json=excluded.required_missing_json,checked_at=CURRENT_TIMESTAMP""",
+                    (company_id,category,len(expected),len(present),len(required),len(present_required),
+                     str(score),status,_json(missing),_json(missing_required)))
             results.append({"category":category,"expected":len(expected),"populated":len(present),
-                            "score":str(score),"status":status,"missing":missing})
+                            "required":len(required),"populated_required":len(present_required),
+                            "required_missing":missing_required,"score":str(score),"status":status,"missing":missing})
         total_expected=sum(row["expected"] for row in results); total_populated=sum(row["populated"] for row in results)
         return {"company_id":company_id,"expected":total_expected,"populated":total_populated,
                 "score":str(Decimal(total_populated)/Decimal(total_expected) if total_expected else Decimal(1)),

@@ -39,6 +39,24 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     add("mapping_review", "pass" if review_mappings == 0 else "fail", review_mappings)
     catalog_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed'").fetchone()[0]
     add("commercial_catalog", "pass" if catalog_count >= 300 else "fail", catalog_count)
+    current_versions = conn.execute(
+        "SELECT count(*) FROM data_catalog_field_versions WHERE is_current=1"
+    ).fetchone()[0]
+    invalid_version_sets = conn.execute(
+        """SELECT count(*) FROM (SELECT field_key FROM data_catalog_field_versions
+        GROUP BY field_key HAVING sum(is_current)<>1)"""
+    ).fetchone()[0]
+    add("catalog_version_history", "pass" if current_versions == catalog_count and invalid_version_sets == 0 else "fail",
+        {"current_versions": current_versions, "catalog_fields": catalog_count,
+         "invalid_version_sets": invalid_version_sets})
+    dimension_keys = {row["dimension_key"] for row in conn.execute(
+        "SELECT dimension_key FROM dimension_definitions WHERE enabled=1"
+    )}
+    unknown_dimensions = set()
+    for row in conn.execute("SELECT dimensions_json FROM data_points WHERE dimensions_json<>'{}'"):
+        unknown_dimensions.update(set(json.loads(row["dimensions_json"])) - dimension_keys)
+    add("governed_dimensions", "pass" if dimension_keys and not unknown_dimensions else "fail",
+        {"registered": len(dimension_keys), "unknown": sorted(unknown_dimensions)})
     oil_gas_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND pack_key='oil_gas_v2'").fetchone()[0]
     add("oil_gas_sector_pack", "pass" if oil_gas_count >= 40 else "fail", oil_gas_count)
 

@@ -44,6 +44,19 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(states, ["inserted", "inserted"])
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM data_points").fetchone()[0], 2)
 
+    def test_dimensions_are_governed_by_the_master_schema(self):
+        source = self.source()
+        self.assertEqual(
+            self.db.publish(self.fact(source, "60", dimensions={"geography": "Saudi Arabia"})),
+            "inserted",
+        )
+        with self.assertRaisesRegex(ValueError, "unregistered dimensions"):
+            self.db.publish(self.fact(source, "40", dimensions={"random_axis": "x"}))
+        unsupported = self.fact(source, "40")
+        unsupported = Fact(**{**unsupported.__dict__, "scope": "free_form_scope"})
+        with self.assertRaisesRegex(ValueError, "unsupported fact scope"):
+            self.db.publish(unsupported)
+
     def test_snapshot_never_overwrites_quarter_with_ytd(self):
         source = self.source()
         self.db.publish_batch([
