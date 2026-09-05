@@ -25,6 +25,10 @@ class Calculator:
         "upstream_ebit", "downstream_ebit", "corporate_ebit",
         "upstream_depreciation_amortization", "downstream_depreciation_amortization",
         "corporate_depreciation_amortization",
+        "net_interest_income", "total_operating_income", "total_operating_expenses",
+        "credit_impairment_charge", "loans_and_advances", "customer_deposits",
+        "investments_securities", "due_from_banks", "gross_financing",
+        "non_performing_financing", "total_credit_allowances", "risk_weighted_assets",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -108,6 +112,14 @@ class Calculator:
                 ratio("ebit_margin", "ebit", "revenue")
                 ratio("ebitda_margin", "ebitda", "revenue")
                 ratio("interest_coverage", "ebit", "finance_costs", "ebit / abs(finance_costs)", True)
+                # Banking (fires only when the bank income lines are present)
+                if all(k in lookup for k in ("total_operating_expenses", "credit_impairment_charge",
+                                             "total_operating_income")) and lookup["total_operating_income"].value:
+                    opex_ex_impairment = (lookup["total_operating_expenses"].value
+                                          - lookup["credit_impairment_charge"].value)
+                    add("cost_to_income", abs(opex_ex_impairment) / lookup["total_operating_income"].value,
+                        "abs(total_operating_expenses - credit_impairment_charge) / total_operating_income",
+                        lookup["total_operating_income"])
                 shares = lookup.get("weighted_average_shares_diluted") or lookup.get("weighted_average_shares_basic")
                 if shares and shares.value:
                     for numerator, metric in (
@@ -149,6 +161,14 @@ class Calculator:
                         lookup["current_liabilities"])
                 ratio("inventory_to_assets", "inventory", "total_assets")
                 ratio("ppe_to_assets", "property_plant_equipment", "total_assets")
+                # Banking balance-sheet ratios (no-op unless the bank lines are present)
+                ratio("loan_to_deposit_ratio", "loans_and_advances", "customer_deposits")
+                ratio("casa_ratio", "casa_deposits", "customer_deposits")
+                ratio("npl_ratio", "non_performing_financing", "gross_financing")
+                ratio("npl_coverage", "total_credit_allowances", "non_performing_financing")
+                ratio("capital_adequacy_ratio", "total_regulatory_capital", "risk_weighted_assets")
+                ratio("cet1_ratio", "cet1_capital", "risk_weighted_assets")
+                ratio("tier1_ratio", "tier1_capital", "risk_weighted_assets")
                 debt = sum((lookup[key].value for key in ("current_debt", "long_term_debt") if key in lookup), Decimal(0))
                 if debt:
                     reference = lookup.get("current_debt") or lookup["long_term_debt"]
@@ -240,6 +260,26 @@ class Calculator:
                     if average_tangible and "net_income" in lookup:
                         add("return_on_tangible_equity", lookup["net_income"].value / average_tangible,
                             "net_income / average(total_equity - intangible_assets)", lookup["net_income"])
+                # Banking: margins on average earning assets / average financing
+                earning_keys = ("loans_and_advances", "investments_securities", "due_from_banks")
+                if "net_interest_income" in lookup and all(k in lookup for k in earning_keys) \
+                        and all(k in prior_instant for k in earning_keys):
+                    earning_now = sum(lookup[k].value for k in earning_keys)
+                    earning_prior = sum(prior_instant[k].value for k in earning_keys)
+                    average_earning = (earning_now + earning_prior) / 2
+                    if average_earning:
+                        add("net_interest_margin", lookup["net_interest_income"].value / average_earning,
+                            "net_interest_income / average(loans_and_advances + investments_securities + due_from_banks)",
+                            lookup["net_interest_income"])
+                if "credit_impairment_charge" in lookup and "loans_and_advances" in lookup \
+                        and "loans_and_advances" in prior_instant:
+                    average_financing = (lookup["loans_and_advances"].value
+                                         + prior_instant["loans_and_advances"].value) / 2
+                    if average_financing:
+                        add("cost_of_risk",
+                            abs(lookup["credit_impairment_charge"].value) / average_financing,
+                            "abs(credit_impairment_charge) / average(loans_and_advances)",
+                            lookup["credit_impairment_charge"])
                 if "accounts_receivable" in lookup and "accounts_receivable" in prior_instant and "revenue" in lookup:
                     average = (lookup["accounts_receivable"].value + prior_instant["accounts_receivable"].value) / 2
                     if average:

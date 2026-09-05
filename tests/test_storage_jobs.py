@@ -106,6 +106,64 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(len(scheduler.tick(due)), 0)
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
 
+    def _bank_fact(self, metric, value, kind, source):
+        return Fact(self.company.company_id, metric, Decimal(value), "SAR", "SAR",
+                    "2025-01-01" if kind == PeriodKind.FY else None, "2025-12-31", kind, 2025,
+                    None, source.source_key, source.source_url, source.filed_at, dimensions={})
+
+    def test_bank_ratios_are_computed_not_ingested(self):
+        source = self.source()
+        current_year = [
+            self._bank_fact("net_interest_income", "29845671000", PeriodKind.FY, source),
+            self._bank_fact("total_operating_income", "39093965000", PeriodKind.FY, source),
+            self._bank_fact("total_operating_expenses", "-11447469000", PeriodKind.FY, source),
+            self._bank_fact("credit_impairment_charge", "-2320481000", PeriodKind.FY, source),
+            self._bank_fact("loans_and_advances", "752759851000", PeriodKind.INSTANT, source),
+            self._bank_fact("customer_deposits", "667287500000", PeriodKind.INSTANT, source),
+            self._bank_fact("investments_securities", "174304596000", PeriodKind.INSTANT, source),
+            self._bank_fact("due_from_banks", "26940586000", PeriodKind.INSTANT, source),
+            self._bank_fact("non_performing_financing", "8000000000", PeriodKind.INSTANT, source),
+            self._bank_fact("gross_financing", "761000000000", PeriodKind.INSTANT, source),
+            self._bank_fact("total_credit_allowances", "16000000000", PeriodKind.INSTANT, source),
+            self._bank_fact("risk_weighted_assets", "600000000000", PeriodKind.INSTANT, source),
+            self._bank_fact("total_regulatory_capital", "120000000000", PeriodKind.INSTANT, source),
+        ]
+        prior = [
+            Fact(self.company.company_id, m, Decimal(v), "SAR", "SAR", None, "2024-12-31",
+                 PeriodKind.INSTANT, 2024, None, source.source_key, source.source_url,
+                 source.filed_at, dimensions={})
+            for m, v in (("loans_and_advances", "693409723000"),
+                         ("investments_securities", "175033587000"),
+                         ("due_from_banks", "19529727000"))
+        ]
+        out = {f.metric: f for f in Calculator().calculate(current_year, prior)}
+
+        self.assertAlmostEqual(float(out["cost_to_income"].value), 0.23346, places=4)
+        self.assertIn("total_operating_expenses - credit_impairment_charge", out["cost_to_income"].calculation)
+        self.assertAlmostEqual(float(out["loan_to_deposit_ratio"].value), 1.12809, places=4)
+        self.assertAlmostEqual(float(out["npl_ratio"].value), 8000000000 / 761000000000, places=6)
+        self.assertAlmostEqual(float(out["npl_coverage"].value), 16000000000 / 8000000000, places=6)
+        self.assertAlmostEqual(float(out["capital_adequacy_ratio"].value), 0.20, places=4)
+        self.assertIn("net_interest_margin", out)
+        self.assertIn("cost_of_risk", out)
+        for metric in ("cost_to_income", "loan_to_deposit_ratio", "npl_ratio",
+                       "capital_adequacy_ratio", "net_interest_margin"):
+            self.assertTrue(out[metric].is_calculated)
+            self.assertEqual(out[metric].unit, "ratio")
+
+    def test_bank_ratios_dormant_for_non_banks(self):
+        source = self.source()
+        facts = [
+            self.fact(source, "100000"),  # revenue
+            Fact(self.company.company_id, "net_income", Decimal("20000"), "SAR", "SAR",
+                 "2025-01-01", "2025-12-31", PeriodKind.FY, 2025, None, source.source_key,
+                 source.source_url, source.filed_at, dimensions={}),
+        ]
+        metrics = {f.metric for f in Calculator().calculate(facts)}
+        self.assertNotIn("cost_to_income", metrics)
+        self.assertNotIn("loan_to_deposit_ratio", metrics)
+        self.assertNotIn("npl_ratio", metrics)
+
     def test_ttm_uses_published_history(self):
         for index, (end, value) in enumerate((("2025-03-31", "10"), ("2025-06-30", "20"), ("2025-09-30", "30")), 1):
             source = self.source(f"source:{index}")

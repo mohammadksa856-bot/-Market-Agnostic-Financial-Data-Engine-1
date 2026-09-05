@@ -481,6 +481,7 @@ class Database:
             "growth": "calculated", "valuation": "calculated", "financial_notes": "financial",
             "commercial_pipeline": "commercial", "investor_analytics": "calculated", "consensus": "consensus",
             "banking_income": "financial", "banking_position": "financial",
+            "banking_ratios": "ratio",
         }
         for item in iter_catalog_fields():
             definition = {key: item[key] for key in (
@@ -673,6 +674,49 @@ class Database:
             "vwap": (
                 "latest_archived_daily_turnover / latest_archived_daily_volume",
                 "latest_trading_session", ("trading_turnover", "trading_volume"),
+            ),
+            # Banking ratios - computed from ingested bank lines, never taken from
+            # an issuer supplement. The issuer's own figure is a cross-check only.
+            "cost_to_income": (
+                "abs(total_operating_expenses - credit_impairment_charge) / total_operating_income",
+                "same_period", ("total_operating_expenses", "credit_impairment_charge", "total_operating_income"),
+            ),
+            "loan_to_deposit_ratio": (
+                "loans_and_advances / customer_deposits", "same_period",
+                ("loans_and_advances", "customer_deposits"),
+            ),
+            "casa_ratio": (
+                "casa_deposits / customer_deposits", "same_period",
+                ("casa_deposits", "customer_deposits"),
+            ),
+            "npl_ratio": (
+                "non_performing_financing / gross_financing", "same_period",
+                ("non_performing_financing", "gross_financing"),
+            ),
+            "npl_coverage": (
+                "total_credit_allowances / non_performing_financing", "same_period",
+                ("total_credit_allowances", "non_performing_financing"),
+            ),
+            "capital_adequacy_ratio": (
+                "total_regulatory_capital / risk_weighted_assets", "same_period",
+                ("total_regulatory_capital", "risk_weighted_assets"),
+            ),
+            "cet1_ratio": (
+                "cet1_capital / risk_weighted_assets", "same_period",
+                ("cet1_capital", "risk_weighted_assets"),
+            ),
+            "tier1_ratio": (
+                "tier1_capital / risk_weighted_assets", "same_period",
+                ("tier1_capital", "risk_weighted_assets"),
+            ),
+            "net_interest_margin": (
+                "net_interest_income / average(loans_and_advances + investments_securities + due_from_banks)",
+                "annual_average_balance",
+                ("net_interest_income", "loans_and_advances", "investments_securities", "due_from_banks"),
+            ),
+            "cost_of_risk": (
+                "abs(credit_impairment_charge) / average(loans_and_advances)",
+                "annual_average_balance", ("credit_impairment_charge", "loans_and_advances"),
             ),
         }
         growth_sources = {

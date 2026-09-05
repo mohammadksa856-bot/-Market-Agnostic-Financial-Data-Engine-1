@@ -123,6 +123,7 @@ DIMENSIONS_BY_CATEGORY = {
     # Banks report by business/product/geography segments like anyone else.
     "banking_income": ("segment", "geography", "product"),
     "banking_position": ("segment", "geography", "product"),
+    "banking_ratios": ("segment", "geography", "product"),
 }
 
 
@@ -299,7 +300,15 @@ GROUPS = (
     )),
     ("banking_position", "data_points", "balance_sheet", "instant", "currency", "last", "industry", "Banks", _keys(
         "cash_and_balances_with_central_bank due_from_banks investments_securities loans_and_advances "
-        "due_to_banks customer_deposits debt_securities_issued"
+        "gross_financing non_performing_financing total_credit_allowances "
+        "stage1_financing stage2_financing stage3_financing "
+        "due_to_banks customer_deposits casa_deposits time_deposits debt_securities_issued "
+        "risk_weighted_assets cet1_capital tier1_capital total_regulatory_capital"
+    )),
+    # Bank ratios the engine computes from the lines above - never ingested.
+    ("banking_ratios", "data_points", "ratios", "derived", "ratio", "none", "industry", "Banks", _keys(
+        "net_interest_margin cost_to_income cost_of_risk loan_to_deposit_ratio "
+        "npl_ratio npl_coverage capital_adequacy_ratio cet1_ratio tier1_ratio casa_ratio"
     )),
 )
 
