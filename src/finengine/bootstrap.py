@@ -27,8 +27,15 @@ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
         if len(matches) == 1:
             return matches[0]
     stem = path.stem.lower()
-    matches = [company for company in registry.all() if
-               company.symbol.lower() in stem or company.name.split()[0].lower() in stem]
+    matches = []
+    for company in registry.all():
+        name_tokens = {
+            token.strip("().,-_").lower()
+            for token in company.name.split()
+            if len(token.strip("().,-_")) >= 4
+        }
+        if company.symbol.lower() in stem or any(token in stem for token in name_tokens):
+            matches.append(company)
     if len(matches) == 1:
         return matches[0]
     # The Saudi manifest contract has a flat facts list. This fallback is safe only

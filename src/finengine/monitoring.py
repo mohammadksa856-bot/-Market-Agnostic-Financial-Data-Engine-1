@@ -83,30 +83,40 @@ class DocumentArchiver:
 
     def __init__(self, db: Database, raw_dir: str | Path, opener=urlopen,
                  max_bytes: int = 100 * 1024 * 1024,
-                 user_agent: str = "MarketAgnosticFinancialDataEngine/0.6"):
+                 user_agent: str = "MarketAgnosticFinancialDataEngine/0.6",
+                 content_fetcher=None):
         self.db = db
         self.raw_dir = Path(raw_dir)
         self.opener = opener
         self.max_bytes = max_bytes
         self.user_agent = user_agent
+        # Optional url -> bytes override, e.g. BrowserFetcher.download_bytes,
+        # for sites a plain urllib request can't pass bot protection on.
+        self.content_fetcher = content_fetcher
 
     def fetch(self, candidate_id: int) -> dict:
         candidate = self.db.get_source_candidate(candidate_id)
         if candidate["status"] == "fetched":
             return {"status": "duplicate", "candidate_id": candidate_id}
-        request = Request(candidate["source_url"], headers={"User-Agent": self.user_agent})
-        chunks = []
-        total = 0
-        with self.opener(request, timeout=60) as response:
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > self.max_bytes:
-                    raise ValueError(f"document exceeded {self.max_bytes} bytes")
-                chunks.append(chunk)
-        content = b"".join(chunks)
+        if self.content_fetcher is not None:
+            content = self.content_fetcher(candidate["source_url"])
+        else:
+            request = Request(candidate["source_url"], headers={"User-Agent": self.user_agent})
+            chunks = []
+            total = 0
+            with self.opener(request, timeout=60) as response:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > self.max_bytes:
+                        raise ValueError(f"document exceeded {self.max_bytes} bytes")
+                    chunks.append(chunk)
+            content = b"".join(chunks)
+        total = len(content)
+        if total > self.max_bytes:
+            raise ValueError(f"document exceeded {self.max_bytes} bytes")
         if not content:
             raise ValueError("downloaded document was empty")
         digest = hashlib.sha256(content).hexdigest()

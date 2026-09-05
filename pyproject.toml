@@ -8,6 +8,12 @@ version = "1.5.0"
 description = "Auditable SA/US financial filings pipeline"
 requires-python = ">=3.11"
 
+[project.optional-dependencies]
+reader = ["pymupdf>=1.24"]
+browser = ["playwright>=1.40"]
+llm = ["anthropic>=0.40", "pymupdf>=1.24"]
+agents = ["pymupdf>=1.24", "playwright>=1.40", "anthropic>=0.40"]
+
 [project.scripts]
 finengine = "finengine.cli:main"
 

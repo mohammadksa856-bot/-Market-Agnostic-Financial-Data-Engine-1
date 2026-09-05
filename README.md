@@ -17,7 +17,7 @@ The bundled portable snapshot is rebuilt from 37 reviewed manifests and currentl
 - Aramco currently populates 377 of 507 applicable catalog fields (74.4% raw coverage). A second evidence-aware score is 81.6%: it excludes 45 fields verified as non-disclosed, event-driven with no observed event, qualitative-only, or not applicable, leaving 85 genuine actionable gaps. The 23 archived Saudi Exchange sessions now support deterministic 20-day SMA, price/SMA, and latest-session VWAP; 30/50/200-day measures remain blocked until enough official history exists. Financial notes are 55/66; segment coverage is 18/23 and includes deterministic Upstream, Downstream, and Corporate EBITDA for 2024–2025; oil-and-gas operations are 31/46, investor analytics 15/30, market data 8/15, valuation 15/17, per-share 6/6, and liquidity/solvency 13/14.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. This prevents agents from treating structural non-disclosures as permission to infer values.
-- Schema version 12 and 43 unit/integration/release tests.
+- Schema version 12 and 57 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -176,6 +176,18 @@ After every exception for the source is resolved, replay the exact archived docu
 A source cannot be reopened while it still has open exceptions. This prevents a reviewer from accidentally bypassing the publication gate.
 
 ## Monitoring and ingestion
+
+Saudi issuer pages can now be discovered and fetched through headless Chromium when ordinary HTTP is blocked by a CDN. The downloaded document is content-addressed and archived before extraction:
+
+    finengine fetch SA 2222 https://issuer.example/investors --discover
+    finengine fetch SA 2222 https://issuer.example/report.pdf
+
+The deterministic statement reader converts an archived PDF to a source-faithful staging manifest. `verify` checks accounting identities and treats scope and dimensions as part of a fact's identity, so segment, geography, asset-class, and maturity-band values are not mistaken for restatements:
+
+    finengine read report.pdf SA 2222 --source-url https://issuer.example/report.pdf --filed-at 2026-03-01 --out report.json
+    finengine verify --imports data/imports
+
+Install `.[reader]` for PDF reading, `.[browser]` for browser fetching, or `.[agents]` for both plus the optional LLM fallback. The LLM reader runs only when explicitly enabled and its output must pass the same deterministic verification and publication gate.
 
 Poll official sources once:
 
