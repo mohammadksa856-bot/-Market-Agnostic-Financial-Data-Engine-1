@@ -314,6 +314,10 @@ DEFAULT_METRICS = {
     "net_refining_capacity": ("Net refining capacity", "operational", "capacity", "last", "mmbpd"),
     "net_chemicals_production_capacity": ("Net chemicals production capacity", "operational", "capacity", "last", "million_tonnes_per_year"),
     "supply_reliability": ("Supply reliability", "operational", "reliability", "average", "percent"),
+    "upstream_depreciation_amortization": ("Upstream depreciation and amortization", "operational", "segments", "sum", "currency"),
+    "downstream_depreciation_amortization": ("Downstream depreciation and amortization", "operational", "segments", "sum", "currency"),
+    "corporate_depreciation_amortization": ("Corporate depreciation and amortization", "operational", "segments", "sum", "currency"),
+    "corporate_ebitda": ("Corporate EBITDA", "operational", "segments", "sum", "currency"),
     "free_cash_flow": ("Free cash flow", "calculated", "cash_flow", "sum", "currency"),
     "net_margin": ("Net margin", "ratio", "ratios", "none", "ratio"),
     "liabilities_to_equity": ("Liabilities to equity", "ratio", "ratios", "none", "ratio"),
@@ -536,6 +540,18 @@ class Database:
                 "total_hydrocarbon_reserves * 1000 / (total_hydrocarbon_production * 365)",
                 "same_fiscal_year_reserves_and_average_daily_production",
                 ("total_hydrocarbon_reserves", "total_hydrocarbon_production"),
+            ),
+            "upstream_ebitda": (
+                "upstream_ebit + abs(upstream_depreciation_amortization)", "same_segment_period",
+                ("upstream_ebit", "upstream_depreciation_amortization"),
+            ),
+            "downstream_ebitda": (
+                "downstream_ebit + abs(downstream_depreciation_amortization)", "same_segment_period",
+                ("downstream_ebit", "downstream_depreciation_amortization"),
+            ),
+            "corporate_ebitda": (
+                "corporate_ebit + abs(corporate_depreciation_amortization)", "same_segment_period",
+                ("corporate_ebit", "corporate_depreciation_amortization"),
             ),
         }
         growth_sources = {
@@ -1039,15 +1055,14 @@ class Database:
         ) for row in rows]
 
     def calculation_history(self, company_id: str, metrics: set[str]) -> list[Fact]:
-        """Return current consolidated observations needed by deterministic formulas."""
+        """Return current observations needed by deterministic formulas, including dimensions."""
         if not metrics:
             return []
         placeholders = ",".join("?" for _ in metrics)
-        empty_dimensions = _dimensions({})[1]
         rows = self.conn.execute(
             f"""SELECT * FROM data_points WHERE company_id=? AND metric_key IN ({placeholders})
-            AND is_current=1 AND scope='consolidated' AND dimensions_hash=? ORDER BY period_end""",
-            (company_id, *sorted(metrics), empty_dimensions),
+            AND is_current=1 ORDER BY period_end""",
+            (company_id, *sorted(metrics)),
         ).fetchall()
         return [Fact(
             company_id=row["company_id"], metric=row["metric_key"], value=Decimal(row["value_decimal"]),

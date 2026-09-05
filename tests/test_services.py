@@ -230,6 +230,19 @@ class ServiceTests(unittest.TestCase):
         self.assertAlmostEqual(float(reserve_life["value"]), 52.5374504672, places=8)
         self.assertEqual(reserve_life["provenance"]["derivation"]["type"],
                          "deterministic_calculation")
+        segment_2025 = {
+            (row["metric"], row["dimensions"].get("segment")): row
+            for row in dossier["facts_by_category"]["operational"]
+            if row["period_end"] == "2025-12-31" and row["dimensions"].get("segment")
+        }
+        self.assertEqual(segment_2025[("upstream_ebitda", "Upstream")]["value"],
+                         "780775000000")
+        self.assertEqual(segment_2025[("downstream_ebitda", "Downstream")]["value"],
+                         "29508000000")
+        self.assertEqual(
+            segment_2025[("upstream_ebitda", "Upstream")]["provenance"]["derivation"]["type"],
+            "deterministic_calculation",
+        )
         oil_gas_backlog = next(row for row in backlog if row["domain"] == "oil_gas_operations")
         oil_gas_availability = {
             row["field_key"]: row["availability"]

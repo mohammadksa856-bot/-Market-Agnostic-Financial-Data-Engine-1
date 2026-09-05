@@ -22,6 +22,9 @@ class Calculator:
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
         "total_hydrocarbon_production", "total_hydrocarbon_reserves",
+        "upstream_ebit", "downstream_ebit", "corporate_ebit",
+        "upstream_depreciation_amortization", "downstream_depreciation_amortization",
+        "corporate_depreciation_amortization",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -269,6 +272,37 @@ class Calculator:
                     if source_metric in group and source_metric in prior and prior[source_metric].value:
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
                             f"{source_metric} / prior_fy({source_metric}) - 1", group[source_metric])
+
+        dimensioned = defaultdict(dict)
+        targets = set()
+        for fact in all_facts:
+            if fact.dimensions.get("segment"):
+                key = (fact.company_id, fact.period_end, fact.period_kind, fact.fiscal_year,
+                       fact.fiscal_quarter, fact.scope, tuple(sorted(fact.dimensions.items())))
+                dimensioned[key][fact.metric] = fact
+        for fact in facts:
+            if fact.dimensions.get("segment"):
+                targets.add((fact.company_id, fact.period_end, fact.period_kind, fact.fiscal_year,
+                             fact.fiscal_quarter, fact.scope, tuple(sorted(fact.dimensions.items()))))
+        for key in targets:
+            metrics = dimensioned[key]
+            segment = dict(key[-1])["segment"].lower()
+            ebit_key = f"{segment}_ebit"
+            depreciation_key = f"{segment}_depreciation_amortization"
+            if ebit_key not in metrics or depreciation_key not in metrics:
+                continue
+            ebit = metrics[ebit_key]
+            depreciation = metrics[depreciation_key]
+            source = max((ebit, depreciation), key=lambda item: (item.filed_at, item.source_key))
+            out.append(Fact(
+                source.company_id, f"{segment}_ebitda",
+                ebit.value + abs(depreciation.value), source.currency, source.unit,
+                source.period_start, source.period_end, source.period_kind, source.fiscal_year,
+                source.fiscal_quarter, source.source_key, source.source_url, source.filed_at,
+                is_calculated=True,
+                calculation=f"{ebit_key} + abs({depreciation_key})",
+                scope=source.scope, dimensions=source.dimensions,
+            ))
 
         target_periods = {fact.period_end for fact in facts if fact.period_kind == PeriodKind.QUARTER}
         return out + self._ttm([*all_facts, *out], target_periods)
