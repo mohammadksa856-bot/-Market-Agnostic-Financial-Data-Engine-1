@@ -247,6 +247,12 @@ def main():
     serve=sub.add_parser("serve"); serve.add_argument("--host",default="127.0.0.1"); serve.add_argument("--port",type=int,default=8000); serve.add_argument("--api-key-env",default="FINENGINE_API_KEY")
     run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id")
     telegram=sub.add_parser("telegram"); telegram.add_argument("--token-env",default="TELEGRAM_BOT_TOKEN"); telegram.add_argument("--poll",type=int,default=2)
+    export=sub.add_parser("export-supabase")
+    export.add_argument("market",nargs="?",choices=["SA","US"]); export.add_argument("symbol",nargs="?")
+    export.add_argument("--all",action="store_true"); export.add_argument("--registry",default="config/companies.json")
+    export.add_argument("--url-env",default="SUPABASE_URL"); export.add_argument("--key-env",default="SUPABASE_SERVICE_KEY")
+    export.add_argument("--batch",type=int,default=500); export.add_argument("--prune",action="store_true")
+    export.add_argument("--sql-out"); export.add_argument("--dry-run",action="store_true")
     a=p.parse_args(); Path(a.db).parent.mkdir(parents=True,exist_ok=True)
     if a.cmd=="init":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry)
@@ -388,6 +394,43 @@ def main():
         if not token: p.error(f"{a.token_env} is required")
         try: TelegramBot(a.db,token).serve(a.poll)
         except KeyboardInterrupt: return
+    if a.cmd=="export-supabase":
+        from . import __version__
+        from .export_supabase import SupabaseExporter, facts_to_sql
+        registry=CompanyRegistry.from_json(a.registry)
+        if a.all:
+            targets=[(c.market.value,c.symbol) for c in registry.all() if c.enabled]
+        elif a.market and a.symbol:
+            targets=[(a.market,a.symbol)]
+        else:
+            p.error("give MARKET SYMBOL, or --all")
+        if a.sql_out or a.dry_run:
+            from datetime import datetime, timezone
+            from .export_supabase import flatten_fact
+            service=FinancialQueryService(a.db); rows=[]
+            stamp=datetime.now(timezone.utc).isoformat()
+            try:
+                for market,symbol in targets:
+                    company=registry.resolve(market,symbol); offset=0
+                    while True:
+                        page=service.facts(market,symbol,limit=2000,offset=offset)
+                        rows.extend(flatten_fact(company,f,engine_version=__version__,synced_at=stamp) for f in page)
+                        if len(page)<2000: break
+                        offset+=2000
+            finally:
+                service.close()
+            if a.sql_out:
+                Path(a.sql_out).write_text(facts_to_sql(rows),encoding="utf-8")
+                print(json.dumps({"sql_out":a.sql_out,"facts":len(rows),"companies":len(targets)},indent=2))
+            else:
+                print(json.dumps({"dry_run":True,"facts":len(rows),"companies":len(targets),"sample":rows[:3]},ensure_ascii=False,indent=2,default=str))
+            return
+        url=os.environ.get(a.url_env,"").strip(); key=os.environ.get(a.key_env,"").strip()
+        if not url: p.error(f"{a.url_env} is required (or use --sql-out)")
+        if not key: p.error(f"{a.key_env} is required (or use --sql-out)")
+        exporter=SupabaseExporter(a.db,url,key,engine_version=__version__)
+        results=[exporter.export(m,s,registry,prune=a.prune,batch=a.batch) for m,s in targets]
+        print(json.dumps({"exported":results,"total_facts":sum(r["facts"] for r in results)},indent=2)); return
     if a.cmd=="exceptions":
         if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
         q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return

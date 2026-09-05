@@ -264,6 +264,32 @@ To add the read-only Telegram adapter after setting `TELEGRAM_BOT_TOKEN`:
 
 Saudi schedules created by `bootstrap` enable the browser monitor automatically. US schedules use SEC EDGAR and require a real `SEC_USER_AGENT`. Keep `.env` and `.secrets` local; both are excluded from Git and Docker build contexts.
 
+## Publishing to the application (Supabase)
+
+`export-supabase` is the one-way bridge from the engine's production store to the
+consumer application (website + Telegram bot). It upserts the engine's *current*
+facts - the same rows `finengine facts` returns - into one flat, queryable
+`financial_facts` table, carrying every provenance column: official source URL,
+archived SHA-256, the raw extracted label and value, mapping confidence, and, for
+derived rows, the deterministic formula. It is additive and never touches the
+application's own tables.
+
+    export SUPABASE_URL=https://<project-ref>.supabase.co
+    export SUPABASE_SERVICE_KEY=<service-role key>          # write path; never commit it
+
+    finengine export-supabase SA 2222                       # one company
+    finengine export-supabase --all --prune                 # every enabled company
+    finengine export-supabase SA 2010 --dry-run             # print the rows, send nothing
+    finengine export-supabase --all --sql-out facts.sql     # emit an idempotent script to review first
+
+`--prune` deletes rows for a company that the current export no longer produces
+(a restated or withdrawn fact), keyed on this run's sync timestamp. Without a
+service-role key locally, use `--sql-out` and apply the reviewed script through
+the Supabase SQL editor or a migration. The write uses the service-role key,
+which bypasses row-level security; the table's read policy exposes it to the
+anon key. No third-party package is required - the engine talks to PostgREST
+over stdlib HTTP.
+
 ## Production boundaries
 
 - Confirm that source terms permit the intended collection, storage, and redistribution.
