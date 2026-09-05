@@ -176,6 +176,10 @@ class ServiceTests(unittest.TestCase):
         ecl = next(row for row in financial_2025 if row["metric"] == "expected_credit_losses")
         self.assertEqual(ecl["value"], "246000000")
         self.assertEqual(ecl["provenance"]["extraction"]["page"], 51)
+        lease_interest = next(row for row in financial_2025
+                              if row["metric"] == "lease_interest_expense")
+        self.assertEqual(lease_interest["value"], "3309000000")
+        self.assertEqual(lease_interest["provenance"]["extraction"]["page"], 54)
         goodwill = next(row for row in financial_2025
                         if row["metric"] == "goodwill_by_cash_generating_unit")
         self.assertEqual(goodwill["value"], "99116000000")
@@ -204,6 +208,7 @@ class ServiceTests(unittest.TestCase):
             for row in financial_notes_backlog["payload"]["field_assessments"]
         }
         self.assertEqual(note_availability["contingencies"], "qualitative_disclosure_only")
+        self.assertNotIn("lease_interest_expense", note_availability)
         commercial_backlog = next(row for row in backlog
                                   if row["domain"] == "commercial_pipeline")
         availability = {row["field_key"]: row["availability"]
