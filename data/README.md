@@ -2,8 +2,8 @@
 
 `financial.sqlite3` is the reproducible v1.5 snapshot used by the read-only query service,
 API, and Telegram adapter. It is built from 30 reviewed manifests and currently contains
-1,170 current facts across Saudi Aramco, Apple, Microsoft, and NVIDIA. Aramco contributes 944
-current facts (1,034 total versions), 23 official daily price rows, and 15 point-in-time valuation metrics. The seed
+1,184 current facts across Saudi Aramco, Apple, Microsoft, and NVIDIA. Aramco contributes 958
+current facts (1,048 total versions), 23 official daily price rows, and 15 point-in-time valuation metrics. The seed
 covers annual 2019-2025 facts plus Q1/H1 2026; US samples demonstrate the same canonical schema
 with SEC EDGAR/XBRL provenance.
 

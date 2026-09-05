@@ -190,6 +190,12 @@ class ServiceTests(unittest.TestCase):
         accounts_payable = next(row for row in financial_2025 if row["metric"] == "accounts_payable")
         self.assertEqual(accounts_payable["value"], "79054000000")
         self.assertEqual(accounts_payable["provenance"]["extraction"]["page"], 66)
+        reserve_components = [row for row in financial_2025
+                              if row["metric"] == "other_reserve_components"]
+        self.assertEqual(len(reserve_components), 7)
+        self.assertEqual(sum(int(row["value"]) for row in reserve_components), 1472000000)
+        self.assertTrue(all(row["provenance"]["extraction"]["page"] == 214
+                            for row in reserve_components))
         geography = [row for row in financial_2025 if row["metric"] == "revenue_by_geography"]
         self.assertEqual(sum(int(row["value"]) for row in geography), 1559342000000)
         service_cost = [row for row in financial_2025

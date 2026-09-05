@@ -318,6 +318,7 @@ DEFAULT_METRICS = {
     "downstream_depreciation_amortization": ("Downstream depreciation and amortization", "operational", "segments", "sum", "currency"),
     "corporate_depreciation_amortization": ("Corporate depreciation and amortization", "operational", "segments", "sum", "currency"),
     "corporate_ebitda": ("Corporate EBITDA", "operational", "segments", "sum", "currency"),
+    "other_reserve_components": ("Other reserve components", "financial", "balance_sheet", "none", "currency"),
     "free_cash_flow": ("Free cash flow", "calculated", "cash_flow", "sum", "currency"),
     "net_margin": ("Net margin", "ratio", "ratios", "none", "ratio"),
     "liabilities_to_equity": ("Liabilities to equity", "ratio", "ratios", "none", "ratio"),
