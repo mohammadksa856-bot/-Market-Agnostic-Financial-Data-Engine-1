@@ -21,6 +21,7 @@ class Calculator:
         "adjusted_net_income", "dividends_paid",
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
+        "total_hydrocarbon_production", "total_hydrocarbon_reserves",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -201,6 +202,16 @@ class Calculator:
                             lookup["total_equity"].currency)
 
             if base.period_kind == PeriodKind.FY:
+                if ("total_hydrocarbon_reserves" in lookup and
+                        "total_hydrocarbon_production" in lookup and
+                        lookup["total_hydrocarbon_production"].value):
+                    add(
+                        "reserve_life_index",
+                        lookup["total_hydrocarbon_reserves"].value * Decimal(1000) /
+                        (lookup["total_hydrocarbon_production"].value * Decimal(365)),
+                        "total_hydrocarbon_reserves * 1000 / (total_hydrocarbon_production * 365)",
+                        lookup["total_hydrocarbon_production"], unit="years", currency="",
+                    )
                 prior_instant = historical.get((company_id, base.fiscal_year - 1, PeriodKind.INSTANT), {})
                 if "total_assets" in lookup and "total_assets" in prior_instant:
                     average = (lookup["total_assets"].value + prior_instant["total_assets"].value) / 2

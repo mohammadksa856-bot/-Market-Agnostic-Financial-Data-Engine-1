@@ -567,6 +567,14 @@ class CompanyDomainStore:
                     for field in evidence["metadata"].get("related_metric_keys", [])
                 }
                 field_assessments = []
+                oil_gas_not_disclosed = {
+                    "average_realized_gas_price", "average_realized_refined_product_price",
+                    "chemicals_production", "chemicals_sales", "condensate_production",
+                    "crude_oil_production", "finding_development_cost_per_boe", "lifting_volume",
+                    "natural_gas_liquids_production", "natural_gas_sales", "production_entitlement",
+                    "refinery_throughput", "refinery_utilization", "reserve_replacement_ratio",
+                    "spare_capacity",
+                }
                 for field in row["missing"]:
                     if row["category"] == "consensus":
                         availability = "licensed_source_required"
@@ -585,6 +593,8 @@ class CompanyDomainStore:
                         availability = "calculation_requires_sufficient_market_history"
                     elif row["category"] in {"growth", "profitability", "efficiency", "liquidity_solvency", "valuation"}:
                         availability = "calculation_requires_missing_dependencies"
+                    elif row["category"] in {"operational", "oil_gas_operations"} and field in oil_gas_not_disclosed:
+                        availability = "not_disclosed_in_archived_annual_report"
                     else:
                         availability = "pending_official_source_extraction"
                     field_assessments.append({"field_key": field, "availability": availability})

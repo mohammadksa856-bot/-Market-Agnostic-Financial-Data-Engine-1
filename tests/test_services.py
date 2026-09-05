@@ -202,6 +202,23 @@ class ServiceTests(unittest.TestCase):
                          "qualitative_disclosure_only")
         self.assertEqual(availability["sales_order_backlog"],
                          "not_disclosed_in_archived_filings")
+        operations = {row["metric"]: row for row in dossier["facts_by_category"]["operational"]
+                      if row["period_end"] == "2025-12-31" and not row["dimensions"]}
+        self.assertEqual(operations["total_liquids_production"]["value"], "10.678")
+        self.assertEqual(operations["total_gas_production"]["value"], "11.365")
+        self.assertEqual(operations["total_hydrocarbon_production"]["value"], "12.891")
+        reserve_life = operations["reserve_life_index"]
+        self.assertAlmostEqual(float(reserve_life["value"]), 52.5374504672, places=8)
+        self.assertEqual(reserve_life["provenance"]["derivation"]["type"],
+                         "deterministic_calculation")
+        oil_gas_backlog = next(row for row in backlog if row["domain"] == "oil_gas_operations")
+        oil_gas_availability = {
+            row["field_key"]: row["availability"]
+            for row in oil_gas_backlog["payload"]["field_assessments"]
+        }
+        self.assertEqual(oil_gas_availability["spare_capacity"],
+                         "not_disclosed_in_archived_annual_report")
+        self.assertNotIn("reserve_life_index", oil_gas_availability)
         valuation={row["metric"]:row for row in dossier["facts_by_category"]["calculated"]
                    if row["period_end"]=="2026-09-03"}
         self.assertIn("price_to_earnings",valuation)

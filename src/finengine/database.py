@@ -532,6 +532,11 @@ class Database:
             "net_current_asset_value": ("current_assets - total_liabilities", "same_period", ("current_assets", "total_liabilities")),
             "graham_net_net": ("cash + 0.75 * accounts_receivable + 0.5 * inventory - total_liabilities", "same_period", ("cash", "accounts_receivable", "inventory", "total_liabilities")),
             "return_on_tangible_equity": ("net_income / average(total_equity - intangible_assets)", "annual_average_balance", ("net_income", "total_equity", "intangible_assets")),
+            "reserve_life_index": (
+                "total_hydrocarbon_reserves * 1000 / (total_hydrocarbon_production * 365)",
+                "same_fiscal_year_reserves_and_average_daily_production",
+                ("total_hydrocarbon_reserves", "total_hydrocarbon_production"),
+            ),
         }
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",
