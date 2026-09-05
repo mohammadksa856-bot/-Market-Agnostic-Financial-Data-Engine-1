@@ -178,20 +178,25 @@ def rebuild_snapshot(
         market_valuations = [domain_store.refresh_market_valuations(company.company_id)
                              for company in registry.all()]
         domain_store.refresh_all_backlog()
+        scheduled_count = 0
         if schedule_every is not None:
             scheduler=DurableScheduler(db)
             for company in registry.all():
+                if not company.enabled:
+                    continue
                 payload={
                     "market":company.market.value,"symbol":company.symbol,
                     "registry":str(registry_path),"raw_dir":str(raw_dir),
                     "source_index":company.sources[0] if company.sources else None,
                     "source_limit":12,"sa_manifest":None,
+                    "browser":company.market.value == "SA","llm":False,
                 }
                 scheduler.upsert(
                     f"monitor:{company.market.value}:{company.symbol}",
                     f"Monitor {company.market.value}:{company.symbol}","monitor",
                     schedule_every,payload,company.company_id,
                 )
+                scheduled_count += 1
         health = db.health()
         integrity = db.conn.execute("PRAGMA integrity_check").fetchone()[0]
         if integrity != "ok":
@@ -214,5 +219,5 @@ def rebuild_snapshot(
         "manifests": len(results), "results": results, "health": health,
         "archived_artifacts": archived_artifacts,
         "market_valuations": market_valuations,
-        "scheduled": len(registry.all()) if schedule_every is not None else 0,
+        "scheduled": scheduled_count,
     }

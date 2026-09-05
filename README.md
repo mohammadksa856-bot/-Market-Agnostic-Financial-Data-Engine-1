@@ -243,6 +243,22 @@ Coverage gaps close automatically when validated facts arrive. Domain tasks clos
 
 GitHub Actions runs the same test suite on every push and pull request.
 
+## Production deployment
+
+The repository includes a production container with Chromium, the deterministic PDF reader, optional LLM reader support, a health check, persistent data storage, and automatic restart. Copy the environment template and replace the placeholder SEC identity before starting:
+
+    copy .env.example .env
+    docker compose up -d --build engine
+    docker compose ps
+
+The API listens only on `127.0.0.1:8000` by default. The `data` directory is mounted from the host, so the SQLite database, raw archive, job leases, monitoring cursors, schedules, and exceptions survive container replacement.
+
+To add the read-only Telegram adapter after setting `TELEGRAM_BOT_TOKEN`:
+
+    docker compose --profile telegram up -d
+
+Saudi schedules created by `bootstrap` enable the browser monitor automatically. US schedules use SEC EDGAR and require a real `SEC_USER_AGENT`. Keep `.env` and `.secrets` local; both are excluded from Git and Docker build contexts.
+
 ## Production boundaries
 
 - Confirm that source terms permit the intended collection, storage, and redistribution.

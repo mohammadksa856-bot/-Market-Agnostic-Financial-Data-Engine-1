@@ -128,7 +128,8 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
     csv_target = Path(csv_path)
     csv_target.parent.mkdir(parents=True, exist_ok=True)
     with csv_target.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.writer(stream)
+        # Keep generated exports identical across Windows and Linux runners.
+        writer = csv.writer(stream, lineterminator="\n")
         writer.writerow(["الشركة", "السوق", "الرمز", "السنة", "الربع", "نهاية الفترة", "نوع الفترة", "التصنيف", "المقياس", "النطاق", "الأبعاد", "القيمة", "العملة", "الوحدة", "رابط المصدر", "صفحة المصدر", "الجدول", "الملف المؤرشف", "SHA-256", "طريقة الاشتقاق"])
         for row in rows:
             writer.writerow([row["name"], row["market"], row["symbol"], row["fiscal_year"], row["fiscal_quarter"] or "", row["period_end"], row["period_kind"], row["category"], AR_METRICS.get(row["metric"], row["metric"]), row["scope"], row["dimensions_json"], row["value"], row["currency"], row["unit"], row["source_url"], row["source_page"] or "", row["source_table"] or "", row["archived_path"] or "", row["artifact_sha256"] or "", row["calculation"] or ""])
@@ -183,4 +184,5 @@ def export_readable_report(db_path: str, html_path: str, csv_path: str) -> None:
     page = page.replace('</style>', 'td.wrap{white-space:normal;min-width:360px}</style>')
     html_target = Path(html_path)
     html_target.parent.mkdir(parents=True, exist_ok=True)
-    html_target.write_text(page, encoding="utf-8")
+    with html_target.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(page + "\n")

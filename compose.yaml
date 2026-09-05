@@ -1,0 +1,33 @@
+services:
+  engine:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SEC_USER_AGENT: ${SEC_USER_AGENT:?Set SEC_USER_AGENT in .env}
+      FINENGINE_API_KEY: ${FINENGINE_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/app/data
+    init: true
+
+  telegram:
+    build: .
+    profiles: ["telegram"]
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    command: ["finengine", "--db", "/app/data/financial.sqlite3", "telegram"]
+    volumes:
+      - ./data:/app/data:ro
+    depends_on:
+      engine:
+        condition: service_healthy
+    init: true
