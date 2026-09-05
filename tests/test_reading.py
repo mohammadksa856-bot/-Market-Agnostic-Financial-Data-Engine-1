@@ -86,6 +86,113 @@ def _two_panel_balance_sheet_pdf(path: Path) -> None:
     doc.close()
 
 
+def _bank_pdf(path: Path) -> None:
+    """A Saudi bank's two primary statements: special-commission (interest)
+    income, fee income, no current/non-current split on the balance sheet."""
+    doc = pymupdf.open()
+
+    def statement(title, rows):
+        page = doc.new_page(width=595, height=842)
+        page.insert_text((60, 60), title, fontsize=13)
+        page.insert_text((360, 92), "2025", fontsize=9)
+        page.insert_text((460, 92), "2024", fontsize=9)
+        page.insert_text((360, 104), "SAR '000", fontsize=8)
+        for i, (label, cur, prior) in enumerate(rows):
+            y = 140 + i * 20
+            page.insert_text((60, y), label, fontsize=9)
+            page.insert_text((360, y), cur, fontsize=9)
+            page.insert_text((460, y), prior, fontsize=9)
+
+    statement("Consolidated Statement of Income", [
+        ("Special commission income", "30,000,000", "27,000,000"),
+        ("Special commission expense", "(12,000,000)", "(10,000,000)"),
+        ("Net special commission income", "18,000,000", "17,000,000"),
+        ("Fee and commission income", "5,000,000", "4,600,000"),
+        ("Fee and commission expense", "(1,200,000)", "(1,100,000)"),
+        ("Net fee and commission income", "3,800,000", "3,500,000"),
+        ("Exchange income", "900,000", "850,000"),
+        ("Total operating income", "22,700,000", "21,350,000"),
+        ("Impairment charge for expected credit losses", "(2,100,000)", "(2,400,000)"),
+        ("Salaries and employee-related expenses", "(4,300,000)", "(4,100,000)"),
+        ("Total operating expenses", "(9,500,000)", "(9,600,000)"),
+        ("Income before zakat and income tax", "13,200,000", "11,750,000"),
+        ("Zakat and income tax", "(1,500,000)", "(1,300,000)"),
+        ("Net income for the year", "11,700,000", "10,450,000"),
+    ])
+    statement("Consolidated Statement of Financial Position", [
+        ("Cash and balances with SAMA", "40,000,000", "38,000,000"),
+        ("Due from banks and other financial institutions", "15,000,000", "12,000,000"),
+        ("Investments, net", "90,000,000", "82,000,000"),
+        ("Loans and advances, net", "300,000,000", "280,000,000"),
+        ("Total assets", "445,000,000", "412,000,000"),
+        ("Due to banks and other financial institutions", "20,000,000", "18,000,000"),
+        ("Customers' deposits", "330,000,000", "305,000,000"),
+        ("Total liabilities", "380,000,000", "352,000,000"),
+        ("Share capital", "40,000,000", "40,000,000"),
+        ("Statutory reserve", "15,000,000", "13,000,000"),
+        ("Retained earnings", "10,000,000", "7,000,000"),
+        ("Total shareholders' equity", "65,000,000", "60,000,000"),
+        ("Total liabilities and equity", "445,000,000", "412,000,000"),
+    ])
+    doc.save(path)
+    doc.close()
+
+
+@unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
+class BankStatementTests(unittest.TestCase):
+    def _read(self, directory: Path):
+        from finengine.reading import StatementReader
+
+        pdf = directory / "bank-2025.pdf"
+        _bank_pdf(pdf)
+        return StatementReader(pdf).read(
+            market="SA", symbol="1120", currency="SAR",
+            source_url="https://bank.example/fs-2025.pdf", filed_at="2026-02-20",
+            period_end="2025-12-31", fiscal_year=2025, profile="bank")
+
+    def test_reads_bank_specific_lines(self):
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self._read(Path(name))
+            metrics = {f["metric"]: f["value"] for f in manifest["facts"]}
+            self.assertEqual(manifest["profile"], "bank")
+            self.assertEqual(metrics["net_interest_income"], "18000000")
+            self.assertEqual(metrics["net_fee_and_commission_income"], "3800000")
+            self.assertEqual(metrics["total_operating_income"], "22700000")
+            self.assertEqual(metrics["credit_impairment_charge"], "-2100000")
+            self.assertEqual(metrics["customer_deposits"], "330000000")
+            self.assertEqual(metrics["loans_and_advances"], "300000000")
+            self.assertEqual(metrics["total_assets"], "445000000")
+            self.assertEqual(metrics["net_income"], "11700000")
+
+    def test_bank_manifest_passes_verify(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            manifest = self._read(directory)
+            imports = directory / "imports"
+            imports.mkdir()
+            (imports / "alrajhi-2025-fy.json").write_text(json.dumps(manifest), encoding="utf-8")
+            report = ManifestVerifier(imports).verify()
+            self.assertTrue(report["ok"], report["detail"])
+            passed = {c["check"] for c in report["detail"] if c["status"] == "pass"}
+            self.assertIn("balance_sheet: assets = liabilities + equity", passed)
+            self.assertIn("banking: net special commission income = income - expense", passed)
+            self.assertIn("banking: net fee and commission income = income - expense", passed)
+
+    def test_corporate_profile_ignores_bank_lines(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "bank-2025.pdf"
+            _bank_pdf(pdf)
+            manifest = StatementReader(pdf).read(
+                market="SA", symbol="1120", currency="SAR",
+                source_url="https://bank.example/x.pdf", filed_at="2026-02-20",
+                period_end="2025-12-31", fiscal_year=2025)  # default corporate
+            metrics = {f["metric"] for f in manifest["facts"]}
+            self.assertNotIn("net_interest_income", metrics)
+            self.assertNotIn("customer_deposits", metrics)
+
+
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class TwoPanelStatementTests(unittest.TestCase):
     def test_left_and_right_panels_do_not_cross_contaminate(self):

@@ -480,6 +480,7 @@ class Database:
             "profitability": "ratio", "liquidity_solvency": "ratio", "efficiency": "ratio",
             "growth": "calculated", "valuation": "calculated", "financial_notes": "financial",
             "commercial_pipeline": "commercial", "investor_analytics": "calculated", "consensus": "consensus",
+            "banking_income": "financial", "banking_position": "financial",
         }
         for item in iter_catalog_fields():
             definition = {key: item[key] for key in (

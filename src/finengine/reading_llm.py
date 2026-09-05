@@ -106,7 +106,10 @@ def _detect_scale(pages: list[tuple[int, str]]) -> str:
 def llm_read(pdf_path: str | Path, *, market: str, symbol: str, currency: str,
              source_url: str, filed_at: str, period_end: str | None = None,
              fiscal_year: int | None = None, filing_type: str = "financial-statements",
-             model: str = DEFAULT_MODEL, client=None) -> dict:
+             model: str = DEFAULT_MODEL, client=None, profile: str = "corporate") -> dict:
+    # profile is accepted for call-site symmetry with the deterministic reader.
+    # The vocabulary already spans every catalog field (banking pack included),
+    # so no per-profile narrowing is needed here.
     pdf_path = Path(pdf_path)
     pages = _statement_pages(pdf_path)
     if not pages:
@@ -184,7 +187,7 @@ def llm_read(pdf_path: str | Path, *, market: str, symbol: str, currency: str,
 
     return {
         "filing_type": filing_type, "filed_at": filed_at, "period_end": period_end,
-        "source_url": source_url, "reader": f"finengine.reading_llm/{model}",
+        "source_url": source_url, "reader": f"finengine.reading_llm/{model}", "profile": profile,
         "model_usage": {"input_tokens": response.usage.input_tokens,
                         "output_tokens": response.usage.output_tokens},
         "facts": sorted(facts, key=lambda f: (f.get("page", 0), f["metric"])),

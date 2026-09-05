@@ -228,7 +228,9 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 - `metric_applicability` and `coverage_status`: company/market/industry metric packs and gaps.
 - `exceptions`, `backlog_items`, `jobs`, `job_attempts`, `workers`, and `schedules`: durable operations.
 
-The row-based model can hold hundreds of target fields and thousands of period, segment, product, geography, counterparty, debt-instrument, asset-class, fair-value-level, and versioned facts per company without adding a database column for every metric. `company_core_v4` applies to every company; `oil_gas_v2` adds sector-specific segments, production, reserves, capacity, realized prices, costs, reliability, and environmental intensity measures.
+The row-based model can hold hundreds of target fields and thousands of period, segment, product, geography, counterparty, debt-instrument, asset-class, fair-value-level, and versioned facts per company without adding a database column for every metric. `company_core_v4` applies to every company; `oil_gas_v2` adds sector-specific segments, production, reserves, capacity, realized prices, costs, reliability, and environmental intensity measures; `banking_v1` adds special-commission (interest) and fee income, credit-impairment charges, and the loans/deposits/interbank balance-sheet lines banks report instead of a current/non-current split.
+
+The reader picks a statement-layout map per issuer from its registry `industry`: banks (`industry: "Banks"`) use the banking map, everything else the corporate map. Override with `finengine read ... --profile bank`. `verify` runs the banking identities (`net special commission income = income - expense`, fee income the same) only when those lines are present, so a corporate manifest is unaffected.
 
 ## Backlog versus production data
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 6
+CATALOG_SCHEMA_VERSION = 7
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -120,6 +120,9 @@ DIMENSIONS_BY_CATEGORY = {
     "consensus": (),
     # Notes legitimately use heterogeneous axes; the vocabulary is still governed.
     "financial_notes": tuple(DIMENSION_DEFINITIONS),
+    # Banks report by business/product/geography segments like anyone else.
+    "banking_income": ("segment", "geography", "product"),
+    "banking_position": ("segment", "geography", "product"),
 }
 
 
@@ -135,6 +138,12 @@ def _unit_family(unit: str) -> str:
     if unit in {"shares", "people", "count"}:
         return "count"
     return "physical_or_scalar"
+
+
+_INDUSTRY_PACKS = {
+    "Integrated Oil & Gas": "oil_gas_v2",
+    "Banks": "banking_v1",
+}
 
 
 def _keys(value: str) -> list[str]:
@@ -280,6 +289,18 @@ GROUPS = (
         "scope_1_emissions scope_2_emissions methane_intensity flaring_intensity water_withdrawal water_consumption energy_intensity "
         "hydrocarbon_discharge_to_water sox_emissions industrial_waste_disposed"
     )),
+    # Banking sector pack. Saudi banks report special-commission (interest) income
+    # and fee income, not "revenue"; the balance sheet has no current/non-current
+    # split. interest_income / interest_expense are shared with the income pack.
+    ("banking_income", "data_points", "income_statement", "flow", "currency", "sum", "industry", "Banks", _keys(
+        "net_interest_income fee_and_commission_income fee_and_commission_expense net_fee_and_commission_income "
+        "exchange_income trading_income dividend_income total_operating_income "
+        "credit_impairment_charge salaries_and_employee_expenses total_operating_expenses"
+    )),
+    ("banking_position", "data_points", "balance_sheet", "instant", "currency", "last", "industry", "Banks", _keys(
+        "cash_and_balances_with_central_bank due_from_banks investments_securities loans_and_advances "
+        "due_to_banks customer_deposits debt_securities_issued"
+    )),
 )
 
 
@@ -303,7 +324,8 @@ def iter_catalog_fields():
                 "scope_type": scope_type,
                 "scope_value": scope_value,
                 "requirement": "required" if key in CORE_REQUIRED_FIELDS else "recommended",
-                "pack_key": "oil_gas_v2" if scope_type == "industry" else "company_core_v4",
+                "pack_key": _INDUSTRY_PACKS.get(scope_value, "company_core_v4")
+                if scope_type == "industry" else "company_core_v4",
             }
             item.update(FIELD_OVERRIDES.get(key, {}))
             item["allowed_period_kinds"] = PERIOD_KINDS_BY_BEHAVIOR[item["period_behavior"]]

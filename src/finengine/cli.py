@@ -118,6 +118,14 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
     return handle
 
 
+def _company_profile(company) -> str:
+    """Which statement-layout map the reader should use for this issuer."""
+    industry = (getattr(company, "industry", "") or "").lower()
+    if "bank" in industry:
+        return "bank"
+    return "corporate"
+
+
 def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tuple[dict, dict, str]:
     """Read deterministically; use the LLM only when explicitly enabled."""
     import tempfile
@@ -136,6 +144,7 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
         "source_url": row["source_url"],
         "filed_at": row["filed_at"],
         "filing_type": row["filing_type"],
+        "profile": _company_profile(company),
     }
     manifest = StatementReader(pdf_path).read(**kwargs)
     report = verify(manifest)
@@ -221,7 +230,7 @@ def main():
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
-    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5")
+    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank"])
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
@@ -282,7 +291,8 @@ def main():
         company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
         kwargs={"market":a.market,"symbol":a.symbol,"currency":company.currency,
                 "source_url":a.source_url,"filed_at":a.filed_at,"period_end":a.period_end,
-                "fiscal_year":a.fiscal_year,"filing_type":a.filing_type}
+                "fiscal_year":a.fiscal_year,"filing_type":a.filing_type,
+                "profile":a.profile or _company_profile(company)}
         def verify_manifest(manifest):
             with tempfile.TemporaryDirectory() as directory:
                 Path(directory,"manifest.json").write_text(json.dumps(manifest),encoding="utf-8")

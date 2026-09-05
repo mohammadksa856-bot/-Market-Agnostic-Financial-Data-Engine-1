@@ -136,6 +136,90 @@ LINE_MAP = {
     "net foreign exchange gain (loss) on cash and cash equivalents": ("foreign_exchange_effect", "fy"),
 }
 
+# Banking sector map. Saudi banks report "special commission income" (interest),
+# fee and commission income, and a balance sheet with no current/non-current
+# split. Shared lines (net income, total assets/liabilities/equity, share
+# capital, statutory reserve, retained earnings, cash-flow subtotals) fall back
+# to LINE_MAP, so this only holds the labels that differ.
+BANK_LINE_MAP = {
+    # income statement
+    "special commission income": ("interest_income", "fy"),
+    "income from investments and financing": ("interest_income", "fy"),
+    "gross financing and investment income": ("interest_income", "fy"),
+    "special commission expense": ("interest_expense", "fy"),
+    "return on deposits and financial liabilities": ("interest_expense", "fy"),
+    "net special commission income": ("net_interest_income", "fy"),
+    "net financing and investment income": ("net_interest_income", "fy"),
+    "net income from investing and financing assets": ("net_interest_income", "fy"),
+    "fee and commission income": ("fee_and_commission_income", "fy"),
+    "fees and commission income": ("fee_and_commission_income", "fy"),
+    "fee and commission expense": ("fee_and_commission_expense", "fy"),
+    "fees and commission expense": ("fee_and_commission_expense", "fy"),
+    "net fee and commission income": ("net_fee_and_commission_income", "fy"),
+    "fee and commission income, net": ("net_fee_and_commission_income", "fy"),
+    "exchange income": ("exchange_income", "fy"),
+    "foreign exchange income": ("exchange_income", "fy"),
+    "income from fx": ("exchange_income", "fy"),
+    "trading income": ("trading_income", "fy"),
+    "net trading income": ("trading_income", "fy"),
+    "dividend income": ("dividend_income", "fy"),
+    "total operating income": ("total_operating_income", "fy"),
+    "impairment charge for expected credit losses": ("credit_impairment_charge", "fy"),
+    "impairment charge for credit losses": ("credit_impairment_charge", "fy"),
+    "provision for credit losses": ("credit_impairment_charge", "fy"),
+    "net impairment charge for expected credit losses": ("credit_impairment_charge", "fy"),
+    "salaries and employee-related expenses": ("salaries_and_employee_expenses", "fy"),
+    "salaries and employee related benefits": ("salaries_and_employee_expenses", "fy"),
+    "total operating expenses": ("total_operating_expenses", "fy"),
+    "net income for the year": ("net_income", "fy"),
+    "net income for the period": ("net_income", "fy"),
+    "profit for the year": ("net_income", "fy"),
+    "income before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income before zakat and tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "zakat and income tax": ("income_taxes_and_zakat", "fy"),
+    "zakat and income tax charge for the year": ("income_taxes_and_zakat", "fy"),
+    "net income attributable to equity holders of the bank": ("net_income_parent", "fy"),
+    "attributable to equity holders of the bank": ("net_income_parent", "fy"),
+    "attributable to equity holders": ("net_income_parent", "fy"),
+    # balance sheet
+    "cash and balances with sama": ("cash_and_balances_with_central_bank", "instant"),
+    "cash and balances with central banks": ("cash_and_balances_with_central_bank", "instant"),
+    "cash and balances with saudi central bank": ("cash_and_balances_with_central_bank", "instant"),
+    "due from banks and other financial institutions": ("due_from_banks", "instant"),
+    "due from banks": ("due_from_banks", "instant"),
+    "investments, net": ("investments_securities", "instant"),
+    "investments held at amortised cost": ("investments_securities", "instant"),
+    "investment securities": ("investments_securities", "instant"),
+    "loans and advances, net": ("loans_and_advances", "instant"),
+    "loans and advances to customers, net": ("loans_and_advances", "instant"),
+    "financing, net": ("loans_and_advances", "instant"),
+    "net financing and investments": ("loans_and_advances", "instant"),
+    "total assets": ("total_assets", "instant"),
+    "due to banks and other financial institutions": ("due_to_banks", "instant"),
+    "due to banks": ("due_to_banks", "instant"),
+    "customers' deposits": ("customer_deposits", "instant"),
+    "customer deposits": ("customer_deposits", "instant"),
+    "customers deposits": ("customer_deposits", "instant"),
+    "debt securities in issue": ("debt_securities_issued", "instant"),
+    "debt securities issued": ("debt_securities_issued", "instant"),
+    "sukuk issued": ("debt_securities_issued", "instant"),
+    "total liabilities": ("total_liabilities", "instant"),
+    "share capital": ("share_capital", "instant"),
+    "statutory reserve": ("statutory_reserve", "instant"),
+    "retained earnings": ("retained_earnings", "instant"),
+    "other reserves": ("other_reserves", "instant"),
+    "total shareholders' equity": ("total_equity", "instant"),
+    "total shareholders equity": ("total_equity", "instant"),
+    "total equity": ("total_equity", "instant"),
+    "total equity attributable to equity holders": ("equity_parent", "instant"),
+    "non-controlling interests": ("noncontrolling_interests", "instant"),
+    "total liabilities and equity": ("total_liabilities_equity", "instant"),
+    "total liabilities and shareholders' equity": ("total_liabilities_equity", "instant"),
+    # cash flow lines are the same wording as LINE_MAP; it is used as the fallback
+}
+
+_PROFILE_MAPS = {"corporate": LINE_MAP, "bank": {**LINE_MAP, **BANK_LINE_MAP}}
+
 # non-controlling interest inside the income statement means a different metric
 _PL_OVERRIDES = {"noncontrolling_interests": "net_income_noncontrolling"}
 
@@ -176,7 +260,7 @@ def _rows(words, y_tol: float = 3.0):
     return rows
 
 
-def _resolve_line(label: str, statement: str) -> str | None:
+def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> str | None:
     # A stock line ("property, plant and equipment") also appears inside a
     # cash-flow note ("purchase of property, plant and equipment") or an
     # equity roll-forward; only accept a match on the statement its LINE_MAP
@@ -185,7 +269,7 @@ def _resolve_line(label: str, statement: str) -> str | None:
     wants_instant = statement == "balance_sheet"
     norm = " ".join(label.lower().split())
     best = None
-    for phrase, (metric, kind) in LINE_MAP.items():
+    for phrase, (metric, kind) in (line_map or LINE_MAP).items():
         compatible = (kind == "instant") == wants_instant
         if not compatible and statement == "income_statement" and metric in _PL_OVERRIDES:
             compatible = True  # e.g. "non-controlling interest" reread as a P&L split
@@ -239,8 +323,11 @@ class StatementReader:
 
     def read(self, market: str, symbol: str, currency: str,
              source_url: str, filed_at: str, period_end: str | None = None,
-             fiscal_year: int | None = None, filing_type: str = "financial-statements") -> dict:
+             fiscal_year: int | None = None, filing_type: str = "financial-statements",
+             profile: str = "corporate") -> dict:
         import pymupdf
+
+        line_map = _PROFILE_MAPS.get(profile, LINE_MAP)
 
         if fiscal_year is None:
             fiscal_year = self.infer_fiscal_year()
@@ -285,7 +372,7 @@ class StatementReader:
             # a label in consecutive subtables.
             page_facts: dict[tuple[str, str], dict] = {}
             for label, kind, value in self._statement_facts(words, statement, blocks):
-                metric = _resolve_line(label, statement)
+                metric = _resolve_line(label, statement, line_map)
                 if metric is None:
                     continue
                 monetary = metric != "eps_diluted"
@@ -314,7 +401,7 @@ class StatementReader:
             "market": market,
             "symbol": symbol,
             "filing_type": filing_type, "filed_at": filed_at, "period_end": period_end,
-            "source_url": source_url, "reader": "finengine.reading/1",
+            "source_url": source_url, "reader": "finengine.reading/1", "profile": profile,
             "facts": sorted(facts, key=lambda f: (f["page"], f["metric"])),
         }
 
