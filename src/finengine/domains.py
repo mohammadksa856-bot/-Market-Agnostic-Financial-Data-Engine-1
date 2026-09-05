@@ -551,13 +551,18 @@ class CompanyDomainStore:
             key=f"catalog:{company_id}:{row['category']}"
             if row["status"] != "complete":
                 qualitative_evidence = []
-                if row["category"] == "commercial_pipeline":
+                if row["category"] in {"commercial_pipeline", "financial_notes"}:
+                    disclosure_types = (
+                        ("commercial_contract", "purchase_commitment")
+                        if row["category"] == "commercial_pipeline" else ("contingency",)
+                    )
+                    placeholders = ",".join("?" for _ in disclosure_types)
                     for evidence in self.db.conn.execute(
-                        """SELECT d.title,d.metadata_json,d.source_key,s.source_url
+                        f"""SELECT d.title,d.metadata_json,d.source_key,s.source_url
                         FROM disclosures d LEFT JOIN source_documents s USING(source_key)
                         WHERE d.company_id=? AND d.is_current=1
-                        AND d.disclosure_type IN ('commercial_contract','purchase_commitment')
-                        ORDER BY d.published_at DESC""", (company_id,),
+                        AND d.disclosure_type IN ({placeholders})
+                        ORDER BY d.published_at DESC""", (company_id, *disclosure_types),
                     ).fetchall():
                         qualitative_evidence.append({
                             "title": evidence["title"], "source_key": evidence["source_key"],
@@ -587,6 +592,8 @@ class CompanyDomainStore:
                             "qualitative_disclosure_only" if field in qualitative_fields
                             else "not_disclosed_in_archived_filings"
                         )
+                    elif row["category"] == "financial_notes" and field in qualitative_fields:
+                        availability = "qualitative_disclosure_only"
                     elif row["category"] == "company_model" and field == "cik" and company["market"] != "US":
                         availability = "not_applicable_market_identifier"
                     elif row["category"] == "company_model":

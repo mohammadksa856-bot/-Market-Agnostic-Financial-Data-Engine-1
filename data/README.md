@@ -15,7 +15,7 @@ and domain gaps; backlog rows are planning records and are never counted as veri
 Schema v12 includes a reviewed 507-field commercial target catalog. The universal company pack
 contains 437 fields across company model, statements, dimensional financial notes, commercial sales/order backlog, investor analytics,
 consensus estimates, market data, ownership, corporate actions, and disclosures. Integrated Oil & Gas
-companies receive another 69 segment and operating fields. Aramco currently populates 371 fields (73.2% raw coverage and 80.0% evidence-aware coverage after excluding 43 verified unavailable fields);
+companies receive another 69 segment and operating fields. Aramco currently populates 371 fields (73.2% raw coverage and 80.1% evidence-aware coverage after excluding 44 verified unavailable fields);
 the lower percentage reflects the expanded target model rather than removed data.
 `company_completeness` records what is actually populated;
 catalog definitions and backlog items are never presented as sourced production facts.

@@ -152,7 +152,7 @@ class ServiceTests(unittest.TestCase):
             query.close()
         self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
         self.assertEqual(len(dossier["ownership"]),4)
-        self.assertGreaterEqual(len(dossier["disclosures"]),8)
+        self.assertGreaterEqual(len(dossier["disclosures"]),9)
         self.assertEqual(len(dossier["corporate_actions"]),8)
         self.assertEqual(len(dossier["market_prices"]),23)
         self.assertGreaterEqual(sum(
@@ -194,6 +194,16 @@ class ServiceTests(unittest.TestCase):
         commercial_disclosures = [row for row in dossier["disclosures"]
                                   if row["disclosure_type"] == "commercial_contract"]
         self.assertEqual(commercial_disclosures[0]["metadata"]["quantitative_volume_disclosed"], False)
+        contingency = next(row for row in dossier["disclosures"]
+                           if row["disclosure_type"] == "contingency")
+        self.assertFalse(contingency["metadata"]["quantitative_amount_disclosed"])
+        financial_notes_backlog = next(row for row in backlog
+                                       if row["domain"] == "financial_notes")
+        note_availability = {
+            row["field_key"]: row["availability"]
+            for row in financial_notes_backlog["payload"]["field_assessments"]
+        }
+        self.assertEqual(note_availability["contingencies"], "qualitative_disclosure_only")
         commercial_backlog = next(row for row in backlog
                                   if row["domain"] == "commercial_pipeline")
         availability = {row["field_key"]: row["availability"]
