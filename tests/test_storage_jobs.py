@@ -94,6 +94,24 @@ class StorageAndJobsTests(unittest.TestCase):
         ttm = next(f for f in calculated if f.metric == "revenue_ttm")
         self.assertEqual(ttm.value, Decimal("100"))
 
+    def test_ttm_keeps_dimensions_isolated(self):
+        source = self.source()
+        facts = []
+        periods = (
+            ("2025-03-31", 1), ("2025-06-30", 2),
+            ("2025-09-30", 3), ("2025-12-31", 4),
+        )
+        for end, quarter in periods:
+            facts.extend([
+                self.fact(source, "10", end, PeriodKind.QUARTER, quarter,
+                          {"segment": "upstream"}),
+                self.fact(source, "100", end, PeriodKind.QUARTER, quarter,
+                          {"segment": "downstream"}),
+            ])
+        ttm = [fact for fact in Calculator().calculate(facts) if fact.metric == "revenue_ttm"]
+        values = {fact.dimensions["segment"]: fact.value for fact in ttm}
+        self.assertEqual(values, {"upstream": Decimal("40"), "downstream": Decimal("400")})
+
 
 if __name__ == "__main__":
     unittest.main()

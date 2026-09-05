@@ -3,9 +3,10 @@ from decimal import Decimal
 from pathlib import Path
 from finengine.connectors.file import LocalFileConnector
 from finengine.database import Database
-from finengine.models import Company, Market, SourceDocument
+from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
 from finengine.pipeline import Pipeline
 from finengine.query import FinancialQueryService
+from finengine.validation import Validator
 
 class FakeConnector:
     def __init__(self,payload,key="fixture:1"): self.content=json.dumps(payload).encode(); self.key=key
@@ -92,6 +93,28 @@ class EngineTests(unittest.TestCase):
         self.assertEqual((row["scope"],json.loads(row["dimensions_json"])),("segment",{"segment":"Upstream"}))
         query=FinancialQueryService(self.dbpath); rows=query.facts("SA","2222"); query.close()
         self.assertEqual((rows[0]["scope"],rows[0]["dimensions"]),("segment",{"segment":"Upstream"}))
+
+    def test_balance_validation_keeps_dimensions_isolated(self):
+        source = FakeConnector({}).fetch(self.c)
+
+        def balance(metric, value, segment):
+            return Fact(
+                self.c.company_id, metric, Decimal(value), "SAR", "SAR", None,
+                "2025-12-31", PeriodKind.INSTANT, 2025, None, source.source_key,
+                source.source_url, source.filed_at, scope="segment",
+                dimensions={"segment": segment},
+            )
+
+        facts = [
+            balance("total_assets", "100", "upstream"),
+            balance("total_assets", "200", "downstream"),
+            balance("total_liabilities", "120", "downstream"),
+            balance("total_liabilities", "40", "upstream"),
+            balance("total_equity", "60", "upstream"),
+            balance("total_equity", "80", "downstream"),
+        ]
+        _, errors = Validator().validate(facts)
+        self.assertFalse([error for error in errors if error["code"] == "balance_sheet_unbalanced"])
 
     def test_ytd_rollforward_mismatch_is_blocked(self):
         q1={"facts":[

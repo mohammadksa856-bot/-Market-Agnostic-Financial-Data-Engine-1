@@ -31,12 +31,21 @@ class Validator:
                 errors.append({"code":"missing_period_start","metric":f.metric,"period_kind":f.period_kind.value})
         groups=defaultdict(dict)
         for f in facts:
-            if f.period_kind.value=="instant": groups[(f.company_id,f.period_end)][f.metric]=f.value
+            if f.period_kind.value == "instant":
+                identity = (
+                    f.company_id, f.period_end, f.currency, f.unit, f.scope,
+                    tuple(sorted(f.dimensions.items())),
+                )
+                groups[identity][f.metric] = f.value
         for key,g in groups.items():
             if {"total_assets","total_liabilities","total_equity"} <= g.keys():
                 delta=abs(g["total_assets"]-g["total_liabilities"]-g["total_equity"])
                 tolerance=max(abs(g["total_assets"])*Decimal("0.005"),Decimal("1"))
-                if delta>tolerance: errors.append({"code":"balance_sheet_unbalanced","period":key[1],"delta":str(delta)})
+                if delta > tolerance:
+                    errors.append({
+                        "code": "balance_sheet_unbalanced", "period": key[1],
+                        "scope": key[4], "dimensions": dict(key[5]), "delta": str(delta),
+                    })
         errors.extend(self._validate_rollforwards([*(history or []),*facts],facts))
         return facts,errors
 

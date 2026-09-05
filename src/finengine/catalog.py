@@ -35,7 +35,7 @@ GROUPS = (
         "employee_benefits_noncurrent deferred_tax_liabilities other_noncurrent_liabilities noncurrent_liabilities total_liabilities "
         "share_capital additional_paid_in_capital treasury_shares retained_earnings statutory_reserve other_reserves "
         "accumulated_other_comprehensive_income equity_parent noncontrolling_interests total_equity total_liabilities_equity "
-        "net_debt working_capital invested_capital shares_outstanding book_value_per_share tangible_book_value"
+        "net_debt working_capital invested_capital shares_outstanding tangible_book_value"
     )),
     ("cash_flow", "data_points", "cash_flow", "flow", "currency", "sum", "all", "*", _keys(
         "net_income_cash_flow depreciation_amortization_cash_flow impairment_cash_flow share_based_compensation deferred_tax "
@@ -76,7 +76,7 @@ GROUPS = (
     )),
     ("market_data", "market_prices", "market", "event", "decimal", "none", "all", "*", _keys(
         "price_open price_high price_low price_close price_adjusted_close trading_volume trading_turnover vwap "
-        "shares_outstanding free_float beta_1y beta_5y volatility_30d average_volume_30d fifty_two_week_high fifty_two_week_low"
+        "beta_1y beta_5y volatility_30d average_volume_30d fifty_two_week_high fifty_two_week_low"
     )),
     ("ownership", "ownership_positions", "ownership", "event", "decimal", "none", "all", "*", _keys(
         "holder_name holder_type shares_held ownership_percentage government_ownership institutional_ownership insider_ownership "
@@ -153,7 +153,7 @@ def iter_catalog_fields():
     for category, storage_domain, statement, period_behavior, unit, aggregation, scope_type, scope_value, keys in GROUPS:
         for key in keys:
             if key in seen:
-                continue
+                raise ValueError(f"duplicate catalog field definition: {key}")
             seen.add(key)
             yield {
                 "field_key": key,

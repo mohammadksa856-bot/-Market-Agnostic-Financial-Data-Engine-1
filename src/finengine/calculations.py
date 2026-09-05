@@ -312,7 +312,10 @@ class Calculator:
         groups = defaultdict(dict)
         for fact in facts:
             if fact.metric in self.TTM_FLOWS and fact.period_kind == PeriodKind.QUARTER:
-                groups[(fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope)][fact.period_end] = fact
+                groups[(
+                    fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
+                    tuple(sorted(fact.dimensions.items())),
+                )][fact.period_end] = fact
         for rows_by_period in groups.values():
             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
             if len(rows) >= 4 and rows[-1].period_end in target_periods:

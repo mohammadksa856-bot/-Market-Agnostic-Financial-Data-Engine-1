@@ -72,17 +72,26 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
 
     balances = defaultdict(dict)
     for row in conn.execute(
-        """SELECT company_id,period_end,metric_key,value_decimal FROM data_points
+        """SELECT company_id,period_end,metric_key,value_decimal,currency,unit,scope,dimensions_hash
+        FROM data_points
         WHERE is_current=1 AND period_kind='instant'
         AND metric_key IN ('total_assets','total_liabilities','total_equity')"""
     ):
-        balances[(row["company_id"], row["period_end"])][row["metric_key"]] = float(row["value_decimal"])
+        identity = (
+            row["company_id"], row["period_end"], row["currency"], row["unit"],
+            row["scope"], row["dimensions_hash"],
+        )
+        balances[identity][row["metric_key"]] = float(row["value_decimal"])
     unbalanced=[]
     for key, values in balances.items():
         if len(values) == 3:
             delta=abs(values["total_assets"]-values["total_liabilities"]-values["total_equity"])
             if delta > max(abs(values["total_assets"])*0.005, 1):
-                unbalanced.append({"company_id": key[0], "period_end": key[1], "delta": delta})
+                unbalanced.append({
+                    "company_id": key[0], "period_end": key[1], "currency": key[2],
+                    "unit": key[3], "scope": key[4], "dimensions_hash": key[5],
+                    "delta": delta,
+                })
     add("balance_sheet_equation", "pass" if not unbalanced else "fail", unbalanced)
 
     companies=[]
