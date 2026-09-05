@@ -201,6 +201,9 @@ class ServiceTests(unittest.TestCase):
         contingency = next(row for row in dossier["disclosures"]
                            if row["disclosure_type"] == "contingency")
         self.assertFalse(contingency["metadata"]["quantitative_amount_disclosed"])
+        customer_risk = next(row for row in dossier["disclosures"]
+                             if row["disclosure_type"] == "customer_concentration")
+        self.assertFalse(customer_risk["metadata"]["major_customer_amount_disclosed"])
         financial_notes_backlog = next(row for row in backlog
                                        if row["domain"] == "financial_notes")
         note_availability = {
@@ -208,6 +211,8 @@ class ServiceTests(unittest.TestCase):
             for row in financial_notes_backlog["payload"]["field_assessments"]
         }
         self.assertEqual(note_availability["contingencies"], "qualitative_disclosure_only")
+        self.assertEqual(note_availability["customer_concentration"],
+                         "qualitative_disclosure_only")
         self.assertNotIn("lease_interest_expense", note_availability)
         commercial_backlog = next(row for row in backlog
                                   if row["domain"] == "commercial_pipeline")

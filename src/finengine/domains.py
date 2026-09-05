@@ -554,7 +554,8 @@ class CompanyDomainStore:
                 if row["category"] in {"commercial_pipeline", "financial_notes"}:
                     disclosure_types = (
                         ("commercial_contract", "purchase_commitment")
-                        if row["category"] == "commercial_pipeline" else ("contingency",)
+                        if row["category"] == "commercial_pipeline"
+                        else ("contingency", "customer_concentration")
                     )
                     placeholders = ",".join("?" for _ in disclosure_types)
                     for evidence in self.db.conn.execute(
