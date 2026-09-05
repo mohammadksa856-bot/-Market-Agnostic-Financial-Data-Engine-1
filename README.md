@@ -214,6 +214,7 @@ The source monitor never bypasses access controls, CAPTCHAs, rate limits, or pai
 
 - `data_catalog_fields` and `data_catalog_field_versions`: reviewed commercial target fields plus an immutable history of every definition change.
 - `dimension_definitions`: the governed vocabulary for segment, geography, product, instrument, maturity, note, and other fact axes; unknown production dimensions are rejected.
+- `metric_contracts`: the enforceable period-kind, dimension, and unit-family contract for every canonical data-point metric.
 - `company_completeness`: category-level expected/populated and required-field counts, with exact missing and required-missing lists per company.
 - `data_points`: versioned typed facts with period, scope, dimensions, quality, formula and source provenance.
 - `metric_definitions`: canonical schema, units, categories, statements and aggregation rules.

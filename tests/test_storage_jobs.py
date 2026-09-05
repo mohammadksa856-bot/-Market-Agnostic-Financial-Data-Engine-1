@@ -46,12 +46,22 @@ class StorageAndJobsTests(unittest.TestCase):
 
     def test_dimensions_are_governed_by_the_master_schema(self):
         source = self.source()
+        note_fact = self.fact(source, "60", dimensions={"geography": "Saudi Arabia"})
+        note_fact = Fact(**{**note_fact.__dict__, "metric": "revenue_by_geography"})
         self.assertEqual(
-            self.db.publish(self.fact(source, "60", dimensions={"geography": "Saudi Arabia"})),
+            self.db.publish(note_fact),
             "inserted",
         )
+        operational = self.fact(source, "40", dimensions={"maturity_band": "one year"})
+        operational = Fact(**{**operational.__dict__, "metric": "total_hydrocarbon_production"})
+        with self.assertRaisesRegex(ValueError, "dimensions not allowed"):
+            self.db.publish(operational)
         with self.assertRaisesRegex(ValueError, "unregistered dimensions"):
             self.db.publish(self.fact(source, "40", dimensions={"random_axis": "x"}))
+        wrong_period = self.fact(source, "40")
+        wrong_period = Fact(**{**wrong_period.__dict__, "metric": "total_assets"})
+        with self.assertRaisesRegex(ValueError, "period kind fy is not allowed"):
+            self.db.publish(wrong_period)
         unsupported = self.fact(source, "40")
         unsupported = Fact(**{**unsupported.__dict__, "scope": "free_form_scope"})
         with self.assertRaisesRegex(ValueError, "unsupported fact scope"):

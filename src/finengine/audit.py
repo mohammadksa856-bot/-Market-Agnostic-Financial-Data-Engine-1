@@ -57,6 +57,28 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
         unknown_dimensions.update(set(json.loads(row["dimensions_json"])) - dimension_keys)
     add("governed_dimensions", "pass" if dimension_keys and not unknown_dimensions else "fail",
         {"registered": len(dimension_keys), "unknown": sorted(unknown_dimensions)})
+    expected_contracts = conn.execute(
+        """SELECT count(*) FROM data_catalog_fields WHERE enabled=1
+        AND storage_domain IN ('data_points','consensus_estimates')"""
+    ).fetchone()[0]
+    contract_rows = conn.execute(
+        "SELECT metric_key,allowed_period_kinds_json,allowed_dimensions_json FROM metric_contracts WHERE enabled=1"
+    ).fetchall()
+    contracts = {row["metric_key"]: (set(json.loads(row["allowed_period_kinds_json"])),
+                                     set(json.loads(row["allowed_dimensions_json"]))) for row in contract_rows}
+    contract_violations = []
+    for row in conn.execute(
+        """SELECT metric_key,period_kind,dimensions_json FROM data_points
+        WHERE is_current=1 AND metric_key IN (SELECT metric_key FROM metric_contracts WHERE enabled=1)"""
+    ):
+        periods, dimensions = contracts[row["metric_key"]]
+        actual_dimensions = set(json.loads(row["dimensions_json"]))
+        if row["period_kind"] not in periods or not actual_dimensions.issubset(dimensions):
+            contract_violations.append({"metric": row["metric_key"], "period_kind": row["period_kind"],
+                                        "dimensions": sorted(actual_dimensions)})
+    add("metric_contracts", "pass" if len(contracts) == expected_contracts and not contract_violations else "fail",
+        {"contracts": len(contracts), "expected": expected_contracts,
+         "violations": contract_violations[:20]})
     oil_gas_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND pack_key='oil_gas_v2'").fetchone()[0]
     add("oil_gas_sector_pack", "pass" if oil_gas_count >= 40 else "fail", oil_gas_count)
 

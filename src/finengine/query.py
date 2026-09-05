@@ -363,11 +363,19 @@ class FinancialQueryService:
         if storage_domain: filters.append("storage_domain=?"); args.append(storage_domain)
         args.append(min(max(limit,1),5000))
         rows=self.conn.execute(
-            """SELECT field_key,display_name,category,storage_domain,statement,period_behavior,
-            value_type,default_unit,aggregation,pack_key,scope_type,scope_value,requirement,review_state,
-            schema_version FROM data_catalog_fields WHERE """+" AND ".join(filters)+
+            """SELECT f.field_key,f.display_name,f.category,f.storage_domain,f.statement,f.period_behavior,
+            f.value_type,f.default_unit,f.aggregation,f.pack_key,f.scope_type,f.scope_value,f.requirement,
+            f.review_state,f.schema_version,c.allowed_period_kinds_json,c.allowed_dimensions_json,c.unit_family,
+            c.contract_version FROM data_catalog_fields f LEFT JOIN metric_contracts c ON c.metric_key=f.field_key
+            WHERE """+" AND ".join("f."+value if "=" in value and "." not in value else value for value in filters)+
             " ORDER BY pack_key,category,field_key LIMIT ?",args).fetchall()
-        return [dict(row) for row in rows]
+        result=[]
+        for row in rows:
+            item=dict(row)
+            item["allowed_period_kinds"]=json.loads(item.pop("allowed_period_kinds_json")) if item["allowed_period_kinds_json"] else []
+            item["allowed_dimensions"]=json.loads(item.pop("allowed_dimensions_json")) if item["allowed_dimensions_json"] else []
+            result.append(item)
+        return result
 
     def catalog_history(self, field_key: str) -> list[dict]:
         rows = self.conn.execute(
@@ -503,6 +511,7 @@ class FinancialQueryService:
             "catalog_fields": "data_catalog_fields WHERE enabled=1",
             "catalog_versions": "data_catalog_field_versions",
             "dimensions": "dimension_definitions WHERE enabled=1",
+            "metric_contracts": "metric_contracts WHERE enabled=1",
             "completeness_rows": "company_completeness",
         }
         return {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]

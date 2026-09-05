@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -82,6 +82,12 @@ CREATE TABLE IF NOT EXISTS dimension_definitions(
  dimension_key TEXT PRIMARY KEY, display_name TEXT NOT NULL, description TEXT NOT NULL,
  value_type TEXT NOT NULL DEFAULT 'text', enabled INTEGER NOT NULL DEFAULT 1,
  schema_version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS metric_contracts(
+ metric_key TEXT PRIMARY KEY REFERENCES metric_definitions(metric_key),
+ allowed_period_kinds_json TEXT NOT NULL, allowed_dimensions_json TEXT NOT NULL,
+ unit_family TEXT NOT NULL, contract_version INTEGER NOT NULL,
+ enabled INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS company_completeness(
  company_id TEXT NOT NULL REFERENCES companies(company_id), category TEXT NOT NULL,
@@ -481,6 +487,11 @@ class Database:
                 "period_behavior", "value_type", "default_unit", "aggregation", "pack_key",
                 "scope_type", "scope_value", "requirement",
             )}
+            definition.update({
+                "allowed_period_kinds": list(item["allowed_period_kinds"]),
+                "allowed_dimensions": list(item["allowed_dimensions"]),
+                "unit_family": item["unit_family"],
+            })
             definition_json = _json(definition)
             definition_hash = hashlib.sha256(definition_json.encode("utf-8")).hexdigest()
             current = self.conn.execute(
@@ -519,21 +530,44 @@ class Database:
                     item["statement"], "decimal", item["default_unit"], item["aggregation"],
                     f"Reviewed {item['pack_key']} catalog field", schema_version=3, commit=False,
                 )
+                self.conn.execute(
+                    """INSERT INTO metric_contracts(metric_key,allowed_period_kinds_json,
+                    allowed_dimensions_json,unit_family,contract_version) VALUES(?,?,?,?,?)
+                    ON CONFLICT(metric_key) DO UPDATE SET
+                    allowed_period_kinds_json=excluded.allowed_period_kinds_json,
+                    allowed_dimensions_json=excluded.allowed_dimensions_json,
+                    unit_family=excluded.unit_family,contract_version=excluded.contract_version,
+                    enabled=1,updated_at=CURRENT_TIMESTAMP""",
+                    (item["field_key"], _json(list(item["allowed_period_kinds"])),
+                     _json(list(item["allowed_dimensions"])), item["unit_family"], CATALOG_SCHEMA_VERSION),
+                )
         self.conn.commit()
 
-    def _validate_fact_dimensions(self, metric: str, scope: str, dimensions: dict[str, str]) -> None:
+    def _validate_fact_contract(self, metric: str, period_kind: str, scope: str,
+                                dimensions: dict[str, str]) -> None:
         if scope not in ALLOWED_SCOPES:
             raise ValueError(f"unsupported fact scope: {scope}")
-        if not dimensions:
-            return
-        placeholders = ",".join("?" for _ in dimensions)
-        known = {row["dimension_key"] for row in self.conn.execute(
-            f"SELECT dimension_key FROM dimension_definitions WHERE enabled=1 AND dimension_key IN ({placeholders})",
-            tuple(dimensions),
-        )}
-        unknown = sorted(set(dimensions) - known)
-        if unknown:
-            raise ValueError(f"unregistered dimensions for {metric}: {', '.join(unknown)}")
+        if dimensions:
+            placeholders = ",".join("?" for _ in dimensions)
+            known = {row["dimension_key"] for row in self.conn.execute(
+                f"SELECT dimension_key FROM dimension_definitions WHERE enabled=1 AND dimension_key IN ({placeholders})",
+                tuple(dimensions),
+            )}
+            unknown = sorted(set(dimensions) - known)
+            if unknown:
+                raise ValueError(f"unregistered dimensions for {metric}: {', '.join(unknown)}")
+        contract = self.conn.execute(
+            """SELECT allowed_period_kinds_json,allowed_dimensions_json FROM metric_contracts
+            WHERE metric_key=? AND enabled=1""", (metric,),
+        ).fetchone()
+        if contract:
+            allowed_periods = set(json.loads(contract["allowed_period_kinds_json"]))
+            if period_kind not in allowed_periods:
+                raise ValueError(f"period kind {period_kind} is not allowed for {metric}")
+            allowed_dimensions = set(json.loads(contract["allowed_dimensions_json"]))
+            disallowed = sorted(set(dimensions) - allowed_dimensions)
+            if disallowed:
+                raise ValueError(f"dimensions not allowed for {metric}: {', '.join(disallowed)}")
 
     def _seed_calculation_definitions(self) -> None:
         # Market prices live in their own versioned store, but point-in-time
@@ -1035,7 +1069,7 @@ class Database:
     def _publish_data_point(self, f: Fact) -> str:
         category = "calculated" if f.is_calculated else "financial"
         self.register_metric(f.metric, category=category, schema_version=f.metric_version, commit=False)
-        self._validate_fact_dimensions(f.metric, f.scope, f.dimensions)
+        self._validate_fact_contract(f.metric, f.period_kind.value, f.scope, f.dimensions)
         dimensions_json, dimensions_hash = _dimensions(f.dimensions)
         quarter = f.fiscal_quarter or 0
         where = """company_id=? AND metric_key=? AND period_end=? AND period_kind=? AND fiscal_year=?
@@ -1083,7 +1117,7 @@ class Database:
     def _publish_typed_data_point(self, f: TypedFact) -> str:
         self.register_metric(f.metric, category="general", value_type=f.value_type.value,
                              schema_version=f.metric_version, commit=False)
-        self._validate_fact_dimensions(f.metric, f.scope, f.dimensions)
+        self._validate_fact_contract(f.metric, f.period_kind.value, f.scope, f.dimensions)
         dimensions_json, dimensions_hash = _dimensions(f.dimensions)
         value_decimal, value_text, value_json = _typed_value(f.value, f.value_type)
         quarter = f.fiscal_quarter or 0
@@ -1338,6 +1372,7 @@ class Database:
             "catalog_fields": "data_catalog_fields WHERE enabled=1",
             "catalog_versions": "data_catalog_field_versions",
             "dimensions": "dimension_definitions WHERE enabled=1",
+            "metric_contracts": "metric_contracts WHERE enabled=1",
             "completeness_rows": "company_completeness",
         }
         counts = {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] for key, table in tables.items()}

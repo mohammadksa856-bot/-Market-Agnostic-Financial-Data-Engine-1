@@ -44,18 +44,18 @@ FIELD_OVERRIDES = {
     "natural_gas_sales": {"default_unit": "mmscfd", "aggregation": "average"},
     "refinery_throughput": {"default_unit": "mbbl/day", "aggregation": "average"},
     "refinery_utilization": {"default_unit": "ratio", "aggregation": "average"},
-    "net_refining_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
-    "gross_refining_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
+    "net_refining_capacity": {"default_unit": "mbbl/day", "aggregation": "last", "period_behavior": "instant"},
+    "gross_refining_capacity": {"default_unit": "mbbl/day", "aggregation": "last", "period_behavior": "instant"},
     "chemicals_production": {"default_unit": "million_tonnes", "aggregation": "sum"},
     "chemicals_sales": {"default_unit": "million_tonnes", "aggregation": "sum"},
-    "net_chemicals_production_capacity": {"default_unit": "million_tonnes/year", "aggregation": "last"},
-    "total_hydrocarbon_reserves": {"default_unit": "million_boe", "aggregation": "last"},
-    "crude_oil_reserves": {"default_unit": "million_bbl", "aggregation": "last"},
-    "gas_reserves": {"default_unit": "bcf", "aggregation": "last"},
+    "net_chemicals_production_capacity": {"default_unit": "million_tonnes/year", "aggregation": "last", "period_behavior": "instant"},
+    "total_hydrocarbon_reserves": {"default_unit": "million_boe", "aggregation": "last", "period_behavior": "instant"},
+    "crude_oil_reserves": {"default_unit": "million_bbl", "aggregation": "last", "period_behavior": "instant"},
+    "gas_reserves": {"default_unit": "bcf", "aggregation": "last", "period_behavior": "instant"},
     "reserve_replacement_ratio": {"default_unit": "ratio", "aggregation": "none"},
     "reserve_life_index": {"default_unit": "years", "aggregation": "none"},
-    "maximum_sustainable_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
-    "spare_capacity": {"default_unit": "mbbl/day", "aggregation": "last"},
+    "maximum_sustainable_capacity": {"default_unit": "mbbl/day", "aggregation": "last", "period_behavior": "instant"},
+    "spare_capacity": {"default_unit": "mbbl/day", "aggregation": "last", "period_behavior": "instant"},
     "supply_reliability": {"default_unit": "ratio", "aggregation": "average"},
     "average_realized_crude_oil_price": {"default_unit": "USD/bbl", "aggregation": "weighted_average"},
     "average_realized_gas_price": {"default_unit": "USD/mmbtu", "aggregation": "weighted_average"},
@@ -91,6 +91,50 @@ DIMENSION_DEFINITIONS = {
     "reported_as": "Source-native presentation", "ledger": "Accounting ledger classification",
     "cost_type": "Cost classification", "liability_class": "Liability classification",
 }
+
+PERIOD_KINDS_BY_BEHAVIOR = {
+    "flow": ("quarter", "ytd", "fy", "ttm"),
+    "instant": ("instant",),
+    "derived": ("quarter", "ytd", "fy", "ttm", "instant", "as_of"),
+    "as_of": ("as_of",),
+    "event": ("event", "as_of"),
+    "forward": ("quarter", "fy"),
+    "mixed": ("quarter", "ytd", "fy", "ttm", "instant", "as_of"),
+}
+
+DIMENSIONS_BY_CATEGORY = {
+    "income_statement": tuple(DIMENSION_DEFINITIONS),
+    "balance_sheet": tuple(DIMENSION_DEFINITIONS),
+    "cash_flow": tuple(DIMENSION_DEFINITIONS), "company_model": (),
+    "market_data": (), "ownership": (), "corporate_actions": (), "disclosures": (),
+    "per_share": ("segment", "geography", "product"),
+    "profitability": ("segment", "geography", "product"),
+    "liquidity_solvency": ("segment", "geography", "product"),
+    "efficiency": ("segment", "geography", "product"),
+    "growth": ("segment", "geography", "product"),
+    "valuation": ("segment", "geography", "product"),
+    "investor_analytics": ("segment", "geography", "product"),
+    "segments": ("segment", "geography", "product", "origin"),
+    "oil_gas_operations": ("segment", "geography", "product", "measure", "basis"),
+    "commercial_pipeline": ("segment", "geography", "product", "counterparty", "maturity_band"),
+    "consensus": (),
+    # Notes legitimately use heterogeneous axes; the vocabulary is still governed.
+    "financial_notes": tuple(DIMENSION_DEFINITIONS),
+}
+
+
+def _unit_family(unit: str) -> str:
+    if unit == "currency":
+        return "monetary"
+    if unit == "currency/share":
+        return "per_share"
+    if unit == "ratio":
+        return "ratio"
+    if unit in {"text", "json", "date", "boolean"}:
+        return unit
+    if unit in {"shares", "people", "count"}:
+        return "count"
+    return "physical_or_scalar"
 
 
 def _keys(value: str) -> list[str]:
@@ -261,6 +305,9 @@ def iter_catalog_fields():
                 "pack_key": "oil_gas_v2" if scope_type == "industry" else "company_core_v4",
             }
             item.update(FIELD_OVERRIDES.get(key, {}))
+            item["allowed_period_kinds"] = PERIOD_KINDS_BY_BEHAVIOR[item["period_behavior"]]
+            item["allowed_dimensions"] = DIMENSIONS_BY_CATEGORY[category]
+            item["unit_family"] = _unit_family(item["default_unit"])
             yield item
 
 
