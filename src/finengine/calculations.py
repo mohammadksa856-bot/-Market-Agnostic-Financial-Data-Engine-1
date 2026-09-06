@@ -28,7 +28,7 @@ class Calculator:
         "corporate_depreciation_amortization",
         # banking + composite-score inputs that live in their own manifests
         "net_financing_income", "total_operating_income", "operating_expense_banking",
-        "total_operating_expenses", "provision_expense", "net_loans", "gross_loans",
+        "total_operating_expenses", "provision_expense", "net_loans", "gross_loans", "credit_loss_allowance",
         "customer_deposits", "demand_deposits", "savings_deposits", "bank_investments",
         "due_from_banks", "nonperforming_loans", "credit_loss_allowance", "risk_weighted_assets",
         "regulatory_capital", "retained_earnings", "working_capital", "return_on_equity",
@@ -188,6 +188,11 @@ class Calculator:
                 ratio("inventory_to_assets", "inventory", "total_assets")
                 ratio("ppe_to_assets", "property_plant_equipment", "total_assets")
                 # Banking balance-sheet ratios (no-op unless the bank lines are present)
+                if "gross_loans" not in lookup and "net_loans" in lookup and "credit_loss_allowance" in lookup:
+                    add("gross_loans",
+                        lookup["net_loans"].value + abs(lookup["credit_loss_allowance"].value),
+                        "net_loans + abs(credit_loss_allowance)", lookup["net_loans"],
+                        lookup["net_loans"].unit, lookup["net_loans"].currency)
                 ratio("loans_to_deposits_ratio", "net_loans", "customer_deposits")
                 ratio("nonperforming_loans_ratio", "nonperforming_loans", "gross_loans")
                 ratio("nonperforming_loans_coverage", "credit_loss_allowance", "nonperforming_loans")

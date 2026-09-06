@@ -233,6 +233,7 @@ def main():
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
     read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank"])
+    readx=sub.add_parser("read-xlsx"); readx.add_argument("xlsx"); readx.add_argument("market",choices=["SA","US"]); readx.add_argument("symbol"); readx.add_argument("--registry",default="config/companies.json"); readx.add_argument("--mapping"); readx.add_argument("--filed-at",required=True); readx.add_argument("--filing-type",default="data-supplement"); readx.add_argument("--period-kinds",default="fy"); readx.add_argument("--out")
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
@@ -293,6 +294,28 @@ def main():
         print(json.dumps(result,indent=2,ensure_ascii=False))
         if result["failures"] or result["unmapped_labels"] or (a.strict_warnings and result["warnings"]):
             raise SystemExit(1)
+        return
+    if a.cmd=="read-xlsx":
+        import tempfile
+        from .verification import ManifestVerifier
+        from .reading_xlsx import SupplementReader
+        company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
+        mapping=a.mapping or f"config/supplements/{a.symbol}.json"
+        manifest=SupplementReader(a.xlsx,mapping).read(
+            market=a.market,symbol=a.symbol,currency=company.currency,filed_at=a.filed_at,
+            filing_type=a.filing_type,period_kinds=tuple(a.period_kinds.split(",")))
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory,"m.json").write_text(json.dumps(manifest),encoding="utf-8")
+            verification=ManifestVerifier(directory).verify()
+        manifest["verify"]={"ok":verification["ok"],"passed":verification["passed"],
+                            "failures":verification["failures"],"source":"xlsx-supplement"}
+        output=json.dumps(manifest,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+            print(f"wrote {len(manifest['facts'])} facts to {a.out}; verify ok={verification['ok']} ({verification['passed']} checks, {verification['failures']} fail)")
+        else:
+            print(output)
+        if not verification["ok"]: raise SystemExit(1)
         return
     if a.cmd=="read":
         import tempfile

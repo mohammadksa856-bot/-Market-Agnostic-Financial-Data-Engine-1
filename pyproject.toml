@@ -12,7 +12,8 @@ requires-python = ">=3.11"
 reader = ["pymupdf>=1.24"]
 browser = ["playwright>=1.40"]
 llm = ["anthropic>=0.40", "pymupdf>=1.24"]
-agents = ["pymupdf>=1.24", "playwright>=1.40", "anthropic>=0.40"]
+xlsx = ["openpyxl>=3.1"]
+agents = ["pymupdf>=1.24", "playwright>=1.40", "anthropic>=0.40", "openpyxl>=3.1"]
 
 [project.scripts]
 finengine = "finengine.cli:main"

@@ -217,7 +217,13 @@ The deterministic statement reader converts an archived PDF to a source-faithful
     finengine read report.pdf SA 2222 --source-url https://issuer.example/report.pdf --filed-at 2026-03-01 --out report.json
     finengine verify --imports data/imports
 
-Install `.[reader]` for PDF reading, `.[browser]` for browser fetching, or `.[agents]` for both plus the optional LLM fallback. The LLM reader runs only when explicitly enabled and its output must pass the same deterministic verification and publication gate.
+Large issuers publish a machine-readable "data supplement" / "fact sheet" spreadsheet: the full income statement and balance sheet across ~10 years of annual columns plus quarterly history, produced by the company itself. `read-xlsx` turns one into a source-faithful manifest, driven by a per-issuer row map in `config/supplements/<symbol>.json`. It ingests only the raw reported lines - the supplement's own pre-computed ratios (ROE, NIM, cost-to-income, ...) are skipped, because the engine recomputes every ratio from the ingested lines:
+
+    finengine read-xlsx "ARB Data Supplement 4Q2025.xlsx" SA 1120 --filed-at 2026-02-04 --out data/imports/alrajhi-supplement.json
+
+One Al Rajhi supplement adds twelve years (2014-2025) of the full statements in a single file. Install `.[xlsx]` for the spreadsheet reader.
+
+Install `.[reader]` for PDF reading, `.[browser]` for browser fetching, `.[xlsx]` for supplement spreadsheets, or `.[agents]` for everything plus the optional LLM fallback. The LLM reader runs only when explicitly enabled and its output must pass the same deterministic verification and publication gate.
 
 Poll official sources once:
 

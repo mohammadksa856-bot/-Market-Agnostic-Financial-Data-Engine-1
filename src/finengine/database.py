@@ -693,6 +693,10 @@ class Database:
                 "(demand_deposits + savings_deposits) / customer_deposits", "same_period",
                 ("demand_deposits", "savings_deposits", "customer_deposits"),
             ),
+            "gross_loans": (
+                "net_loans + abs(credit_loss_allowance)", "same_period",
+                ("net_loans", "credit_loss_allowance"),
+            ),
             "nonperforming_loans_ratio": (
                 "nonperforming_loans / gross_loans", "same_period",
                 ("nonperforming_loans", "gross_loans"),
