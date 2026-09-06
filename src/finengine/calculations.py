@@ -193,15 +193,25 @@ class Calculator:
                         lookup["net_loans"].value + abs(lookup["credit_loss_allowance"].value),
                         "net_loans + abs(credit_loss_allowance)", lookup["net_loans"],
                         lookup["net_loans"].unit, lookup["net_loans"].currency)
+                if "credit_loss_allowance" not in lookup and "gross_loans" in lookup and "net_loans" in lookup:
+                    add("credit_loss_allowance",
+                        lookup["gross_loans"].value - lookup["net_loans"].value,
+                        "gross_loans - net_loans", lookup["gross_loans"],
+                        lookup["gross_loans"].unit, lookup["gross_loans"].currency)
                 ratio("loans_to_deposits_ratio", "net_loans", "customer_deposits")
                 ratio("nonperforming_loans_ratio", "nonperforming_loans", "gross_loans")
-                ratio("nonperforming_loans_coverage", "credit_loss_allowance", "nonperforming_loans")
+                ratio("nonperforming_loans_coverage", "credit_loss_allowance", "nonperforming_loans",
+                      absolute=True)
                 ratio("capital_adequacy_ratio", "regulatory_capital", "risk_weighted_assets")
-                if all(k in lookup for k in ("demand_deposits", "savings_deposits", "customer_deposits")) \
-                        and lookup["customer_deposits"].value:
+                # CASA = current + savings balances. Some issuers report the two
+                # split, others as one combined "current and call" line (mapped to
+                # demand_deposits); sum whichever current-account lines are present.
+                if "customer_deposits" in lookup and lookup["customer_deposits"].value \
+                        and ("demand_deposits" in lookup or "savings_deposits" in lookup):
+                    casa = sum((lookup[k].value for k in ("demand_deposits", "savings_deposits")
+                                if k in lookup), Decimal(0))
                     add("casa_ratio",
-                        (lookup["demand_deposits"].value + lookup["savings_deposits"].value)
-                        / lookup["customer_deposits"].value,
+                        casa / lookup["customer_deposits"].value,
                         "(demand_deposits + savings_deposits) / customer_deposits",
                         lookup["customer_deposits"])
                 debt = sum((lookup[key].value for key in ("current_debt", "long_term_debt") if key in lookup), Decimal(0))

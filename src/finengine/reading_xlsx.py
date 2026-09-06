@@ -30,6 +30,8 @@ _CUMULATIVE_END = {"1h": "06-30", "h1": "06-30", "9m": "09-30"}
 _SCALE_WORDS = ((re.compile(r"\bmn\b|\bmillion", re.I), 1_000_000),
                 (re.compile(r"'?000|\bthousand", re.I), 1000),
                 (re.compile(r"\bbn\b|\bbillion", re.I), 1_000_000_000))
+# Metrics carried at face value regardless of the sheet's thousands/millions scale.
+_UNSCALED = re.compile(r"per_share|_ratio$|_margin$|^eps|_eps$|_eps_|earnings_per_share|dividends_per_share")
 
 
 def _norm(label) -> str:
@@ -151,11 +153,14 @@ class SupplementReader:
                     key = (metric, period_end, emit_kind)
                     if key in seen:
                         continue  # a supplement often repeats a subtotal label; the first hit wins
+                    # Per-share amounts and ratios are stated as-is, not in the
+                    # sheet's thousands/millions scale.
+                    row_scale = 1 if _UNSCALED.search(metric) else scale
                     fact = {
                         "metric": metric, "source_label": str(raw_label).strip(),
                         "value": str(value), "period_end": period_end,
                         "period_kind": emit_kind, "fiscal_year": fiscal_year,
-                        "scale": str(scale), "currency": currency, "unit": currency,
+                        "scale": str(row_scale), "currency": currency, "unit": currency,
                     }
                     if emit_kind in {"fy", "ytd", "quarter"}:
                         fact["period_start"] = f"{fiscal_year}-01-01"
