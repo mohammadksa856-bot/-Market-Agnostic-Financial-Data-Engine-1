@@ -15,7 +15,7 @@ by its reviewed canonical `industry` in the company registry.
 | `dividends_v1` | All companies | 20 |
 | `announcements_v1` | All companies | 28 |
 | `oil_gas_v2` | Integrated Oil & Gas | 69 |
-| `chemicals_v1` | Diversified Chemicals | 43 |
+| `chemicals_v1` | Diversified Chemicals | 64 |
 | `banking_v1` | Banks | 34 |
 | `insurance_v1` | Insurance | 26 |
 | `telecommunications_v1` | Telecommunications | 25 |

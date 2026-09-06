@@ -59,6 +59,11 @@ GAP_RESOLUTION_PLAYBOOK = {
         "resolution": "Close the field as not applicable and use the market-appropriate identifier instead.",
         "solution_code": "close_not_applicable",
     },
+    "not_applicable_company_business_model": {
+        "reason": "This field does not apply to the issuer's current business model or reported segment structure.",
+        "resolution": "Exclude it from actionable company coverage while retaining it in the market-agnostic master catalog for issuers where it applies.",
+        "solution_code": "exclude_from_company_applicability",
+    },
 }
 
 
@@ -422,11 +427,14 @@ class CompanyDomainStore:
         available["company_profile"].update(key for key, column in profile_map.items() if company[column])
         price = self.db.conn.execute(
             """SELECT max(p.open) open,max(p.high) high,max(p.low) low,max(p.close) close,
-            max(p.adjusted_close) adjusted_close,max(p.volume) volume,max(p.turnover) turnover
+            max(p.adjusted_close) adjusted_close,max(p.volume) volume,max(p.turnover) turnover,
+            max(CASE WHEN p.interval='1y' THEN p.high END) high_52w,
+            max(CASE WHEN p.interval='1y' THEN p.low END) low_52w
             FROM market_prices p JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
             WHERE s.company_id=? AND p.is_current=1""", (company_id,)).fetchone()
         price_map = {"price_open":"open","price_high":"high","price_low":"low","price_close":"close",
-                     "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover"}
+                     "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover",
+                     "fifty_two_week_high":"high_52w","fifty_two_week_low":"low_52w"}
         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
         available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
             """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
@@ -445,9 +453,23 @@ class CompanyDomainStore:
                 available["ownership_positions"].add("government_ownership")
             if any(row["ownership_type"] == "free_float" and row["ownership_pct"] is not None
                    for row in ownership_rows):
-                available["market_prices"].add("free_float")
-        available["corporate_actions"].update(row["action_type"] for row in self.db.conn.execute(
-            "SELECT DISTINCT action_type FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)))
+                available["ownership_positions"].add("free_float")
+            if any(row["holder_type"] == "foreign" and row["ownership_pct"] is not None
+                   for row in ownership_rows):
+                available["ownership_positions"].add("foreign_ownership")
+            if any(row["holder_type"] in {"corporate_strategic", "strategic"}
+                   and row["ownership_pct"] is not None for row in ownership_rows):
+                available["ownership_positions"].add("strategic_ownership")
+        action_rows = self.db.conn.execute(
+            "SELECT * FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+        available["corporate_actions"].update(row["action_type"] for row in action_rows)
+        cash_dividends = [row for row in action_rows if row["action_type"] == "cash_dividend"]
+        if cash_dividends:
+            available["corporate_actions"].add("dividend_announcement")
+        if any(row["record_date"] for row in cash_dividends):
+            available["corporate_actions"].add("dividend_eligibility")
+        if any(row["payment_date"] for row in cash_dividends):
+            available["corporate_actions"].add("dividend_payment")
         available["disclosures"].update(row["disclosure_type"] for row in self.db.conn.execute(
             "SELECT DISTINCT disclosure_type FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)))
         available["consensus_estimates"].update(row["metric_key"] for row in self.db.conn.execute(
@@ -520,6 +542,12 @@ class CompanyDomainStore:
             AND d.period_kind=? AND d.is_current=1""", (company_id, period_end, period_kind)).fetchall()
         available = {row["metric_key"] for row in available_rows
                      if domain == "all" or row["category"] == domain}
+        # Parent-attributable earnings are the only audited five-year profit
+        # series some issuers publish in their summary tables. Treat that
+        # narrower, source-labelled series as satisfying the generic earnings
+        # coverage requirement without duplicating it as a different fact.
+        if "net_income_parent" in available:
+            available.add("net_income")
         available_expected = expected & available
         missing_required = sorted(required - available)
         if not expected:
@@ -684,6 +712,28 @@ class CompanyDomainStore:
                     "refinery_throughput", "refinery_utilization", "reserve_replacement_ratio",
                     "spare_capacity",
                 }
+                sabic_not_disclosed = {
+                    "average_selling_price", "capacity_utilization", "circular_feedstock_volume",
+                    "domestic_sales_volume", "ethylene_production", "export_sales_volume",
+                    "feedstock_cost_per_tonne", "fertilizer_production", "lost_time_injury_rate",
+                    "methanol_production", "plant_reliability", "polyethylene_production",
+                    "polypropylene_production", "production_capacity", "recycled_product_sales",
+                    "scope_1_emissions_chemicals", "scope_2_emissions_chemicals",
+                    "water_consumption_chemicals", "water_withdrawal_chemicals",
+                    "institutional_ownership", "retail_ownership", "insider_ownership",
+                    "top_five_shareholders", "top_ten_shareholders", "ownership_changes",
+                    "remaining_performance_obligations", "cancellable_commitments",
+                    "borrowings_by_currency", "weighted_average_borrowing_rate",
+                }
+                sabic_not_applicable = {
+                    "oil_gas_properties", "exploration_expense", "producing_expense",
+                    "royalties_and_other_taxes", "exploration_evaluation_written_off",
+                    "royalties_change", "metals_sales_volume", "steel_production",
+                    "metals_revenue", "metals_ebit", "metals_ebitda", "metals_assets",
+                    "metals_capex", "specialties_sales_volume", "specialties_revenue",
+                    "specialties_ebit", "specialties_ebitda", "specialties_assets",
+                    "specialties_capex",
+                }
                 for field in row["missing"]:
                     if row["category"] == "consensus":
                         availability = "licensed_source_required"
@@ -708,6 +758,10 @@ class CompanyDomainStore:
                           row["category"] in {"operational", "oil_gas_operations"} and
                           field in oil_gas_not_disclosed):
                         availability = "not_disclosed_in_archived_annual_report"
+                    elif company_id == "sa:2010" and field in sabic_not_applicable:
+                        availability = "not_applicable_company_business_model"
+                    elif company_id == "sa:2010" and field in sabic_not_disclosed:
+                        availability = "not_disclosed_in_archived_annual_report"
                     else:
                         availability = "pending_official_source_extraction"
                     playbook = GAP_RESOLUTION_PLAYBOOK[availability]
@@ -720,6 +774,7 @@ class CompanyDomainStore:
                     })
                 non_actionable_states = {
                     "event_driven_no_event_observed", "not_applicable_market_identifier",
+                    "not_applicable_company_business_model",
                     "not_disclosed_in_archived_annual_report", "not_disclosed_in_archived_filings",
                     "qualitative_disclosure_only",
                 }

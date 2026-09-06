@@ -158,6 +158,7 @@ class ServiceTests(unittest.TestCase):
             backlog=query.backlog("SA","2222")
             sabic=query.company_dossier("SA","2010")
             sabic_annual_prices=query.market_prices("SA","2010",interval="1y")
+            sabic_completeness=query.completeness("SA","2010")
         finally:
             query.close()
         self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
@@ -321,6 +322,12 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(len(sabic["ownership"]), 3)
         self.assertEqual(len(sabic["corporate_actions"]), 3)
         self.assertEqual(len(sabic_annual_prices), 5)
+        by_category = {row["category"]: row for row in sabic_completeness["categories"]}
+        self.assertNotIn("free_float", by_category["ownership"]["missing_fields"])
+        self.assertNotIn("foreign_ownership", by_category["ownership"]["missing_fields"])
+        self.assertNotIn("strategic_ownership", by_category["ownership"]["missing_fields"])
+        self.assertNotIn("dividend_payment", by_category["corporate_actions"]["missing_fields"])
+        self.assertNotIn("fifty_two_week_high", by_category["market_data"]["missing_fields"])
         sabic_esg = {
             row["metric"]: row for row in sabic["facts_by_category"]["operational"]
             if row["period_end"] == "2025-12-31" and not row["dimensions"]

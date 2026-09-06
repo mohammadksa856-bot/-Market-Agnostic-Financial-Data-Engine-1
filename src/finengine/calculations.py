@@ -19,6 +19,7 @@ class Calculator:
         "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
         "weighted_average_shares_basic", "weighted_average_shares_diluted",
         "adjusted_net_income", "dividends_paid", "market_cap",
+        "dividends_per_share",
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
         "total_hydrocarbon_production", "total_hydrocarbon_reserves",
@@ -33,6 +34,7 @@ class Calculator:
         "total_equity": "equity_growth", "operating_cash_flow": "operating_cash_flow_growth",
         "free_cash_flow": "free_cash_flow_growth",
         "ebitda": "ebitda_growth", "dividends_paid": "dividend_growth",
+        "dividends_per_share": "dividend_per_share_growth",
     }
 
     def calculate(self, facts: list[Fact], history: list[Fact] | None = None) -> list[Fact]:
@@ -83,6 +85,7 @@ class Calculator:
                         "operating_cash_flow - abs(capex)", group["operating_cash_flow"],
                         group["operating_cash_flow"].unit, group["operating_cash_flow"].currency)
                 ratio("net_margin", "net_income", "revenue")
+                ratio("gross_margin", "gross_profit", "revenue")
                 ratio("operating_margin", "operating_income", "revenue")
                 ratio("pretax_margin", "income_before_income_taxes_and_zakat", "revenue")
                 ratio("effective_tax_rate", "income_taxes_and_zakat",
@@ -93,9 +96,29 @@ class Calculator:
                 ratio("capex_to_revenue", "capex", "revenue", "abs(capex) / revenue", True)
                 ratio("capex_to_cfo", "capex", "operating_cash_flow", "abs(capex) / operating_cash_flow", True)
                 ratio("income_quality", "operating_cash_flow", "net_income")
+                ratio("cash_conversion_of_earnings", "operating_cash_flow", "net_income")
+                ratio("fcf_conversion", "free_cash_flow", "ebitda")
                 ratio("payout_ratio", "dividends_paid", "net_income", "abs(dividends_paid) / net_income", True)
+                ratio("dividend_coverage_ratio", "net_income", "dividends_paid",
+                      "net_income / abs(dividends_paid)", True)
+                ratio("fcf_payout_ratio", "dividends_paid", "free_cash_flow",
+                      "abs(dividends_paid) / free_cash_flow", True)
+                ratio("fcf_dividend_coverage_ratio", "free_cash_flow", "dividends_paid",
+                      "free_cash_flow / abs(dividends_paid)", True)
                 ratio("capex_to_depreciation", "capex", "depreciation_amortization",
                       "abs(capex) / abs(depreciation_amortization)", True)
+                ratio("capex_to_depreciation_amortization", "capex", "depreciation_amortization",
+                      "abs(capex) / abs(depreciation_amortization)", True)
+                if ("selling_general_administrative_expense" not in lookup and
+                        "general_and_administrative_expense" in lookup and
+                        "selling_distribution_expense" in lookup):
+                    add("selling_general_administrative_expense",
+                        abs(lookup["general_and_administrative_expense"].value) +
+                        abs(lookup["selling_distribution_expense"].value),
+                        "abs(general_and_administrative_expense) + abs(selling_distribution_expense)",
+                        lookup["general_and_administrative_expense"],
+                        lookup["general_and_administrative_expense"].unit,
+                        lookup["general_and_administrative_expense"].currency)
                 ratio("selling_general_administrative_to_revenue",
                       "selling_general_administrative_expense", "revenue")
                 ratio("research_development_to_revenue", "research_and_development_expense", "revenue")
@@ -116,6 +139,7 @@ class Calculator:
                         ("free_cash_flow", "free_cash_flow_per_share"),
                         ("cash", "cash_per_share"),
                         ("capex", "capex_per_share"),
+                        ("ebit", "ebit_per_share"),
                         ("ebitda", "ebitda_per_share"),
                     ):
                         if numerator in lookup:
@@ -203,6 +227,12 @@ class Calculator:
                             "(total_equity - intangible_assets) / shares_outstanding",
                             lookup["total_equity"], f"{lookup['total_equity'].currency}/share",
                             lookup["total_equity"].currency)
+                        if "retained_earnings" in lookup:
+                            add("retained_earnings_per_share",
+                                lookup["retained_earnings"].value / shares.value,
+                                "retained_earnings / shares_outstanding", lookup["retained_earnings"],
+                                f"{lookup['retained_earnings'].currency}/share",
+                                lookup["retained_earnings"].currency)
 
             if base.period_kind == PeriodKind.FY:
                 # Retrospective year-end multiples use the market capitalization
@@ -220,6 +250,16 @@ class Calculator:
                           "net_income / reported_year_end_market_cap")
                     ratio("fcf_yield", "free_cash_flow", "market_cap",
                           "free_cash_flow / reported_year_end_market_cap")
+                    ratio("cfo_yield", "operating_cash_flow", "market_cap",
+                          "operating_cash_flow / reported_year_end_market_cap")
+                    ratio("price_to_cash_flow", "market_cap", "operating_cash_flow",
+                          "reported_year_end_market_cap / operating_cash_flow")
+                    ratio("price_to_free_cash_flow", "market_cap", "free_cash_flow",
+                          "reported_year_end_market_cap / free_cash_flow")
+                    ratio("market_cap_to_equity", "market_cap", "total_equity",
+                          "reported_year_end_market_cap / total_equity")
+                    ratio("market_cap_to_net_income", "market_cap", "net_income",
+                          "reported_year_end_market_cap / net_income")
                 if ("total_hydrocarbon_reserves" in lookup and
                         "total_hydrocarbon_production" in lookup and
                         lookup["total_hydrocarbon_production"].value):
@@ -247,6 +287,9 @@ class Calculator:
                     if average and "net_income" in lookup:
                         add("return_on_equity", lookup["net_income"].value / average,
                             "net_income / average(total_equity)", lookup["net_income"])
+                    if average and "operating_cash_flow" in lookup:
+                        add("cash_return_on_equity", lookup["operating_cash_flow"].value / average,
+                            "operating_cash_flow / average(total_equity)", lookup["operating_cash_flow"])
                     current_intangible = lookup["intangible_assets"].value if "intangible_assets" in lookup else Decimal(0)
                     prior_intangible = prior_instant["intangible_assets"].value if "intangible_assets" in prior_instant else Decimal(0)
                     current_tangible = lookup["total_equity"].value - current_intangible
@@ -271,13 +314,31 @@ class Calculator:
                     if net_debt:
                         add("net_debt_to_ebitda", net_debt.value / lookup["ebitda"].value,
                             "net_debt / ebitda", lookup["ebitda"])
-                for source_metric in ("revenue", "net_income", "eps_diluted"):
+                if debt:
+                    if "operating_cash_flow" in lookup:
+                        add("cfo_to_debt", lookup["operating_cash_flow"].value / debt,
+                            "operating_cash_flow / total_debt", lookup["operating_cash_flow"])
+                    if "free_cash_flow" in lookup:
+                        add("fcf_to_debt", lookup["free_cash_flow"].value / debt,
+                            "free_cash_flow / total_debt", lookup["free_cash_flow"])
+                    capital = debt + (instant_now["total_equity"].value if "total_equity" in instant_now else Decimal(0))
+                    if capital:
+                        add("total_debt_to_capital", debt / capital,
+                            "total_debt / (total_debt + total_equity)",
+                            instant_now.get("current_debt") or instant_now["long_term_debt"])
+                        if "long_term_debt" in instant_now:
+                            add("long_term_debt_to_capital", instant_now["long_term_debt"].value / capital,
+                                "long_term_debt / (total_debt + total_equity)", instant_now["long_term_debt"])
+                for source_metric in ("revenue", "net_income", "eps_diluted", "dividends_per_share"):
                     if source_metric not in lookup or not lookup[source_metric].value:
                         continue
                     for years in (3, 5):
                         prior = historical.get((company_id, base.fiscal_year - years, PeriodKind.FY), {})
                         if source_metric in prior and prior[source_metric].value > 0 and lookup[source_metric].value > 0:
-                            add(f"{source_metric.replace('eps_diluted','eps')}_cagr_{years}y",
+                            cagr_stem = {
+                                "eps_diluted": "eps", "dividends_per_share": "dividend"
+                            }.get(source_metric, source_metric)
+                            add(f"{cagr_stem}_cagr_{years}y",
                                 (lookup[source_metric].value / prior[source_metric].value) ** (Decimal(1) / Decimal(years)) - 1,
                                 f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
                                 lookup[source_metric])
