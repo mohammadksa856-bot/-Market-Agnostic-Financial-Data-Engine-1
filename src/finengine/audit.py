@@ -81,6 +81,57 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
          "violations": contract_violations[:20]})
     oil_gas_count = conn.execute("SELECT count(*) FROM data_catalog_fields WHERE enabled=1 AND pack_key='oil_gas_v2'").fetchone()[0]
     add("oil_gas_sector_pack", "pass" if oil_gas_count >= 40 else "fail", oil_gas_count)
+    pack_minimums = {
+        "company_core_v5": 500,
+        "dividends_v1": 20,
+        "announcements_v1": 20,
+        "oil_gas_v2": 40,
+        "chemicals_v1": 35,
+        "banking_v1": 30,
+        "insurance_v1": 20,
+        "telecommunications_v1": 20,
+        "utilities_v1": 20,
+        "mining_v1": 20,
+        "real_estate_v1": 20,
+        "retail_v1": 20,
+        "healthcare_v1": 20,
+        "transportation_logistics_v1": 20,
+        "industrial_construction_v1": 20,
+        "technology_v1": 20,
+        "food_agriculture_v1": 20,
+        "asset_management_v1": 20,
+    }
+    pack_counts = {row["pack_key"]: row["n"] for row in conn.execute(
+        "SELECT pack_key,count(*) n FROM data_catalog_fields WHERE enabled=1 GROUP BY pack_key"
+    )}
+    undersized = {key: {"actual": pack_counts.get(key, 0), "minimum": minimum}
+                  for key, minimum in pack_minimums.items()
+                  if pack_counts.get(key, 0) < minimum}
+    sector_scope = {
+        "oil_gas_v2": "Integrated Oil & Gas",
+        "chemicals_v1": "Diversified Chemicals",
+        "banking_v1": "Banks",
+        "insurance_v1": "Insurance",
+        "telecommunications_v1": "Telecommunications",
+        "utilities_v1": "Utilities",
+        "mining_v1": "Mining",
+        "real_estate_v1": "Real Estate & REITs",
+        "retail_v1": "Retail",
+        "healthcare_v1": "Health Care",
+        "transportation_logistics_v1": "Transportation & Logistics",
+        "industrial_construction_v1": "Industrials & Construction",
+        "technology_v1": "Technology",
+        "food_agriculture_v1": "Food & Agriculture",
+        "asset_management_v1": "Asset Management",
+    }
+    sector_pack_keys = tuple(sector_scope)
+    placeholders = ",".join("?" for _ in sector_pack_keys)
+    scope_violations = [dict(row) for row in conn.execute(
+        f"""SELECT field_key,pack_key,scope_type,scope_value FROM data_catalog_fields
+        WHERE enabled=1 AND pack_key IN ({placeholders})""", sector_pack_keys
+    ) if row["scope_type"] != "industry" or row["scope_value"] != sector_scope[row["pack_key"]]]
+    add("master_schema_packs", "pass" if not undersized and not scope_violations else "fail",
+        {"counts": pack_counts, "undersized": undersized, "scope_violations": scope_violations[:20]})
 
     missing_files = []
     hash_mismatches = []

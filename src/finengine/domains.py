@@ -394,7 +394,12 @@ class CompanyDomainStore:
             by_category.setdefault(row["category"], []).append(row)
         results=[]
         for category, rows in sorted(by_category.items()):
-            expected={row["field_key"] for row in rows}; present={key for key in expected if key in available[rows[0]["storage_domain"]]}
+            expected={row["field_key"] for row in rows}
+            # Categories may intentionally combine facts and event-backed fields
+            # (for example dividends). Resolve each field against its own
+            # storage domain instead of assuming one domain for the category.
+            present={row["field_key"] for row in rows
+                     if row["field_key"] in available[row["storage_domain"]]}
             required={row["field_key"] for row in rows if row["requirement"] == "required"}
             present_required=required & present
             missing_required=sorted(required-present)

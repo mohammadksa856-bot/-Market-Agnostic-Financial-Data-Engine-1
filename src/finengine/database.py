@@ -480,6 +480,13 @@ class Database:
             "profitability": "ratio", "liquidity_solvency": "ratio", "efficiency": "ratio",
             "growth": "calculated", "valuation": "calculated", "financial_notes": "financial",
             "commercial_pipeline": "commercial", "investor_analytics": "calculated", "consensus": "consensus",
+            "dividends": "financial", "chemical_operations": "operational",
+            "banking": "financial", "insurance": "financial",
+            "telecommunications": "operational", "utilities": "operational",
+            "mining": "operational", "real_estate": "operational", "retail": "operational",
+            "healthcare": "operational", "transportation_logistics": "operational",
+            "industrial_construction": "operational", "technology": "operational",
+            "food_agriculture": "operational", "asset_management": "financial",
         }
         for item in iter_catalog_fields():
             definition = {key: item[key] for key in (

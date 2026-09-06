@@ -5,6 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from finengine.database import Database
+from finengine.catalog import iter_catalog_fields
 from finengine.domains import CompanyDomainStore
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument, TypedFact, ValueType
 from finengine.query import FinancialQueryService
@@ -179,6 +180,49 @@ class CompanyDomainTests(unittest.TestCase):
         self.assertEqual(completeness["expected_fields"],result["expected"])
         self.assertGreater(completeness["required_fields"], 0)
         self.assertTrue(any(row["required_missing"] for row in completeness["categories"]))
+
+    def test_sector_packs_are_explicit_and_apply_only_to_matching_industries(self):
+        counts = {row["pack_key"]: row["n"] for row in self.db.conn.execute(
+            "SELECT pack_key,count(*) n FROM data_catalog_fields WHERE enabled=1 GROUP BY pack_key")}
+        self.assertGreaterEqual(counts["chemicals_v1"], 35)
+        self.assertGreaterEqual(counts["banking_v1"], 30)
+        self.assertGreaterEqual(counts["insurance_v1"], 20)
+        self.assertGreaterEqual(counts["dividends_v1"], 20)
+        self.assertGreaterEqual(counts["announcements_v1"], 20)
+        for pack in (
+            "telecommunications_v1", "utilities_v1", "mining_v1", "real_estate_v1",
+            "retail_v1", "healthcare_v1", "transportation_logistics_v1",
+            "industrial_construction_v1", "technology_v1", "food_agriculture_v1",
+            "asset_management_v1",
+        ):
+            self.assertGreaterEqual(counts[pack], 20)
+
+        with self.db.conn:
+            self.db.conn.execute(
+                "UPDATE companies SET sector='Materials',industry='Diversified Chemicals' WHERE company_id='sa:TST'")
+        result = self.store.refresh_catalog_completeness("sa:TST")
+        categories = {row["category"] for row in result["categories"]}
+        self.assertIn("chemical_operations", categories)
+        self.assertNotIn("banking", categories)
+        self.assertNotIn("insurance", categories)
+
+        with self.db.conn:
+            self.db.conn.execute(
+                "UPDATE companies SET sector='Communication Services',industry='Telecommunications' "
+                "WHERE company_id='sa:TST'")
+        telecom_result = self.store.refresh_catalog_completeness("sa:TST")
+        telecom_categories = {row["category"] for row in telecom_result["categories"]}
+        self.assertIn("telecommunications", telecom_categories)
+        self.assertNotIn("chemical_operations", telecom_categories)
+        self.assertNotIn("utilities", telecom_categories)
+
+        wanted = {"market_cap", "price_close", "dividend_yield_ttm", "production_capacity"}
+        definitions = {item["field_key"]: item for item in iter_catalog_fields()
+                       if item["field_key"] in wanted}
+        self.assertEqual(definitions["market_cap"]["unit_family"], "monetary")
+        self.assertEqual(definitions["price_close"]["unit_family"], "per_share")
+        self.assertEqual(definitions["dividend_yield_ttm"]["unit_family"], "ratio")
+        self.assertEqual(definitions["production_capacity"]["default_unit"], "million_tonnes/year")
 
     def test_catalog_definitions_are_versioned_and_dimensions_are_queryable(self):
         query = FinancialQueryService(self.path)
