@@ -1,8 +1,8 @@
 {
   "company_id": "sa:1120",
   "issuer": "Al Rajhi Bank",
-  "source_url": "https://www.alrajhibank.com.sa/en/About-alrajhi-bank/Investor-Relations",
-  "notes": "External Data Supplement (quarterly .xlsx). Raw reported lines only; the supplement's own ratios (ROE, ROA, NIM, cost-to-income, cost of risk, CET1/Tier1/CAR, LDR, NPL ratio/coverage) are intentionally not mapped - the engine recomputes every ratio from the ingested lines.",
+  "source_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/n/ax0k7s74wvl7/b/Marketing_Email_Images/o/ARB%20External%20Data%20Supplement%20-%204Q2025.xlsx",
+  "notes": "Al Rajhi Bank External Data Supplement (quarterly xlsx). Raw reported lines only; the supplement's own ratios are not mapped. 'Fee from banking services, net' and 'Investments, net' are intentionally not mapped - the audited financial statements own gross fee income / fee expense and the note-36 investments figure.",
   "scale": "1000000",
   "sheets": {
     "1. Income Statement": {
@@ -16,10 +16,6 @@
       ],
       "Net financing and investment income": [
         "net_financing_income",
-        "fy"
-      ],
-      "Fee from banking services, net": [
-        "fee_income",
         "fy"
       ],
       "Exchange Income, net": [
@@ -90,10 +86,6 @@
       ],
       "Due from banks and other financial Institutions": [
         "due_from_banks",
-        "instant"
-      ],
-      "Investments, net": [
-        "bank_investments",
         "instant"
       ],
       "Financing, net": [
