@@ -218,6 +218,8 @@ def main():
     p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
     init=sub.add_parser("init"); init.add_argument("--registry",default="config/companies.json")
     bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
+    backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
+    production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--no-llm",action="store_true")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
@@ -254,6 +256,13 @@ def main():
         db.close(); print(f"initialized {a.db} with {len(reg.all())} companies"); return
     if a.cmd=="bootstrap":
         result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every)
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="backup":
+        from .operations import backup_database
+        print(json.dumps(backup_database(a.db,a.output_dir,a.keep),indent=2)); return
+    if a.cmd=="configure-production":
+        from .operations import configure_production_schedules
+        result=configure_production_schedules(a.db,a.registry,a.every,a.source_limit,not a.no_llm)
         print(json.dumps(result,indent=2)); return
     if a.cmd=="archive-sources":
         result=archive_manifest_sources(a.db,a.imports,a.registry,a.raw_dir,a.index,

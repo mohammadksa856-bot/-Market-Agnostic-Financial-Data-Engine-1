@@ -14,6 +14,7 @@ from finengine.archive import archive_manifest_sources
 from finengine.bootstrap import rebuild_snapshot
 from finengine.database import Database
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
+from finengine.operations import backup_database, configure_production_schedules
 from finengine.query import FinancialQueryService
 from finengine.report import export_readable_report
 from finengine.telegram import answer_command
@@ -82,6 +83,38 @@ class ServiceTests(unittest.TestCase):
         result=audit_release(self.dbpath)
         self.assertFalse(result["ready"])
         self.assertEqual(next(check for check in result["checks"] if check["name"]=="source_archive_hashes")["status"],"fail")
+
+    def test_online_backup_is_integrity_checked_and_retained(self):
+        output=Path(self.temp.name)/"backups"
+        first=backup_database(self.dbpath,output,keep=1)
+        self.assertEqual(first["status"],"ready")
+        self.assertEqual(len(first["sha256"]),64)
+        second=backup_database(self.dbpath,output,keep=1)
+        self.assertTrue(Path(second["backup"]).is_file())
+        self.assertTrue(Path(second["metadata"]).is_file())
+        self.assertEqual(len(list(output.glob("financial-*.sqlite3"))),1)
+
+    def test_production_schedule_configuration_is_idempotent(self):
+        registry=Path(self.temp.name)/"companies.json"
+        registry.write_text(json.dumps([{
+            "company_id":"sa:TST","market":"SA","symbol":"TST","name":"Test Company",
+            "currency":"SAR","industry":"Diversified Chemicals",
+            "sources":["https://example.test/reports"]
+        }]),encoding="utf-8")
+        first=configure_production_schedules(self.dbpath,registry,3600,25,True)
+        second=configure_production_schedules(self.dbpath,registry,3600,25,True)
+        self.assertEqual(first["count"],1)
+        self.assertEqual(second["configured"],["monitor:SA:TST"])
+        db=Database(self.dbpath)
+        try:
+            rows=db.conn.execute("SELECT payload_json FROM schedules WHERE enabled=1").fetchall()
+        finally:
+            db.close()
+        self.assertEqual(len(rows),1)
+        payload=json.loads(rows[0]["payload_json"])
+        self.assertTrue(payload["browser"])
+        self.assertTrue(payload["llm"])
+        self.assertEqual(payload["source_limit"],25)
 
     def test_official_source_artifact_is_archived_and_indexed(self):
         root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()

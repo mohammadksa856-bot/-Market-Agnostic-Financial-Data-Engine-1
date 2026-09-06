@@ -9,10 +9,27 @@ services:
       SEC_USER_AGENT: ${SEC_USER_AGENT:?Set SEC_USER_AGENT in .env}
       FINENGINE_API_KEY: ${FINENGINE_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FINENGINE_SCHEDULE_SECONDS: ${FINENGINE_SCHEDULE_SECONDS:-21600}
+      FINENGINE_SOURCE_LIMIT: ${FINENGINE_SOURCE_LIMIT:-50}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./data:/app/data
+    init: true
+
+  backup:
+    build: .
+    restart: unless-stopped
+    command: ["sh", "-c", "while true; do finengine --db /app/data/financial.sqlite3 backup --output-dir /app/backups --keep $${FINENGINE_BACKUP_KEEP:-14}; sleep $${FINENGINE_BACKUP_SECONDS:-86400}; done"]
+    environment:
+      FINENGINE_BACKUP_KEEP: ${FINENGINE_BACKUP_KEEP:-14}
+      FINENGINE_BACKUP_SECONDS: ${FINENGINE_BACKUP_SECONDS:-86400}
+    volumes:
+      - ./data:/app/data:ro
+      - ./backups:/app/backups
+    depends_on:
+      engine:
+        condition: service_healthy
     init: true
 
   telegram:

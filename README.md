@@ -11,14 +11,14 @@ The bundled portable snapshot is rebuilt from 44 reviewed manifests and currentl
 - 5 enabled companies: Saudi Aramco, SABIC, Apple, Microsoft, and NVIDIA.
 - 2,012 current facts and 2,114 total fact versions.
 - 1,011 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
-- 195 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
+- 205 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
 - 44 published source documents, nine independently hashed raw artifacts (eight issuer PDFs and one Saudi Exchange price snapshot), zero active schedules, zero open publication exceptions, and zero dead jobs. Scheduling remains a supported deployment capability, but the previously configured task is intentionally disabled.
 - Master Schema catalog version 10 contains 1,033 governed fields and 903 metric contracts: 541 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. In addition to oil and gas, the 64-field chemicals pack now includes resource intensity, emissions, waste, process safety, innovation, workforce, and supplier KPIs. Banking, insurance, telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management are also covered. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
 - Aramco currently populates 376 of 658 applicable catalog fields (57.1% raw target coverage after the schema expansion), with all 28 core required fields present. The lower percentage reflects a larger target model, not lost data.
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 236 deterministic calculated facts across 322 distinct metrics. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 374 of 653 master-catalog fields (57.3% raw target coverage) and all 28 core required fields. After fields verified as not disclosed, event-driven, or not applicable to SABIC are excluded, actionable coverage is 374 of 559 (66.9%). Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 14, catalog version 10, and 64 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
+- Database schema version 14, catalog version 10, and 66 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -78,6 +78,11 @@ The seven Aramco PDF binaries total about 70.5 MB and are intentionally excluded
 
 ## Run continuously
 
+Production startup configures an idempotent monitor for every enabled company in
+`config/companies.json`; adding a company to the registry is therefore enough to
+include it in the next deployment. The bundled registry is a five-company pilot,
+not a claim of whole-market coverage. See [production readiness and rollout](docs/PRODUCTION.md).
+
 Set a real SEC operator identity before enabling US monitoring:
 
     set SEC_USER_AGENT=YourProduct your-email@example.com
@@ -89,6 +94,14 @@ Optionally protect the API:
 Start the durable scheduler, worker, and read-only API together:
 
     finengine --db data/financial.sqlite3 run --host 127.0.0.1 --port 8000
+
+For an always-on host, copy `.env.example` to `.env`, replace the example SEC
+identity and API key, then run:
+
+    docker compose up -d --build
+
+Add `--profile telegram` to start the read-only Telegram adapter. The deployment
+also creates a verified daily SQLite backup and retains 14 snapshots by default.
 
 The worker survives normal restarts because schedules, jobs, attempts, leases, cursors, source candidates, and backlog are stored in SQLite. Repeated polling and ingestion are idempotent. Failed jobs retry with exponential backoff; expired leases are recovered; terminal failures remain visible as dead jobs.
 
