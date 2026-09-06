@@ -23,7 +23,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-_PERIOD = re.compile(r"^\s*(FY|1Q|2Q|3Q|4Q|1H|9M|H1|Q1|Q2|Q3|Q4)\s*(20\d{2})\s*$", re.I)
+_PERIOD = re.compile(r"^\s*(FY|1Q|2Q|3Q|4Q|1H|9M|H1|Q1|Q2|Q3|Q4)[\s\-]*(20\d{2})\s*$", re.I)
 _QUARTER_END = {"1Q": "03-31", "2Q": "06-30", "3Q": "09-30", "4Q": "12-31",
                 "q1": "03-31", "q2": "06-30", "q3": "09-30", "q4": "12-31"}
 _CUMULATIVE_END = {"1h": "06-30", "h1": "06-30", "9m": "09-30"}
