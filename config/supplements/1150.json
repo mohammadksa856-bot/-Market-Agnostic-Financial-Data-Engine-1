@@ -1,0 +1,153 @@
+{
+  "company_id": "sa:1150",
+  "issuer": "Alinma Bank",
+  "source_url": "https://ir.alinma.com/en/investor-relations/financial-information/",
+  "notes": "Alinma Bank Financial Data Supplement (quarterly .xlsx, FY2018+). Raw reported lines only; the supplement's own ratios (ROAE, ROAA, NIM, cost-to-income, cost of risk, NPL ratio/coverage, CAR/T1/CET1, LCR, NSFR, LDR) are not mapped - the engine recomputes them.",
+  "scale": "1000000",
+  "sheets": {
+    "Income Statement": {
+      "income from investment": [
+        "financing_income",
+        "fy"
+      ],
+      "return on time investm": [
+        "financing_expense",
+        "fy",
+        "negate"
+      ],
+      "funded income": [
+        "net_financing_income",
+        "fy"
+      ],
+      "fees from banking serv": [
+        "fee_income",
+        "fy"
+      ],
+      "exchange income": [
+        "exchange_income",
+        "fy"
+      ],
+      "other operating income": [
+        "other_income",
+        "fy"
+      ],
+      "total operating income": [
+        "total_operating_income",
+        "fy"
+      ],
+      "operating expenses": [
+        "operating_expense_banking",
+        "fy",
+        "negate"
+      ],
+      "impairments": [
+        "provision_expense",
+        "fy",
+        "negate"
+      ],
+      "income before zakat": [
+        "income_before_income_taxes_and_zakat",
+        "fy"
+      ],
+      "zakat": [
+        "income_taxes_and_zakat",
+        "fy",
+        "negate"
+      ],
+      "net income": [
+        "net_income",
+        "fy"
+      ],
+      "weighted average numbe": [
+        "weighted_average_shares_diluted",
+        "fy"
+      ],
+      "eps": [
+        "eps_diluted",
+        "fy"
+      ],
+      "dps, net": [
+        "dividends_per_share",
+        "fy"
+      ]
+    },
+    "Balance Sheet": {
+      "cash & balances with s": [
+        "cash_and_balances_with_central_bank",
+        "instant"
+      ],
+      "due from banks & fin": [
+        "due_from_banks",
+        "instant"
+      ],
+      "investments": [
+        "bank_investments",
+        "instant"
+      ],
+      "financing": [
+        "net_loans",
+        "instant"
+      ],
+      "total financing, gross": [
+        "gross_loans",
+        "instant"
+      ],
+      "total assets": [
+        "total_assets",
+        "instant"
+      ],
+      "due to sama, banks": [
+        "due_to_banks",
+        "instant"
+      ],
+      "customers' deposits": [
+        "customer_deposits",
+        "instant"
+      ],
+      "total liabilities": [
+        "total_liabilities",
+        "instant"
+      ],
+      "total liabilities & eq": [
+        "total_liabilities_equity",
+        "instant"
+      ],
+      "share capital": [
+        "share_capital",
+        "instant"
+      ],
+      "statutory reserve": [
+        "statutory_reserve",
+        "instant"
+      ],
+      "other reserves": [
+        "other_reserves",
+        "instant"
+      ],
+      "retained earnings": [
+        "retained_earnings",
+        "instant"
+      ],
+      "treasury shares": [
+        "treasury_shares",
+        "instant"
+      ],
+      "equity attributable to": [
+        "total_equity",
+        "instant"
+      ],
+      "total npl": [
+        "nonperforming_loans",
+        "instant"
+      ],
+      "total rwa": [
+        "risk_weighted_assets",
+        "instant"
+      ],
+      "total capital": [
+        "regulatory_capital",
+        "instant"
+      ]
+    }
+  }
+}

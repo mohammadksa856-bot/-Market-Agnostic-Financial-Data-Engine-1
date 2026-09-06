@@ -101,7 +101,7 @@ class SupplementReader:
         # A balance-sheet line is an instant fact taken from the year-end (FY)
         # column; a flow line matches its own period kind.
         only = set(period_kinds) | {"fy"}
-        workbook = openpyxl.load_workbook(self.xlsx_path, data_only=True, read_only=True)
+        workbook = openpyxl.load_workbook(self.xlsx_path, data_only=True)
         facts: list[dict] = []
         seen: set[tuple] = set()
 
@@ -113,15 +113,23 @@ class SupplementReader:
             columns = self._period_columns(sheet, only)
             if not columns:
                 continue
-            resolved = {_norm(label): spec for label, spec in row_map.items()}
+            # Config keys match as a substring of the row label; the longest
+            # matching key wins. Supplement labels vary and are often clipped.
+            phrases = sorted(((_norm(label), spec) for label, spec in row_map.items()),
+                             key=lambda item: -len(item[0]))
+            label_col = min(columns)  # the row label sits left of the first period column
 
             for row in sheet.iter_rows(values_only=True):
-                if not row or row[0] is None:
+                raw_label = next((cell for cell in row[:label_col]
+                                  if isinstance(cell, str) and cell.strip()), None)
+                if raw_label is None:
                     continue
-                spec = resolved.get(_norm(row[0]))
+                label = _norm(raw_label)
+                spec = next((spec for phrase, spec in phrases if phrase and phrase in label), None)
                 if not spec:
                     continue
                 metric, want_kind = spec[0], spec[1]
+                negate = len(spec) > 2 and spec[2] == "negate"
                 for index, (kind, fiscal_year, column_end) in columns.items():
                     if index >= len(row):
                         continue
@@ -138,16 +146,19 @@ class SupplementReader:
                     value = _number(row[index])
                     if value is None:
                         continue
+                    if negate:
+                        value = -value
                     key = (metric, period_end, emit_kind)
+                    if key in seen:
+                        continue  # a supplement often repeats a subtotal label; the first hit wins
                     fact = {
-                        "metric": metric, "source_label": str(row[0]).strip(),
+                        "metric": metric, "source_label": str(raw_label).strip(),
                         "value": str(value), "period_end": period_end,
                         "period_kind": emit_kind, "fiscal_year": fiscal_year,
                         "scale": str(scale), "currency": currency, "unit": currency,
                     }
                     if emit_kind in {"fy", "ytd", "quarter"}:
                         fact["period_start"] = f"{fiscal_year}-01-01"
-                    facts[:] = [f for f in facts if (f["metric"], f["period_end"], f["period_kind"]) != key]
                     seen.add(key)
                     facts.append(fact)
         workbook.close()
