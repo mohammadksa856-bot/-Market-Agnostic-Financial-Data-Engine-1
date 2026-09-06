@@ -45,6 +45,9 @@ Every consumer response should preserve at least:
 
 Frontend code must request a specific period kind. Selecting the newest date alone
 can incorrectly mix a discrete quarter with YTD, FY, TTM, or a point-in-time value.
+The `GET /v1/companies/{market}/{symbol}/page` contract enforces this separation,
+reports availability for each consumer section, and never fills missing fields with
+demonstration data.
 
 ## Whole-market rollout gates
 

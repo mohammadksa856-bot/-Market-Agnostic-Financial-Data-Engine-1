@@ -50,6 +50,14 @@ class ServiceTests(unittest.TestCase):
             dossier=json.loads(urlopen(request).read())
             self.assertEqual(dossier["overview"]["name"],"Test Company")
             self.assertEqual(dossier["facts_by_category"]["financial"][0]["metric"],"revenue")
+            request=Request(f"http://127.0.0.1:{port}/v1/companies/SA/TST/page",
+                            headers={"X-API-Key":"secret"})
+            page=json.loads(urlopen(request).read())
+            self.assertEqual(page["placeholder_policy"],"never_substitute_demo_values")
+            self.assertEqual(page["sections"]["financials"]["annual"]["period_kind"],"fy")
+            self.assertEqual(page["sections"]["financials"]["annual"]["metrics"]["revenue"][0]["value"],"100")
+            self.assertEqual(page["sections"]["financials"]["quarter"]["status"],"unavailable")
+            self.assertEqual(page["capabilities"]["consensus"]["reason"],"licensed_consensus_feed_required")
             request=Request(f"http://127.0.0.1:{port}/v1/catalog?limit=500",
                             headers={"X-API-Key":"secret"})
             catalog=json.loads(urlopen(request).read())
@@ -75,6 +83,26 @@ class ServiceTests(unittest.TestCase):
         profile=answer_command(self.dbpath,"/profile SA TST")
         self.assertIn("Test Company",profile)
         self.assertIn("100 SAR",profile)
+
+    def test_company_page_never_mixes_period_semantics(self):
+        db=Database(self.dbpath)
+        document=SourceDocument("sa:TST",Market.SA,"https://example.test/q2","source:q2",
+                                "quarterly","2026-08-01",b"q2")
+        raw=Path(self.temp.name)/"q2.json"; raw.write_bytes(b"q2")
+        db.save_source(document,hashlib.sha256(b"q2").hexdigest(),str(raw))
+        db.set_source_status(document.source_key,"published")
+        db.publish(Fact("sa:TST","revenue",Decimal("30"),"SAR","SAR","2026-04-01",
+                        "2026-06-30",PeriodKind.QUARTER,2026,2,document.source_key,
+                        document.source_url,document.filed_at))
+        db.publish(Fact("sa:TST","revenue",Decimal("55"),"SAR","SAR","2026-01-01",
+                        "2026-06-30",PeriodKind.YTD,2026,2,document.source_key,
+                        document.source_url,document.filed_at))
+        db.close()
+        query=FinancialQueryService(self.dbpath)
+        try: page=query.company_page("SA","TST")
+        finally: query.close()
+        self.assertEqual(page["sections"]["financials"]["quarter"]["metrics"]["revenue"][0]["value"],"30")
+        self.assertEqual(page["sections"]["financials"]["ytd"]["metrics"]["revenue"][0]["value"],"55")
 
     def test_release_audit_checks_source_hashes(self):
         result=audit_release(self.dbpath)

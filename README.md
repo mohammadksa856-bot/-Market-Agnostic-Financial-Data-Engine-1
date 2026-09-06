@@ -18,7 +18,7 @@ The bundled portable snapshot is rebuilt from 44 reviewed manifests and currentl
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 236 deterministic calculated facts across 322 distinct metrics. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 374 of 653 master-catalog fields (57.3% raw target coverage) and all 28 core required fields. After fields verified as not disclosed, event-driven, or not applicable to SABIC are excluded, actionable coverage is 374 of 559 (66.9%). Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 14, catalog version 10, and 66 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
+- Database schema version 14, catalog version 10, and 67 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -47,6 +47,7 @@ Python 3.11+ is required. There are no runtime package dependencies.
     finengine --db data/financial.sqlite3 query SA 2222 revenue
     finengine --db data/financial.sqlite3 dossier SA 2222
     finengine --db data/financial.sqlite3 dossier SA 2222 --output data/aramco-2222-dossier.json
+    finengine --db data/financial.sqlite3 page SA 2222 --output data/aramco-2222-page.json
     finengine --db data/financial.sqlite3 facts SA 2222 --category operational
     finengine --db data/financial.sqlite3 completeness SA 2222 --refresh
     finengine --db data/financial.sqlite3 catalog --limit 500
@@ -121,6 +122,7 @@ Examples:
     GET /health
     GET /v1/companies/SA/2222
     GET /v1/companies/SA/2222/dossier
+    GET /v1/companies/SA/2222/page
     GET /v1/companies/SA/2222/facts?category=financial&limit=100
     GET /v1/companies/SA/2222/snapshot?period_end=2025-12-31
     GET /v1/companies/SA/2222/metrics/revenue?limit=10
@@ -131,6 +133,10 @@ Examples:
     GET /v1/companies/SA/2222/attributes
     GET /v1/companies/SA/2222/prices
     GET /v1/companies/SA/2222/ownership
+
+`/page` is the stable website/Telegram contract. It separates FY, quarter, YTD,
+TTM and instant snapshots, includes provenance, reports section capability and
+missing-source reasons, and explicitly forbids demonstration-value fallbacks.
     GET /v1/companies/SA/2222/estimates?metric=revenue_estimate&period_end=2027-12-31
     GET /v1/companies/SA/2222/actions
     GET /v1/catalog?category=oil_gas_operations&limit=500

@@ -47,6 +47,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     tail=parts[4:]
                     if not tail: result=query.company_overview(market,symbol)
                     elif tail==["dossier"]: result=query.company_dossier(market,symbol)
+                    elif tail==["page"]: result=query.company_page(market,symbol)
                     elif tail==["facts"]:
                         result=query.facts(market,symbol,params.get("category",[None])[0],
                             params.get("period_kind",[None])[0],self._int(params,"limit",500),

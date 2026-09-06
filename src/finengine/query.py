@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timezone
 from decimal import Decimal
 
 
@@ -203,6 +204,109 @@ class FinancialQueryService:
             "facts_by_category": categories,
             "coverage": self.coverage(market, symbol, limit=1000),
             "sources": [dict(row) for row in sources],
+        }
+
+    def period_snapshot(self, market: str, symbol: str, period_kind: str) -> dict:
+        """Return only the newest period of one explicit semantic kind.
+
+        A consumer must never infer a period from the newest date because quarter,
+        YTD, FY, TTM and point-in-time facts can legitimately share a period end.
+        """
+        allowed = {"instant", "quarter", "ytd", "fy", "ttm", "as_of", "daily", "event"}
+        if period_kind not in allowed:
+            raise ValueError(f"unsupported period_kind: {period_kind}")
+        company = self.conn.execute(
+            "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+            (market.upper(), symbol.upper()),
+        ).fetchone()
+        if not company:
+            raise KeyError(f"unknown company {market}:{symbol}")
+        latest = self.conn.execute(
+            """SELECT MAX(period_end) AS period_end FROM data_points
+            WHERE company_id=? AND period_kind=? AND is_current=1""",
+            (company["company_id"], period_kind),
+        ).fetchone()["period_end"]
+        if not latest:
+            return {"status": "unavailable", "reason": f"no_{period_kind}_facts",
+                    "period_kind": period_kind, "period_end": None, "metrics": {}}
+        rows = self.conn.execute(
+            """SELECT d.id AS data_point_id,d.metric_key AS metric,m.display_name,m.category,
+            m.statement,d.value_decimal AS value,d.value_text,d.value_json,d.value_type,
+            d.currency,d.unit,d.period_start,d.period_end,d.period_kind,d.fiscal_year,
+            d.fiscal_quarter,d.scope,d.dimensions_json,d.version,d.quality_score,d.source_key,
+            d.source_url,d.filed_at,d.is_calculated,d.calculation
+            FROM data_points d JOIN metric_definitions m ON m.metric_key=d.metric_key
+            WHERE d.company_id=? AND d.period_kind=? AND d.period_end=? AND d.is_current=1
+            ORDER BY m.category,d.metric_key,d.scope,d.dimensions_json""",
+            (company["company_id"], period_kind, latest),
+        ).fetchall()
+        grouped: dict[str, list[dict]] = {}
+        for row in rows:
+            item = self._point_with_trace(row)
+            grouped.setdefault(item.pop("metric"), []).append(item)
+        return {"status": "available", "reason": None, "period_kind": period_kind,
+                "period_end": latest, "metrics": grouped}
+
+    @staticmethod
+    def _availability(items: list | dict, missing_reason: str, partial: bool = False) -> dict:
+        count = len(items)
+        if not count:
+            return {"status": "unavailable", "count": 0, "reason": missing_reason}
+        return {"status": "partial" if partial else "available", "count": count,
+                "reason": missing_reason if partial else None}
+
+    def company_page(self, market: str, symbol: str) -> dict:
+        """Stable, no-placeholder contract for the website and Telegram consumers."""
+        overview = self.company_overview(market, symbol)
+        attributes = self.attributes(market, symbol)
+        annual = self.period_snapshot(market, symbol, "fy")
+        quarter = self.period_snapshot(market, symbol, "quarter")
+        ytd = self.period_snapshot(market, symbol, "ytd")
+        ttm = self.period_snapshot(market, symbol, "ttm")
+        instant = self.period_snapshot(market, symbol, "instant")
+        prices = self.market_prices(market, symbol, limit=260)
+        ownership = self.ownership(market, symbol, limit=100)
+        actions = self.corporate_actions(market, symbol, limit=100)
+        disclosures = self.disclosures(market, symbol, limit=100)
+        estimates = self.consensus_estimates(market, symbol, limit=100)
+        completeness = self.completeness(market, symbol)
+        capabilities = {
+            "profile": self._availability(attributes, "no_sourced_company_attributes"),
+            "annual_financials": {
+                "status": annual["status"], "count": len(annual["metrics"]),
+                "reason": annual["reason"],
+            },
+            "quarterly_financials": {
+                "status": quarter["status"], "count": len(quarter["metrics"]),
+                "reason": quarter["reason"],
+            },
+            "market_history": self._availability(
+                prices, "authorized_market_history_feed_required", partial=0 < len(prices) < 252),
+            "ownership": self._availability(ownership, "no_sourced_ownership_positions"),
+            "corporate_actions": self._availability(actions, "no_sourced_corporate_actions"),
+            "disclosures": self._availability(disclosures, "announcement_feed_not_connected"),
+            "consensus": self._availability(estimates, "licensed_consensus_feed_required"),
+            "news": {"status": "unavailable", "count": 0,
+                     "reason": "authorized_news_feed_required"},
+        }
+        return {
+            "contract_version": 1,
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "placeholder_policy": "never_substitute_demo_values",
+            "company": overview,
+            "sections": {
+                "profile": attributes,
+                "financials": {"annual": annual, "quarter": quarter, "ytd": ytd,
+                               "ttm": ttm, "instant": instant},
+                "market": {"latest": prices[0] if prices else None, "history": prices},
+                "ownership": ownership,
+                "corporate_actions": actions,
+                "disclosures": disclosures,
+                "consensus": estimates,
+            },
+            "capabilities": capabilities,
+            "data_quality": {"completeness": completeness,
+                             "open_backlog": len(self.backlog(market, symbol, "active", 5000))},
         }
 
     def listings(self, market: str, symbol: str) -> list[dict]:
