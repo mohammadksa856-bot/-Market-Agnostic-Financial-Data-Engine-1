@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 8
+CATALOG_SCHEMA_VERSION = 9
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -477,6 +477,10 @@ GROUPS = (
     ("consensus", "consensus_estimates", "consensus", "forward", "decimal", "none", "all", "*", _keys(
         "revenue_estimate ebitda_estimate ebit_estimate net_income_estimate "
         "selling_general_administrative_expense_estimate eps_estimate"
+    )),
+    ("segments", "data_points", "segments", "mixed", "currency", "none", "all", "*", _keys(
+        "segment_revenue segment_ebit segment_ebitda segment_assets segment_liabilities segment_capex "
+        "segment_investments_associates segment_depreciation_amortization segment_impairment"
     )),
     ("segments", "data_points", "segments", "flow", "currency", "sum", "industry", "Integrated Oil & Gas", _keys(
         "upstream_revenue downstream_revenue corporate_revenue upstream_operating_income downstream_operating_income "

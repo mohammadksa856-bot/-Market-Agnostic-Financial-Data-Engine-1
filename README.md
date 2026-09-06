@@ -1,4 +1,4 @@
-# Market-Agnostic Financial Data Engine 1.6
+# Market-Agnostic Financial Data Engine 1.7
 
 An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
@@ -6,19 +6,19 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 
 ## Release status
 
-The bundled portable snapshot is rebuilt from 38 reviewed manifests and currently contains:
+The bundled portable snapshot is rebuilt from 39 reviewed manifests and currently contains:
 
 - 5 enabled companies: Saudi Aramco, SABIC, Apple, Microsoft, and NVIDIA.
-- 1,270 current facts and 1,360 total fact versions.
+- 1,301 current facts and 1,391 total fact versions.
 - 961 current Aramco data points and 1,051 total versions, plus 37 profile attributes, four ownership positions, 15 disclosures, eight corporate actions, 23 official daily market-price rows, and 18 point-in-time market and valuation metrics. Aramco 2025 alone contains 434 current rows across 306 distinct metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 195 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
-- 38 published source documents, nine independently hashed raw artifacts (eight issuer PDFs and one Saudi Exchange price snapshot), zero active schedules, zero open publication exceptions, and zero dead jobs. Scheduling remains a supported deployment capability, but the previously configured task is intentionally disabled.
-- Master Schema catalog version 8 contains 1,003 governed fields and 873 metric contracts: 532 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. In addition to oil and gas, chemicals, banking, and insurance, it now covers telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
-- Aramco currently populates 376 of 649 applicable catalog fields (57.9% raw target coverage after the schema expansion), with all 28 core required fields present. The lower percentage reflects a larger target model, not lost data.
-- SABIC is the first Saudi generalization pilot: its official 2025 integrated report is archived by SHA-256, the deterministic reader publishes 59 sourced facts plus 24 calculated facts, 26 of 28 core required fields are present, and 93 of 623 applicable fields are populated (14.9%). The new chemicals pack exposes the operational and segment backlog that must be sourced next.
+- 39 published source documents, nine independently hashed raw artifacts (eight issuer PDFs and one Saudi Exchange price snapshot), zero active schedules, zero open publication exceptions, and zero dead jobs. Scheduling remains a supported deployment capability, but the previously configured task is intentionally disabled.
+- Master Schema catalog version 9 contains 1,012 governed fields and 882 metric contracts: 541 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. In addition to oil and gas, chemicals, banking, and insurance, it covers telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
+- Aramco currently populates 376 of 658 applicable catalog fields (57.1% raw target coverage after the schema expansion), with all 28 core required fields present. The lower percentage reflects a larger target model, not lost data.
+- SABIC is the first Saudi generalization pilot: its official 2025 integrated report is archived by SHA-256. The snapshot now publishes 90 sourced facts plus 24 calculated facts. The sector pass adds 31 source-linked facts covering production and sales volumes for Chemicals, Polymers, and Agri-Nutrients, segment revenue/EBIT/EBITDA/assets/liabilities/capex/investments, and safety. SABIC populates 105 of 632 applicable catalog fields (16.6%) and 26 of 28 core required fields. Every new fact retains its report page and table reference.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. This prevents agents from treating structural non-disclosures as permission to infer values.
-- Database schema version 14, catalog version 8, and 64 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
+- Database schema version 14, catalog version 9, and 64 unit/integration/release tests (six PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 

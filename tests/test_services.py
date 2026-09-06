@@ -156,6 +156,7 @@ class ServiceTests(unittest.TestCase):
         try:
             dossier=query.company_dossier("SA","2222")
             backlog=query.backlog("SA","2222")
+            sabic=query.company_dossier("SA","2010")
         finally:
             query.close()
         self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
@@ -290,6 +291,21 @@ class ServiceTests(unittest.TestCase):
         self.assertIn("effective_tax_rate", ratios_2025)
         self.assertAlmostEqual(float(ratios_2025["effective_tax_rate"]["value"]),
                                352650 / 702860, places=10)
+        sabic_segments = {
+            (row["metric"], row["dimensions"].get("segment")): row
+            for row in sabic["facts_by_category"]["operational"]
+            if row["period_end"] == "2025-12-31" and row["dimensions"].get("segment")
+        }
+        self.assertEqual(sabic_segments[("segment_revenue", "Petrochemicals")]["value"],
+                         "103935678000")
+        self.assertEqual(sabic_segments[("segment_assets", "Agri-Nutrients")]["value"],
+                         "27647759000")
+        self.assertEqual(
+            sabic_segments[("production_volume", "Chemicals")]["value"], "35.7")
+        self.assertEqual(
+            sabic_segments[("production_volume", "Chemicals")]["provenance"]["extraction"]["page"],
+            47,
+        )
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):
         root=Path(self.temp.name)
