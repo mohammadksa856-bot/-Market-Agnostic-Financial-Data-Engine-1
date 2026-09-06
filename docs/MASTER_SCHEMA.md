@@ -30,7 +30,7 @@ by its reviewed canonical `industry` in the company registry.
 | `food_agriculture_v1` | Food & Agriculture | 20 |
 | `asset_management_v1` | Asset Management | 20 |
 
-There are 1,012 unique catalog fields, 882 enforceable metric contracts, and 61
+There are 1,033 unique catalog fields, 903 enforceable metric contracts, and 61
 governed dimensions. Shared accounting, valuation, market, ownership, disclosure,
 segment, and calculation fields remain in the universal packs so a sector pack
 does not duplicate them.

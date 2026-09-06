@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 9
+CATALOG_SCHEMA_VERSION = 10
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -227,6 +227,27 @@ FIELD_OVERRIDES = {
     "assets_under_management": {"default_unit": "currency", "aggregation": "last"},
     "net_new_money": {"default_unit": "currency", "aggregation": "sum"},
     "management_fee_rate": {"default_unit": "ratio", "aggregation": "weighted_average"},
+    "water_intensity": {"default_unit": "m3/tonne", "aggregation": "weighted_average"},
+    "material_loss_intensity": {"default_unit": "tonne/tonne", "aggregation": "weighted_average"},
+    "flaring_reduction_since_2010": {"default_unit": "ratio", "aggregation": "none"},
+    "co2_utilization": {"default_unit": "million_tonnes", "aggregation": "sum"},
+    "nox_emissions": {"default_unit": "tonnes", "aggregation": "sum"},
+    "sox_emissions_chemicals": {"default_unit": "tonnes", "aggregation": "sum"},
+    "hazardous_waste_generated": {"default_unit": "tonnes", "aggregation": "sum"},
+    "hazardous_waste_recovered": {"default_unit": "tonnes", "aggregation": "sum"},
+    "hazardous_waste_disposed": {"default_unit": "tonnes", "aggregation": "sum"},
+    "nonhazardous_waste_generated": {"default_unit": "tonnes", "aggregation": "sum"},
+    "nonhazardous_waste_recovered": {"default_unit": "tonnes", "aggregation": "sum"},
+    "nonhazardous_waste_disposed": {"default_unit": "tonnes", "aggregation": "sum"},
+    "scope_1_2_emissions": {"default_unit": "million_tCO2e", "aggregation": "sum"},
+    "fatalities_count": {"default_unit": "count", "aggregation": "sum"},
+    "fatalities_rate": {"default_unit": "incidents/200k_hours", "aggregation": "average"},
+    "tier_1_process_safety_events": {"default_unit": "count", "aggregation": "sum"},
+    "tier_1_process_safety_events_rate": {"default_unit": "incidents/200k_hours", "aggregation": "average"},
+    "patent_portfolio_count": {"default_unit": "count", "aggregation": "last"},
+    "new_products_introduced": {"default_unit": "count", "aggregation": "sum"},
+    "women_workforce_share": {"default_unit": "ratio", "aggregation": "average"},
+    "active_suppliers_count": {"default_unit": "count", "aggregation": "last"},
 }
 
 
@@ -510,7 +531,12 @@ GROUPS = (
         "fertilizer_production steel_production petrochemicals_sales_volume agri_nutrients_sales_volume specialties_sales_volume "
         "metals_sales_volume domestic_sales_volume export_sales_volume energy_consumption_intensity scope_1_emissions_chemicals "
         "scope_2_emissions_chemicals water_withdrawal_chemicals water_consumption_chemicals greenhouse_gas_intensity "
-        "lost_time_injury_rate total_recordable_injury_rate circular_feedstock_volume recycled_product_sales"
+        "lost_time_injury_rate total_recordable_injury_rate circular_feedstock_volume recycled_product_sales "
+        "water_intensity material_loss_intensity flaring_reduction_since_2010 co2_utilization nox_emissions "
+        "sox_emissions_chemicals hazardous_waste_generated hazardous_waste_recovered hazardous_waste_disposed "
+        "nonhazardous_waste_generated nonhazardous_waste_recovered nonhazardous_waste_disposed scope_1_2_emissions "
+        "fatalities_count fatalities_rate tier_1_process_safety_events tier_1_process_safety_events_rate "
+        "patent_portfolio_count new_products_introduced women_workforce_share active_suppliers_count"
     )),
     ("banking", "data_points", "banking_balance_sheet", "instant", "currency", "last", "industry", "Banks", _keys(
         "gross_loans net_loans customer_deposits demand_deposits savings_deposits time_deposits bank_investments "

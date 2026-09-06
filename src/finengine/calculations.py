@@ -18,7 +18,7 @@ class Calculator:
         "short_term_investments", "current_assets", "current_liabilities", "intangible_assets",
         "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
         "weighted_average_shares_basic", "weighted_average_shares_diluted",
-        "adjusted_net_income", "dividends_paid",
+        "adjusted_net_income", "dividends_paid", "market_cap",
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
         "total_hydrocarbon_production", "total_hydrocarbon_reserves",
@@ -205,6 +205,21 @@ class Calculator:
                             lookup["total_equity"].currency)
 
             if base.period_kind == PeriodKind.FY:
+                # Retrospective year-end multiples use the market capitalization
+                # reported for the same fiscal period.  This is intentionally
+                # separate from point-in-time valuations, which enforce a filing-
+                # date cutoff and therefore never look ahead.
+                if "market_cap" in lookup and lookup["market_cap"].value:
+                    ratio("price_to_earnings", "market_cap", "net_income",
+                          "reported_year_end_market_cap / net_income")
+                    ratio("price_to_sales", "market_cap", "revenue",
+                          "reported_year_end_market_cap / revenue")
+                    ratio("price_to_book", "market_cap", "total_equity",
+                          "reported_year_end_market_cap / total_equity")
+                    ratio("earnings_yield", "net_income", "market_cap",
+                          "net_income / reported_year_end_market_cap")
+                    ratio("fcf_yield", "free_cash_flow", "market_cap",
+                          "free_cash_flow / reported_year_end_market_cap")
                 if ("total_hydrocarbon_reserves" in lookup and
                         "total_hydrocarbon_production" in lookup and
                         lookup["total_hydrocarbon_production"].value):

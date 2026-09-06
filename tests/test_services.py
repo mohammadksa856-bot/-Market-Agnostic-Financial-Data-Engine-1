@@ -157,6 +157,7 @@ class ServiceTests(unittest.TestCase):
             dossier=query.company_dossier("SA","2222")
             backlog=query.backlog("SA","2222")
             sabic=query.company_dossier("SA","2010")
+            sabic_annual_prices=query.market_prices("SA","2010",interval="1y")
         finally:
             query.close()
         self.assertEqual(dossier["attributes"]["employees"]["value"],76664)
@@ -241,6 +242,15 @@ class ServiceTests(unittest.TestCase):
         self.assertGreater(commercial_coverage["verified_unavailable"], 0)
         self.assertLess(commercial_coverage["actionable_missing"],
                         len(commercial_backlog["payload"]["missing_fields"]))
+        self.assertTrue(all(
+            item.get("reason") and item.get("resolution") and item.get("solution_code")
+            for item in commercial_backlog["payload"]["field_assessments"]
+        ))
+        self.assertTrue(all(
+            item.get("reason") and item.get("resolution") and item.get("solution_code")
+            for backlog_item in backlog
+            for item in backlog_item["payload"].get("field_assessments", [])
+        ))
         operations = {row["metric"]: row for row in dossier["facts_by_category"]["operational"]
                       if row["period_end"] == "2025-12-31" and not row["dimensions"]}
         self.assertEqual(operations["total_liquids_production"]["value"], "10.678")
@@ -305,6 +315,43 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(
             sabic_segments[("production_volume", "Chemicals")]["provenance"]["extraction"]["page"],
             47,
+        )
+        self.assertEqual(sabic["attributes"]["business_description"]["category"],
+                         "business_model")
+        self.assertEqual(len(sabic["ownership"]), 3)
+        self.assertEqual(len(sabic["corporate_actions"]), 3)
+        self.assertEqual(len(sabic_annual_prices), 5)
+        sabic_esg = {
+            row["metric"]: row for row in sabic["facts_by_category"]["operational"]
+            if row["period_end"] == "2025-12-31" and not row["dimensions"]
+        }
+        self.assertEqual(sabic_esg["scope_1_2_emissions"]["value"], "41.51")
+        self.assertEqual(sabic_esg["scope_1_2_emissions"]["provenance"]["extraction"]["page"],
+                         232)
+        sabic_income = {
+            row["metric"]: row for row in sabic["facts_by_category"]["financial"]
+            if row["period_end"] == "2025-12-31" and row["period_kind"] == "fy"
+            and not row["dimensions"]
+        }
+        self.assertEqual(sabic_income["basic_eps"]["value"], "-8.59")
+        self.assertEqual(sabic_income["basic_eps"]["provenance"]["extraction"]["page"], 133)
+        sabic_geography = [
+            row for row in sabic["facts_by_category"]["financial"]
+            if row["metric"] == "revenue_by_geography"
+            and row["period_end"] == "2025-12-31"
+        ]
+        self.assertEqual(len(sabic_geography), 7)
+        self.assertEqual(sum(int(row["value"]) for row in sabic_geography), 116525214000)
+        sabic_calculated = {
+            row["metric"]: row for row in sabic["facts_by_category"]["calculated"]
+            if row["period_end"] == "2025-12-31"
+        }
+        self.assertIn("price_to_sales", sabic_calculated)
+        self.assertAlmostEqual(float(sabic_calculated["price_to_sales"]["value"]),
+                               153900000000 / 116525214000, places=10)
+        self.assertEqual(
+            sabic_calculated["price_to_sales"]["provenance"]["derivation"]["type"],
+            "deterministic_calculation",
         )
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):

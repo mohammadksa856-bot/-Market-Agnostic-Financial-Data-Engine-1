@@ -8,6 +8,60 @@ from .database import Database, _json
 from .models import Fact, PeriodKind
 
 
+GAP_RESOLUTION_PLAYBOOK = {
+    "pending_official_source_extraction": {
+        "reason": "An applicable field has no reviewed extraction from the archived official documents yet.",
+        "resolution": "Run the statement, note, or sector-table extractor; retain page/table/label lineage and pass validation before publishing.",
+        "solution_code": "extract_archived_official_source",
+    },
+    "calculation_requires_missing_dependencies": {
+        "reason": "The deterministic formula cannot run because one or more source inputs or comparison periods are missing.",
+        "resolution": "Load the missing official inputs and historical periods, then rerun the deterministic calculation engine.",
+        "solution_code": "backfill_dependencies_then_calculate",
+    },
+    "calculation_requires_sufficient_market_history": {
+        "reason": "The metric requires a longer official daily price/volume window than is currently archived.",
+        "resolution": "Archive Saudi Exchange daily history until the required 20/50/200-day or multi-year window is complete, then recalculate.",
+        "solution_code": "archive_market_history_then_calculate",
+    },
+    "authoritative_registry_source_required": {
+        "reason": "The company-profile field is absent from the reviewed registry evidence.",
+        "resolution": "Source it from the issuer profile, annual report, articles of association, or Saudi Exchange issuer profile and version the value.",
+        "solution_code": "enrich_from_authoritative_registry_source",
+    },
+    "event_driven_no_event_observed": {
+        "reason": "This field represents an event; no matching event has been observed in the archived period.",
+        "resolution": "Keep it explicitly unavailable rather than storing zero, and monitor issuer and Saudi Exchange announcements for a future event.",
+        "solution_code": "monitor_event_stream",
+    },
+    "not_disclosed_in_archived_filings": {
+        "reason": "The archived official filings do not disclose a quantitative value for this field.",
+        "resolution": "Retain the negative-evidence status, inspect quarterly presentations and official databooks, and publish only if a quantitative disclosure appears.",
+        "solution_code": "seek_alternate_official_disclosure",
+    },
+    "not_disclosed_in_archived_annual_report": {
+        "reason": "The metric is not quantitatively disclosed in the archived annual report.",
+        "resolution": "Check official operating databooks and interim presentations; otherwise preserve the field as not disclosed.",
+        "solution_code": "seek_official_operating_databook",
+    },
+    "qualitative_disclosure_only": {
+        "reason": "The issuer discusses the topic but does not provide a defensible numeric value.",
+        "resolution": "Retain the qualitative disclosure and monitor later filings; never coerce narrative text into a number.",
+        "solution_code": "retain_qualitative_evidence",
+    },
+    "licensed_source_required": {
+        "reason": "Point-in-time analyst consensus is not an issuer-reported fact and requires a licensed provider.",
+        "resolution": "Connect a licensed consensus feed with as-of timestamps and analyst counts; do not substitute current web estimates.",
+        "solution_code": "connect_licensed_consensus_provider",
+    },
+    "not_applicable_market_identifier": {
+        "reason": "The identifier is specific to another market and does not apply to this issuer.",
+        "resolution": "Close the field as not applicable and use the market-appropriate identifier instead.",
+        "solution_code": "close_not_applicable",
+    },
+}
+
+
 class CompanyDomainStore:
     """Structured stores for market, ownership, actions, formulas and coverage."""
 
@@ -88,7 +142,16 @@ class CompanyDomainStore:
         close = Decimal(price["close"])
         shares = values.get("shares_outstanding") or values.get("weighted_average_shares_diluted")
         if not close or not shares:
-            return {"company_id": company_id, "status": "skipped", "reason": "missing_shares", "published": 0}
+            return {
+                "company_id": company_id,
+                "status": "skipped",
+                "reason": "no_fundamentals_available_as_of_price_date",
+                "solution": (
+                    "Archive a daily price on or after the filing date for a point-in-time valuation; "
+                    "period-aligned historical multiples are calculated separately from reported year-end market cap."
+                ),
+                "published": 0,
+            }
         market_cap = close * shares
         debt = values.get("current_debt", Decimal(0)) + values.get("long_term_debt", Decimal(0))
         net_debt = values.get("net_debt", debt - values.get("cash", Decimal(0)))
@@ -647,7 +710,14 @@ class CompanyDomainStore:
                         availability = "not_disclosed_in_archived_annual_report"
                     else:
                         availability = "pending_official_source_extraction"
-                    field_assessments.append({"field_key": field, "availability": availability})
+                    playbook = GAP_RESOLUTION_PLAYBOOK[availability]
+                    field_assessments.append({
+                        "field_key": field,
+                        "availability": availability,
+                        "reason": playbook["reason"],
+                        "resolution": playbook["resolution"],
+                        "solution_code": playbook["solution_code"],
+                    })
                 non_actionable_states = {
                     "event_driven_no_event_observed", "not_applicable_market_identifier",
                     "not_disclosed_in_archived_annual_report", "not_disclosed_in_archived_filings",
