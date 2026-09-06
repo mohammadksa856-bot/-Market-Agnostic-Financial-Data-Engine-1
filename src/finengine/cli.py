@@ -231,6 +231,7 @@ def main():
     production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--no-llm",action="store_true")
     universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe")
     universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json")
+    universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
     sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
@@ -299,6 +300,12 @@ def main():
         try:
             result=activate_universe(db,a.market,a.limit,tuple(a.exchange),symbols,
                                      a.enable,a.schedule_every,a.registry)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-enrich":
+        from .universe import enrich_activation_batch
+        db=Database(a.db)
+        try: result=enrich_activation_batch(db,a.raw_dir,_sec_user_agent(),a.batch,a.limit)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="universe-status":

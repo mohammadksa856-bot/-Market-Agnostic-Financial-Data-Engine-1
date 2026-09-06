@@ -11,7 +11,9 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - 15 enabled companies: Saudi Aramco, SABIC, all ten listed Saudi banks, Apple, Microsoft, and NVIDIA.
 - The archived official SEC universe snapshot contains 8,010 issuers and 10,415
   ticker/exchange associations. It is inventory, not automatic publication:
-  activation and monitoring are released in controlled batches.
+  activation and monitoring are released in controlled batches. The first 100-issuer
+  review batch is staged; ten official SEC registrant profiles are archived and
+  classified (five eligible operating companies, three excluded vehicles, two review cases).
 - 4,257 current facts and 4,409 total fact versions.
 - 1,020 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 207 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
@@ -21,7 +23,7 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 15, catalog version 10, and 87 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
+- Database schema version 17, catalog version 10, and 92 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -69,6 +71,11 @@ setting a declared operator identity:
 Create a reviewable batch without launching network jobs:
 
     finengine --db data/financial.sqlite3 universe-activate US --limit 50 --exchange Nasdaq --exchange NYSE
+
+Enrich a staged batch from official SEC submissions metadata and classify operating
+companies separately from funds, blank-check companies, and review cases:
+
+    finengine --db data/financial.sqlite3 universe-enrich --limit 25
 
 Activation is a separate explicit step. To enable and schedule a reviewed symbol
 batch, pass the symbols and a monitoring interval (minimum one hour):

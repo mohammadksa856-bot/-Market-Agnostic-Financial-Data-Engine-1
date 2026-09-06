@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -73,6 +73,15 @@ CREATE TABLE IF NOT EXISTS universe_activations(
  PRIMARY KEY(batch_id,issuer_id), UNIQUE(issuer_id));
 CREATE INDEX IF NOT EXISTS idx_universe_activation_status
  ON universe_activations(status,priority,created_at);
+CREATE TABLE IF NOT EXISTS universe_issuer_profiles(
+ issuer_id TEXT PRIMARY KEY REFERENCES issuer_universe(issuer_id),
+ source_url TEXT NOT NULL, content_hash TEXT NOT NULL, local_path TEXT NOT NULL,
+ entity_type TEXT, sic TEXT, sic_description TEXT, fiscal_year_end TEXT,
+ eligibility_status TEXT NOT NULL CHECK(eligibility_status IN ('eligible','excluded','review')),
+ eligibility_reason TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}',
+ observed_at TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS idx_universe_profile_eligibility
+ ON universe_issuer_profiles(eligibility_status,entity_type,sic);
 CREATE TABLE IF NOT EXISTS company_sources(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
  source_type TEXT NOT NULL, url TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 100,
@@ -1494,6 +1503,7 @@ class Database:
             "universe_activation_batches": "universe_activation_batches",
             "staged_universe_companies": "universe_activations WHERE status='staged'",
             "active_universe_companies": "universe_activations WHERE status='active'",
+            "universe_issuer_profiles": "universe_issuer_profiles",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",

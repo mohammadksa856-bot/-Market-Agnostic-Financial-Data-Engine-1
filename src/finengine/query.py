@@ -543,8 +543,12 @@ class FinancialQueryService:
             b.created_at,b.activated_at,
             sum(CASE WHEN a.status='active' THEN 1 ELSE 0 END) AS active,
             sum(CASE WHEN a.status='staged' THEN 1 ELSE 0 END) AS staged,
-            sum(CASE WHEN a.status='error' THEN 1 ELSE 0 END) AS errors
+            sum(CASE WHEN a.status='error' THEN 1 ELSE 0 END) AS errors,
+            sum(CASE WHEN p.eligibility_status='eligible' THEN 1 ELSE 0 END) AS eligible,
+            sum(CASE WHEN p.eligibility_status='excluded' THEN 1 ELSE 0 END) AS excluded,
+            sum(CASE WHEN p.eligibility_status='review' THEN 1 ELSE 0 END) AS eligibility_review
             FROM universe_activation_batches b LEFT JOIN universe_activations a USING(batch_id)
+            LEFT JOIN universe_issuer_profiles p USING(issuer_id)
             GROUP BY b.batch_id ORDER BY b.created_at DESC"""
         ).fetchall()]
         for item in activations:

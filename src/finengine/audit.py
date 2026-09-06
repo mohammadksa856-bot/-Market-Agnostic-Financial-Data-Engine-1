@@ -177,6 +177,32 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     add("universe_snapshot_hashes", "pass" if not universe_hash_mismatches else "fail",
         universe_hash_mismatches)
 
+    missing_profiles = []
+    profile_hash_mismatches = []
+    for row in conn.execute(
+        "SELECT issuer_id,local_path,content_hash FROM universe_issuer_profiles"
+    ):
+        path = Path(row["local_path"])
+        if not path.is_absolute():
+            path = root / path
+        if not path.is_file():
+            missing_profiles.append(row["issuer_id"]); continue
+        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+            profile_hash_mismatches.append(row["issuer_id"])
+    add("universe_profiles_present", "pass" if not missing_profiles else "fail",
+        missing_profiles)
+    add("universe_profile_hashes", "pass" if not profile_hash_mismatches else "fail",
+        profile_hash_mismatches)
+    activation_violations = [dict(row) for row in conn.execute(
+        """SELECT a.issuer_id,a.company_id,a.status,c.enabled,a.schedule_id
+        FROM universe_activations a JOIN companies c USING(company_id)
+        LEFT JOIN schedules s ON s.schedule_id=a.schedule_id
+        WHERE (a.status='active' AND c.enabled<>1)
+        OR (a.schedule_id IS NOT NULL AND s.schedule_id IS NULL)"""
+    )]
+    add("universe_activation_integrity", "pass" if not activation_violations else "fail",
+        activation_violations)
+
     balances = defaultdict(dict)
     for row in conn.execute(
         """SELECT company_id,period_end,metric_key,value_decimal,currency,unit,scope,dimensions_hash

@@ -7,7 +7,8 @@ from finengine.database import Database
 from finengine.query import FinancialQueryService
 from finengine.registry import CompanyRegistry
 from finengine.universe import (
-    activate_universe, parse_saudi_reference, parse_sec_ticker_exchange, sync_universe,
+    activate_universe, classify_sec_submission, enrich_activation_batch,
+    parse_saudi_reference, parse_sec_ticker_exchange, sync_universe,
 )
 
 
@@ -101,6 +102,42 @@ class UniverseTests(unittest.TestCase):
     def test_scheduling_requires_explicit_enable(self):
         with self.assertRaisesRegex(ValueError, "requires --enable"):
             activate_universe(self.db, "US", schedule_every=3600)
+
+    def test_sec_eligibility_is_conservative(self):
+        operating = {"name": "Example Inc", "entityType": "operating", "sic": "3571",
+                     "filings": {"recent": {"form": ["10-K"]}}}
+        blank_check = {"name": "Example Acquisition Corp", "entityType": "operating",
+                       "sic": "6770", "sicDescription": "Blank Checks",
+                       "filings": {"recent": {"form": ["10-K"]}}}
+        unclear = {"name": "Example", "entityType": "other", "sic": "0000"}
+        self.assertEqual(classify_sec_submission(operating)[0], "eligible")
+        self.assertEqual(classify_sec_submission(blank_check)[0], "excluded")
+        self.assertEqual(classify_sec_submission(unclear)[0], "review")
+
+    def test_enrichment_archives_and_profiles_sec_metadata(self):
+        source = self.root / "sec.json"
+        source.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[1, "Alpha Inc", "AAA", "Nasdaq"]]}), encoding="utf-8")
+        sync_universe(self.db, "US", self.root / "raw", input_path=source)
+        activation = activate_universe(self.db, "US", limit=1)
+        payload = json.dumps({"name": "Alpha Inc", "entityType": "operating", "sic": "3571",
+            "sicDescription": "Electronic Computers", "fiscalYearEnd": "1231",
+            "tickers": ["AAA"], "exchanges": ["Nasdaq"],
+            "filings": {"recent": {"form": ["10-K"]}}}).encode()
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def read(self): return payload
+        result = enrich_activation_batch(
+            self.db, self.root / "raw", "Product test@example.com",
+            activation["batch_id"], opener=lambda *_args, **_kwargs: Response(),
+            request_interval=0,
+        )
+        self.assertEqual(result["counts"]["eligible"], 1)
+        profile = self.db.conn.execute(
+            "SELECT eligibility_status,local_path FROM universe_issuer_profiles").fetchone()
+        self.assertEqual(profile["eligibility_status"], "eligible")
+        self.assertTrue(Path(profile["local_path"]).is_file())
 
 
 if __name__ == "__main__":

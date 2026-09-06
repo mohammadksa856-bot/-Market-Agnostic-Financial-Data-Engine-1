@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +16,7 @@ from .models import Company, Market
 
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
+SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 _EXCHANGE_PRIORITY = {
     "Nasdaq": 0, "NYSE": 1, "NYSE American": 2, "NYSE Arca": 3,
     "Cboe BZX": 4, "OTC": 20, "": 99,
@@ -284,6 +286,99 @@ def activate_universe(
                           "status": activation_status, "schedule_id": schedule_id})
     return {"status": batch_status, "batch_id": batch_id, "market": market,
             "count": len(companies), "companies": companies}
+
+
+def classify_sec_submission(payload: dict) -> tuple[str, str]:
+    """Classify SEC registrants conservatively before automated ingestion."""
+    name = str(payload.get("name") or "").lower()
+    entity_type = str(payload.get("entityType") or "").lower()
+    sic = str(payload.get("sic") or "").zfill(4)
+    forms = set(payload.get("filings", {}).get("recent", {}).get("form", []))
+    if sic == "6770" or "blank check" in str(payload.get("sicDescription") or "").lower():
+        return "excluded", "blank-check company"
+    non_company_markers = (" etf", "exchange traded fund", "income fund",
+                           "equity fund", "acquisition corp", "acquisition co")
+    if entity_type in {"investment", "investment company"}:
+        return "excluded", f"SEC entity type is {entity_type}"
+    if any(marker in name for marker in non_company_markers):
+        return "excluded", "name indicates a fund or acquisition vehicle"
+    if entity_type == "operating" and forms.intersection({"10-K", "10-Q", "20-F", "40-F"}):
+        return "eligible", "operating registrant with periodic financial filings"
+    return "review", "SEC metadata is insufficient for automatic eligibility"
+
+
+def enrich_activation_batch(
+    db: Database, raw_dir: str | Path, user_agent: str, batch_id: str | None = None,
+    limit: int = 25, opener=urlopen, request_interval: float = 0.12,
+) -> dict:
+    """Archive SEC registrant profiles and classify a staged activation batch."""
+    if "@" not in user_agent:
+        raise ValueError("live SEC enrichment requires a declared user agent with email")
+    limit = min(max(int(limit), 1), 100)
+    if batch_id is None:
+        row = db.conn.execute(
+            """SELECT batch_id FROM universe_activation_batches
+            WHERE market='US' AND status='staged' ORDER BY created_at DESC LIMIT 1"""
+        ).fetchone()
+        if not row:
+            raise ValueError("no staged US activation batch exists")
+        batch_id = row["batch_id"]
+    rows = db.conn.execute(
+        """SELECT a.issuer_id,i.authority_id FROM universe_activations a
+        JOIN issuer_universe i USING(issuer_id)
+        LEFT JOIN universe_issuer_profiles p USING(issuer_id)
+        WHERE a.batch_id=? AND i.market='US' AND p.issuer_id IS NULL
+        ORDER BY a.priority LIMIT ?""", (batch_id, limit),
+    ).fetchall()
+    archive_dir = Path(raw_dir) / "US" / "profiles"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    counts = {"eligible": 0, "excluded": 0, "review": 0}
+    processed = []
+    for index, row in enumerate(rows):
+        if index and request_interval > 0:
+            time.sleep(request_interval)
+        url = SEC_SUBMISSIONS_URL.format(cik=row["authority_id"])
+        request = Request(url, headers={"User-Agent": user_agent, "Accept": "application/json"})
+        with opener(request, timeout=30) as response:
+            content = response.read()
+        payload = json.loads(content)
+        digest = hashlib.sha256(content).hexdigest()
+        archived = archive_dir / f"{digest}.json"
+        if not archived.exists():
+            archived.write_bytes(content)
+        if hashlib.sha256(archived.read_bytes()).hexdigest() != digest:
+            raise RuntimeError("archived SEC profile hash mismatch")
+        status, reason = classify_sec_submission(payload)
+        observed_at = _now()
+        metadata = {key: payload.get(key) for key in (
+            "name", "tickers", "exchanges", "stateOfIncorporation", "addresses"
+        ) if payload.get(key) not in (None, "")}
+        with db.conn:
+            db.conn.execute(
+                """INSERT INTO universe_issuer_profiles(issuer_id,source_url,content_hash,
+                local_path,entity_type,sic,sic_description,fiscal_year_end,
+                eligibility_status,eligibility_reason,metadata_json,observed_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(issuer_id) DO UPDATE SET
+                source_url=excluded.source_url,content_hash=excluded.content_hash,
+                local_path=excluded.local_path,entity_type=excluded.entity_type,sic=excluded.sic,
+                sic_description=excluded.sic_description,fiscal_year_end=excluded.fiscal_year_end,
+                eligibility_status=excluded.eligibility_status,
+                eligibility_reason=excluded.eligibility_reason,
+                metadata_json=excluded.metadata_json,observed_at=excluded.observed_at,
+                updated_at=CURRENT_TIMESTAMP""",
+                (row["issuer_id"], url, digest, str(archived), payload.get("entityType"),
+                 str(payload.get("sic") or ""), payload.get("sicDescription"),
+                 payload.get("fiscalYearEnd"), status, reason, _json(metadata), observed_at),
+            )
+        counts[status] += 1
+        processed.append({"issuer_id": row["issuer_id"], "status": status, "reason": reason})
+    remaining = db.conn.execute(
+        """SELECT count(*) FROM universe_activations a
+        LEFT JOIN universe_issuer_profiles p USING(issuer_id)
+        WHERE a.batch_id=? AND p.issuer_id IS NULL""", (batch_id,),
+    ).fetchone()[0]
+    return {"status": "ready", "batch_id": batch_id, "processed": len(processed),
+            "remaining": remaining, "counts": counts, "issuers": processed}
 
 
 def sync_universe(db: Database, market: str, raw_dir: str | Path,
