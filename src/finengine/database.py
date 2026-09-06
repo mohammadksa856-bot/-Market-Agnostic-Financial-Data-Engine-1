@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -55,6 +55,24 @@ CREATE TABLE IF NOT EXISTS security_universe_versions(
  security_key TEXT NOT NULL, snapshot_id TEXT NOT NULL REFERENCES universe_snapshots(snapshot_id),
  payload_json TEXT NOT NULL, observed_at TEXT NOT NULL,
  PRIMARY KEY(security_key,snapshot_id));
+CREATE TABLE IF NOT EXISTS universe_activation_batches(
+ batch_id TEXT PRIMARY KEY, market TEXT NOT NULL,
+ snapshot_id TEXT NOT NULL REFERENCES universe_snapshots(snapshot_id),
+ status TEXT NOT NULL CHECK(status IN ('staged','active','paused','completed','cancelled')),
+ selection_json TEXT NOT NULL DEFAULT '{}', issuer_count INTEGER NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ activated_at TEXT);
+CREATE TABLE IF NOT EXISTS universe_activations(
+ batch_id TEXT NOT NULL REFERENCES universe_activation_batches(batch_id),
+ issuer_id TEXT NOT NULL REFERENCES issuer_universe(issuer_id),
+ company_id TEXT NOT NULL REFERENCES companies(company_id),
+ priority INTEGER NOT NULL DEFAULT 100,
+ status TEXT NOT NULL CHECK(status IN ('staged','active','paused','error')),
+ schedule_id TEXT, error TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(batch_id,issuer_id), UNIQUE(issuer_id));
+CREATE INDEX IF NOT EXISTS idx_universe_activation_status
+ ON universe_activations(status,priority,created_at);
 CREATE TABLE IF NOT EXISTS company_sources(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
  source_type TEXT NOT NULL, url TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 100,
@@ -1473,6 +1491,9 @@ class Database:
             "universe_snapshots": "universe_snapshots",
             "universe_issuers": "issuer_universe WHERE active=1",
             "universe_securities": "security_universe WHERE active=1",
+            "universe_activation_batches": "universe_activation_batches",
+            "staged_universe_companies": "universe_activations WHERE status='staged'",
+            "active_universe_companies": "universe_activations WHERE status='active'",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",

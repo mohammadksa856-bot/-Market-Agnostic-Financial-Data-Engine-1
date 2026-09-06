@@ -31,7 +31,7 @@ def _sec_user_agent() -> str:
 
 def _ingest_job_handler(db: Database):
     def handle(job):
-        payload=job.payload; reg=CompanyRegistry.from_json(payload.get("registry","config/companies.json"))
+        payload=job.payload; reg=CompanyRegistry.combined(db.conn,payload.get("registry","config/companies.json"))
         company=reg.resolve(payload["market"],payload["symbol"])
         if company.market.value=="US":
             connector=SecCompanyFactsConnector(_sec_user_agent())
@@ -54,7 +54,7 @@ def _ingest_job_handler(db: Database):
 
 def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
     registry_path = payload.get("registry", "config/companies.json")
-    registry = CompanyRegistry.from_json(registry_path)
+    registry = CompanyRegistry.combined(db.conn, registry_path)
     company = registry.resolve(payload["market"], payload["symbol"])
     common_payload = {
         "market": payload["market"], "symbol": payload["symbol"],
@@ -160,7 +160,7 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
 def _extract_document_job_handler(db: Database):
     def handle(job):
         source_key=job.payload["source_key"]; row=db.stored_source(source_key)
-        registry=CompanyRegistry.from_json(job.payload.get("registry","config/companies.json"))
+        registry=CompanyRegistry.combined(db.conn,job.payload.get("registry","config/companies.json"))
         company=registry.get(row["company_id"]); path=Path(row["local_path"] or "")
         if not path.is_file(): raise FileNotFoundError(f"archived source is missing: {path}")
         document=SourceDocument(
@@ -230,6 +230,7 @@ def main():
     backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
     production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--no-llm",action="store_true")
     universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe")
+    universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json")
     sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
@@ -289,6 +290,15 @@ def main():
         try:
             user_agent=_sec_user_agent() if a.market=="US" and not a.input else None
             result=sync_universe(db,a.market,a.raw_dir,user_agent,a.input,a.source_url)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-activate":
+        from .universe import activate_universe
+        symbols=tuple(value.strip() for value in (a.symbols or "").split(",") if value.strip())
+        db=Database(a.db)
+        try:
+            result=activate_universe(db,a.market,a.limit,tuple(a.exchange),symbols,
+                                     a.enable,a.schedule_every,a.registry)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="universe-status":

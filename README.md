@@ -66,13 +66,24 @@ setting a declared operator identity:
     finengine --db data/financial.sqlite3 universe-sync US
     finengine --db data/financial.sqlite3 universe-status
 
+Create a reviewable batch without launching network jobs:
+
+    finengine --db data/financial.sqlite3 universe-activate US --limit 50 --exchange Nasdaq --exchange NYSE
+
+Activation is a separate explicit step. To enable and schedule a reviewed symbol
+batch, pass the symbols and a monitoring interval (minimum one hour):
+
+    finengine --db data/financial.sqlite3 universe-activate US --symbols AAPL,MSFT,NVDA --enable --schedule-every 21600
+
 Saudi Exchange/eReference JSON or CSV exports use the same archived model:
 
     finengine --db data/financial.sqlite3 universe-sync SA --input issuers.csv --source-url https://www.saudiexchange.sa/
 
 Every snapshot retains its retrieval time, source URL, local archive path, SHA-256,
 issuer versions, and security versions. Multi-ticker US issuers share one CIK-based
-issuer identity. See [parallel workstreams](docs/WORKSTREAMS.md).
+issuer identity. Activation batches are durable and idempotent, and workers can
+resolve activated companies from SQLite without expanding the hand-maintained seed
+registry. See [parallel workstreams](docs/WORKSTREAMS.md).
 
 Open `data/financial-report.html` for the Arabic searchable report. It has company, period, and category filters; every direct fact shows its official source, page/table, archived file and hash, while derived facts show their formula. `data/financial-data.csv` carries the same audit columns and is Excel-compatible.
 

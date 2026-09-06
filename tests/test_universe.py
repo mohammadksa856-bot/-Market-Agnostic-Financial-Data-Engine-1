@@ -5,7 +5,10 @@ from pathlib import Path
 
 from finengine.database import Database
 from finengine.query import FinancialQueryService
-from finengine.universe import parse_saudi_reference, parse_sec_ticker_exchange, sync_universe
+from finengine.registry import CompanyRegistry
+from finengine.universe import (
+    activate_universe, parse_saudi_reference, parse_sec_ticker_exchange, sync_universe,
+)
 
 
 class UniverseTests(unittest.TestCase):
@@ -60,6 +63,44 @@ class UniverseTests(unittest.TestCase):
             b"symbol,name,issuer_id\n,Missing,1\n2000,Valid,2\n", ".csv")
         self.assertEqual(len(issuers), 1)
         self.assertEqual(securities[0]["symbol"], "2000")
+
+    def test_activation_stages_a_bounded_batch_without_schedules(self):
+        source = self.root / "sec.json"
+        source.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[1, "Alpha Inc", "AAA", "Nasdaq"],
+                     [2, "Beta Inc", "BBB", "NYSE"]]}), encoding="utf-8")
+        sync_universe(self.db, "US", self.root / "raw", input_path=source)
+        result = activate_universe(self.db, "US", limit=1)
+        self.assertEqual((result["status"], result["count"]), ("staged", 1))
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM schedules").fetchone()[0], 0)
+        company = self.db.conn.execute("SELECT cik,enabled FROM companies").fetchone()
+        self.assertEqual((company["cik"], company["enabled"]), ("0000000001", 0))
+        status = FinancialQueryService(str(self.db_path))
+        try:
+            batches = status.universe_status()["activation_batches"]
+        finally:
+            status.close()
+        self.assertEqual(batches[0]["staged"], 1)
+
+    def test_enabled_activation_is_scheduled_and_database_resolvable(self):
+        source = self.root / "sec.json"
+        source.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[320193, "Apple Inc", "AAPL", "Nasdaq"]]}), encoding="utf-8")
+        sync_universe(self.db, "US", self.root / "raw", input_path=source)
+        result = activate_universe(
+            self.db, "US", symbols=("AAPL",), enable=True, schedule_every=21600,
+            registry_path=str(self.root / "missing.json"),
+        )
+        self.assertEqual(result["companies"][0]["schedule_id"], "monitor:US:AAPL")
+        registry = CompanyRegistry.combined(self.db.conn, self.root / "missing.json")
+        self.assertEqual(registry.resolve("US", "AAPL").cik, "0000320193")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM schedules WHERE enabled=1").fetchone()[0], 1)
+
+    def test_scheduling_requires_explicit_enable(self):
+        with self.assertRaisesRegex(ValueError, "requires --enable"):
+            activate_universe(self.db, "US", schedule_every=3600)
 
 
 if __name__ == "__main__":

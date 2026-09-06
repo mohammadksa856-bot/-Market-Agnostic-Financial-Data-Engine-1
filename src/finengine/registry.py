@@ -17,6 +17,29 @@ class CompanyRegistry:
             industry=r.get("industry"), timezone=r.get("timezone", "UTC"),
             locale=r.get("locale", "en"), enabled=r.get("enabled", True)
         ) for r in rows])
+    @classmethod
+    def from_database(cls, conn) -> "CompanyRegistry":
+        sources = {}
+        for row in conn.execute(
+            "SELECT company_id,url FROM company_sources WHERE enabled=1 ORDER BY priority,id"
+        ).fetchall():
+            sources.setdefault(row["company_id"], []).append(row["url"])
+        rows = conn.execute("SELECT * FROM companies").fetchall()
+        return cls([Company(
+            company_id=r["company_id"], market=Market(r["market"]), symbol=r["symbol"],
+            name=r["name"], currency=r["currency"], cik=r["cik"], isin=r["isin"],
+            fiscal_year_end=r["fiscal_year_end"], sources=tuple(sources.get(r["company_id"], [])),
+            exchange=r["exchange"], country=r["country"], sector=r["sector"],
+            industry=r["industry"], timezone=r["timezone"], locale=r["locale"],
+            enabled=bool(r["enabled"]),
+        ) for r in rows])
+    @classmethod
+    def combined(cls, conn, path: str | Path = "config/companies.json") -> "CompanyRegistry":
+        companies = {c.company_id: c for c in cls.from_database(conn).all()}
+        registry_path = Path(path)
+        if registry_path.is_file():
+            companies.update({c.company_id: c for c in cls.from_json(registry_path).all()})
+        return cls(list(companies.values()))
     def get(self, company_id: str) -> Company:
         return self._companies[company_id]
     def resolve(self, market: str, symbol: str) -> Company:

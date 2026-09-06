@@ -538,7 +538,18 @@ class FinancialQueryService:
         ).fetchall()]
         for item in snapshots:
             item["metadata"] = json.loads(item.pop("metadata_json"))
-        return {"markets": markets, "snapshots": snapshots}
+        activations = [dict(row) for row in self.conn.execute(
+            """SELECT b.batch_id,b.market,b.status,b.issuer_count,b.selection_json,
+            b.created_at,b.activated_at,
+            sum(CASE WHEN a.status='active' THEN 1 ELSE 0 END) AS active,
+            sum(CASE WHEN a.status='staged' THEN 1 ELSE 0 END) AS staged,
+            sum(CASE WHEN a.status='error' THEN 1 ELSE 0 END) AS errors
+            FROM universe_activation_batches b LEFT JOIN universe_activations a USING(batch_id)
+            GROUP BY b.batch_id ORDER BY b.created_at DESC"""
+        ).fetchall()]
+        for item in activations:
+            item["selection"] = json.loads(item.pop("selection_json"))
+        return {"markets": markets, "snapshots": snapshots, "activation_batches": activations}
 
     def completeness(self, market: str, symbol: str) -> dict:
         company=self.conn.execute(

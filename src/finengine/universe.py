@@ -10,6 +10,8 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from .database import Database, _json
+from .jobs import DurableScheduler
+from .models import Company, Market
 
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
@@ -181,6 +183,107 @@ class UniverseStore:
         return {"status": "ready", "snapshot_id": snapshot_id, "market": market,
                 "issuers": len(issuers), "securities": len(securities), "sha256": digest,
                 "local_path": local_path}
+
+
+def activate_universe(
+    db: Database, market: str, limit: int = 50, exchanges: tuple[str, ...] = (),
+    symbols: tuple[str, ...] = (), enable: bool = False,
+    schedule_every: int | None = None, registry_path: str = "config/companies.json",
+) -> dict:
+    """Stage a deterministic, idempotent ingestion batch from an archived universe.
+
+    Inventory and activation are deliberately separate. Merely discovering an issuer
+    must never start network work. Scheduling requires both ``enable`` and an explicit
+    interval, and is capped per invocation by ``limit``.
+    """
+    market = market.upper()
+    if market not in {"SA", "US"}:
+        raise ValueError("market must be SA or US")
+    limit = min(max(int(limit), 1), 500)
+    if schedule_every is not None and not enable:
+        raise ValueError("scheduling requires --enable")
+    if schedule_every is not None and schedule_every < 3600:
+        raise ValueError("universe schedules must be at least 3600 seconds apart")
+    filters = ["i.market=?", "i.active=1", "s.active=1", "s.is_primary=1",
+               "a.issuer_id IS NULL"]
+    args: list = [market]
+    normalized_exchanges = tuple(sorted({value.strip() for value in exchanges if value.strip()}))
+    normalized_symbols = tuple(sorted({value.strip().upper() for value in symbols if value.strip()}))
+    if normalized_exchanges:
+        filters.append("s.exchange IN (" + ",".join("?" for _ in normalized_exchanges) + ")")
+        args.extend(normalized_exchanges)
+    if normalized_symbols:
+        filters.append("s.symbol IN (" + ",".join("?" for _ in normalized_symbols) + ")")
+        args.extend(normalized_symbols)
+    args.append(limit)
+    rows = db.conn.execute(
+        """SELECT i.issuer_id,i.authority_id,i.name,i.country,i.current_snapshot_id,
+        i.metadata_json,s.symbol,s.exchange,s.currency,s.metadata_json AS security_metadata_json
+        FROM issuer_universe i JOIN security_universe s USING(issuer_id)
+        LEFT JOIN universe_activations a USING(issuer_id) WHERE """ + " AND ".join(filters) +
+        " ORDER BY i.name,i.issuer_id LIMIT ?", args,
+    ).fetchall()
+    if not rows:
+        return {"status": "empty", "market": market, "count": 0, "companies": []}
+    selection = {"exchanges": normalized_exchanges, "symbols": normalized_symbols,
+                 "limit": limit, "enable": enable, "schedule_every": schedule_every}
+    seed = _json({"snapshot": rows[0]["current_snapshot_id"], "selection": selection,
+                  "issuers": [row["issuer_id"] for row in rows]})
+    batch_id = "activation:" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
+    batch_status = "active" if enable else "staged"
+    companies = []
+    scheduler = DurableScheduler(db) if schedule_every is not None else None
+    with db.conn:
+        db.conn.execute(
+            """INSERT OR IGNORE INTO universe_activation_batches
+            (batch_id,market,snapshot_id,status,selection_json,issuer_count,activated_at)
+            VALUES(?,?,?,?,?,?,CASE WHEN ?='active' THEN CURRENT_TIMESTAMP END)""",
+            (batch_id, market, rows[0]["current_snapshot_id"], batch_status,
+             _json(selection), len(rows), batch_status),
+        )
+    for priority, row in enumerate(rows, 1):
+        metadata = json.loads(row["metadata_json"])
+        security_metadata = json.loads(row["security_metadata_json"])
+        company_id = f"{market.lower()}:{row['symbol']}"
+        existing = db.conn.execute(
+            "SELECT enabled FROM companies WHERE company_id=?", (company_id,)
+        ).fetchone()
+        company_enabled = bool(existing["enabled"]) if existing else enable
+        company = Company(
+            company_id=company_id, market=Market(market), symbol=row["symbol"],
+            name=row["name"], currency=row["currency"],
+            cik=row["authority_id"] if market == "US" else None,
+            isin=security_metadata.get("isin") or metadata.get("isin"),
+            exchange=row["exchange"], country=row["country"],
+            sector=metadata.get("sector"), industry=metadata.get("industry"),
+            timezone="America/New_York" if market == "US" else "Asia/Riyadh",
+            locale="en" if market == "US" else "ar", enabled=company_enabled,
+        )
+        db.register_company(company)
+        schedule_id = None
+        activation_status = "active" if company_enabled else "staged"
+        if scheduler and company_enabled:
+            schedule_id = f"monitor:{market}:{company.symbol}"
+            scheduler.upsert(
+                schedule_id, f"Monitor {market}:{company.symbol}", "monitor",
+                schedule_every, {"market": market, "symbol": company.symbol,
+                    "registry": registry_path, "raw_dir": "data/raw",
+                    "source_limit": 12, "browser": market == "SA", "llm": False},
+                company.company_id,
+            )
+        with db.conn:
+            db.conn.execute(
+                """INSERT OR IGNORE INTO universe_activations
+                (batch_id,issuer_id,company_id,priority,status,schedule_id)
+                VALUES(?,?,?,?,?,?)""",
+                (batch_id, row["issuer_id"], company_id, priority,
+                 activation_status, schedule_id),
+            )
+        companies.append({"company_id": company_id, "symbol": company.symbol,
+                          "name": company.name, "exchange": company.exchange,
+                          "status": activation_status, "schedule_id": schedule_id})
+    return {"status": batch_status, "batch_id": batch_id, "market": market,
+            "count": len(companies), "companies": companies}
 
 
 def sync_universe(db: Database, market: str, raw_dir: str | Path,
