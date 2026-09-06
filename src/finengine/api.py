@@ -75,6 +75,12 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     result=query.catalog_history(parts[3])
                 elif parts == ["v1","dimensions"]:
                     result=query.dimensions()
+                elif parts == ["v1","universe"]:
+                    result=query.universe(params.get("market",[None])[0],
+                                          self._int(params,"limit",100),
+                                          self._int(params,"offset",0))
+                elif parts == ["v1","universe","status"]:
+                    result=query.universe_status()
                 else:
                     raise KeyError("unknown endpoint")
                 self._send(200,result)

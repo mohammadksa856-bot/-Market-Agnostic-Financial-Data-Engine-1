@@ -18,7 +18,7 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 14, catalog version 10, and 84 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
+- Database schema version 15, catalog version 10, and 87 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -52,6 +52,24 @@ Python 3.11+ is required. There are no runtime package dependencies.
     finengine --db data/financial.sqlite3 completeness SA 2222 --refresh
     finengine --db data/financial.sqlite3 catalog --limit 500
     finengine --db data/financial.sqlite3 report
+
+## Synchronize the company universe
+
+The universe inventory is versioned separately from enabled ingestion companies,
+so a full-market refresh cannot accidentally launch thousands of jobs. SEC issuer,
+ticker, and exchange associations can be synchronized from the official file after
+setting a declared operator identity:
+
+    finengine --db data/financial.sqlite3 universe-sync US
+    finengine --db data/financial.sqlite3 universe-status
+
+Saudi Exchange/eReference JSON or CSV exports use the same archived model:
+
+    finengine --db data/financial.sqlite3 universe-sync SA --input issuers.csv --source-url https://www.saudiexchange.sa/
+
+Every snapshot retains its retrieval time, source URL, local archive path, SHA-256,
+issuer versions, and security versions. Multi-ticker US issuers share one CIK-based
+issuer identity. See [parallel workstreams](docs/WORKSTREAMS.md).
 
 Open `data/financial-report.html` for the Arabic searchable report. It has company, period, and category filters; every direct fact shows its official source, page/table, archived file and hash, while derived facts show their formula. `data/financial-data.csv` carries the same audit columns and is Excel-compatible.
 
@@ -133,16 +151,18 @@ Examples:
     GET /v1/companies/SA/2222/attributes
     GET /v1/companies/SA/2222/prices
     GET /v1/companies/SA/2222/ownership
-
-`/page` is the stable website/Telegram contract. It separates FY, quarter, YTD,
-TTM and instant snapshots, includes provenance, reports section capability and
-missing-source reasons, and explicitly forbids demonstration-value fallbacks.
     GET /v1/companies/SA/2222/estimates?metric=revenue_estimate&period_end=2027-12-31
     GET /v1/companies/SA/2222/actions
     GET /v1/catalog?category=oil_gas_operations&limit=500
     GET /v1/catalog/history/crude_oil_production
     GET /v1/dimensions
+    GET /v1/universe?market=SA&limit=100
+    GET /v1/universe/status
     GET /v1/exceptions?status=open
+
+`/page` is the stable website/Telegram contract. It separates FY, quarter, YTD,
+TTM and instant snapshots, includes provenance, reports section capability and
+missing-source reasons, and explicitly forbids demonstration-value fallbacks.
 
 When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
 

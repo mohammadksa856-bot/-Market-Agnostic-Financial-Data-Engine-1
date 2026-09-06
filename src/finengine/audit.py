@@ -161,6 +161,22 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     add("raw_artifacts_present", "pass" if not missing_artifacts else "fail", missing_artifacts)
     add("raw_artifact_hashes", "pass" if not artifact_hash_mismatches else "fail", artifact_hash_mismatches)
 
+    missing_universe = []
+    universe_hash_mismatches = []
+    for row in conn.execute("SELECT snapshot_id,local_path,content_hash FROM universe_snapshots"):
+        if not row["local_path"]:
+            missing_universe.append(row["snapshot_id"]); continue
+        path = Path(row["local_path"])
+        if not path.is_absolute():
+            path = root / path
+        if not path.is_file():
+            missing_universe.append(row["snapshot_id"]); continue
+        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+            universe_hash_mismatches.append(row["snapshot_id"])
+    add("universe_snapshots_present", "pass" if not missing_universe else "fail", missing_universe)
+    add("universe_snapshot_hashes", "pass" if not universe_hash_mismatches else "fail",
+        universe_hash_mismatches)
+
     balances = defaultdict(dict)
     for row in conn.execute(
         """SELECT company_id,period_end,metric_key,value_decimal,currency,unit,scope,dimensions_hash

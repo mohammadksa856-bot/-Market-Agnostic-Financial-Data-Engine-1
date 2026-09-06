@@ -500,6 +500,46 @@ class FinancialQueryService:
             FROM dimension_definitions WHERE enabled=1 ORDER BY dimension_key"""
         ).fetchall()]
 
+    def universe(self, market: str | None = None, limit: int = 100,
+                 offset: int = 0) -> list[dict]:
+        filters = ["i.active=1", "s.active=1"]
+        args: list = []
+        if market:
+            filters.append("i.market=?"); args.append(market.upper())
+        args.extend([min(max(limit, 1), 2000), max(offset, 0)])
+        rows = self.conn.execute(
+            """SELECT i.issuer_id,i.market,i.authority_id,i.name,i.country,
+            i.primary_symbol,i.primary_exchange,i.metadata_json AS issuer_metadata_json,
+            s.security_key,s.symbol,s.exchange,s.currency,s.is_primary,
+            s.metadata_json AS security_metadata_json,i.last_seen_at,
+            i.current_snapshot_id FROM issuer_universe i JOIN security_universe s USING(issuer_id)
+            WHERE """ + " AND ".join(filters) +
+            " ORDER BY i.market,i.name,s.is_primary DESC,s.symbol LIMIT ? OFFSET ?", args,
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["issuer_metadata"] = json.loads(item.pop("issuer_metadata_json"))
+            item["security_metadata"] = json.loads(item.pop("security_metadata_json"))
+            result.append(item)
+        return result
+
+    def universe_status(self) -> dict:
+        markets = [dict(row) for row in self.conn.execute(
+            """SELECT i.market,count(DISTINCT i.issuer_id) AS active_issuers,
+            count(DISTINCT s.security_key) AS active_securities,max(i.last_seen_at) AS last_seen_at
+            FROM issuer_universe i LEFT JOIN security_universe s
+            ON s.issuer_id=i.issuer_id AND s.active=1 WHERE i.active=1 GROUP BY i.market
+            ORDER BY i.market"""
+        ).fetchall()]
+        snapshots = [dict(row) for row in self.conn.execute(
+            """SELECT snapshot_id,market,source_url,observed_at,content_hash,local_path,
+            record_count,metadata_json FROM universe_snapshots ORDER BY observed_at DESC"""
+        ).fetchall()]
+        for item in snapshots:
+            item["metadata"] = json.loads(item.pop("metadata_json"))
+        return {"markets": markets, "snapshots": snapshots}
+
     def completeness(self, market: str, symbol: str) -> dict:
         company=self.conn.execute(
             "SELECT company_id FROM companies WHERE market=? AND symbol=?",(market.upper(),symbol.upper())).fetchone()
@@ -602,6 +642,9 @@ class FinancialQueryService:
         tables = {
             "companies": "companies", "sources": "source_documents",
             "source_candidates": "source_candidates", "facts": "data_points",
+            "universe_snapshots": "universe_snapshots",
+            "universe_issuers": "issuer_universe WHERE active=1",
+            "universe_securities": "security_universe WHERE active=1",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",

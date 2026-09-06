@@ -3,15 +3,16 @@
 ## Honest current status
 
 The engine is production-shaped, but the bundled dataset is still a controlled
-pilot. Its registry contains Aramco, SABIC, Apple, Microsoft, and NVIDIA. It must
+pilot. Its enabled registry contains Aramco, SABIC, all ten listed Saudi banks,
+Apple, Microsoft, and NVIDIA. It must
 not be described as covering every Saudi and US listed company yet.
 
 | Layer | Current readiness | What remains for whole-market use |
 |---|---|---|
 | Versioned financial database | Ready | Move to PostgreSQL before multiple publishing workers or hosts |
 | Validation, restatements, quarter/YTD/TTM semantics | Ready and tested | Add sector acceptance cases as new issuers expose unusual presentations |
-| US SEC fundamentals monitor | Ready for the pilot | Import the full SEC ticker/CIK universe; map issuer custom XBRL tags and segment disclosures |
-| Saudi issuer-report monitor | Ready for the two pilots | Import the Saudi issuer universe; verify official source discovery across every sector and maintain PDF/XLSX readers |
+| US SEC fundamentals monitor | Ready for the pilot; versioned universe sync implemented | Run the official sync, activate issuers in controlled batches, and map custom XBRL tags and segment disclosures |
+| Saudi issuer-report monitor | Ready for energy, chemicals, and banking pilots; versioned universe import implemented | Obtain the authorized issuer export, verify source discovery across every sector, and maintain PDF/XLSX readers |
 | Immutable source archive and lineage | Ready | Store large artifacts in durable object storage with backup and retention rules |
 | Read-only API and Telegram adapter | Ready for sourced database questions | Add consumer-specific response contracts, caching, rate limits, TLS, and production secrets |
 | Daily prices and trading data | Partial pilot history | Connect an authorized Saudi/US OHLCV and corporate-action feed |

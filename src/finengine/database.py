@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -24,6 +24,37 @@ CREATE TABLE IF NOT EXISTS companies(
  currency TEXT NOT NULL, cik TEXT, isin TEXT, fiscal_year_end TEXT NOT NULL,
  exchange TEXT, country TEXT, sector TEXT, industry TEXT, timezone TEXT NOT NULL DEFAULT 'UTC',
  locale TEXT NOT NULL DEFAULT 'en', enabled INTEGER NOT NULL DEFAULT 1, UNIQUE(market,symbol));
+CREATE TABLE IF NOT EXISTS universe_snapshots(
+ snapshot_id TEXT PRIMARY KEY, market TEXT NOT NULL, source_url TEXT NOT NULL,
+ observed_at TEXT NOT NULL, content_hash TEXT NOT NULL, local_path TEXT,
+ record_count INTEGER NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}',
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(market,content_hash));
+CREATE TABLE IF NOT EXISTS issuer_universe(
+ issuer_id TEXT PRIMARY KEY, market TEXT NOT NULL, authority_id TEXT NOT NULL,
+ name TEXT NOT NULL, country TEXT, active INTEGER NOT NULL DEFAULT 1,
+ primary_symbol TEXT, primary_exchange TEXT, metadata_json TEXT NOT NULL DEFAULT '{}',
+ current_snapshot_id TEXT NOT NULL REFERENCES universe_snapshots(snapshot_id),
+ first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(market,authority_id));
+CREATE INDEX IF NOT EXISTS idx_issuer_universe_market ON issuer_universe(market,active,name);
+CREATE TABLE IF NOT EXISTS security_universe(
+ security_key TEXT PRIMARY KEY, issuer_id TEXT NOT NULL REFERENCES issuer_universe(issuer_id),
+ market TEXT NOT NULL, symbol TEXT NOT NULL, exchange TEXT NOT NULL DEFAULT '',
+ currency TEXT NOT NULL, is_primary INTEGER NOT NULL DEFAULT 0,
+ active INTEGER NOT NULL DEFAULT 1, metadata_json TEXT NOT NULL DEFAULT '{}',
+ current_snapshot_id TEXT NOT NULL REFERENCES universe_snapshots(snapshot_id),
+ first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(market,exchange,symbol,issuer_id));
+CREATE INDEX IF NOT EXISTS idx_security_universe_symbol ON security_universe(market,symbol,active);
+CREATE TABLE IF NOT EXISTS issuer_universe_versions(
+ issuer_id TEXT NOT NULL, snapshot_id TEXT NOT NULL REFERENCES universe_snapshots(snapshot_id),
+ payload_json TEXT NOT NULL, observed_at TEXT NOT NULL,
+ PRIMARY KEY(issuer_id,snapshot_id));
+CREATE TABLE IF NOT EXISTS security_universe_versions(
+ security_key TEXT NOT NULL, snapshot_id TEXT NOT NULL REFERENCES universe_snapshots(snapshot_id),
+ payload_json TEXT NOT NULL, observed_at TEXT NOT NULL,
+ PRIMARY KEY(security_key,snapshot_id));
 CREATE TABLE IF NOT EXISTS company_sources(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
  source_type TEXT NOT NULL, url TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 100,
@@ -1439,6 +1470,9 @@ class Database:
             "companies": "companies", "sources": "source_documents",
             "source_artifacts": "source_artifacts",
             "source_candidates": "source_candidates", "facts": "data_points",
+            "universe_snapshots": "universe_snapshots",
+            "universe_issuers": "issuer_universe WHERE active=1",
+            "universe_securities": "security_universe WHERE active=1",
             "disclosures": "disclosures", "attributes": "company_attributes",
             "securities": "securities", "listings": "listings", "market_prices": "market_prices",
             "ownership_positions": "ownership_positions", "corporate_actions": "corporate_actions",

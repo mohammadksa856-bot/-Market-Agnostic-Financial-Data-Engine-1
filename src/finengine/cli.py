@@ -229,6 +229,8 @@ def main():
     bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
     backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
     production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--no-llm",action="store_true")
+    universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe")
+    sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
@@ -281,6 +283,16 @@ def main():
         from .operations import configure_production_schedules
         result=configure_production_schedules(a.db,a.registry,a.every,a.source_limit,not a.no_llm)
         print(json.dumps(result,indent=2)); return
+    if a.cmd=="universe-sync":
+        from .universe import sync_universe
+        db=Database(a.db)
+        try:
+            user_agent=_sec_user_agent() if a.market=="US" and not a.input else None
+            result=sync_universe(db,a.market,a.raw_dir,user_agent,a.input,a.source_url)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-status":
+        q=FinancialQueryService(a.db); print(json.dumps(q.universe_status(),ensure_ascii=False,indent=2)); q.close(); return
     if a.cmd=="archive-sources":
         result=archive_manifest_sources(a.db,a.imports,a.registry,a.raw_dir,a.index,
                                         a.project_root,a.market,a.symbol)
