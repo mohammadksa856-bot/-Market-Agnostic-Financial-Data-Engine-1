@@ -9,6 +9,9 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 The bundled portable snapshot is rebuilt from 55 reviewed manifests and currently contains:
 
 - 15 enabled companies: Saudi Aramco, SABIC, all ten listed Saudi banks, Apple, Microsoft, and NVIDIA.
+- The archived official SEC universe snapshot contains 8,010 issuers and 10,415
+  ticker/exchange associations. It is inventory, not automatic publication:
+  activation and monitoring are released in controlled batches.
 - 4,257 current facts and 4,409 total fact versions.
 - 1,020 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 207 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA.
