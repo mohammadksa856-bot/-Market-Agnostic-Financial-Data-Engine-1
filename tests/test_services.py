@@ -353,6 +353,27 @@ class ServiceTests(unittest.TestCase):
             sabic_calculated["price_to_sales"]["provenance"]["derivation"]["type"],
             "deterministic_calculation",
         )
+        self.assertIn("revenue_growth", sabic_calculated)
+        self.assertAlmostEqual(float(sabic_calculated["revenue_growth"]["value"]),
+                               116525214000 / 117736492000 - 1, places=10)
+        sabic_notes = [
+            row for row in sabic["facts_by_category"]["financial"]
+            if row["period_end"] == "2025-12-31" and row["statement"] == "financial_notes"
+        ]
+        debt_maturities = [row for row in sabic_notes
+                           if row["metric"] == "borrowings_by_maturity"]
+        self.assertEqual(len(debt_maturities), 4)
+        self.assertEqual(sum(int(row["value"]) for row in debt_maturities), 32448947000)
+        capital_commitment = next(row for row in sabic_notes
+                                  if row["metric"] == "capital_commitments")
+        self.assertEqual(capital_commitment["value"], "6503000000")
+        self.assertEqual(capital_commitment["provenance"]["extraction"]["page"], 213)
+        sabic_2024 = [
+            row for row in sabic["facts_by_category"]["financial"]
+            if row["period_end"] == "2024-12-31" and row["metric"] == "total_assets"
+        ]
+        self.assertEqual(sabic_2024[0]["value"], "277543843000")
+        self.assertEqual(sabic_2024[0]["provenance"]["extraction"]["page"], 132)
 
     def test_readable_report_is_utf8_searchable_and_source_linked(self):
         root=Path(self.temp.name)
