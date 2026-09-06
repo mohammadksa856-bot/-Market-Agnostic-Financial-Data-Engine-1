@@ -118,6 +118,14 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
     return handle
 
 
+def _company_profile(company) -> str:
+    """Which statement-layout map the reader should use for this issuer."""
+    industry = (getattr(company, "industry", "") or "").lower()
+    if "bank" in industry:
+        return "bank"
+    return "corporate"
+
+
 def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tuple[dict, dict, str]:
     """Read deterministically; use the LLM only when explicitly enabled."""
     import tempfile
@@ -136,6 +144,7 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
         "source_url": row["source_url"],
         "filed_at": row["filed_at"],
         "filing_type": row["filing_type"],
+        "profile": _company_profile(company),
     }
     manifest = StatementReader(pdf_path).read(**kwargs)
     report = verify(manifest)
@@ -223,7 +232,7 @@ def main():
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
-    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5")
+    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank"])
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
     query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
@@ -249,6 +258,12 @@ def main():
     serve=sub.add_parser("serve"); serve.add_argument("--host",default="127.0.0.1"); serve.add_argument("--port",type=int,default=8000); serve.add_argument("--api-key-env",default="FINENGINE_API_KEY")
     run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id")
     telegram=sub.add_parser("telegram"); telegram.add_argument("--token-env",default="TELEGRAM_BOT_TOKEN"); telegram.add_argument("--poll",type=int,default=2)
+    export=sub.add_parser("export-supabase")
+    export.add_argument("market",nargs="?",choices=["SA","US"]); export.add_argument("symbol",nargs="?")
+    export.add_argument("--all",action="store_true"); export.add_argument("--registry",default="config/companies.json")
+    export.add_argument("--url-env",default="SUPABASE_URL"); export.add_argument("--key-env",default="SUPABASE_SERVICE_KEY")
+    export.add_argument("--batch",type=int,default=500); export.add_argument("--prune",action="store_true")
+    export.add_argument("--sql-out"); export.add_argument("--dry-run",action="store_true")
     a=p.parse_args(); Path(a.db).parent.mkdir(parents=True,exist_ok=True)
     if a.cmd=="init":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry)
@@ -285,7 +300,8 @@ def main():
         company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
         kwargs={"market":a.market,"symbol":a.symbol,"currency":company.currency,
                 "source_url":a.source_url,"filed_at":a.filed_at,"period_end":a.period_end,
-                "fiscal_year":a.fiscal_year,"filing_type":a.filing_type}
+                "fiscal_year":a.fiscal_year,"filing_type":a.filing_type,
+                "profile":a.profile or _company_profile(company)}
         def verify_manifest(manifest):
             with tempfile.TemporaryDirectory() as directory:
                 Path(directory,"manifest.json").write_text(json.dumps(manifest),encoding="utf-8")
@@ -397,6 +413,43 @@ def main():
         if not token: p.error(f"{a.token_env} is required")
         try: TelegramBot(a.db,token).serve(a.poll)
         except KeyboardInterrupt: return
+    if a.cmd=="export-supabase":
+        from . import __version__
+        from .export_supabase import SupabaseExporter, facts_to_sql
+        registry=CompanyRegistry.from_json(a.registry)
+        if a.all:
+            targets=[(c.market.value,c.symbol) for c in registry.all() if c.enabled]
+        elif a.market and a.symbol:
+            targets=[(a.market,a.symbol)]
+        else:
+            p.error("give MARKET SYMBOL, or --all")
+        if a.sql_out or a.dry_run:
+            from datetime import datetime, timezone
+            from .export_supabase import flatten_fact
+            service=FinancialQueryService(a.db); rows=[]
+            stamp=datetime.now(timezone.utc).isoformat()
+            try:
+                for market,symbol in targets:
+                    company=registry.resolve(market,symbol); offset=0
+                    while True:
+                        page=service.facts(market,symbol,limit=2000,offset=offset)
+                        rows.extend(flatten_fact(company,f,engine_version=__version__,synced_at=stamp) for f in page)
+                        if len(page)<2000: break
+                        offset+=2000
+            finally:
+                service.close()
+            if a.sql_out:
+                Path(a.sql_out).write_text(facts_to_sql(rows),encoding="utf-8")
+                print(json.dumps({"sql_out":a.sql_out,"facts":len(rows),"companies":len(targets)},indent=2))
+            else:
+                print(json.dumps({"dry_run":True,"facts":len(rows),"companies":len(targets),"sample":rows[:3]},ensure_ascii=False,indent=2,default=str))
+            return
+        url=os.environ.get(a.url_env,"").strip(); key=os.environ.get(a.key_env,"").strip()
+        if not url: p.error(f"{a.url_env} is required (or use --sql-out)")
+        if not key: p.error(f"{a.key_env} is required (or use --sql-out)")
+        exporter=SupabaseExporter(a.db,url,key,engine_version=__version__)
+        results=[exporter.export(m,s,registry,prune=a.prune,batch=a.batch) for m,s in targets]
+        print(json.dumps({"exported":results,"total_facts":sum(r["facts"] for r in results)},indent=2)); return
     if a.cmd=="exceptions":
         if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
         q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return

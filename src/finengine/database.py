@@ -680,6 +680,75 @@ class Database:
                 "latest_archived_daily_turnover / latest_archived_daily_volume",
                 "latest_trading_session", ("trading_turnover", "trading_volume"),
             ),
+            # Banking ratios - computed from ingested bank lines, never taken from
+            # an issuer supplement. The issuer's own figure is a cross-check only.
+            "cost_to_income_ratio": (
+                "abs(operating_expense_banking) / total_operating_income", "same_period",
+                ("operating_expense_banking", "total_operating_income"),
+            ),
+            "loans_to_deposits_ratio": (
+                "net_loans / customer_deposits", "same_period", ("net_loans", "customer_deposits"),
+            ),
+            "casa_ratio": (
+                "(demand_deposits + savings_deposits) / customer_deposits", "same_period",
+                ("demand_deposits", "savings_deposits", "customer_deposits"),
+            ),
+            "nonperforming_loans_ratio": (
+                "nonperforming_loans / gross_loans", "same_period",
+                ("nonperforming_loans", "gross_loans"),
+            ),
+            "nonperforming_loans_coverage": (
+                "credit_loss_allowance / nonperforming_loans", "same_period",
+                ("credit_loss_allowance", "nonperforming_loans"),
+            ),
+            "capital_adequacy_ratio": (
+                "regulatory_capital / risk_weighted_assets", "same_period",
+                ("regulatory_capital", "risk_weighted_assets"),
+            ),
+            "net_interest_margin": (
+                "net_financing_income / average(net_loans + bank_investments + due_from_banks)",
+                "annual_average_balance",
+                ("net_financing_income", "net_loans", "bank_investments", "due_from_banks"),
+            ),
+            "cost_of_risk": (
+                "abs(provision_expense) / average(net_loans)", "annual_average_balance",
+                ("provision_expense", "net_loans"),
+            ),
+            # Composite scores. Sector-aware: F/Z/M for non-financial issuers,
+            # bank_health_score for banks. Each computed from ingested lines only.
+            "accrual_ratio": (
+                "(net_income - operating_cash_flow) / total_assets", "same_period",
+                ("net_income", "operating_cash_flow", "total_assets"),
+            ),
+            "piotroski_f_score": (
+                "sum of 9 Piotroski binary signals evaluated over the tests whose inputs are present",
+                "current_and_prior_fiscal_year",
+                ("net_income", "operating_cash_flow", "total_assets", "long_term_debt",
+                 "current_assets", "current_liabilities", "shares_outstanding", "gross_profit", "revenue"),
+            ),
+            "altman_z_score": (
+                "3.25 + 6.56*(working_capital/total_assets) + 3.26*(retained_earnings/total_assets) "
+                "+ 6.72*(ebit/total_assets) + 1.05*(total_equity/total_liabilities)",
+                "same_period",
+                ("working_capital", "retained_earnings", "ebit", "total_equity",
+                 "total_liabilities", "total_assets"),
+            ),
+            "beneish_m_score": (
+                "-4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI "
+                "- 0.172*SGAI + 4.679*TATA - 0.327*LVGI",
+                "current_and_prior_fiscal_year",
+                ("accounts_receivable", "revenue", "gross_profit", "total_assets", "current_assets",
+                 "property_plant_equipment", "depreciation_amortization",
+                 "selling_general_administrative_expense", "long_term_debt", "current_liabilities",
+                 "net_income", "operating_cash_flow"),
+            ),
+            "bank_health_score": (
+                "sum of bank-quality signals (ROE>0, cost_to_income<0.45, npl<0.03, coverage>1, "
+                "CAR>0.15, and their year-on-year direction)",
+                "current_and_prior_fiscal_year",
+                ("cost_to_income_ratio", "nonperforming_loans_ratio", "nonperforming_loans_coverage",
+                 "capital_adequacy_ratio", "return_on_equity", "loans_to_deposits_ratio"),
+            ),
         }
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",

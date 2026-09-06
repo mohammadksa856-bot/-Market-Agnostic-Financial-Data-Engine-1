@@ -26,6 +26,13 @@ class Calculator:
         "upstream_ebit", "downstream_ebit", "corporate_ebit",
         "upstream_depreciation_amortization", "downstream_depreciation_amortization",
         "corporate_depreciation_amortization",
+        # banking + composite-score inputs that live in their own manifests
+        "net_financing_income", "total_operating_income", "operating_expense_banking",
+        "total_operating_expenses", "provision_expense", "net_loans", "gross_loans",
+        "customer_deposits", "demand_deposits", "savings_deposits", "bank_investments",
+        "due_from_banks", "nonperforming_loans", "credit_loss_allowance", "risk_weighted_assets",
+        "regulatory_capital", "retained_earnings", "working_capital", "return_on_equity",
+        "cost_to_income_ratio", "nonperforming_loans_ratio",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -131,6 +138,13 @@ class Calculator:
                 ratio("ebit_margin", "ebit", "revenue")
                 ratio("ebitda_margin", "ebitda", "revenue")
                 ratio("interest_coverage", "ebit", "finance_costs", "ebit / abs(finance_costs)", True)
+                # Banking efficiency (fires only when the bank income lines are present)
+                if "operating_expense_banking" in lookup and "total_operating_income" in lookup \
+                        and lookup["total_operating_income"].value:
+                    add("cost_to_income_ratio",
+                        abs(lookup["operating_expense_banking"].value) / lookup["total_operating_income"].value,
+                        "abs(operating_expense_banking) / total_operating_income",
+                        lookup["total_operating_income"])
                 shares = lookup.get("weighted_average_shares_diluted") or lookup.get("weighted_average_shares_basic")
                 if shares and shares.value:
                     for numerator, metric in (
@@ -173,6 +187,18 @@ class Calculator:
                         lookup["current_liabilities"])
                 ratio("inventory_to_assets", "inventory", "total_assets")
                 ratio("ppe_to_assets", "property_plant_equipment", "total_assets")
+                # Banking balance-sheet ratios (no-op unless the bank lines are present)
+                ratio("loans_to_deposits_ratio", "net_loans", "customer_deposits")
+                ratio("nonperforming_loans_ratio", "nonperforming_loans", "gross_loans")
+                ratio("nonperforming_loans_coverage", "credit_loss_allowance", "nonperforming_loans")
+                ratio("capital_adequacy_ratio", "regulatory_capital", "risk_weighted_assets")
+                if all(k in lookup for k in ("demand_deposits", "savings_deposits", "customer_deposits")) \
+                        and lookup["customer_deposits"].value:
+                    add("casa_ratio",
+                        (lookup["demand_deposits"].value + lookup["savings_deposits"].value)
+                        / lookup["customer_deposits"].value,
+                        "(demand_deposits + savings_deposits) / customer_deposits",
+                        lookup["customer_deposits"])
                 debt = sum((lookup[key].value for key in ("current_debt", "long_term_debt") if key in lookup), Decimal(0))
                 if debt:
                     reference = lookup.get("current_debt") or lookup["long_term_debt"]
@@ -298,6 +324,21 @@ class Calculator:
                     if average_tangible and "net_income" in lookup:
                         add("return_on_tangible_equity", lookup["net_income"].value / average_tangible,
                             "net_income / average(total_equity - intangible_assets)", lookup["net_income"])
+                # Banking: margins on average earning assets / average loans
+                earning_keys = ("net_loans", "bank_investments", "due_from_banks")
+                if "net_financing_income" in lookup and all(k in lookup for k in earning_keys) \
+                        and all(k in prior_instant for k in earning_keys):
+                    average_earning = (sum(lookup[k].value for k in earning_keys)
+                                       + sum(prior_instant[k].value for k in earning_keys)) / 2
+                    if average_earning:
+                        add("net_interest_margin", lookup["net_financing_income"].value / average_earning,
+                            "net_financing_income / average(net_loans + bank_investments + due_from_banks)",
+                            lookup["net_financing_income"])
+                if "provision_expense" in lookup and "net_loans" in lookup and "net_loans" in prior_instant:
+                    average_loans = (lookup["net_loans"].value + prior_instant["net_loans"].value) / 2
+                    if average_loans:
+                        add("cost_of_risk", abs(lookup["provision_expense"].value) / average_loans,
+                            "abs(provision_expense) / average(net_loans)", lookup["provision_expense"])
                 if "accounts_receivable" in lookup and "accounts_receivable" in prior_instant and "revenue" in lookup:
                     average = (lookup["accounts_receivable"].value + prior_instant["accounts_receivable"].value) / 2
                     if average:
@@ -349,6 +390,30 @@ class Calculator:
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
                             f"{source_metric} / prior_fy({source_metric}) - 1", group[source_metric])
 
+        # Composite scores run last: they read ratios (cost_to_income_ratio,
+        # nonperforming_loans_ratio, ROE, ...) that the passes above computed.
+        for (company_id, period_end, period_kind, _, _), group in groups.items():
+            if period_kind != PeriodKind.FY:
+                continue
+            base = next(iter(group.values()))
+            lookup = combined[(company_id, period_end)]
+
+            def score_add(metric, value, formula, reference=None, unit="ratio", currency=""):
+                if metric in lookup:
+                    return
+                source = reference or base
+                calculated = Fact(
+                    source.company_id, metric, value, currency, unit, source.period_start,
+                    source.period_end, source.period_kind, source.fiscal_year,
+                    source.fiscal_quarter, source.source_key, source.source_url, source.filed_at,
+                    is_calculated=True, calculation=formula, scope=source.scope,
+                    dimensions=source.dimensions,
+                )
+                out.append(calculated)
+                lookup[metric] = calculated
+
+            self._composite_scores(company_id, base, lookup, historical, score_add)
+
         dimensioned = defaultdict(dict)
         targets = set()
         for fact in all_facts:
@@ -382,6 +447,132 @@ class Calculator:
 
         target_periods = {fact.period_end for fact in facts if fact.period_kind == PeriodKind.QUARTER}
         return out + self._ttm([*all_facts, *out], target_periods)
+
+    def _composite_scores(self, company_id, base, lookup, historical, add):
+        """Sector-aware composite scores, computed from ingested lines only.
+
+        Piotroski F / Altman Z'' / Beneish M are defined for non-financial
+        issuers; bank_health_score is the parallel for banks. Each is emitted
+        only when enough of its inputs are present.
+        """
+        year = base.fiscal_year
+        prior = {**historical.get((company_id, year - 1, PeriodKind.FY), {}),
+                 **historical.get((company_id, year - 1, PeriodKind.INSTANT), {})}
+        prior_assets = historical.get((company_id, year - 2, PeriodKind.INSTANT), {}).get("total_assets")
+
+        def val(source, key):
+            fact = source.get(key)
+            return fact.value if fact is not None and fact.value is not None else None
+
+        def frac(numerator, denominator):
+            return (numerator / denominator) if (numerator is not None and denominator) else None
+
+        # A bank's operating cash flow is dominated by loan-book and deposit
+        # movements, so cash-flow accrual and conversion metrics are noise.
+        is_bank = "customer_deposits" in lookup or "net_financing_income" in lookup
+
+        ni = val(lookup, "net_income")
+        cfo = val(lookup, "operating_cash_flow")
+        ta = val(lookup, "total_assets")
+        ta_prior = val(prior, "total_assets")
+
+        if not is_bank and ni is not None and cfo is not None and ta:
+            add("accrual_ratio", (ni - cfo) / ta,
+                "(net_income - operating_cash_flow) / total_assets", lookup["net_income"])
+        # fcf_conversion is computed in the main pass (free_cash_flow / ebitda).
+
+        roa_now = frac(ni, ta_prior)
+        roa_prior = frac(val(prior, "net_income"), prior_assets.value if prior_assets else None)
+        lev_now = frac(val(lookup, "long_term_debt"), ta)
+        lev_prior = frac(val(prior, "long_term_debt"), ta_prior)
+        cr_now = frac(val(lookup, "current_assets"), val(lookup, "current_liabilities"))
+        cr_prior = frac(val(prior, "current_assets"), val(prior, "current_liabilities"))
+        gm_now = frac(val(lookup, "gross_profit"), val(lookup, "revenue"))
+        gm_prior = frac(val(prior, "gross_profit"), val(prior, "revenue"))
+        turn_now = frac(val(lookup, "revenue"), ta_prior)
+        turn_prior = frac(val(prior, "revenue"), prior_assets.value if prior_assets else None)
+        shares_now, shares_prior = val(lookup, "shares_outstanding"), val(prior, "shares_outstanding")
+
+        signals = {
+            "roa_positive": (roa_now > 0) if roa_now is not None else None,
+            "cfo_positive": (cfo > 0) if cfo is not None else None,
+            "roa_rising": (roa_now > roa_prior) if (roa_now is not None and roa_prior is not None) else None,
+            "accruals_ok": (cfo > ni) if (cfo is not None and ni is not None) else None,
+            "leverage_falling": (lev_now < lev_prior) if (lev_now is not None and lev_prior is not None) else None,
+            "liquidity_rising": (cr_now > cr_prior) if (cr_now is not None and cr_prior is not None) else None,
+            "no_dilution": (shares_now <= shares_prior) if (shares_now is not None and shares_prior is not None) else None,
+            "margin_rising": (gm_now > gm_prior) if (gm_now is not None and gm_prior is not None) else None,
+            "turnover_rising": (turn_now > turn_prior) if (turn_now is not None and turn_prior is not None) else None,
+        }
+        evaluated = {name: passed for name, passed in signals.items() if passed is not None}
+        if not is_bank and len(evaluated) >= 6 and "net_income" in lookup:
+            add("piotroski_f_score", Decimal(sum(1 for passed in evaluated.values() if passed)),
+                "sum of Piotroski signals passed [" + ", ".join(sorted(evaluated)) + "]",
+                base, unit="score")
+
+        ca, cl = val(lookup, "current_assets"), val(lookup, "current_liabilities")
+        wc = val(lookup, "working_capital")
+        if wc is None and ca is not None and cl is not None:
+            wc = ca - cl
+        retained = val(lookup, "retained_earnings")
+        ebit = val(lookup, "ebit")
+        equity = val(lookup, "total_equity")
+        liabilities = val(lookup, "total_liabilities")
+        if not is_bank and None not in (wc, retained, ebit, equity, liabilities, ta) and ta and liabilities:
+            z = (Decimal("3.25") + Decimal("6.56") * (wc / ta) + Decimal("3.26") * (retained / ta)
+                 + Decimal("6.72") * (ebit / ta) + Decimal("1.05") * (equity / liabilities))
+            add("altman_z_score", z,
+                "3.25 + 6.56*(working_capital/total_assets) + 3.26*(retained_earnings/total_assets)"
+                " + 6.72*(ebit/total_assets) + 1.05*(total_equity/total_liabilities)",
+                base, unit="score")
+
+        ar_n, ar_p = val(lookup, "accounts_receivable"), val(prior, "accounts_receivable")
+        sales_n, sales_p = val(lookup, "revenue"), val(prior, "revenue")
+        gp_n, gp_p = val(lookup, "gross_profit"), val(prior, "gross_profit")
+        ca_n, ca_p = val(lookup, "current_assets"), val(prior, "current_assets")
+        ppe_n, ppe_p = val(lookup, "property_plant_equipment"), val(prior, "property_plant_equipment")
+        dep_n, dep_p = val(lookup, "depreciation_amortization"), val(prior, "depreciation_amortization")
+        sga_n, sga_p = val(lookup, "selling_general_administrative_expense"), val(prior, "selling_general_administrative_expense")
+        ltd_n, ltd_p = val(lookup, "long_term_debt"), val(prior, "long_term_debt")
+        cl_n, cl_p = val(lookup, "current_liabilities"), val(prior, "current_liabilities")
+        beneish_inputs = [ar_n, ar_p, sales_n, sales_p, gp_n, gp_p, ca_n, ca_p, ppe_n, ppe_p,
+                          dep_n, dep_p, sga_n, sga_p, ltd_n, ltd_p, cl_n, cl_p, ni, cfo, ta, ta_prior]
+        if not is_bank and all(v is not None for v in beneish_inputs) and all(
+                v for v in (sales_n, sales_p, ta, ta_prior, ar_p, gp_n, sga_p)):
+            dep_n, dep_p, sga_n, sga_p = abs(dep_n), abs(dep_p), abs(sga_n), abs(sga_p)
+            dsri = (ar_n / sales_n) / (ar_p / sales_p)
+            gmi = (gp_p / sales_p) / (gp_n / sales_n) if gp_n else Decimal(1)
+            aqi = ((1 - (ca_n + ppe_n) / ta) / (1 - (ca_p + ppe_p) / ta_prior)
+                   if (ca_p + ppe_p) != ta_prior else Decimal(1))
+            sgi = sales_n / sales_p
+            depi = ((dep_p / (dep_p + ppe_p)) / (dep_n / (dep_n + ppe_n))
+                    if (dep_n + ppe_n) and (dep_p + ppe_p) else Decimal(1))
+            sgai = (sga_n / sales_n) / (sga_p / sales_p)
+            lvgi = (((ltd_n + cl_n) / ta) / ((ltd_p + cl_p) / ta_prior))
+            tata = (ni - cfo) / ta
+            m = (Decimal("-4.84") + Decimal("0.92") * dsri + Decimal("0.528") * gmi
+                 + Decimal("0.404") * aqi + Decimal("0.892") * sgi + Decimal("0.115") * depi
+                 - Decimal("0.172") * sgai + Decimal("4.679") * tata - Decimal("0.327") * lvgi)
+            add("beneish_m_score", m,
+                "-4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI"
+                " - 0.172*SGAI + 4.679*TATA - 0.327*LVGI", base, unit="score")
+
+        bank_signals = {
+            "roe_positive": (val(lookup, "return_on_equity") > 0) if "return_on_equity" in lookup else None,
+            "efficient": (val(lookup, "cost_to_income_ratio") < Decimal("0.45")) if "cost_to_income_ratio" in lookup else None,
+            "clean_book": (val(lookup, "nonperforming_loans_ratio") < Decimal("0.03")) if "nonperforming_loans_ratio" in lookup else None,
+            "well_provisioned": (val(lookup, "nonperforming_loans_coverage") > 1) if "nonperforming_loans_coverage" in lookup else None,
+            "well_capitalised": (val(lookup, "capital_adequacy_ratio") > Decimal("0.15")) if "capital_adequacy_ratio" in lookup else None,
+            "efficiency_improving": (val(lookup, "cost_to_income_ratio") < val(prior, "cost_to_income_ratio"))
+                if ("cost_to_income_ratio" in lookup and "cost_to_income_ratio" in prior) else None,
+            "asset_quality_stable": (val(lookup, "nonperforming_loans_ratio") <= val(prior, "nonperforming_loans_ratio"))
+                if ("nonperforming_loans_ratio" in lookup and "nonperforming_loans_ratio" in prior) else None,
+        }
+        bank_evaluated = {name: passed for name, passed in bank_signals.items() if passed is not None}
+        if len(bank_evaluated) >= 4:
+            add("bank_health_score", Decimal(sum(1 for passed in bank_evaluated.values() if passed)),
+                "sum of bank-quality signals passed [" + ", ".join(sorted(bank_evaluated)) + "]",
+                base, unit="score")
 
     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
         out = []

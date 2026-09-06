@@ -140,6 +140,20 @@ Examples:
 
 When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
 
+## Publishing to the application (Supabase)
+
+`export-supabase` is the one-way bridge from the engine's SQLite production store to a flat `financial_facts` table the website and Telegram bot read. It upserts the engine's *current* facts - the same rows `finengine facts` returns - carrying every provenance column per row: official source URL, archived SHA-256, the raw extracted label and value, mapping confidence, and, for derived rows, the deterministic formula. It is additive and never touches the application's own tables.
+
+    export SUPABASE_URL=https://<project-ref>.supabase.co
+    export SUPABASE_SERVICE_KEY=<service-role key>        # write path; never commit it
+
+    finengine export-supabase SA 2222                     # one company
+    finengine export-supabase --all --prune               # every enabled company
+    finengine export-supabase SA 1120 --dry-run           # print the rows, send nothing
+    finengine export-supabase --all --sql-out facts.sql   # emit an idempotent script to review first
+
+`--prune` deletes rows a company's current export no longer produces (a restated or withdrawn fact). Without a service-role key locally, use `--sql-out` and apply the reviewed script through the Supabase SQL editor. No third-party package is required - the engine talks to PostgREST over stdlib HTTP.
+
 ## Telegram bot
 
 Create a bot with BotFather, keep the token outside the repository, then run:

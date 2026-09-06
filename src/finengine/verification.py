@@ -46,6 +46,12 @@ ADDITIVE_IDENTITIES = (
      "total_liabilities_equity", ("total_liabilities", "total_equity")),
     ("dividends: total = base + performance-linked",
      "dividends_paid", ("base_dividends_paid", "performance_linked_dividends_paid")),
+    # Banking. Only fire when the bank lines are present, so a corporate
+    # manifest is unaffected. Expense components carry their natural sign.
+    ("banking: net financing income = income - expense",
+     "net_financing_income", ("financing_income", "financing_expense")),
+    ("banking: total operating expenses = ex-provision expense + provision",
+     "total_operating_expenses", ("operating_expense_banking", "provision_expense")),
 )
 
 # Cash reconciliation is presentation-dependent: some issuers fold the FX effect

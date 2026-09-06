@@ -64,6 +64,10 @@ FIELD_OVERRIDES = {
     "insider_ownership": {"default_unit": "ratio", "aggregation": "none"},
     "foreign_ownership": {"default_unit": "ratio", "aggregation": "none"},
     "free_float": {"default_unit": "ratio", "aggregation": "none"},
+    "piotroski_f_score": {"default_unit": "score", "aggregation": "none"},
+    "altman_z_score": {"default_unit": "score", "aggregation": "none"},
+    "beneish_m_score": {"default_unit": "score", "aggregation": "none"},
+    "bank_health_score": {"default_unit": "score", "aggregation": "none"},
     "retail_ownership": {"default_unit": "ratio", "aggregation": "none"},
     "strategic_ownership": {"default_unit": "ratio", "aggregation": "none"},
     "top_5_shareholder_concentration": {"default_unit": "ratio", "aggregation": "none"},
@@ -493,7 +497,8 @@ GROUPS = (
         "revenue_cagr_10y net_income_cagr_10y eps_cagr_10y dividend_cagr_10y operating_cash_flow_cagr_10y "
         "free_cash_flow_cagr_10y total_return_1y total_return_3y total_return_5y total_return_10y "
         "simple_moving_average_20d simple_moving_average_50d simple_moving_average_200d price_to_sma_20d "
-        "price_to_sma_50d price_to_sma_200d"
+        "price_to_sma_50d price_to_sma_200d "
+        "accrual_ratio piotroski_f_score altman_z_score beneish_m_score"
     )),
     ("consensus", "consensus_estimates", "consensus", "forward", "decimal", "none", "all", "*", _keys(
         "revenue_estimate ebitda_estimate ebit_estimate net_income_estimate "
@@ -544,11 +549,16 @@ GROUPS = (
         "risk_weighted_assets regulatory_capital"
     )),
     ("banking", "data_points", "banking_income", "flow", "currency", "sum", "industry", "Banks", _keys(
-        "financing_income financing_expense net_financing_income fee_income trading_income provision_expense operating_expense_banking"
+        "financing_income financing_expense net_financing_income fee_income fee_expense exchange_income "
+        "trading_income dividend_income total_operating_income "
+        "salaries_and_employee_expenses provision_expense operating_expense_banking total_operating_expenses"
+    )),
+    ("banking", "data_points", "banking_balance_sheet", "instant", "currency", "last", "industry", "Banks", _keys(
+        "cash_and_balances_with_central_bank debt_securities_issued"
     )),
     ("banking", "data_points", "banking_ratios", "mixed", "ratio", "none", "industry", "Banks", _keys(
         "net_interest_margin cost_of_funds nonperforming_loans_ratio nonperforming_loans_coverage cet1_ratio tier1_capital_ratio "
-        "capital_adequacy_ratio loans_to_deposits_ratio casa_ratio cost_to_income_ratio cost_of_risk"
+        "capital_adequacy_ratio loans_to_deposits_ratio casa_ratio cost_to_income_ratio cost_of_risk bank_health_score"
     )),
     ("insurance", "data_points", "insurance_income", "flow", "currency", "sum", "industry", "Insurance", _keys(
         "gross_written_premium insurance_revenue insurance_service_expense claims_incurred insurance_service_result "
