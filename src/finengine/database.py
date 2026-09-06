@@ -718,6 +718,46 @@ class Database:
                 "abs(credit_impairment_charge) / average(loans_and_advances)",
                 "annual_average_balance", ("credit_impairment_charge", "loans_and_advances"),
             ),
+            # Composite scores. Sector-aware: F/Z/M for non-financial issuers,
+            # bank_health_score for banks. Each computed from ingested lines only.
+            "accrual_ratio": (
+                "(net_income - operating_cash_flow) / total_assets", "same_period",
+                ("net_income", "operating_cash_flow", "total_assets"),
+            ),
+            "fcf_conversion": (
+                "free_cash_flow / net_income", "same_period", ("free_cash_flow", "net_income"),
+            ),
+            "piotroski_f_score": (
+                "sum of 9 Piotroski binary signals (profitability, leverage/liquidity, efficiency), "
+                "evaluated over the tests whose inputs are present",
+                "current_and_prior_fiscal_year",
+                ("net_income", "operating_cash_flow", "total_assets", "long_term_debt",
+                 "current_assets", "current_liabilities", "shares_outstanding",
+                 "gross_profit", "revenue"),
+            ),
+            "altman_z_score": (
+                "3.25 + 6.56*(working_capital/total_assets) + 3.26*(retained_earnings/total_assets) "
+                "+ 6.72*(ebit/total_assets) + 1.05*(total_equity/total_liabilities)",
+                "same_period",
+                ("working_capital", "retained_earnings", "ebit", "total_equity",
+                 "total_liabilities", "total_assets"),
+            ),
+            "beneish_m_score": (
+                "-4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI "
+                "- 0.172*SGAI + 4.679*TATA - 0.327*LVGI",
+                "current_and_prior_fiscal_year",
+                ("accounts_receivable", "revenue", "gross_profit", "cost_of_revenue",
+                 "total_assets", "current_assets", "property_plant_equipment",
+                 "depreciation_amortization", "selling_general_administrative_expense",
+                 "long_term_debt", "current_liabilities", "net_income", "operating_cash_flow"),
+            ),
+            "bank_health_score": (
+                "sum of bank-quality signals (ROE>0, cost_to_income<0.45, npl_ratio<0.03, "
+                "npl_coverage>1, capital_adequacy_ratio>0.15, and their year-on-year direction)",
+                "current_and_prior_fiscal_year",
+                ("cost_to_income", "npl_ratio", "npl_coverage", "capital_adequacy_ratio",
+                 "return_on_equity", "loan_to_deposit_ratio"),
+            ),
         }
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",

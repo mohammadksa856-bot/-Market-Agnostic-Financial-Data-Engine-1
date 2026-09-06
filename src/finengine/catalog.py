@@ -267,7 +267,8 @@ GROUPS = (
         "revenue_cagr_10y net_income_cagr_10y eps_cagr_10y dividend_cagr_10y operating_cash_flow_cagr_10y "
         "free_cash_flow_cagr_10y total_return_1y total_return_3y total_return_5y total_return_10y "
         "simple_moving_average_20d simple_moving_average_50d simple_moving_average_200d price_to_sma_20d "
-        "price_to_sma_50d price_to_sma_200d"
+        "price_to_sma_50d price_to_sma_200d "
+        "accrual_ratio fcf_conversion piotroski_f_score altman_z_score beneish_m_score"
     )),
     ("consensus", "consensus_estimates", "consensus", "forward", "decimal", "none", "all", "*", _keys(
         "revenue_estimate ebitda_estimate ebit_estimate net_income_estimate "
@@ -308,7 +309,8 @@ GROUPS = (
     # Bank ratios the engine computes from the lines above - never ingested.
     ("banking_ratios", "data_points", "ratios", "derived", "ratio", "none", "industry", "Banks", _keys(
         "net_interest_margin cost_to_income cost_of_risk loan_to_deposit_ratio "
-        "npl_ratio npl_coverage capital_adequacy_ratio cet1_ratio tier1_ratio casa_ratio"
+        "npl_ratio npl_coverage capital_adequacy_ratio cet1_ratio tier1_ratio casa_ratio "
+        "bank_health_score"
     )),
 )
 

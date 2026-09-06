@@ -29,6 +29,10 @@ class Calculator:
         "credit_impairment_charge", "loans_and_advances", "customer_deposits",
         "investments_securities", "due_from_banks", "gross_financing",
         "non_performing_financing", "total_credit_allowances", "risk_weighted_assets",
+        # composite-score inputs that live in their own manifests
+        "retained_earnings", "working_capital", "return_on_equity", "return_on_assets",
+        "cost_to_income", "npl_ratio", "npl_coverage", "capital_adequacy_ratio",
+        "cet1_capital", "tier1_capital", "total_regulatory_capital",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -313,6 +317,30 @@ class Calculator:
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
                             f"{source_metric} / prior_fy({source_metric}) - 1", group[source_metric])
 
+        # Composite scores run last: they read ratios (cost_to_income, npl_ratio,
+        # ROE, ...) that the passes above just computed into the shared lookup.
+        for (company_id, period_end, period_kind, _, _), group in groups.items():
+            if period_kind != PeriodKind.FY:
+                continue
+            base = next(iter(group.values()))
+            lookup = combined[(company_id, period_end)]
+
+            def score_add(metric, value, formula, reference=None, unit="ratio", currency=""):
+                if metric in lookup:
+                    return
+                source = reference or base
+                calculated = Fact(
+                    source.company_id, metric, value, currency, unit, source.period_start,
+                    source.period_end, source.period_kind, source.fiscal_year,
+                    source.fiscal_quarter, source.source_key, source.source_url, source.filed_at,
+                    is_calculated=True, calculation=formula, scope=source.scope,
+                    dimensions=source.dimensions,
+                )
+                out.append(calculated)
+                lookup[metric] = calculated
+
+            self._composite_scores(company_id, base, lookup, historical, score_add)
+
         dimensioned = defaultdict(dict)
         targets = set()
         for fact in all_facts:
@@ -346,6 +374,138 @@ class Calculator:
 
         target_periods = {fact.period_end for fact in facts if fact.period_kind == PeriodKind.QUARTER}
         return out + self._ttm([*all_facts, *out], target_periods)
+
+    def _composite_scores(self, company_id, base, lookup, historical, add):
+        """Sector-aware composite scores, computed from ingested lines only.
+
+        Piotroski F / Altman Z'' / Beneish M are defined for non-financial
+        issuers; bank_health_score is the parallel for banks. Each score is
+        emitted only when enough of its inputs are present.
+        """
+        year = base.fiscal_year
+        prior = {**historical.get((company_id, year - 1, PeriodKind.FY), {}),
+                 **historical.get((company_id, year - 1, PeriodKind.INSTANT), {})}
+        prior_assets = historical.get((company_id, year - 2, PeriodKind.INSTANT), {}).get("total_assets")
+
+        def val(source, key):
+            fact = source.get(key)
+            return fact.value if fact is not None and fact.value is not None else None
+
+        def frac(numerator, denominator):
+            return (numerator / denominator) if (numerator is not None and denominator) else None
+
+        # A bank's operating cash flow is dominated by loan-book and deposit
+        # movements, so cash-flow-based accrual and conversion metrics are noise.
+        is_bank = "customer_deposits" in lookup or "net_interest_income" in lookup
+
+        ni = val(lookup, "net_income")
+        cfo = val(lookup, "operating_cash_flow")
+        ta = val(lookup, "total_assets")
+        ta_prior = val(prior, "total_assets")
+
+        if not is_bank and ni is not None and cfo is not None and ta:
+            add("accrual_ratio", (ni - cfo) / ta,
+                "(net_income - operating_cash_flow) / total_assets", lookup["net_income"])
+        fcf = val(lookup, "free_cash_flow")
+        if not is_bank and fcf is not None and ni:
+            add("fcf_conversion", fcf / ni, "free_cash_flow / net_income", lookup["free_cash_flow"])
+
+        # --- Piotroski F-Score (non-financial) ---
+        roa_now = frac(ni, ta_prior)
+        roa_prior = frac(val(prior, "net_income"), prior_assets.value if prior_assets else None)
+        lev_now = frac(val(lookup, "long_term_debt"), ta)
+        lev_prior = frac(val(prior, "long_term_debt"), ta_prior)
+        cr_now = frac(val(lookup, "current_assets"), val(lookup, "current_liabilities"))
+        cr_prior = frac(val(prior, "current_assets"), val(prior, "current_liabilities"))
+        gm_now = frac(val(lookup, "gross_profit"), val(lookup, "revenue"))
+        gm_prior = frac(val(prior, "gross_profit"), val(prior, "revenue"))
+        turn_now = frac(val(lookup, "revenue"), ta_prior)
+        turn_prior = frac(val(prior, "revenue"), prior_assets.value if prior_assets else None)
+        shares_now, shares_prior = val(lookup, "shares_outstanding"), val(prior, "shares_outstanding")
+
+        signals = {
+            "roa_positive": (roa_now > 0) if roa_now is not None else None,
+            "cfo_positive": (cfo > 0) if cfo is not None else None,
+            "roa_rising": (roa_now > roa_prior) if (roa_now is not None and roa_prior is not None) else None,
+            "accruals_ok": (cfo > ni) if (cfo is not None and ni is not None) else None,
+            "leverage_falling": (lev_now < lev_prior) if (lev_now is not None and lev_prior is not None) else None,
+            "liquidity_rising": (cr_now > cr_prior) if (cr_now is not None and cr_prior is not None) else None,
+            "no_dilution": (shares_now <= shares_prior) if (shares_now is not None and shares_prior is not None) else None,
+            "margin_rising": (gm_now > gm_prior) if (gm_now is not None and gm_prior is not None) else None,
+            "turnover_rising": (turn_now > turn_prior) if (turn_now is not None and turn_prior is not None) else None,
+        }
+        evaluated = {name: passed for name, passed in signals.items() if passed is not None}
+        if not is_bank and len(evaluated) >= 6 and "net_income" in lookup:
+            add("piotroski_f_score", Decimal(sum(1 for passed in evaluated.values() if passed)),
+                "sum of Piotroski signals passed [" + ", ".join(sorted(evaluated)) + "]",
+                base, unit="score")
+
+        # --- Altman Z''-Score (non-financial, emerging-market variant) ---
+        ca, cl = val(lookup, "current_assets"), val(lookup, "current_liabilities")
+        wc = val(lookup, "working_capital")
+        if wc is None and ca is not None and cl is not None:
+            wc = ca - cl
+        re = val(lookup, "retained_earnings")
+        ebit = val(lookup, "ebit")
+        equity = val(lookup, "total_equity")
+        liabilities = val(lookup, "total_liabilities")
+        if not is_bank and None not in (wc, re, ebit, equity, liabilities, ta) and ta and liabilities:
+            z = (Decimal("3.25") + Decimal("6.56") * (wc / ta) + Decimal("3.26") * (re / ta)
+                 + Decimal("6.72") * (ebit / ta) + Decimal("1.05") * (equity / liabilities))
+            add("altman_z_score", z,
+                "3.25 + 6.56*(working_capital/total_assets) + 3.26*(retained_earnings/total_assets)"
+                " + 6.72*(ebit/total_assets) + 1.05*(total_equity/total_liabilities)",
+                base, unit="score")
+
+        # --- Beneish M-Score (non-financial; dormant unless gross margin reported) ---
+        ar_n, ar_p = val(lookup, "accounts_receivable"), val(prior, "accounts_receivable")
+        sales_n, sales_p = val(lookup, "revenue"), val(prior, "revenue")
+        gp_n, gp_p = val(lookup, "gross_profit"), val(prior, "gross_profit")
+        ca_n, ca_p = val(lookup, "current_assets"), val(prior, "current_assets")
+        ppe_n, ppe_p = val(lookup, "property_plant_equipment"), val(prior, "property_plant_equipment")
+        dep_n, dep_p = val(lookup, "depreciation_amortization"), val(prior, "depreciation_amortization")
+        sga_n, sga_p = val(lookup, "selling_general_administrative_expense"), val(prior, "selling_general_administrative_expense")
+        ltd_n, ltd_p = val(lookup, "long_term_debt"), val(prior, "long_term_debt")
+        cl_n, cl_p = val(lookup, "current_liabilities"), val(prior, "current_liabilities")
+        beneish_inputs = [ar_n, ar_p, sales_n, sales_p, gp_n, gp_p, ca_n, ca_p, ppe_n, ppe_p,
+                          dep_n, dep_p, sga_n, sga_p, ltd_n, ltd_p, cl_n, cl_p, ni, cfo, ta, ta_prior]
+        if not is_bank and all(v is not None for v in beneish_inputs) and all(
+                v for v in (sales_n, sales_p, ta, ta_prior, ar_p, gp_n, sga_p)):
+            dep_n, dep_p, sga_n, sga_p = abs(dep_n), abs(dep_p), abs(sga_n), abs(sga_p)
+            dsri = (ar_n / sales_n) / (ar_p / sales_p)
+            gmi = (gp_p / sales_p) / (gp_n / sales_n) if gp_n else Decimal(1)
+            aqi = ((1 - (ca_n + ppe_n) / ta) / (1 - (ca_p + ppe_p) / ta_prior)
+                   if (ca_p + ppe_p) != ta_prior else Decimal(1))
+            sgi = sales_n / sales_p
+            depi = ((dep_p / (dep_p + ppe_p)) / (dep_n / (dep_n + ppe_n))
+                    if (dep_n + ppe_n) and (dep_p + ppe_p) else Decimal(1))
+            sgai = (sga_n / sales_n) / (sga_p / sales_p)
+            lvgi = (((ltd_n + cl_n) / ta) / ((ltd_p + cl_p) / ta_prior))
+            tata = (ni - cfo) / ta
+            m = (Decimal("-4.84") + Decimal("0.92") * dsri + Decimal("0.528") * gmi
+                 + Decimal("0.404") * aqi + Decimal("0.892") * sgi + Decimal("0.115") * depi
+                 - Decimal("0.172") * sgai + Decimal("4.679") * tata - Decimal("0.327") * lvgi)
+            add("beneish_m_score", m,
+                "-4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI"
+                " - 0.172*SGAI + 4.679*TATA - 0.327*LVGI", base, unit="score")
+
+        # --- Bank health score (parallel to Piotroski, for banks) ---
+        bank_signals = {
+            "roe_positive": (val(lookup, "return_on_equity") > 0) if "return_on_equity" in lookup else None,
+            "efficient": (val(lookup, "cost_to_income") < Decimal("0.45")) if "cost_to_income" in lookup else None,
+            "clean_book": (val(lookup, "npl_ratio") < Decimal("0.03")) if "npl_ratio" in lookup else None,
+            "well_provisioned": (val(lookup, "npl_coverage") > 1) if "npl_coverage" in lookup else None,
+            "well_capitalised": (val(lookup, "capital_adequacy_ratio") > Decimal("0.15")) if "capital_adequacy_ratio" in lookup else None,
+            "efficiency_improving": (val(lookup, "cost_to_income") < val(prior, "cost_to_income"))
+                if ("cost_to_income" in lookup and "cost_to_income" in prior) else None,
+            "asset_quality_stable": (val(lookup, "npl_ratio") <= val(prior, "npl_ratio"))
+                if ("npl_ratio" in lookup and "npl_ratio" in prior) else None,
+        }
+        bank_evaluated = {name: passed for name, passed in bank_signals.items() if passed is not None}
+        if len(bank_evaluated) >= 4:
+            add("bank_health_score", Decimal(sum(1 for passed in bank_evaluated.values() if passed)),
+                "sum of bank-quality signals passed [" + ", ".join(sorted(bank_evaluated)) + "]",
+                base, unit="score")
 
     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
         out = []
