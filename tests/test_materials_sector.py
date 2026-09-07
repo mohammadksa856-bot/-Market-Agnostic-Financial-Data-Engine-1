@@ -1,8 +1,8 @@
-"""Acceptance tests for the Saudi materials / petrochemicals data batch 1.
+"""Acceptance tests for the Saudi materials / mining / petrochemicals data batch 1.
 
-Covers YANSAB (2290) and Advanced Petrochemical (2330), transcribed from the
-issuers' official FY2025 audited financial statements. This batch adds no engine
-or catalog changes.
+Covers YANSAB (2290), Advanced Petrochemical (2330) and Ma'aden (1211),
+transcribed from the issuers' official FY2025 audited financial statements. This
+batch adds no engine or catalog changes.
 """
 
 import tempfile
@@ -20,11 +20,20 @@ REPO_IMPORTS = REPO_ROOT / "data" / "imports"
 
 class MaterialsManifestVerificationTests(unittest.TestCase):
     def test_manifests_have_no_identity_failures(self):
-        for prefix in ("yansab-", "advanced-petrochemical-"):
+        for prefix in ("yansab-", "advanced-petrochemical-", "maaden-"):
             report = ManifestVerifier(REPO_IMPORTS).verify(prefix)
             self.assertEqual(report["failures"], 0, (prefix, report["detail"]))
             self.assertEqual(report["unmapped_labels"], [], prefix)
             self.assertGreater(report["passed"], 15, prefix)
+
+    def test_maaden_pre_tax_to_net_bridge_absorbs_tax_zakat_and_severance_fees(self):
+        # Ma'aden reports income tax, zakat and severance fees as three separate
+        # charges; income_taxes_and_zakat is their sum so the bridge holds.
+        report = ManifestVerifier(REPO_IMPORTS).verify("maaden-")
+        bridge = [c for c in report["detail"]
+                  if c["check"].startswith("income_statement: pre-tax income - tax")]
+        self.assertTrue(bridge, report["detail"])
+        self.assertTrue(all(c["status"] == "pass" for c in bridge), bridge)
 
     def test_advanced_petrochemical_fy2024_loss_still_closes_the_bridges(self):
         # FY2024 was a loss year; net income = pre-tax - tax and
@@ -57,8 +66,8 @@ class MaterialsSnapshotTests(unittest.TestCase):
     def _rows(self, company_id):
         return [r for r in self.summary["results"] if r["company_id"] == company_id]
 
-    def test_both_publish_without_errors(self):
-        for company_id in ("sa:2290", "sa:2330"):
+    def test_all_publish_without_errors(self):
+        for company_id in ("sa:2290", "sa:2330", "sa:1211"):
             rows = self._rows(company_id)
             self.assertTrue(rows, f"no manifest published for {company_id}")
             for row in rows:
@@ -71,6 +80,8 @@ class MaterialsSnapshotTests(unittest.TestCase):
                      "total_assets": "13259624000"},
             "2330": {"revenue": "3501939000", "net_income": "231918000",
                      "total_assets": "14356479000"},
+            "1211": {"revenue": "38577730228", "net_income": "8527980356",
+                     "total_assets": "119757152175"},
         }
         q = FinancialQueryService(self.dbpath)
         try:
