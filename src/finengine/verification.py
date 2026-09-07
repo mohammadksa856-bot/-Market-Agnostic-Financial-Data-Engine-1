@@ -52,6 +52,11 @@ ADDITIVE_IDENTITIES = (
      "net_financing_income", ("financing_income", "financing_expense")),
     ("banking: total operating expenses = ex-provision expense + provision",
      "total_operating_expenses", ("operating_expense_banking", "provision_expense")),
+    # Insurance (IFRS 17). Dormant unless the insurer lines are present.
+    ("insurance: service result = revenue - service expense",
+     "insurance_service_result", ("insurance_revenue", "insurance_service_expense")),
+    ("insurance: underwriting result = service result + net reinsurance result",
+     "underwriting_result", ("insurance_service_result", "reinsurance_result")),
 )
 
 # Cash reconciliation is presentation-dependent: some issuers fold the FX effect

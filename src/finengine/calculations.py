@@ -33,6 +33,10 @@ class Calculator:
         "due_from_banks", "nonperforming_loans", "credit_loss_allowance", "risk_weighted_assets",
         "regulatory_capital", "retained_earnings", "working_capital", "return_on_equity",
         "cost_to_income_ratio", "nonperforming_loans_ratio",
+        # insurance (IFRS 17) inputs that live in their own manifests
+        "insurance_revenue", "insurance_service_expense", "insurance_service_result",
+        "reinsurance_result", "underwriting_result", "insurance_investment_income",
+        "gross_written_premium", "reinsurance_premiums", "operating_expenses",
     }
     GROWTH_METRICS = {
         "revenue": "revenue_growth", "gross_profit": "gross_profit_growth",
@@ -145,6 +149,31 @@ class Calculator:
                         abs(lookup["operating_expense_banking"].value) / lookup["total_operating_income"].value,
                         "abs(operating_expense_banking) / total_operating_income",
                         lookup["total_operating_income"])
+                # Insurance (IFRS 17) ratios - no-op unless the insurer lines are present
+                if "insurance_service_result" not in lookup and "insurance_revenue" in lookup \
+                        and "insurance_service_expense" in lookup:
+                    add("insurance_service_result",
+                        lookup["insurance_revenue"].value + lookup["insurance_service_expense"].value,
+                        "insurance_revenue + insurance_service_expense", lookup["insurance_revenue"],
+                        lookup["insurance_revenue"].unit, lookup["insurance_revenue"].currency)
+                if "insurance_revenue" in lookup and lookup["insurance_revenue"].value:
+                    rev = lookup["insurance_revenue"].value
+                    if "operating_expenses" in lookup:
+                        add("expense_ratio", abs(lookup["operating_expenses"].value) / rev,
+                            "abs(operating_expenses) / insurance_revenue", lookup["insurance_revenue"])
+                    if "underwriting_result" in lookup:
+                        opex = abs(lookup["operating_expenses"].value) if "operating_expenses" in lookup else Decimal(0)
+                        add("combined_ratio",
+                            (rev - lookup["underwriting_result"].value + opex) / rev,
+                            "(insurance_revenue - underwriting_result + abs(operating_expenses)) / insurance_revenue",
+                            lookup["insurance_revenue"])
+                    if "reinsurance_premiums" in lookup and "gross_written_premium" in lookup \
+                            and lookup["gross_written_premium"].value:
+                        add("retention_ratio",
+                            Decimal(1) - abs(lookup["reinsurance_premiums"].value)
+                            / lookup["gross_written_premium"].value,
+                            "1 - abs(reinsurance_premiums) / gross_written_premium",
+                            lookup["gross_written_premium"])
                 shares = lookup.get("weighted_average_shares_diluted") or lookup.get("weighted_average_shares_basic")
                 if shares and shares.value:
                     for numerator, metric in (

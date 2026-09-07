@@ -784,6 +784,24 @@ class Database:
                 ("cost_to_income_ratio", "nonperforming_loans_ratio", "nonperforming_loans_coverage",
                  "capital_adequacy_ratio", "return_on_equity", "loans_to_deposits_ratio"),
             ),
+            # Insurance (IFRS 17) ratios - computed from ingested insurer lines only.
+            "insurance_service_result": (
+                "insurance_revenue + insurance_service_expense", "same_period",
+                ("insurance_revenue", "insurance_service_expense"),
+            ),
+            "expense_ratio": (
+                "abs(operating_expenses) / insurance_revenue", "same_period",
+                ("operating_expenses", "insurance_revenue"),
+            ),
+            "combined_ratio": (
+                "(insurance_revenue - underwriting_result + abs(operating_expenses)) / insurance_revenue",
+                "same_period",
+                ("insurance_revenue", "underwriting_result", "operating_expenses"),
+            ),
+            "retention_ratio": (
+                "1 - abs(reinsurance_premiums) / gross_written_premium", "same_period",
+                ("reinsurance_premiums", "gross_written_premium"),
+            ),
         }
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",
