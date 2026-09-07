@@ -238,7 +238,9 @@ def main():
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
-    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank"])
+    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--vision",action="store_true",help="read scanned statement pages as images (falls back here when text extraction is empty)"); read.add_argument("--pages",help="comma-separated 1-indexed pages for --vision"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank"])
+    tadawulfs=sub.add_parser("tadawul-fs"); tadawulfs.add_argument("market",choices=["SA"]); tadawulfs.add_argument("symbol"); tadawulfs.add_argument("--raw-dir",default="data/raw"); tadawulfs.add_argument("--list",action="store_true",help="only list matching annual-results announcements"); tadawulfs.add_argument("--refresh",action="store_true",help="re-page the Exchange announcement feed before searching")
+    tadawulfeed=sub.add_parser("tadawul-feed"); tadawulfeed.add_argument("--since-days",type=int,default=300); tadawulfeed.add_argument("--cache",default="data/raw/tadawul-announcement-feed.json"); tadawulfeed.add_argument("--full",action="store_true",help="re-page everything instead of an incremental top-up")
     readx=sub.add_parser("read-xlsx"); readx.add_argument("xlsx"); readx.add_argument("market",choices=["SA","US"]); readx.add_argument("symbol"); readx.add_argument("--registry",default="config/companies.json"); readx.add_argument("--mapping"); readx.add_argument("--filed-at",required=True); readx.add_argument("--filing-type",default="data-supplement"); readx.add_argument("--period-kinds",default="fy"); readx.add_argument("--out")
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
@@ -374,13 +376,18 @@ def main():
                 Path(directory,"manifest.json").write_text(json.dumps(manifest),encoding="utf-8")
                 return ManifestVerifier(directory).verify()
         manifest=None; source="deterministic"
-        if not a.llm_only:
+        if not a.llm_only and not a.vision:
             from .reading import StatementReader
             manifest=StatementReader(a.pdf).read(**kwargs)
             verification=verify_manifest(manifest)
-            if not verification["ok"] and a.llm:
+            if not verification["ok"] and (a.llm or a.vision):
                 manifest=None
-        if manifest is None:
+        if manifest is None and a.vision:
+            from .reading_llm import llm_read_vision
+            pages=[int(p) for p in a.pages.split(",")] if a.pages else None
+            manifest=llm_read_vision(a.pdf,model=a.model,pages=pages,**kwargs)
+            source=f"llm_vision:{a.model}"
+        elif manifest is None:
             from .reading_llm import llm_read
             manifest=llm_read(a.pdf,model=a.model,**kwargs); source=f"llm:{a.model}"
         verification=verify_manifest(manifest)
@@ -398,6 +405,17 @@ def main():
         from .fetching import BrowserFetcher
         fetcher=BrowserFetcher(raw_dir=a.raw_dir,headless=not a.show)
         result=fetcher.discover(a.url) if a.discover else fetcher.fetch(a.url,a.market,a.symbol)
+        print(json.dumps(result,indent=2,ensure_ascii=False)); return
+    if a.cmd=="tadawul-feed":
+        from .tadawul import refresh_feed
+        rows=refresh_feed(a.cache,since_days=a.since_days,full=a.full)
+        print(json.dumps({"cached":a.cache,"rows":len(rows)},indent=2)); return
+    if a.cmd=="tadawul-fs":
+        from .tadawul import find_annual_results, fetch_annual_fs
+        if a.list:
+            result=find_annual_results(a.symbol,refresh=a.refresh)
+        else:
+            result=fetch_annual_fs(a.market,a.symbol,raw_dir=a.raw_dir,refresh=a.refresh)
         print(json.dumps(result,indent=2,ensure_ascii=False)); return
     if a.cmd=="ingest":
         db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); c=reg.resolve(a.market,a.symbol)
