@@ -261,6 +261,7 @@ def main():
     completeness=sub.add_parser("completeness"); completeness.add_argument("market"); completeness.add_argument("symbol"); completeness.add_argument("--refresh",action="store_true")
     exceptions=sub.add_parser("exceptions"); exceptions.add_argument("market",nargs="?"); exceptions.add_argument("symbol",nargs="?"); exceptions.add_argument("--status",default="open",choices=["open","resolved","all"]); exceptions.add_argument("--limit",type=int,default=100)
     resolve=sub.add_parser("resolve-exception"); resolve.add_argument("exception_id",type=int); resolve.add_argument("--resolution",required=True); resolve.add_argument("--assigned-to")
+    resolve_source=sub.add_parser("resolve-source-exceptions"); resolve_source.add_argument("source_key"); resolve_source.add_argument("--resolution",required=True); resolve_source.add_argument("--assigned-to")
     retry=sub.add_parser("retry-source"); retry.add_argument("source_key"); retry.add_argument("--registry",default="config/companies.json"); retry.add_argument("--raw-dir",default="data/raw")
     serve=sub.add_parser("serve"); serve.add_argument("--host",default="127.0.0.1"); serve.add_argument("--port",type=int,default=8000); serve.add_argument("--api-key-env",default="FINENGINE_API_KEY")
     run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id")
@@ -515,8 +516,10 @@ def main():
         q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
     if a.cmd=="resolve-exception":
         db=Database(a.db); result=db.resolve_exception(a.exception_id,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="resolve-source-exceptions":
+        db=Database(a.db); result=db.resolve_source_exceptions(a.source_key,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
     if a.cmd=="retry-source":
-        db=Database(a.db); row=db.stored_source(a.source_key); reg=CompanyRegistry.from_json(a.registry); company=reg.get(row["company_id"])
+        db=Database(a.db); row=db.stored_source(a.source_key); reg=CompanyRegistry.combined(db.conn,a.registry); company=reg.get(row["company_id"])
         path=Path(row["local_path"] or "")
         if not path.is_file(): db.close(); raise FileNotFoundError(f"archived source is missing: {path}")
         document=SourceDocument(row["company_id"],company.market,row["source_url"],row["source_key"],row["filing_type"],row["filed_at"],path.read_bytes(),row["content_type"],json.loads(row["metadata_json"]))

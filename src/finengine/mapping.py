@@ -1,7 +1,7 @@
 CANONICAL_TAGS = {
 "Revenues":"revenue","RevenueFromContractWithCustomerExcludingAssessedTax":"revenue","SalesRevenueNet":"revenue",
 "NetIncomeLoss":"net_income","ProfitLoss":"net_income","NetIncomeLossAvailableToCommonStockholdersBasic":"net_income_parent","Assets":"total_assets","Liabilities":"total_liabilities",
-"StockholdersEquity":"total_equity","CashAndCashEquivalentsAtCarryingValue":"cash","CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents":"cash",
+"StockholdersEquity":"total_equity","StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest":"total_equity","CashAndCashEquivalentsAtCarryingValue":"cash","CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents":"cash",
 "NetCashProvidedByUsedInOperatingActivities":"operating_cash_flow","PaymentsToAcquirePropertyPlantAndEquipment":"capex",
 "EarningsPerShareDiluted":"eps_diluted","CommonStocksIncludingAdditionalPaidInCapital":"share_capital",
 "LongTermDebtAndFinanceLeaseObligationsCurrent":"current_debt","LongTermDebtAndFinanceLeaseObligations":"long_term_debt"

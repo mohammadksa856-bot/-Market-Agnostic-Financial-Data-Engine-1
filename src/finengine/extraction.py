@@ -43,7 +43,7 @@ class JsonExtractor:
                             company_id=c.company_id, raw_label=tag, raw_value=value,
                             raw_currency=c.currency, raw_unit=unit, scale=Decimal(1),
                             period_start=r.get("start"), period_end=r["end"], period_kind=kind,
-                            fiscal_year=int(r.get("fy") or r["end"][:4]), fiscal_quarter=quarter,
+                            fiscal_year=self._fiscal_year(c, r["end"]), fiscal_quarter=quarter,
                             source_key=d.source_key, source_url=source_url,
                             filed_at=r.get("filed",d.filed_at), accession=r.get("accn"),
                             form=r.get("form"),
@@ -90,10 +90,35 @@ class JsonExtractor:
         return PeriodKind.YTD, int(fp[1]) if fp and fp.startswith("Q") else None
 
     @staticmethod
+    def _fiscal_year(company: Company, period_end: str) -> int:
+        """Derive the fact's FY, not the later filing's SEC ``fy`` value.
+
+        Company Facts comparative rows retain the fiscal year of the filing that
+        repeated them. Deriving from the period end prevents prior-year quarters
+        from being grouped into the current filing year during rollforward checks.
+        """
+        end = date.fromisoformat(period_end)
+        try:
+            month, day = (int(value) for value in company.fiscal_year_end.split("-"))
+            fiscal_end = date(end.year, month, day)
+        except (TypeError, ValueError):
+            return end.year
+        return end.year + 1 if (end - fiscal_end).days > 45 else end.year
+
+    @staticmethod
     def _latest_accession(facts):
         chosen={}
         for f in facts:
-            key=(f.company_id,f.raw_label,f.period_end,f.period_kind.value,f.fiscal_year,f.fiscal_quarter,f.raw_currency,f.raw_unit)
+            canonical = canonicalize(f.raw_label, "US") or f.raw_label
+            key=(f.company_id,canonical,f.period_end,f.period_kind.value,f.fiscal_year,f.fiscal_quarter,f.raw_currency,f.raw_unit)
             old=chosen.get(key)
-            if old is None or (f.filed_at,f.accession or "")>(old.filed_at,old.accession or ""): chosen[key]=f
+            preferred = {
+                "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest": 20,
+                "RevenueFromContractWithCustomerExcludingAssessedTax": 20,
+                "NetIncomeLoss": 20,
+                "CashAndCashEquivalentsAtCarryingValue": 20,
+            }
+            rank=(preferred.get(f.raw_label,10),f.filed_at,f.accession or "")
+            old_rank=(preferred.get(old.raw_label,10),old.filed_at,old.accession or "") if old else None
+            if old is None or rank>old_rank: chosen[key]=f
         return list(chosen.values())

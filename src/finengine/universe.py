@@ -397,7 +397,7 @@ def promote_activation_batch(
     if batch["market"] != "US":
         raise ValueError("automatic eligibility promotion currently supports US batches only")
     rows = db.conn.execute(
-        """SELECT a.issuer_id,a.company_id,c.symbol FROM universe_activations a
+        """SELECT a.issuer_id,a.company_id,c.symbol,p.fiscal_year_end FROM universe_activations a
         JOIN companies c USING(company_id)
         JOIN universe_issuer_profiles p USING(issuer_id)
         WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'
@@ -414,7 +414,13 @@ def promote_activation_batch(
             row["company_id"],
         )
         with db.conn:
-            db.conn.execute("UPDATE companies SET enabled=1 WHERE company_id=?", (row["company_id"],))
+            fiscal_year_end = row["fiscal_year_end"] or "1231"
+            if len(fiscal_year_end) == 4 and fiscal_year_end.isdigit():
+                fiscal_year_end = fiscal_year_end[:2] + "-" + fiscal_year_end[2:]
+            db.conn.execute(
+                "UPDATE companies SET enabled=1,fiscal_year_end=? WHERE company_id=?",
+                (fiscal_year_end, row["company_id"]),
+            )
             db.conn.execute(
                 """UPDATE universe_activations SET status='active',schedule_id=?,error=NULL,
                 updated_at=CURRENT_TIMESTAMP WHERE batch_id=? AND issuer_id=?""",

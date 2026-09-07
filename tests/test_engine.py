@@ -151,4 +151,15 @@ class EngineTests(unittest.TestCase):
         self.db.reopen_source_for_retry("fixture:review")
         self.assertEqual(self.db.source_status("fixture:review"),"fetched")
 
+    def test_all_source_exceptions_can_be_resolved_for_engine_fix(self):
+        payload=sa_payload(); payload["facts"][4]["value"]=1000
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(
+            self.c,FakeConnector(payload,"fixture:bulk-review"))
+        self.assertEqual(result["status"],"exception")
+        resolved=self.db.resolve_source_exceptions(
+            "fixture:bulk-review","validation engine corrected","codex")
+        self.assertEqual(resolved["resolved_exceptions"],1)
+        self.db.reopen_source_for_retry("fixture:bulk-review")
+        self.assertEqual(self.db.source_status("fixture:bulk-review"),"fetched")
+
 if __name__=="__main__": unittest.main()

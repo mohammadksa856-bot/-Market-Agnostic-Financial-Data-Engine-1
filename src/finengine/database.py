@@ -1396,6 +1396,24 @@ class Database:
             )
         return {"exception_id": exception_id, "status": "resolved", "source_key": row["source_key"]}
 
+    def resolve_source_exceptions(self, source_key: str, resolution: str,
+                                  assigned_to: str | None = None) -> dict:
+        if not resolution.strip():
+            raise ValueError("resolution is required")
+        if not self.conn.execute(
+            "SELECT 1 FROM source_documents WHERE source_key=?", (source_key,)
+        ).fetchone():
+            raise KeyError(f"unknown source {source_key}")
+        with self.conn:
+            cursor = self.conn.execute(
+                """UPDATE exceptions SET status='resolved',resolution=?,
+                assigned_to=COALESCE(?,assigned_to),updated_at=CURRENT_TIMESTAMP
+                WHERE source_key=? AND status='open'""",
+                (resolution.strip(), assigned_to, source_key),
+            )
+        return {"source_key": source_key, "status": "resolved",
+                "resolved_exceptions": cursor.rowcount}
+
     def reopen_source_for_retry(self, source_key: str) -> None:
         row = self.conn.execute(
             "SELECT status FROM source_documents WHERE source_key=?", (source_key,)
