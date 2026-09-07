@@ -22,7 +22,7 @@ it.
 |---|---|---|
 | Feed | `…=NJgetAnnouncementListData=/` (POST) | Accepts a plain, well-headed HTTP client. **Ignores every filter param (symbol, date, type) and caps `pageSize` at 10**, and the server throttles concurrency, so it must be paged newest-first at ~1.5 s/page. `refresh_feed()` pages it in concurrent batches back `since_days` and caches the rows in `data/raw/tadawul-announcement-feed.json`. The **first** full refresh over ~240 days is ~10–15 min (~500 pages); after that it is an incremental top-up (stops at the first cached announcement) and takes seconds. |
 | Discovery | (local) | `find_annual_results(symbol)` filters the cached feed by `SYMBOL` + an annual-results title regex. Instant. |
-| Resolution | announcement-details HTML | Scrapes `/Resources/fsPdf/…pdf`. **These pages sit behind a flaky WAF that rejects datacenter IPs intermittently**, so this runs through `fetching.BrowserFetcher` (the `browser` extra: `pip install -e ".[browser]" && playwright install chromium`). |
+| Resolution | announcement-details HTML | Scrapes `/Resources/fsPdf/…pdf`. **These pages sit behind a flaky WAF that rejects datacenter IPs intermittently**, so this runs through `fetching.BrowserFetcher` (the `browser` extra: `pip install -e ".[browser]" && playwright install chromium`). **Large caps attach the full audited FS to the annual-results announcement** (Ma'aden verified — `Resources/fsPdf/31073_370_…pdf`); **many mid/small caps file only the summary form** with no attachment (Jarir verified), and `fetch_annual_fs` then raises a clear "fall back to the annual report" error. |
 
 **Usage:**
 

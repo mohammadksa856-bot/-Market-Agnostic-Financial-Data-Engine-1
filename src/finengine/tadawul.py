@@ -223,6 +223,11 @@ def statement_pdf_url(an_id: str, symbol: str, *, fetcher=None,
                       html_getter=None) -> str | None:
     """Scrape the ``fsPdf`` link off an announcement-details page.
 
+    Large caps attach the full audited FS PDF to their annual-results
+    announcement (``Resources/fsPdf/…pdf``); many mid/small caps file only the
+    summary form, in which case this returns ``None`` and the caller should fall
+    back to the issuer's own annual report.
+
     Prefers ``fetcher`` (a ``fetching.BrowserFetcher``) because the details HTML
     is WAF-guarded; ``html_getter(url) -> str`` is an injection point for tests.
     """
@@ -274,5 +279,7 @@ def fetch_annual_fs(market: str, symbol: str, *, raw_dir="data/raw",
         record.update(announcement=candidate, source_url=pdf_url)
         return record
     raise RuntimeError(
-        f"found {len(candidates)} annual announcement(s) for {symbol} but no PDF: "
-        + "; ".join(errors))
+        f"found {len(candidates)} annual-results announcement(s) for {symbol} "
+        f"(latest anId {candidates[0]['an_id']}, {candidates[0]['date']}) but none "
+        f"attaches an FS PDF -- this issuer files only the summary form; fall back "
+        f"to its annual report. ({'; '.join(errors)})")
