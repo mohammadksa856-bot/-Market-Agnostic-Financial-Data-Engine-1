@@ -27,6 +27,14 @@ class JarirManifestTests(unittest.TestCase):
         self.assertGreater(report["passed"], 15)
 
 
+class ExtraManifestTests(unittest.TestCase):
+    def test_manifest_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("extra-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 18)
+
+
 class JarirSnapshotTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -101,6 +109,38 @@ class JarirSnapshotTests(unittest.TestCase):
             q.close()
         self.assertIsNotNone(net_margin)
         self.assertTrue(Decimal("0.05") <= net_margin <= Decimal("0.15"), net_margin)
+
+    def test_extra_publishes_without_errors(self):
+        rows = [r for r in self.summary["results"] if r["company_id"] == "sa:4003"]
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertIn(row["status"], {"published", "duplicate"}, row)
+            self.assertNotIn("error", row, row)
+
+    def test_extra_headline_figures_match_the_filing(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            revenue = _value(q.metric_history("SA", "4003", "revenue"), "2025-12-31")
+            net_income = _value(q.metric_history("SA", "4003", "net_income"), "2025-12-31")
+            assets = _value(q.metric_history("SA", "4003", "total_assets"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertEqual(revenue, Decimal("7446115000"))
+        self.assertEqual(net_income, Decimal("575989000"))
+        self.assertEqual(assets, Decimal("5924092000"))
+
+    def test_extra_profit_split_and_balance_sheet_reconcile(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            parent = _value(q.metric_history("SA", "4003", "net_income_parent"), "2025-12-31")
+            nci = _value(q.metric_history("SA", "4003", "net_income_noncontrolling"), "2025-12-31")
+            assets = _value(q.metric_history("SA", "4003", "total_assets"), "2025-12-31")
+            liabilities = _value(q.metric_history("SA", "4003", "total_liabilities"), "2025-12-31")
+            equity = _value(q.metric_history("SA", "4003", "total_equity"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertEqual(parent + nci, Decimal("575989000"))
+        self.assertEqual(assets, liabilities + equity)
 
 
 def _value(history, period_end):
