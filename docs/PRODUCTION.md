@@ -13,7 +13,7 @@ not be described as covering every Saudi and US listed company yet.
 | Validation, restatements, quarter/YTD/TTM semantics | Ready and tested | Add sector acceptance cases as new issuers expose unusual presentations |
 | US SEC fundamentals monitor | Official inventory synchronized; first 100-issuer batch enriched; a local `FLWS` acceptance run completed monitor/fetch/validate/publish with 1,780 facts | Move live archives to durable object storage, then expand eligible issuers in controlled batches and map custom XBRL tags and segment disclosures |
 | Saudi issuer-report monitor | Ready for energy, chemicals, and banking pilots; versioned universe import implemented | Obtain the authorized issuer export, verify source discovery across every sector, and maintain PDF/XLSX readers |
-| Immutable source archive and lineage | Ready | Store large artifacts in durable object storage with backup and retention rules |
+| Immutable source archive and lineage | Ready, including a self-verifying portable database/source bundle | Upload bundles to durable object storage and apply off-host retention rules |
 | Read-only API and Telegram adapter | Ready for sourced database questions | Add consumer-specific response contracts, caching, rate limits, TLS, and production secrets |
 | Daily prices and trading data | Partial pilot history | Connect an authorized Saudi/US OHLCV and corporate-action feed |
 | Analyst consensus and forward estimates | Not populated | License an authoritative point-in-time estimates feed |
@@ -80,8 +80,10 @@ The engine startup script idempotently creates or updates one monitor schedule f
 every enabled registry company. It does not duplicate schedules after restarts and
 does not reset an existing next-run cursor. The worker uses durable jobs, leases,
 retries, dead-job visibility, source cursors, and publication exceptions. The
-backup service uses SQLite's online backup API, verifies database integrity, writes
-a SHA-256 sidecar, and retains the configured number of daily snapshots.
+backup service creates a portable ZIP containing an online SQLite snapshot and all
+referenced raw sources, verifies every SHA-256 from its manifest, writes a bundle
+sidecar, and retains the configured number of daily bundles. Copy that directory
+to encrypted off-host or S3-compatible storage for disaster recovery.
 
 Keep the API bound to localhost unless it sits behind an authenticated TLS reverse
 proxy. SQLite supports one publishing worker; use PostgreSQL before horizontally

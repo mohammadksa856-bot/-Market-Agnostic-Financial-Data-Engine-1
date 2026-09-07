@@ -37,6 +37,11 @@ class Pipeline:
         target=self.raw_dir/company.market.value/company.symbol/(doc.source_key.replace(":","_")+extension)
         target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(doc.content)
         if not previous_status: self.db.save_source(doc,digest,str(target))
+        self.db.save_source_artifact(
+            f"artifact:{company.company_id}:{digest}", company.company_id,
+            doc.source_url, digest, str(target), doc.content_type, len(doc.content),
+            {"source_key": doc.source_key, "pipeline_archive": True, "immutable": True},
+        )
         self.db.set_source_status(doc.source_key,"extracting")
         extracted,errors=self.extractor.extract_raw(company,doc)
         extracted_ids=self.db.save_extracted(extracted)

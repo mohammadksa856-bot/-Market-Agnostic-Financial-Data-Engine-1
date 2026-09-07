@@ -14,7 +14,10 @@ from finengine.archive import archive_manifest_sources
 from finengine.bootstrap import rebuild_snapshot
 from finengine.database import Database
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
-from finengine.operations import backup_database, configure_production_schedules
+from finengine.operations import (
+    backup_database, configure_production_schedules, create_portable_bundle,
+    verify_portable_bundle,
+)
 from finengine.query import FinancialQueryService
 from finengine.report import export_readable_report
 from finengine.telegram import answer_command
@@ -121,6 +124,16 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(Path(second["backup"]).is_file())
         self.assertTrue(Path(second["metadata"]).is_file())
         self.assertEqual(len(list(output.glob("financial-*.sqlite3"))),1)
+
+    def test_portable_bundle_contains_verified_database_and_sources(self):
+        output=Path(self.temp.name)/"bundles"
+        result=create_portable_bundle(self.dbpath,output,self.temp.name,keep=1)
+        self.assertEqual(result["status"],"ready")
+        self.assertEqual(result["files"],1)
+        self.assertTrue(Path(result["bundle"]).is_file())
+        verified=verify_portable_bundle(result["bundle"])
+        self.assertEqual(verified["format"],"finengine-portable-bundle-v1")
+        self.assertGreater(verified["database_bytes"],0)
 
     def test_production_schedule_configuration_is_idempotent(self):
         registry=Path(self.temp.name)/"companies.json"

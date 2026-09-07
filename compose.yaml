@@ -20,9 +20,10 @@ services:
   backup:
     build: .
     restart: unless-stopped
-    command: ["sh", "-c", "while true; do finengine --db /app/data/financial.sqlite3 backup --output-dir /app/backups --keep $${FINENGINE_BACKUP_KEEP:-14}; sleep $${FINENGINE_BACKUP_SECONDS:-86400}; done"]
+    command: ["sh", "-c", "while true; do finengine --db /app/data/financial.sqlite3 backup-bundle --output-dir /app/backups/bundles --project-root /app --keep $${FINENGINE_BUNDLE_KEEP:-7}; sleep $${FINENGINE_BACKUP_SECONDS:-86400}; done"]
     environment:
       FINENGINE_BACKUP_KEEP: ${FINENGINE_BACKUP_KEEP:-14}
+      FINENGINE_BUNDLE_KEEP: ${FINENGINE_BUNDLE_KEEP:-7}
       FINENGINE_BACKUP_SECONDS: ${FINENGINE_BACKUP_SECONDS:-86400}
     volumes:
       - ./data:/app/data:ro

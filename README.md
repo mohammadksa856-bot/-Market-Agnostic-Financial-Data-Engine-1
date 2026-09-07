@@ -27,7 +27,7 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 10, and 97 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
+- Database schema version 17, catalog version 10, and 98 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -151,6 +151,15 @@ identity and API key, then run:
 
 Add `--profile telegram` to start the read-only Telegram adapter. The deployment
 also creates a verified daily SQLite backup and retains 14 snapshots by default.
+
+Create a transportable, self-verifying bundle containing an online SQLite snapshot
+and every raw file referenced by its provenance tables:
+
+    finengine --db data/financial.sqlite3 backup-bundle --output-dir backups/bundles --keep 7
+
+The ZIP contains a manifest, a consistent database snapshot, and content-addressed
+source files. Every hash is verified after creation, making the bundle suitable for
+off-host encrypted backup or S3-compatible object storage.
 
 The worker survives normal restarts because schedules, jobs, attempts, leases, cursors, source candidates, and backlog are stored in SQLite. Repeated polling and ingestion are idempotent. Failed jobs retry with exponential backoff; expired leases are recovered; terminal failures remain visible as dead jobs.
 

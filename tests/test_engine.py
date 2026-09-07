@@ -29,6 +29,12 @@ class EngineTests(unittest.TestCase):
     def test_pipeline_calculation_and_query(self):
         r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(sa_payload())); self.assertEqual(r["status"],"published"); self.assertGreaterEqual(r["published"],9)
         q=FinancialQueryService(self.dbpath); h=q.metric_history("SA","2222","free_cash_flow"); q.close(); self.assertEqual(h[0]["value"],"170")
+        artifact=self.db.conn.execute(
+            "SELECT content_hash,byte_size,metadata_json FROM source_artifacts").fetchone()
+        self.assertIsNotNone(artifact)
+        self.assertGreater(artifact["byte_size"],0)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM source_artifact_links").fetchone()[0],1)
     def test_calculated_ratios_are_dimensionless(self):
         Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(sa_payload()))
         rows=self.db.conn.execute("SELECT metric,currency,unit FROM observations WHERE metric IN ('net_margin','liabilities_to_equity') ORDER BY metric").fetchall()
