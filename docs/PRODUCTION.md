@@ -12,7 +12,7 @@ not be described as covering every Saudi and US listed company yet.
 | Versioned financial database | Ready | Move to PostgreSQL before multiple publishing workers or hosts |
 | Validation, restatements, quarter/YTD/TTM semantics | Ready and tested | Add sector acceptance cases as new issuers expose unusual presentations |
 | US SEC fundamentals monitor | Official inventory synchronized; first 100-issuer batch enriched; a local `FLWS` acceptance run completed monitor/fetch/validate/publish with 1,780 facts | Move live archives to durable object storage, then expand eligible issuers in controlled batches and map custom XBRL tags and segment disclosures |
-| Saudi market universe | Public dynamic directory connector implemented and live-read across Main Market and Nomu; snapshots are versioned and funds are classified separately | Add licensed sector classifications where required and run controlled sector acceptance batches |
+| Saudi market universe | Live connector acceptance archived 396 securities (272 Main, 124 Nomu), classified as 376 companies and 20 funds/REITs; snapshots are versioned | Add licensed sector classifications where required and run controlled sector acceptance batches |
 | Saudi issuer-report monitor | Ready for energy, chemicals, and banking pilots | Verify source discovery across every sector and maintain PDF/XLSX readers |
 | Immutable source archive and lineage | Ready, including a self-verifying portable database/source bundle | Upload bundles to durable object storage and apply off-host retention rules |
 | Read-only API and Telegram adapter | Ready for sourced database questions | Add consumer-specific response contracts, caching, rate limits, TLS, and production secrets |

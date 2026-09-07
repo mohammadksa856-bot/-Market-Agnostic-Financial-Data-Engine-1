@@ -16,10 +16,10 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
   review batch is fully enriched from archived SEC registrant profiles: 70 eligible
   operating companies, 14 excluded vehicles, and 16 conservative review cases.
 - The public Saudi Exchange directory now has a first-class browser connector.
-  A live acceptance read on 7 September 2026 returned 272 Main Market securities
-  and 124 Nomu securities. The connector keeps the two markets separate, archives
-  a deterministic identity snapshot, records ISIN and profile provenance, and
-  labels funds/REITs so normal company activation excludes them by default.
+  A full connector acceptance run on 7 September 2026 archived 272 Main Market
+  securities and 124 Nomu securities: 376 operating-company records and 20
+  fund/REIT records. The connector keeps the two markets separate, records ISIN
+  and profile provenance, and excludes funds from normal company activation.
 - 4,257 current facts and 4,409 total fact versions in the bundled snapshot.
 - 1,020 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 207 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA. A local

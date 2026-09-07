@@ -213,11 +213,14 @@ def fetch_saudi_issuer_directory(source_url: str = SAUDI_ISSUER_DIRECTORY_URL,
                         lambda response: "getCompanyListByMarknetAndSectors" in response.url,
                         timeout=timeout_ms,
                     ):
-                        page.select_option("#Market_ti", market_code)
+                        # Bootstrap-select keeps the native element hidden. Force is
+                        # safe here: selecting it still emits the normal change event
+                        # that requests the official market-specific directory data.
+                        page.select_option("#Market_ti", market_code, force=True)
                 page.wait_for_function(
                     "code => document.querySelector('#Market_ti').value === code "
                     "&& typeof companyList !== 'undefined' && companyList.length > 0",
-                    market_code,
+                    arg=market_code,
                     timeout=timeout_ms,
                 )
                 rows_by_market[market_code] = page.evaluate("() => companyList")
