@@ -8,7 +8,8 @@ from finengine.query import FinancialQueryService
 from finengine.registry import CompanyRegistry
 from finengine.universe import (
     activate_universe, classify_sec_submission, enrich_activation_batch,
-    parse_saudi_reference, parse_sec_ticker_exchange, sync_universe,
+    parse_saudi_reference, parse_sec_ticker_exchange, promote_activation_batch,
+    sync_universe,
 )
 
 
@@ -138,6 +139,38 @@ class UniverseTests(unittest.TestCase):
             "SELECT eligibility_status,local_path FROM universe_issuer_profiles").fetchone()
         self.assertEqual(profile["eligibility_status"], "eligible")
         self.assertTrue(Path(profile["local_path"]).is_file())
+
+    def test_promotion_enables_only_eligible_profile(self):
+        source = self.root / "sec.json"
+        source.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[1, "Alpha Inc", "AAA", "Nasdaq"],
+                     [2, "Beta Acquisition Corp", "BBB", "Nasdaq"]]}), encoding="utf-8")
+        sync_universe(self.db, "US", self.root / "raw", input_path=source)
+        activation = activate_universe(self.db, "US", limit=2)
+        profiles = {
+            "0000000001": {"name": "Alpha Inc", "entityType": "operating", "sic": "3571",
+                "filings": {"recent": {"form": ["10-K"]}}},
+            "0000000002": {"name": "Beta Acquisition Corp", "entityType": "operating",
+                "sic": "6770", "filings": {"recent": {"form": ["10-K"]}}},
+        }
+        class Response:
+            def __init__(self, payload): self.payload = payload
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def read(self): return json.dumps(self.payload).encode()
+        def opener(request, **_kwargs):
+            cik = request.full_url.split("CIK", 1)[1].split(".", 1)[0]
+            return Response(profiles[cik])
+        enrich_activation_batch(self.db, self.root / "raw", "Product test@example.com",
+            activation["batch_id"], limit=2, opener=opener, request_interval=0)
+        result = promote_activation_batch(self.db, activation["batch_id"], limit=10)
+        self.assertEqual((result["promoted"], result["eligible_remaining"]), (1, 0))
+        states = {row["symbol"]: (row["enabled"], row["status"]) for row in self.db.conn.execute(
+            """SELECT c.symbol,c.enabled,a.status FROM universe_activations a
+            JOIN companies c USING(company_id)""")}
+        self.assertEqual(states["AAA"], (1, "active"))
+        self.assertEqual(states["BBB"], (0, "staged"))
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM schedules").fetchone()[0], 1)
 
 
 if __name__ == "__main__":

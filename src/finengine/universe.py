@@ -381,6 +381,64 @@ def enrich_activation_batch(
             "remaining": remaining, "counts": counts, "issuers": processed}
 
 
+def promote_activation_batch(
+    db: Database, batch_id: str, limit: int = 10, schedule_every: int = 21600,
+    registry_path: str = "config/companies.json",
+) -> dict:
+    """Enable only SEC-profiled operating issuers and create durable schedules."""
+    limit = min(max(int(limit), 1), 100)
+    if schedule_every < 3600:
+        raise ValueError("universe schedules must be at least 3600 seconds apart")
+    batch = db.conn.execute(
+        "SELECT market FROM universe_activation_batches WHERE batch_id=?", (batch_id,)
+    ).fetchone()
+    if not batch:
+        raise KeyError(f"unknown activation batch {batch_id}")
+    if batch["market"] != "US":
+        raise ValueError("automatic eligibility promotion currently supports US batches only")
+    rows = db.conn.execute(
+        """SELECT a.issuer_id,a.company_id,c.symbol FROM universe_activations a
+        JOIN companies c USING(company_id)
+        JOIN universe_issuer_profiles p USING(issuer_id)
+        WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'
+        ORDER BY a.priority LIMIT ?""", (batch_id, limit),
+    ).fetchall()
+    scheduler = DurableScheduler(db)
+    promoted = []
+    for row in rows:
+        schedule_id = f"monitor:US:{row['symbol']}"
+        scheduler.upsert(
+            schedule_id, f"Monitor US:{row['symbol']}", "monitor", schedule_every,
+            {"market": "US", "symbol": row["symbol"], "registry": registry_path,
+             "raw_dir": "data/raw", "source_limit": 12, "browser": False, "llm": False},
+            row["company_id"],
+        )
+        with db.conn:
+            db.conn.execute("UPDATE companies SET enabled=1 WHERE company_id=?", (row["company_id"],))
+            db.conn.execute(
+                """UPDATE universe_activations SET status='active',schedule_id=?,error=NULL,
+                updated_at=CURRENT_TIMESTAMP WHERE batch_id=? AND issuer_id=?""",
+                (schedule_id, batch_id, row["issuer_id"]),
+            )
+        promoted.append({"issuer_id": row["issuer_id"], "company_id": row["company_id"],
+                         "symbol": row["symbol"], "schedule_id": schedule_id})
+    if promoted:
+        with db.conn:
+            db.conn.execute(
+                """UPDATE universe_activation_batches SET status='active',
+                activated_at=COALESCE(activated_at,CURRENT_TIMESTAMP) WHERE batch_id=?""",
+                (batch_id,),
+            )
+    eligible_remaining = db.conn.execute(
+        """SELECT count(*) FROM universe_activations a JOIN universe_issuer_profiles p USING(issuer_id)
+        WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'""",
+        (batch_id,),
+    ).fetchone()[0]
+    return {"status": "active" if promoted else "empty", "batch_id": batch_id,
+            "promoted": len(promoted), "eligible_remaining": eligible_remaining,
+            "companies": promoted}
+
+
 def sync_universe(db: Database, market: str, raw_dir: str | Path,
                   user_agent: str | None = None, input_path: str | Path | None = None,
                   source_url: str | None = None) -> dict:
