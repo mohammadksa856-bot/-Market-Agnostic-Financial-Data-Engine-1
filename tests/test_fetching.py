@@ -1,7 +1,8 @@
 import unittest
 
 from finengine.fetching import (
-    BrowserFetcher, BrowserIssuerMonitor, _saudi_financial_announcement_links, _slug,
+    BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
+    _saudi_financial_announcement_links, _slug,
 )
 
 
@@ -46,6 +47,19 @@ class FetchAgentUnitTests(unittest.TestCase):
         self.assertEqual(
             BrowserIssuerMonitor._document_type("Annual financial results, year ended 2025"),
             "annual-report",
+        )
+
+    def test_exchange_profile_selects_only_hostname_labelled_issuer_site(self):
+        links = [
+            ["http://www.sabic.com/", "www.sabic.com"],
+            ["https://linkedin.com/company/sabic", "LinkedIn"],
+            ["https://example.test/", "Unrelated partner"],
+        ]
+        self.assertEqual(
+            _official_issuer_websites(
+                "https://www.saudiexchange.sa/company/2010", links
+            ),
+            ["https://www.sabic.com/"],
         )
 
 

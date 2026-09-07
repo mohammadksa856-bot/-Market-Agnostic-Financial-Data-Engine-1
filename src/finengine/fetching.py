@@ -20,7 +20,7 @@ import hashlib
 import re
 from datetime import date
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
@@ -56,6 +56,32 @@ def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
     return found
 
 
+def _official_issuer_websites(index_url: str, links: list[list[str]]) -> list[str]:
+    """Select company websites explicitly labelled as their own hostname.
+
+    Saudi Exchange profiles contain social and group-wide external links too. A
+    hostname-labelled anchor (for example ``www.sabic.com``) is the conservative
+    signal used for the issuer's own site; HTTP links are upgraded to HTTPS.
+    """
+    exchange_host = (urlparse(index_url).hostname or "").lower()
+    found, seen = [], set()
+    for href, text in links:
+        parsed = urlparse(urljoin(index_url, href))
+        hostname = (parsed.hostname or "").lower()
+        label = str(text or "").strip().lower().rstrip("/")
+        expected = {hostname, f"www.{hostname}" if not hostname.startswith("www.")
+                    else hostname[4:]}
+        if (parsed.scheme not in {"http", "https"} or not hostname or
+                hostname == exchange_host or label not in expected):
+            continue
+        secure = urlunparse(("https", parsed.netloc, parsed.path or "/",
+                             parsed.params, parsed.query, ""))
+        if secure not in seen:
+            seen.add(secure)
+            found.append(secure)
+    return found
+
+
 class BrowserFetcher:
     def __init__(self, raw_dir: str | Path = "data/raw", headless: bool = True,
                  timeout_ms: int = 60000):
@@ -81,6 +107,7 @@ class BrowserFetcher:
         """Render an investor-relations page and return candidate PDF links."""
         import contextlib
         host = urlparse(index_url).hostname or ""
+        allowed_hosts = {host}
         referers: dict[str, str] = {}
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
@@ -123,13 +150,73 @@ class BrowserFetcher:
                                 ".pdf" in parsed.path.lower()):
                             raw.append([attachment, announcement["title"]])
                             referers[attachment] = announcement["url"]
+                # The Exchange profile is also the authoritative bridge to the
+                # issuer's own website. Crawl a bounded set of investor/report
+                # pages there to find full annual and interim statements, which
+                # are often not attached to Exchange announcements.
+                for issuer_site in _official_issuer_websites(index_url, raw)[:1]:
+                    issuer_host = urlparse(issuer_site).hostname or ""
+                    allowed_hosts.add(issuer_host)
+                    issuer_page = context.new_page()
+                    try:
+                        issuer_page.goto(issuer_site, timeout=self.timeout_ms,
+                                         wait_until="domcontentloaded")
+                        issuer_page.wait_for_timeout(2000)
+                        issuer_links = issuer_page.eval_on_selector_all(
+                            "a[href]", "els => els.map(e => [e.href, "
+                            "(e.textContent||'').trim()])")
+                    except Exception:
+                        continue
+                    report_pages = []
+                    for href, label in issuer_links:
+                        parsed = urlparse(href)
+                        if (parsed.scheme != "https" or parsed.hostname is None or
+                                not (parsed.hostname == issuer_host or
+                                     parsed.hostname.endswith("." + issuer_host))):
+                            continue
+                        lowered = f"{label} {parsed.path}".lower()
+                        if ".pdf" in parsed.path.lower():
+                            raw.append([href, label])
+                            referers[href] = issuer_page.url
+                        elif any(term in lowered for term in (
+                                "annual report", "quarterly report",
+                                "quarterly financial", "financial statement",
+                                "performance-financial", "/investors",
+                        )):
+                            report_pages.append((href, label))
+                    crawled = set()
+                    for report_url, _ in report_pages:
+                        if report_url in crawled or len(crawled) >= 5:
+                            continue
+                        crawled.add(report_url)
+                        try:
+                            issuer_page.goto(report_url, timeout=self.timeout_ms,
+                                             wait_until="domcontentloaded")
+                            issuer_page.wait_for_timeout(1500)
+                            documents = issuer_page.eval_on_selector_all(
+                                "a[href]", "els => els.map(e => [e.href, "
+                                "(e.textContent||'').trim()])")
+                        except Exception:
+                            continue
+                        for document_url, document_title in documents:
+                            parsed = urlparse(document_url)
+                            if (parsed.scheme == "https" and parsed.hostname and
+                                    (parsed.hostname == issuer_host or
+                                     parsed.hostname.endswith("." + issuer_host)) and
+                                    ".pdf" in parsed.path.lower()):
+                                raw.append([document_url, document_title])
+                                referers[document_url] = report_url
         seen, out = set(), []
         for href, text in raw:
             full = urljoin(index_url, href)
             parsed = urlparse(full)
             if parsed.scheme != "https" or ".pdf" not in parsed.path.lower():
                 continue
-            same_site = parsed.hostname == host or (parsed.hostname or "").endswith("." + host)
+            same_site = any(
+                parsed.hostname == allowed or
+                (parsed.hostname or "").endswith("." + allowed)
+                for allowed in allowed_hosts
+            )
             label = (text or _slug(full)).lower()
             if full in seen or not same_site:
                 continue
@@ -155,18 +242,30 @@ class BrowserFetcher:
                 page.goto(referer or f"https://{urlparse(url).hostname}/",
                           timeout=self.timeout_ms,
                           wait_until="domcontentloaded")
-                page.wait_for_timeout(500)
+                page.wait_for_load_state("load", timeout=8000)
+                page.wait_for_timeout(1500)
             if referer:
                 # Execute same-origin fetch in the rendered announcement page.
                 # Saudi Exchange rejects API-context requests even with a Referer,
                 # but accepts the browser document's cookies and fetch metadata.
-                with page.expect_response(lambda item: item.url == url,
-                                          timeout=self.timeout_ms) as response_info:
-                    status = page.evaluate(
-                        "async url => { const response = await fetch(url); "
-                        "await response.arrayBuffer(); return response.status; }", url,
-                    )
-                response = response_info.value
+                response = None
+                for attempt in range(3):
+                    try:
+                        with page.expect_response(lambda item: item.url == url,
+                                                  timeout=self.timeout_ms) as response_info:
+                            status = page.evaluate(
+                                "async url => { const response = await fetch(url); "
+                                "await response.arrayBuffer(); return response.status; }", url,
+                            )
+                        response = response_info.value
+                        break
+                    except Exception as error:
+                        if (attempt == 2 or
+                                "execution context was destroyed" not in str(error).lower()):
+                            raise
+                        page.wait_for_timeout(1000)
+                if response is None:  # defensive: the loop either succeeds or raises
+                    raise RuntimeError(f"fetch produced no response for {url}")
                 if status < 200 or status >= 300:
                     raise RuntimeError(f"fetch failed: HTTP {status} for {url}")
                 content = response.body()

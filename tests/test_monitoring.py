@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
-from finengine.cli import _extract_document_job_handler
+from finengine.cli import _extract_document_job_handler, _source_period
 from finengine.database import Database
 from finengine.jobs import DurableJobQueue
 from finengine.models import Company, Market, SourceCandidate
@@ -187,6 +187,18 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["code"], "interim_period_semantics_required")
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM data_points").fetchone()[0], 0)
+
+    def test_interim_period_is_derived_only_from_explicit_source_title(self):
+        explicit = {"metadata_json": json.dumps({
+            "title": "Interim Financial Results Period Ending on 30-06-2026"
+        })}
+        quarterly = {"metadata_json": json.dumps({
+            "title": "Quarterly report 2026 Q2"
+        })}
+        unknown = {"metadata_json": json.dumps({"title": "Interim results"})}
+        self.assertEqual(_source_period(explicit, self.aramco), ("2026-06-30", 2026))
+        self.assertEqual(_source_period(quarterly, self.aramco), ("2026-06-30", 2026))
+        self.assertIsNone(_source_period(unknown, self.aramco))
 
 
 if __name__ == "__main__":

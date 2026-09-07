@@ -14,6 +14,7 @@ Requires the optional `pymupdf` extra.
 """
 
 import re
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -325,7 +326,7 @@ class StatementReader:
     def read(self, market: str, symbol: str, currency: str,
              source_url: str, filed_at: str, period_end: str | None = None,
              fiscal_year: int | None = None, filing_type: str = "financial-statements",
-             profile: str = "corporate") -> dict:
+             profile: str = "corporate", fiscal_year_end: str = "12-31") -> dict:
         import pymupdf
 
         line_map = _PROFILE_MAPS.get(profile, LINE_MAP)
@@ -372,7 +373,9 @@ class StatementReader:
             # contain contradictory duplicates merely because the PDF repeats
             # a label in consecutive subtables.
             page_facts: dict[tuple[str, str], dict] = {}
-            for label, kind, value in self._statement_facts(words, statement, blocks):
+            default_flow_kind = "ytd" if "interim" in filing_type.lower() else "fy"
+            for label, kind, value in self._statement_facts(
+                    page, words, statement, blocks, default_flow_kind):
                 metric = _resolve_line(label, statement, line_map)
                 if metric is None:
                     continue
@@ -386,7 +389,13 @@ class StatementReader:
                     "fiscal_year": fiscal_year, "page": page_index + 1,
                 }
                 if kind in {"fy", "ytd", "quarter"}:
-                    fact["period_start"] = f"{fiscal_year}-01-01"
+                    fact["period_start"] = self._period_start(
+                        period_end, fiscal_year, kind, fiscal_year_end
+                    )
+                if kind in {"quarter", "ytd"}:
+                    fact["fiscal_quarter"] = self._fiscal_quarter(
+                        period_end, fiscal_year_end
+                    )
                 if monetary:
                     fact.update(scale=str(scale), currency=currency, unit=currency)
                 page_facts[key] = fact
@@ -407,6 +416,30 @@ class StatementReader:
         }
 
     @staticmethod
+    def _fiscal_quarter(period_end: str, fiscal_year_end: str) -> int:
+        end = date.fromisoformat(period_end)
+        try:
+            fiscal_end_month = int(fiscal_year_end.split("-", 1)[0])
+        except (AttributeError, TypeError, ValueError):
+            fiscal_end_month = 12
+        fiscal_start_month = fiscal_end_month % 12 + 1
+        fiscal_month = (end.month - fiscal_start_month) % 12 + 1
+        return min(4, (fiscal_month - 1) // 3 + 1)
+
+    @staticmethod
+    def _period_start(period_end: str, fiscal_year: int, kind: str,
+                      fiscal_year_end: str) -> str:
+        end = date.fromisoformat(period_end)
+        if kind == "quarter":
+            month_index = end.year * 12 + end.month - 1 - 2
+            return date(month_index // 12, month_index % 12 + 1, 1).isoformat()
+        try:
+            month, day = (int(value) for value in fiscal_year_end.split("-"))
+            return (date(fiscal_year - 1, month, day) + timedelta(days=1)).isoformat()
+        except (AttributeError, TypeError, ValueError):
+            return f"{fiscal_year}-01-01"
+
+    @staticmethod
     def _scale(page_text: str) -> Decimal:
         for pattern, value in _SCALE_PATTERNS:
             if pattern.search(page_text):
@@ -415,7 +448,7 @@ class StatementReader:
 
     _NEGATIVE = ("highlights", "at a glance", "key figures", "financial review",
                  "five year", "5-year", "five-year", "summary", "summarised",
-                 "summarized", "condensed", "snapshot", "performance review",
+                 "summarized", "snapshot", "performance review",
                  "review", "commentary")
 
     # A real primary statement carries these signature line labels; a summary
@@ -471,7 +504,7 @@ class StatementReader:
             for x in block:
                 if not columns or x - columns[-1] > 25:
                     columns.append(x)
-            result.append(columns[:2])
+            result.append(columns[:4])
         return result[:2]
 
     @staticmethod
@@ -512,7 +545,39 @@ class StatementReader:
     def _looks_tabular(self, words, columns) -> bool:
         return self._aligned_rows(words, columns) >= 6
 
-    def _statement_facts(self, words, statement: str, blocks: list[list[float]]):
+    @staticmethod
+    def _period_column_groups(words, statement: str,
+                              columns: list[float],
+                              default_flow_kind: str = "fy") -> list[tuple[list[float], str]]:
+        if statement == "balance_sheet":
+            return [(columns[:2], "instant")]
+        pairs = [columns[index:index + 2] for index in range(0, len(columns), 2)]
+        groups: list[tuple[list[float], str]] = []
+        for pair in pairs:
+            if not pair:
+                continue
+            left, right = min(pair) - 45, max(pair) + 45
+            header = " ".join(
+                word[4].lower() for word in words
+                if left <= (word[0] + word[2]) / 2 <= right and word[1] < 155
+            ).replace("–", "-").replace("—", "-")
+            if re.search(r"three[ -]months?", header):
+                kind = "quarter"
+            elif re.search(r"(six|nine)[ -]months?", header):
+                kind = "ytd"
+            elif "year ended" in header or "annual" in header:
+                kind = "fy"
+            else:
+                kind = default_flow_kind
+            groups.append((pair, kind))
+        # Four columns without distinct period headings are comparative history,
+        # not proof of two period semantics. Publish only the first current/prior pair.
+        if len(groups) > 1 and len({kind for _, kind in groups}) == 1:
+            return [groups[0]]
+        return groups[:2] or [(columns[:2], default_flow_kind)]
+
+    def _statement_facts(self, page, words, statement: str,
+                         blocks: list[list[float]], default_flow_kind: str = "fy"):
         boundary = self._block_boundary(words, blocks) if len(blocks) > 1 else None
         magnitudes = []
         parsed_rows = []
@@ -524,7 +589,6 @@ class StatementReader:
                 right = [w for w in row if w[0] >= boundary]
                 panels = [seg for seg in ((left, blocks[0]), (right, blocks[1])) if seg[0]]
             for panel_words, columns in panels:
-                current = columns[0]
                 note_zone = (min(columns) - 90, min(columns) - 25)  # lone note refs sit just left of the values
                 text_tokens, number_tokens = [], []
                 for w in panel_words:
@@ -544,14 +608,16 @@ class StatementReader:
                 words_in_label = label.split()
                 if not 1 <= len(words_in_label) <= 13 or "%" in label or _YEAR.search(label):
                     continue
-                value = min(number_tokens, key=lambda t: abs(t[0] - current))[1]
-                magnitudes.append(abs(value))
-                parsed_rows.append((label, value))
+                for group, kind in self._period_column_groups(
+                        words, statement, columns, default_flow_kind):
+                    current = group[0]
+                    value = min(number_tokens, key=lambda t: abs(t[0] - current))[1]
+                    magnitudes.append(abs(value))
+                    parsed_rows.append((label, kind, value))
         if not magnitudes:
             return
         floor = sorted(magnitudes)[len(magnitudes) // 2] / Decimal(1000)  # 0.1% of median
-        for label, value in parsed_rows:
+        for label, kind, value in parsed_rows:
             if abs(value) < floor:
                 continue  # a stray percentage or ratio among monetary rows
-            kind = "instant" if statement == "balance_sheet" else "fy"
             yield label, kind, value

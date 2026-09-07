@@ -1,4 +1,5 @@
-import argparse, json, os, socket, threading, time
+import argparse, calendar, json, os, re, socket, threading, time
+from datetime import date
 from pathlib import Path
 from .connectors import (
     IssuerReportsMonitor, LocalFileConnector, SecCompanyFactsConnector,
@@ -146,6 +147,38 @@ def _company_profile(company) -> str:
     return "corporate"
 
 
+def _source_period(row: dict, company) -> tuple[str, int] | None:
+    """Derive an interim period only from explicit source metadata."""
+    try:
+        metadata = json.loads(row["metadata_json"] or "{}")
+    except (KeyError, TypeError, json.JSONDecodeError):
+        metadata = {}
+    title = str(metadata.get("title") or "")
+    explicit = re.search(r"(\d{2})[-/](\d{2})[-/](\d{4})", title)
+    if explicit:
+        day, month, year = (int(value) for value in explicit.groups())
+        try:
+            return date(year, month, day).isoformat(), year
+        except ValueError:
+            return None
+    quarter = re.search(r"\bQ([1-4])\b", title, re.I)
+    year_match = re.search(r"\b(20\d{2})\b", title)
+    if not quarter or not year_match:
+        return None
+    fiscal_year, fiscal_quarter = int(year_match.group(1)), int(quarter.group(1))
+    try:
+        fiscal_end_month, fiscal_end_day = (
+            int(value) for value in company.fiscal_year_end.split("-")
+        )
+    except (AttributeError, TypeError, ValueError):
+        fiscal_end_month, fiscal_end_day = 12, 31
+    month_index = (fiscal_year * 12 + fiscal_end_month - 1) - (4 - fiscal_quarter) * 3
+    year, month = divmod(month_index, 12)
+    month += 1
+    day = min(fiscal_end_day, calendar.monthrange(year, month)[1])
+    return date(year, month, day).isoformat(), fiscal_year
+
+
 def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tuple[dict, dict, str]:
     """Read deterministically; use the LLM only when explicitly enabled."""
     import tempfile
@@ -165,7 +198,11 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
         "filed_at": row["filed_at"],
         "filing_type": row["filing_type"],
         "profile": _company_profile(company),
+        "fiscal_year_end": company.fiscal_year_end,
     }
+    source_period = _source_period(row, company)
+    if source_period:
+        kwargs["period_end"], kwargs["fiscal_year"] = source_period
     manifest = StatementReader(pdf_path).read(**kwargs)
     report = verify(manifest)
     reader_source = "deterministic"
@@ -193,7 +230,8 @@ def _extract_document_job_handler(db: Database):
                 company,StoredDocumentConnector(document),job.job_id,
             )
         if row["content_type"] == "application/pdf":
-            if row["filing_type"] == "interim-report":
+            if (row["filing_type"] == "interim-report" and
+                    _source_period(row, company) is None):
                 manifest=None; report=None; reader_source=None
                 read_error=(
                     "automatic interim extraction is held for review because one PDF can "

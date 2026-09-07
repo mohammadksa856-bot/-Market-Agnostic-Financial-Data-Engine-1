@@ -137,6 +137,51 @@ def _bank_pdf(path: Path) -> None:
     doc.close()
 
 
+def _interim_pdf(path: Path) -> None:
+    """Interim statement with discrete-quarter and YTD columns on one page."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=850, height=567)
+    page.insert_text((45, 60), "Condensed Consolidated Interim Statement of Income", fontsize=12)
+    page.insert_text((300, 90), "For the three-month period ended 30 June", fontsize=8)
+    page.insert_text((540, 90), "For the six-month period ended 30 June", fontsize=8)
+    for x, year in ((360, "2026"), (460, "2025"), (600, "2026"), (700, "2025")):
+        page.insert_text((x, 110), year, fontsize=9)
+    rows = [
+        ("Revenue", "100", "90", "190", "170"),
+        ("Cost of sales", "(60)", "(55)", "(115)", "(105)"),
+        ("Gross profit", "40", "35", "75", "65"),
+        ("General and administrative expenses", "(10)", "(9)", "(19)", "(17)"),
+        ("Income from operations", "30", "26", "56", "48"),
+        ("Net income", "20", "18", "37", "32"),
+    ]
+    for index, row in enumerate(rows):
+        y = 145 + index * 24
+        page.insert_text((45, y), row[0], fontsize=9)
+        for x, value in zip((360, 460, 600, 700), row[1:]):
+            page.insert_text((x, y), value, fontsize=9)
+
+    cash = doc.new_page(width=595, height=842)
+    cash.insert_text((45, 60), "Condensed Consolidated Interim Statement of Cash Flows", fontsize=12)
+    cash.insert_text((320, 88), "For the six-month period ended 30 June", fontsize=8)
+    cash.insert_text((360, 108), "2026", fontsize=9)
+    cash.insert_text((460, 108), "2025", fontsize=9)
+    cash_rows = [
+        ("Net cash from operating activities", "50", "45"),
+        ("Purchase of property, plant and equipment", "(20)", "(18)"),
+        ("Net cash used in investing activities", "(22)", "(19)"),
+        ("Proceeds from debt", "10", "8"),
+        ("Debt repayments", "(5)", "(4)"),
+        ("Net cash from financing activities", "5", "4"),
+    ]
+    for index, (label, current, prior) in enumerate(cash_rows):
+        y = 145 + index * 24
+        cash.insert_text((45, y), label, fontsize=9)
+        cash.insert_text((360, y), current, fontsize=9)
+        cash.insert_text((460, y), prior, fontsize=9)
+    doc.save(path)
+    doc.close()
+
+
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class BankStatementTests(unittest.TestCase):
     def _read(self, directory: Path):
@@ -236,6 +281,49 @@ class TwoPanelStatementTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class StatementReaderTests(unittest.TestCase):
+    def test_interim_reader_separates_quarter_and_ytd_columns(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "interim.pdf"
+            _interim_pdf(pdf)
+            manifest = StatementReader(pdf).read(
+                market="SA", symbol="2010", currency="SAR",
+                source_url="https://issuer.example/q2.pdf", filed_at="2026-07-29",
+                period_end="2026-06-30", fiscal_year=2026,
+                filing_type="interim-report",
+            )
+            facts = {(fact["metric"], fact["period_kind"]): fact
+                     for fact in manifest["facts"]}
+            self.assertEqual(facts[("revenue", "quarter")]["value"], "100")
+            self.assertEqual(facts[("revenue", "ytd")]["value"], "190")
+            self.assertEqual(facts[("operating_cash_flow", "ytd")]["value"], "50")
+            self.assertEqual(facts[("revenue", "quarter")]["period_start"], "2026-04-01")
+            self.assertEqual(facts[("revenue", "ytd")]["period_start"], "2026-01-01")
+            self.assertEqual(facts[("revenue", "quarter")]["fiscal_quarter"], 2)
+
+    def test_interim_job_reader_derives_period_from_archived_source_title(self):
+        from finengine.cli import _read_pdf_manifest
+        from finengine.models import Company, Market
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "interim.pdf"
+            _interim_pdf(pdf)
+            company = Company("sa:2010", Market.SA, "2010", "SABIC", "SAR")
+            row = {
+                "source_url": "https://issuer.example/quarterly-2026-q2.pdf",
+                "filed_at": "2026-07-29", "filing_type": "interim-report",
+                "metadata_json": json.dumps({"title": "Quarterly report 2026 Q2"}),
+            }
+            manifest, report, reader = _read_pdf_manifest(pdf, company, row, False)
+            self.assertTrue(report["ok"], report)
+            self.assertEqual(reader, "deterministic")
+            self.assertEqual(manifest["period_end"], "2026-06-30")
+            self.assertEqual(
+                {fact["period_kind"] for fact in manifest["facts"]},
+                {"quarter", "ytd"},
+            )
+
     def test_reads_a_balance_sheet_and_verify_accepts_it(self):
         from finengine.reading import StatementReader
 
