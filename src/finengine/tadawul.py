@@ -57,10 +57,16 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 _DEFAULT_CACHE = "data/raw/tadawul-announcement-feed.json"
 _PAGE_SIZE = 10  # server hard cap; larger values are ignored
 
-# title patterns for an *annual* results announcement, any issuer category
+# title patterns for an *annual* results announcement, across issuer categories
+# and the several phrasings issuers use ("annual financial results",
+# "consolidated financial results for the year", "annual results for the period").
 _ANNUAL = re.compile(
     r"annual\s+(consolidated\s+)?financial\s+(results|statements)"
+    r"|(consolidated\s+)?financial\s+(results|statements)\s+for\s+the\s+year"
     r"|annual\s+results\s+for\s+the\s+(year|period)", re.I)
+# exclude interim/quarterly filings that also mention "for the year to date" etc.
+_INTERIM = re.compile(r"\binterim\b|\bquarter\b|nine[- ]month|six[- ]month|"
+                      r"three[- ]month|first[- ]half|1st[- ]half", re.I)
 _FS_PDF = re.compile(r"/Resources/fsPdf/[^\s\"'<>]+?\.pdf", re.I)
 
 
@@ -200,7 +206,11 @@ def find_annual_results(symbol: str, *, cache_path: str | Path = _DEFAULT_CACHE,
     """Annual-results announcements for ``symbol`` from the cached feed, newest first."""
     symbol = str(symbol).strip()
     feed = _load_feed(cache_path, refresh=refresh, max_age_days=max_age_days, opener=opener)
-    hits = [r for r in feed if r["symbol"] == symbol and _ANNUAL.search(r["title"])]
+    hits = [
+        r for r in feed
+        if r["symbol"] == symbol
+        and _ANNUAL.search(r["title"]) and not _INTERIM.search(r["title"])
+    ]
     hits.sort(key=lambda item: item["an_id"], reverse=True)
     return hits
 

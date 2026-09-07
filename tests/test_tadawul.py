@@ -99,6 +99,26 @@ class FindAnnualResultsTests(unittest.TestCase):
                                             opener=opener),
                 [])
 
+    def test_matches_the_alternate_annual_phrasings_and_skips_interim(self):
+        opener, _ = _feed([{"announcementList": [
+            _row("2280", 10, "Almarai Company announces its consolidated financial "
+                 "results for the year ended 31 December 2025"),
+            _row("2280", 11, "Almarai Company announces its interim condensed "
+                 "consolidated financial results for the period ending 30-06-2026"),
+            _row("2350", 12, "Saudi Kayan announces the annual financial results "
+                 "for the period ending on 2025-12-31"),
+        ]}])
+        with tempfile.TemporaryDirectory() as name:
+            cache = Path(name) / "f.json"
+            self.assertEqual(
+                [r["an_id"] for r in tadawul.find_annual_results("2280", cache_path=cache,
+                                                                 opener=opener)],
+                ["10"])
+            self.assertEqual(
+                [r["an_id"] for r in tadawul.find_annual_results("2350", cache_path=cache,
+                                                                 opener=opener)],
+                ["12"])
+
 
 class StatementPdfUrlTests(unittest.TestCase):
     def test_scrapes_the_fspdf_link_from_details_html(self):
