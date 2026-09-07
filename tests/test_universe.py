@@ -143,6 +143,48 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM schedules WHERE enabled=1").fetchone()[0], 1)
 
+    def test_enabled_saudi_activation_schedules_official_profile_source(self):
+        profile_url = "https://www.saudiexchange.sa/company/2010"
+        source = self.root / "saudi.json"
+        source.write_bytes(normalize_saudi_directory_rows({"M": [{
+            "symbol": "2010", "lonaName": "Saudi Basic Industries Corp.",
+            "shortName": "SABIC", "isinCode": "SA0007879121",
+            "companyURL": profile_url,
+        }]}))
+        sync_universe(self.db, "SA", self.root / "raw", input_path=source)
+        result = activate_universe(
+            self.db, "SA", symbols=("2010",), enable=True, schedule_every=21600,
+            registry_path=str(self.root / "missing.json"),
+        )
+        self.assertEqual(result["companies"][0]["schedule_id"], "monitor:SA:2010")
+        schedule = self.db.conn.execute(
+            "SELECT payload_json FROM schedules WHERE schedule_id='monitor:SA:2010'"
+        ).fetchone()
+        payload = json.loads(schedule["payload_json"])
+        self.assertEqual(payload["source_index"], profile_url)
+        self.assertTrue(payload["browser"])
+        registry = CompanyRegistry.combined(self.db.conn, self.root / "missing.json")
+        self.assertEqual(registry.resolve("SA", "2010").sources, (profile_url,))
+
+    def test_saudi_schedule_without_profile_source_is_rejected_atomically(self):
+        source = self.root / "saudi.json"
+        source.write_bytes(normalize_saudi_directory_rows({"M": [{
+            "symbol": "2010", "lonaName": "Saudi Basic Industries Corp.",
+            "shortName": "SABIC", "isinCode": "SA0007879121",
+        }]}))
+        sync_universe(self.db, "SA", self.root / "raw", input_path=source)
+        with self.assertRaisesRegex(ValueError, "missing for: 2010"):
+            activate_universe(
+                self.db, "SA", enable=True, schedule_every=21600,
+                registry_path=str(self.root / "missing.json"),
+            )
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM companies").fetchone()[0], 0)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM schedules").fetchone()[0], 0)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM universe_activation_batches").fetchone()[0], 0)
+
     def test_scheduling_requires_explicit_enable(self):
         with self.assertRaisesRegex(ValueError, "requires --enable"):
             activate_universe(self.db, "US", schedule_every=3600)

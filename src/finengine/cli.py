@@ -29,6 +29,13 @@ def _sec_user_agent() -> str:
     return value
 
 
+def _browser_headless() -> bool:
+    """Allow production to run a visible Chromium inside an Xvfb display."""
+    return os.environ.get("FINENGINE_BROWSER_HEADLESS", "true").strip().lower() not in {
+        "0", "false", "no", "off",
+    }
+
+
 def _ingest_job_handler(db: Database):
     def handle(job):
         payload=job.payload; reg=CompanyRegistry.combined(db.conn,payload.get("registry","config/companies.json"))
@@ -70,8 +77,15 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
         raise ValueError("issuer monitoring requires source_index or a registry source URL")
     browser = bool(payload.get("browser"))
     if browser:
-        from .fetching import BrowserIssuerMonitor
-        monitor = BrowserIssuerMonitor(source_index, max_documents=int(payload.get("source_limit", 12)))
+        from .fetching import BrowserFetcher, BrowserIssuerMonitor
+        monitor = BrowserIssuerMonitor(
+            source_index,
+            fetcher=BrowserFetcher(
+                raw_dir=payload.get("raw_dir", "data/raw"),
+                headless=_browser_headless(),
+            ),
+            max_documents=int(payload.get("source_limit", 12)),
+        )
     else:
         monitor = IssuerReportsMonitor(source_index, max_documents=int(payload.get("source_limit", 12)))
     return service.poll(
@@ -93,11 +107,17 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
         candidate_id = int(job.payload["candidate_id"])
         raw_dir = job.payload.get("raw_dir", "data/raw")
         content_fetcher = None
+        candidate_fetcher = None
         if job.payload.get("browser"):
             from .fetching import BrowserFetcher
-            content_fetcher = BrowserFetcher(raw_dir).download_bytes
+            candidate_fetcher = BrowserFetcher(
+                raw_dir, headless=_browser_headless()
+            ).download_candidate
         try:
-            result=DocumentArchiver(db, raw_dir, content_fetcher=content_fetcher).fetch(candidate_id)
+            result=DocumentArchiver(
+                db, raw_dir, content_fetcher=content_fetcher,
+                candidate_fetcher=candidate_fetcher,
+            ).fetch(candidate_id)
             if result.get("next_stage") == "extraction":
                 extraction_payload={
                     "source_key":result["source_key"],
@@ -173,14 +193,21 @@ def _extract_document_job_handler(db: Database):
                 company,StoredDocumentConnector(document),job.job_id,
             )
         if row["content_type"] == "application/pdf":
-            try:
-                manifest,report,reader_source=_read_pdf_manifest(
-                    path,company,row,bool(job.payload.get("llm")),
+            if row["filing_type"] == "interim-report":
+                manifest=None; report=None; reader_source=None
+                read_error=(
+                    "automatic interim extraction is held for review because one PDF can "
+                    "contain quarter and YTD columns for the same date"
                 )
-            except Exception as error:
-                manifest=None; report=None; reader_source=None; read_error=str(error)
             else:
-                read_error=None
+                try:
+                    manifest,report,reader_source=_read_pdf_manifest(
+                        path,company,row,bool(job.payload.get("llm")),
+                    )
+                except Exception as error:
+                    manifest=None; report=None; reader_source=None; read_error=str(error)
+                else:
+                    read_error=None
             if manifest is not None and report["ok"]:
                 manifest_dir=Path(raw_dir)/company.market.value/company.symbol/"manifests"
                 manifest_dir.mkdir(parents=True,exist_ok=True)
@@ -195,7 +222,9 @@ def _extract_document_job_handler(db: Database):
                 result["reader"]=reader_source
                 result["manifest_path"]=str(manifest_path)
                 return result
-            code="pdf_extraction_failed"
+            code=("interim_period_semantics_required"
+                  if row["filing_type"] == "interim-report"
+                  else "pdf_extraction_failed")
             db.exception(
                 company.company_id,source_key,"extraction",code,
                 "The reader agent could not produce a manifest that passes verify.",

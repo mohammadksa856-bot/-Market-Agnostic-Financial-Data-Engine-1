@@ -146,6 +146,48 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual((backlog["status"],backlog["item_type"]),("ready","document_extraction"))
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM data_points").fetchone()[0],0)
 
+    def test_candidate_fetcher_receives_referer_provenance(self):
+        referer = "https://www.saudiexchange.sa/announcements/details/?anId=1"
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "report-referrer",
+            "https://www.saudiexchange.sa/Resources/fsPdf/report.pdf",
+            "Interim Financial Results", "interim-report", None, "application/pdf",
+            {"referer": referer},
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        received = {}
+
+        def fetch_with_candidate(row):
+            received.update(row)
+            return b"%PDF-referer-test"
+
+        result = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw",
+            candidate_fetcher=fetch_with_candidate,
+        ).fetch(candidate_id)
+        self.assertEqual(result["status"], "archived")
+        self.assertEqual(received["metadata"]["referer"], referer)
+
+    def test_interim_pdf_is_held_until_period_semantics_are_proven(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "interim-review",
+            "https://www.saudiexchange.sa/Resources/fsPdf/interim.pdf",
+            "Interim Financial Results", "interim-report", None, "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-test"),
+        ).fetch(candidate_id)
+        registry = Path(__file__).resolve().parents[1] / "config" / "companies.json"
+        job = type("Job", (), {
+            "payload": {"source_key": archived["source_key"], "registry": str(registry)},
+            "job_id": "interim-semantics-test",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["code"], "interim_period_semantics_required")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM data_points").fetchone()[0], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

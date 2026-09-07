@@ -26,11 +26,34 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 _KEYWORDS = ("financial statement", "financial results", "interim", "annual report",
              "consolidated", "quarterly", "q1", "q2", "q3", "q4", "fy", "half year")
+_SAUDI_EXCHANGE_HOST = "www.saudiexchange.sa"
+_ONCLICK_LOCATION = re.compile(
+    r"document\.location\.href\s*=\s*['\"]([^'\"]+)['\"]", re.I
+)
 
 
 def _slug(url: str) -> str:
     name = Path(unquote(urlparse(url).path)).name
     return re.sub(r"[^A-Za-z0-9._-]", "_", name) or "document.pdf"
+
+
+def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
+                                        keywords: tuple[str, ...] = _KEYWORDS) -> list[dict]:
+    """Extract official announcement-detail links from Saudi Exchange onclick cards."""
+    found, seen = [], set()
+    for row in rows:
+        title = " ".join(str(row.get("text") or "").split())
+        match = _ONCLICK_LOCATION.search(str(row.get("onclick") or ""))
+        if not match or not any(keyword in title.lower() for keyword in keywords):
+            continue
+        url = urljoin(index_url, match.group(1).replace("&amp;", "&"))
+        parsed = urlparse(url)
+        if (parsed.scheme != "https" or parsed.hostname != _SAUDI_EXCHANGE_HOST or
+                url in seen):
+            continue
+        seen.add(url)
+        found.append({"url": url, "title": title})
+    return found
 
 
 class BrowserFetcher:
@@ -58,6 +81,7 @@ class BrowserFetcher:
         """Render an investor-relations page and return candidate PDF links."""
         import contextlib
         host = urlparse(index_url).hostname or ""
+        referers: dict[str, str] = {}
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
             page = context.new_page()
@@ -69,6 +93,36 @@ class BrowserFetcher:
             page.wait_for_timeout(2500)
             raw = page.eval_on_selector_all(
                 "a[href]", "els => els.map(e => [e.href, (e.textContent||'').trim()])")
+            # Saudi Exchange's company profile uses clickable cards rather than
+            # anchors for filing announcements. Follow only financial-result cards,
+            # then collect their official PDF attachments. This keeps the generic
+            # issuer-page path unchanged while making the exchange source useful.
+            if host == _SAUDI_EXCHANGE_HOST:
+                cards = page.eval_on_selector_all(
+                    "[onclick*='document.location.href']",
+                    "els => els.map(e => ({onclick:e.getAttribute('onclick')||'', "
+                    "text:(e.textContent||'').trim()}))",
+                )
+                announcements = _saudi_financial_announcement_links(
+                    index_url, cards, keywords
+                )[:12]
+                detail = context.new_page()
+                for announcement in announcements:
+                    try:
+                        detail.goto(announcement["url"], timeout=self.timeout_ms,
+                                    wait_until="domcontentloaded")
+                        detail.wait_for_timeout(500)
+                        attachments = detail.eval_on_selector_all(
+                            "a[href]", "els => els.map(e => e.href)")
+                    except Exception:
+                        continue
+                    for attachment in attachments:
+                        parsed = urlparse(attachment)
+                        if (parsed.scheme == "https" and
+                                parsed.hostname == _SAUDI_EXCHANGE_HOST and
+                                ".pdf" in parsed.path.lower()):
+                            raw.append([attachment, announcement["title"]])
+                            referers[attachment] = announcement["url"]
         seen, out = set(), []
         for href, text in raw:
             full = urljoin(index_url, href)
@@ -82,10 +136,13 @@ class BrowserFetcher:
             if not any(k in label or k in parsed.path.lower() for k in keywords):
                 continue
             seen.add(full)
-            out.append({"url": full, "title": text.strip() or _slug(full)})
+            item = {"url": full, "title": text.strip() or _slug(full)}
+            if full in referers:
+                item["referer"] = referers[full]
+            out.append(item)
         return out
 
-    def download_bytes(self, url: str) -> bytes:
+    def download_bytes(self, url: str, referer: str | None = None) -> bytes:
         """Fetch one URL's raw bytes through a real browser context - the piece
         `DocumentArchiver` plugs in as its `content_fetcher` for sites a plain
         HTTP client can't pass. Validates the result is a PDF."""
@@ -95,15 +152,38 @@ class BrowserFetcher:
             # a real navigation first sets cookies some CDNs require for the asset
             page = context.new_page()
             with contextlib.suppress(Exception):
-                page.goto(f"https://{urlparse(url).hostname}/", timeout=self.timeout_ms,
+                page.goto(referer or f"https://{urlparse(url).hostname}/",
+                          timeout=self.timeout_ms,
                           wait_until="domcontentloaded")
-            response = context.request.get(url, timeout=self.timeout_ms)
-            if not response.ok:
-                raise RuntimeError(f"fetch failed: HTTP {response.status} for {url}")
-            content = response.body()
+                page.wait_for_timeout(500)
+            if referer:
+                # Execute same-origin fetch in the rendered announcement page.
+                # Saudi Exchange rejects API-context requests even with a Referer,
+                # but accepts the browser document's cookies and fetch metadata.
+                with page.expect_response(lambda item: item.url == url,
+                                          timeout=self.timeout_ms) as response_info:
+                    status = page.evaluate(
+                        "async url => { const response = await fetch(url); "
+                        "await response.arrayBuffer(); return response.status; }", url,
+                    )
+                response = response_info.value
+                if status < 200 or status >= 300:
+                    raise RuntimeError(f"fetch failed: HTTP {status} for {url}")
+                content = response.body()
+            else:
+                response = context.request.get(url, timeout=self.timeout_ms)
+                if not response.ok:
+                    raise RuntimeError(f"fetch failed: HTTP {response.status} for {url}")
+                content = response.body()
         if not content.startswith(b"%PDF"):
             raise RuntimeError(f"downloaded content is not a PDF: {url}")
         return content
+
+    def download_candidate(self, candidate: dict) -> bytes:
+        """Download with discovery provenance needed by referer-protected CDNs."""
+        return self.download_bytes(
+            candidate["source_url"], (candidate.get("metadata") or {}).get("referer")
+        )
 
     def fetch(self, url: str, market: str, symbol: str) -> dict:
         """Download one PDF through the browser context and archive it immutably."""
@@ -152,9 +232,23 @@ class BrowserIssuerMonitor:
             SourceCandidate(
                 company.company_id, self.name,
                 hashlib.sha256(item["url"].encode("utf-8")).hexdigest(),
-                item["url"], item["title"], "issuer-report", None, "application/pdf",
-                {"index_url": self.index_url},
+                item["url"], item["title"], self._document_type(item["title"]),
+                None, "application/pdf",
+                {"index_url": self.index_url, **(
+                    {"referer": item["referer"]} if item.get("referer") else {}
+                )},
             )
             for item in found
         )
         return DiscoveryResult(digest, candidates)
+
+    @staticmethod
+    def _document_type(title: str) -> str:
+        lowered = title.lower()
+        if "interim" in lowered or "quarter" in lowered or "half year" in lowered:
+            return "interim-report"
+        if "annual" in lowered or "year ending" in lowered or "year ended" in lowered:
+            return "annual-report"
+        if "financial" in lowered:
+            return "financial-report"
+        return "issuer-report"

@@ -338,6 +338,30 @@ def activate_universe(
     ).fetchall()
     if not rows:
         return {"status": "empty", "market": market, "count": 0, "companies": []}
+    source_indexes: dict[str, str] = {}
+    if market == "SA":
+        for row in rows:
+            metadata = json.loads(row["metadata_json"])
+            security_metadata = json.loads(row["security_metadata_json"])
+            company_id = f"sa:{row['symbol']}"
+            stored_source = db.conn.execute(
+                """SELECT url FROM company_sources
+                WHERE company_id=? AND enabled=1 ORDER BY priority,id LIMIT 1""",
+                (company_id,),
+            ).fetchone()
+            source_index = (security_metadata.get("profile_url") or
+                            metadata.get("profile_url") or
+                            (stored_source["url"] if stored_source else None))
+            if source_index:
+                source_indexes[row["issuer_id"]] = str(source_index)
+        if schedule_every is not None:
+            missing = [row["symbol"] for row in rows
+                       if row["issuer_id"] not in source_indexes]
+            if missing:
+                raise ValueError(
+                    "Saudi monitoring requires an official issuer profile URL; missing for: "
+                    + ", ".join(missing)
+                )
     selection = {"exchanges": normalized_exchanges, "symbols": normalized_symbols,
                  "limit": limit, "enable": enable, "schedule_every": schedule_every,
                  "include_funds": include_funds}
@@ -372,6 +396,8 @@ def activate_universe(
             sector=metadata.get("sector"), industry=metadata.get("industry"),
             timezone="America/New_York" if market == "US" else "Asia/Riyadh",
             locale="en" if market == "US" else "ar", enabled=company_enabled,
+            sources=((source_indexes[row["issuer_id"]],)
+                     if row["issuer_id"] in source_indexes else ()),
         )
         db.register_company(company)
         schedule_id = None
@@ -382,6 +408,7 @@ def activate_universe(
                 schedule_id, f"Monitor {market}:{company.symbol}", "monitor",
                 schedule_every, {"market": market, "symbol": company.symbol,
                     "registry": registry_path, "raw_dir": "data/raw",
+                    "source_index": source_indexes.get(row["issuer_id"]),
                     "source_limit": 12, "browser": market == "SA", "llm": False},
                 company.company_id,
             )

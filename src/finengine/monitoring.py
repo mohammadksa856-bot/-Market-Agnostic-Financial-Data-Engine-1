@@ -84,7 +84,7 @@ class DocumentArchiver:
     def __init__(self, db: Database, raw_dir: str | Path, opener=urlopen,
                  max_bytes: int = 100 * 1024 * 1024,
                  user_agent: str = "MarketAgnosticFinancialDataEngine/0.6",
-                 content_fetcher=None):
+                 content_fetcher=None, candidate_fetcher=None):
         self.db = db
         self.raw_dir = Path(raw_dir)
         self.opener = opener
@@ -93,12 +93,17 @@ class DocumentArchiver:
         # Optional url -> bytes override, e.g. BrowserFetcher.download_bytes,
         # for sites a plain urllib request can't pass bot protection on.
         self.content_fetcher = content_fetcher
+        # Optional candidate -> bytes override for sources whose CDN requires
+        # discovery metadata such as the announcement-detail Referer.
+        self.candidate_fetcher = candidate_fetcher
 
     def fetch(self, candidate_id: int) -> dict:
         candidate = self.db.get_source_candidate(candidate_id)
         if candidate["status"] == "fetched":
             return {"status": "duplicate", "candidate_id": candidate_id}
-        if self.content_fetcher is not None:
+        if self.candidate_fetcher is not None:
+            content = self.candidate_fetcher(candidate)
+        elif self.content_fetcher is not None:
             content = self.content_fetcher(candidate["source_url"])
         else:
             request = Request(candidate["source_url"], headers={"User-Agent": self.user_agent})

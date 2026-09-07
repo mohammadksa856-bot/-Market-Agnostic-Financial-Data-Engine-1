@@ -21,4 +21,7 @@ esac
 # preserves each schedule's next-run cursor.
 finengine --db "$database" configure-production --every "$interval" --source-limit "$source_limit"
 
+if [ "${FINENGINE_BROWSER_HEADLESS:-false}" = "false" ] && command -v xvfb-run >/dev/null 2>&1; then
+    exec xvfb-run -a finengine --db "$database" run --host 0.0.0.0 --port 8000 --poll 10
+fi
 exec finengine --db "$database" run --host 0.0.0.0 --port 8000 --poll 10
