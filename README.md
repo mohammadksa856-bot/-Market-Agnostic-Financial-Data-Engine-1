@@ -15,6 +15,11 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
   activation and monitoring are released in controlled batches. The first 100-issuer
   review batch is fully enriched from archived SEC registrant profiles: 70 eligible
   operating companies, 14 excluded vehicles, and 16 conservative review cases.
+- The public Saudi Exchange directory now has a first-class browser connector.
+  A live acceptance read on 7 September 2026 returned 272 Main Market securities
+  and 124 Nomu securities. The connector keeps the two markets separate, archives
+  a deterministic identity snapshot, records ISIN and profile provenance, and
+  labels funds/REITs so normal company activation excludes them by default.
 - 4,257 current facts and 4,409 total fact versions in the bundled snapshot.
 - 1,020 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 207 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA. A local
@@ -27,7 +32,7 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 10, and 98 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
+- Database schema version 17, catalog version 10, and 100 unit/integration/release tests (nine PDF-reader tests require the optional reader dependency).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -91,7 +96,21 @@ batch, pass the symbols and a monitoring interval (minimum one hour):
 
     finengine --db data/financial.sqlite3 universe-activate US --symbols AAPL,MSFT,NVDA --enable --schedule-every 21600
 
-Saudi Exchange/eReference JSON or CSV exports use the same archived model:
+Saudi Exchange can be synchronized directly through its public dynamic issuer
+directory. Install the browser extra once; production containers already include it:
+
+    pip install -e ".[browser]"
+    playwright install chromium
+    finengine --db data/financial.sqlite3 universe-sync SA
+
+The command reads Main Market and Nomu separately and archives the normalized
+source capture before updating inventory. It does not enable hundreds of schedules.
+Company activation excludes funds and REITs unless `--include-funds` is explicit:
+
+    finengine --db data/financial.sqlite3 universe-activate SA --limit 25
+
+Authorized Saudi Exchange/eReference JSON or CSV exports remain supported through
+the same archived model when licensed fields such as sector classification are needed:
 
     finengine --db data/financial.sqlite3 universe-sync SA --input issuers.csv --source-url https://www.saudiexchange.sa/
 
@@ -128,9 +147,9 @@ The seven Aramco PDF binaries total about 70.5 MB and are intentionally excluded
 ## Run continuously
 
 Production startup configures an idempotent monitor for every enabled company in
-`config/companies.json`; adding a company to the registry is therefore enough to
-include it in the next deployment. The bundled registry is a five-company pilot,
-not a claim of whole-market coverage. See [production readiness and rollout](docs/PRODUCTION.md).
+`config/companies.json` and every explicitly promoted universe company. Inventory
+refresh and activation remain separate so discovery never launches hundreds of
+jobs. See [production readiness and rollout](docs/PRODUCTION.md).
 
 Set a real SEC operator identity before enabling US monitoring:
 
@@ -150,7 +169,8 @@ identity and API key, then run:
     docker compose up -d --build
 
 Add `--profile telegram` to start the read-only Telegram adapter. The deployment
-also creates a verified daily SQLite backup and retains 14 snapshots by default.
+also refreshes the official US and Saudi market inventories daily and creates a
+verified portable database/source bundle, retaining seven bundles by default.
 
 Create a transportable, self-verifying bundle containing an online SQLite snapshot
 and every raw file referenced by its provenance tables:

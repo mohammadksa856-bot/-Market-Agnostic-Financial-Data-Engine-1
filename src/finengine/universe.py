@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import csv
+import contextlib
 import hashlib
 import io
 import json
+import re
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 from .database import Database, _json
@@ -17,6 +20,10 @@ from .models import Company, Market
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
+SAUDI_ISSUER_DIRECTORY_URL = (
+    "https://www.saudiexchange.sa/wps/portal/saudiexchange/trading/"
+    "participants-directory/issuer-directory?locale=en"
+)
 _EXCHANGE_PRIORITY = {
     "Nasdaq": 0, "NYSE": 1, "NYSE American": 2, "NYSE Arca": 3,
     "Cboe BZX": 4, "OTC": 20, "": 99,
@@ -102,7 +109,8 @@ def parse_saudi_reference(content: bytes, suffix: str) -> tuple[list[dict], list
         issuer_id = f"sa:tadawul:{_slug(authority_id)}"
         active = str(row.get("active", "true")).lower() not in {"0", "false", "no", "inactive"}
         metadata = {key: row[key] for key in ("name_ar", "isin", "sector", "industry",
-                    "market_segment", "website", "source_url") if row.get(key) not in (None, "")}
+                    "market_segment", "instrument_type", "trading_name", "profile_url",
+                    "website", "source_url") if row.get(key) not in (None, "")}
         if issuer_id not in seen_issuers:
             issuers.append({
                 "issuer_id": issuer_id, "market": "SA", "authority_id": authority_id,
@@ -122,6 +130,103 @@ def parse_saudi_reference(content: bytes, suffix: str) -> tuple[list[dict], list
             "active": active, "is_primary": True, "metadata": metadata,
         })
     return issuers, securities
+
+
+def normalize_saudi_directory_rows(
+    rows_by_market: dict[str, list[dict]],
+    source_url: str = SAUDI_ISSUER_DIRECTORY_URL,
+) -> bytes:
+    """Convert the public issuer directory into the stable import contract.
+
+    The directory is an identity inventory, not a fundamentals source. Funds
+    remain visible in the security universe but are typed explicitly so later
+    activation policy can distinguish them from operating companies.
+    """
+    normalized = []
+    seen: set[tuple[str, str]] = set()
+    market_names = {"M": "Main Market", "S": "Nomu - Parallel Market"}
+    for market_code in ("M", "S"):
+        for raw in rows_by_market.get(market_code, []):
+            symbol = str(raw.get("symbol") or "").strip().upper()
+            name = str(raw.get("lonaName") or raw.get("longName") or
+                       raw.get("name") or "").strip()
+            trading_name = str(raw.get("shortName") or raw.get("trading_name") or "").strip()
+            isin = str(raw.get("isinCode") or raw.get("isin") or "").strip().upper()
+            if not symbol or not name or not isin or (market_code, symbol) in seen:
+                continue
+            seen.add((market_code, symbol))
+            label = f"{name} {trading_name}".lower()
+            instrument_type = "fund" if re.search(r"\b(reit|fund)\b", label) else "company"
+            profile_url = str(raw.get("companyURL") or raw.get("profile_url") or "").strip()
+            if profile_url:
+                profile_url = urljoin(source_url, profile_url)
+            normalized.append({
+                "issuer_id": isin,
+                "symbol": symbol,
+                "name": name,
+                "isin": isin,
+                "exchange": f"Saudi Exchange {market_names[market_code]}",
+                "currency": "SAR",
+                "market_segment": market_names[market_code],
+                "instrument_type": instrument_type,
+                "trading_name": trading_name,
+                "profile_url": profile_url,
+                "source_url": source_url,
+                "active": True,
+            })
+    normalized.sort(key=lambda row: (row["market_segment"], row["symbol"], row["isin"]))
+    return json.dumps({"schema_version": 1, "data": normalized}, ensure_ascii=False,
+                      sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def fetch_saudi_issuer_directory(source_url: str = SAUDI_ISSUER_DIRECTORY_URL,
+                                 headless: bool = True,
+                                 timeout_ms: int = 60000) -> bytes:
+    """Render and capture both public Saudi Exchange equity-market lists."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as error:  # pragma: no cover - optional runtime dependency
+        raise RuntimeError(
+            "live Saudi universe sync needs the browser extra: "
+            "pip install -e \".[browser]\" && playwright install chromium"
+        ) from error
+
+    rows_by_market: dict[str, list[dict]] = {}
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=headless)
+        try:
+            context = browser.new_context(locale="en-US", user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            ))
+            page = context.new_page()
+            page.goto(source_url, timeout=timeout_ms, wait_until="domcontentloaded")
+            with contextlib.suppress(Exception):
+                page.wait_for_load_state("load", timeout=10000)
+            page.wait_for_function(
+                "typeof companyList !== 'undefined' && companyList.length > 0",
+                timeout=timeout_ms,
+            )
+            for market_code in ("M", "S"):
+                if page.locator("#Market_ti").input_value() != market_code:
+                    with page.expect_response(
+                        lambda response: "getCompanyListByMarknetAndSectors" in response.url,
+                        timeout=timeout_ms,
+                    ):
+                        page.select_option("#Market_ti", market_code)
+                page.wait_for_function(
+                    "code => document.querySelector('#Market_ti').value === code "
+                    "&& typeof companyList !== 'undefined' && companyList.length > 0",
+                    market_code,
+                    timeout=timeout_ms,
+                )
+                rows_by_market[market_code] = page.evaluate("() => companyList")
+        finally:
+            browser.close()
+    content = normalize_saudi_directory_rows(rows_by_market, source_url)
+    if not json.loads(content).get("data"):
+        raise RuntimeError("Saudi issuer directory returned no usable securities")
+    return content
 
 
 class UniverseStore:
@@ -191,6 +296,7 @@ def activate_universe(
     db: Database, market: str, limit: int = 50, exchanges: tuple[str, ...] = (),
     symbols: tuple[str, ...] = (), enable: bool = False,
     schedule_every: int | None = None, registry_path: str = "config/companies.json",
+    include_funds: bool = False,
 ) -> dict:
     """Stage a deterministic, idempotent ingestion batch from an archived universe.
 
@@ -209,6 +315,8 @@ def activate_universe(
     filters = ["i.market=?", "i.active=1", "s.active=1", "s.is_primary=1",
                "a.issuer_id IS NULL"]
     args: list = [market]
+    if market == "SA" and not include_funds:
+        filters.append("COALESCE(json_extract(i.metadata_json,'$.instrument_type'),'company') != 'fund'")
     normalized_exchanges = tuple(sorted({value.strip() for value in exchanges if value.strip()}))
     normalized_symbols = tuple(sorted({value.strip().upper() for value in symbols if value.strip()}))
     if normalized_exchanges:
@@ -228,7 +336,8 @@ def activate_universe(
     if not rows:
         return {"status": "empty", "market": market, "count": 0, "companies": []}
     selection = {"exchanges": normalized_exchanges, "symbols": normalized_symbols,
-                 "limit": limit, "enable": enable, "schedule_every": schedule_every}
+                 "limit": limit, "enable": enable, "schedule_every": schedule_every,
+                 "include_funds": include_funds}
     seed = _json({"snapshot": rows[0]["current_snapshot_id"], "selection": selection,
                   "issuers": [row["issuer_id"] for row in rows]})
     batch_id = "activation:" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:24]
@@ -447,7 +556,7 @@ def promote_activation_batch(
 
 def sync_universe(db: Database, market: str, raw_dir: str | Path,
                   user_agent: str | None = None, input_path: str | Path | None = None,
-                  source_url: str | None = None) -> dict:
+                  source_url: str | None = None, headless: bool = True) -> dict:
     market = market.upper()
     if market == "US" and input_path is None:
         if not user_agent or "@" not in user_agent:
@@ -458,13 +567,17 @@ def sync_universe(db: Database, market: str, raw_dir: str | Path,
         with urlopen(request, timeout=30) as response:
             content = response.read()
         suffix = ".json"
+    elif market == "SA" and input_path is None:
+        source_url = source_url or SAUDI_ISSUER_DIRECTORY_URL
+        content = fetch_saudi_issuer_directory(source_url, headless=headless)
+        suffix = ".json"
     elif input_path is not None:
         path = Path(input_path)
         content = path.read_bytes()
         suffix = path.suffix
         source_url = source_url or path.resolve().as_uri()
     else:
-        raise ValueError("Saudi universe sync requires an official JSON or CSV export")
+        raise ValueError("market must be US or SA")
     digest = hashlib.sha256(content).hexdigest()
     archive_dir = Path(raw_dir) / market
     archive_dir.mkdir(parents=True, exist_ok=True)

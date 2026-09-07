@@ -10,7 +10,7 @@ COPY . /app
 RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -e ".[agents]" \
     && python -m playwright install --with-deps chromium \
-    && chmod +x /app/deploy/start-production.sh
+    && chmod +x /app/deploy/start-production.sh /app/deploy/refresh-universe.sh
 
 EXPOSE 8000
 VOLUME ["/app/data"]

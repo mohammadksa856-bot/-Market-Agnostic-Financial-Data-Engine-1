@@ -8,7 +8,8 @@ from finengine.query import FinancialQueryService
 from finengine.registry import CompanyRegistry
 from finengine.universe import (
     activate_universe, classify_sec_submission, enrich_activation_batch,
-    parse_saudi_reference, parse_sec_ticker_exchange, promote_activation_batch,
+    normalize_saudi_directory_rows, parse_saudi_reference, parse_sec_ticker_exchange,
+    promote_activation_batch,
     sync_universe,
 )
 
@@ -65,6 +66,48 @@ class UniverseTests(unittest.TestCase):
             b"symbol,name,issuer_id\n,Missing,1\n2000,Valid,2\n", ".csv")
         self.assertEqual(len(issuers), 1)
         self.assertEqual(securities[0]["symbol"], "2000")
+
+    def test_public_saudi_directory_normalizes_markets_and_instrument_types(self):
+        content = normalize_saudi_directory_rows({
+            "M": [
+                {"symbol": "2222", "lonaName": "Saudi Arabian Oil Co.",
+                 "shortName": "SAUDI ARAMCO", "isinCode": "SA14TG012N13",
+                 "companyURL": "/company/2222"},
+                {"symbol": "4330", "lonaName": "Riyad REIT Fund",
+                 "shortName": "RIYAD REIT", "isinCode": "SA145G523L57"},
+            ],
+            "S": [{"symbol": "9602", "lonaName": "Yaqeen Capital Co.",
+                   "shortName": "YAQEEN", "isinCode": "SA1620K4M113"}],
+        })
+        payload = json.loads(content)
+        self.assertEqual([row["symbol"] for row in payload["data"]],
+                         ["2222", "4330", "9602"])
+        by_symbol = {row["symbol"]: row for row in payload["data"]}
+        self.assertEqual(by_symbol["2222"]["market_segment"], "Main Market")
+        self.assertEqual(by_symbol["9602"]["market_segment"],
+                         "Nomu - Parallel Market")
+        self.assertEqual(by_symbol["4330"]["instrument_type"], "fund")
+        self.assertEqual(by_symbol["2222"]["instrument_type"], "company")
+        self.assertEqual(by_symbol["2222"]["profile_url"],
+                         "https://www.saudiexchange.sa/company/2222")
+        issuers, securities = parse_saudi_reference(content, ".json")
+        self.assertEqual((len(issuers), len(securities)), (3, 3))
+        self.assertEqual(next(s for s in securities if s["symbol"] == "9602")["exchange"],
+                         "Saudi Exchange Nomu - Parallel Market")
+
+    def test_saudi_activation_excludes_funds_unless_explicitly_requested(self):
+        source = self.root / "saudi.json"
+        source.write_bytes(normalize_saudi_directory_rows({"M": [
+            {"symbol": "2222", "lonaName": "Saudi Arabian Oil Co.",
+             "shortName": "SAUDI ARAMCO", "isinCode": "SA14TG012N13"},
+            {"symbol": "4330", "lonaName": "Riyad REIT Fund",
+             "shortName": "RIYAD REIT", "isinCode": "SA145G523L57"},
+        ]}))
+        sync_universe(self.db, "SA", self.root / "raw", input_path=source)
+        default = activate_universe(self.db, "SA", limit=10)
+        self.assertEqual([row["symbol"] for row in default["companies"]], ["2222"])
+        with_funds = activate_universe(self.db, "SA", limit=10, include_funds=True)
+        self.assertEqual([row["symbol"] for row in with_funds["companies"]], ["4330"])
 
     def test_activation_stages_a_bounded_batch_without_schedules(self):
         source = self.root / "sec.json"

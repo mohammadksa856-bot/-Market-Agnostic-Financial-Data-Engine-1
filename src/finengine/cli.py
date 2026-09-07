@@ -230,8 +230,8 @@ def main():
     backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
     bundle=sub.add_parser("backup-bundle"); bundle.add_argument("--output-dir",default="backups/bundles"); bundle.add_argument("--project-root",default="."); bundle.add_argument("--keep",type=int,default=7)
     production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--no-llm",action="store_true")
-    universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe")
-    universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json")
+    universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe"); universe_sync.add_argument("--show",action="store_true",help="show browser during live Saudi directory sync")
+    universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json"); universe_activate.add_argument("--include-funds",action="store_true")
     universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
     universe_promote=sub.add_parser("universe-promote"); universe_promote.add_argument("batch"); universe_promote.add_argument("--limit",type=int,default=10); universe_promote.add_argument("--schedule-every",type=int,default=21600); universe_promote.add_argument("--registry",default="config/companies.json")
     sub.add_parser("universe-status")
@@ -297,7 +297,8 @@ def main():
         db=Database(a.db)
         try:
             user_agent=_sec_user_agent() if a.market=="US" and not a.input else None
-            result=sync_universe(db,a.market,a.raw_dir,user_agent,a.input,a.source_url)
+            result=sync_universe(db,a.market,a.raw_dir,user_agent,a.input,a.source_url,
+                                 headless=not a.show)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="universe-activate":
@@ -306,7 +307,7 @@ def main():
         db=Database(a.db)
         try:
             result=activate_universe(db,a.market,a.limit,tuple(a.exchange),symbols,
-                                     a.enable,a.schedule_every,a.registry)
+                                     a.enable,a.schedule_every,a.registry,a.include_funds)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="universe-enrich":

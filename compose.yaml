@@ -33,6 +33,23 @@ services:
         condition: service_healthy
     init: true
 
+  universe-refresh:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SEC_USER_AGENT: ${SEC_USER_AGENT:?Set SEC_USER_AGENT in .env}
+      FINENGINE_UNIVERSE_REFRESH_SECONDS: ${FINENGINE_UNIVERSE_REFRESH_SECONDS:-86400}
+    command: ["/app/deploy/refresh-universe.sh"]
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      engine:
+        condition: service_healthy
+    init: true
+
   telegram:
     build: .
     profiles: ["telegram"]
