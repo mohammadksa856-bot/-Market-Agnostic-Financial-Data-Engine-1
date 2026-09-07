@@ -1,22 +1,21 @@
 from __future__ import annotations
 
-"""Locate an issuer's FY announcement + its filed PDF on the Saudi Exchange.
+"""Locate an issuer's filed audited financial statements on the Saudi Exchange.
 
-Use this to *discover* the annual-results filing for any listed company (the
-feed covers all ~250). Getting the **audited** statements from it is only
-partly reliable:
+**Preferred: ``company_annual_fs_url``** reads the company-profile "Financial
+Statements" tab (``statementType=6``), whose "Annual / <year>" cell links the
+full **audited** consolidated FS - auditor's report + notes, filed ~March,
+~1-4 MB. That is what the reader needs. It runs through the browser context
+because the WebSphere portlet binds its data to the last-rendered company, so
+the profile page must be navigated per symbol first.
 
-* The ``Resources/fsPdf/<id>_<code>_<datetime>_en.pdf`` attached to the
-  "Annual Financial Results" announcement is usually the **earnings release /
-  summary** (headline table, ~0.3-1 MB), not the full audited FS with notes.
-  A minority of large caps do attach the full statements there.
-* The full audited FS is a separate filing (and, for a chunk of the market as
-  of a given date, is only on the issuer's own IR site / inside the annual
-  report). ``fetch_annual_fs`` archives whatever the announcement links; verify
-  it is the real statements (page count, "notes to the consolidated financial
-  statements") before feeding it to the reader.
+**Fallback / discovery:** ``find_annual_results`` / ``fetch_annual_fs`` use the
+announcements feed. The ``Resources/fsPdf`` attached to the "Annual Financial
+Results" announcement is usually only the **earnings-release summary** (~0.3-1
+MB, no notes); a few large caps attach the full statements. Good for confirming
+the filing exists, its date and its announcement page.
 
-Three stages, split by how each endpoint behaves under automation:
+Feed/announcement stages, split by how each endpoint behaves under automation:
 
 * **Feed** — the announcements JSON endpoint
   (``...=NJgetAnnouncementListData=/``) accepts a plain, well-headed HTTP client
@@ -263,31 +262,116 @@ def _details_via_browser(url: str, fetcher) -> str:  # pragma: no cover - needs 
         return page.content()
 
 
+_PROFILE_URL = (
+    "https://www.saudiexchange.sa/wps/portal/saudiexchange/hidden/company-profile-main/"
+    "!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz93d2MXA0C3SydAl1c3Q0NvE30I4EK"
+    "zBEKDMKcTQzMDPxN3H19LAzdTU31w8syU8v1wwkpK8hOMgUA-oskdg!!/?companySymbol="
+)
+def company_annual_fs_url(symbol: str, *, fetcher=None, year: int | None = None,
+                          html_getter=None) -> tuple[str, str] | None:
+    """The audited annual FS PDF for ``symbol`` from the profile "Financial
+    Statements" tab. Returns ``(pdf_url, filed_date)`` for the newest annual row
+    (or ``year``'s row), or ``None``.
+
+    ``fetcher`` is a ``fetching.BrowserFetcher`` (needed - the portlet is
+    per-company stateful). ``html_getter(symbol) -> str`` injects the rendered
+    statements-tab HTML for tests.
+    """
+    if html_getter is not None:
+        html = html_getter(symbol)
+    elif fetcher is not None:
+        html = _fs_tab_via_browser(str(symbol), fetcher)
+    else:
+        raise ValueError("pass fetcher=BrowserFetcher() (or html_getter for tests)")
+    return _pick_annual_fs(html, year)
+
+
+def _pick_annual_fs(html: str, year: int | None) -> tuple[str, str] | None:
+    # rows look like: <th>2026</th><th>2025</th>... then an "Annual" row whose
+    # cells hold <a href="/Resources/fsPdf/..."> and <p>YYYY-MM-DD</p>.
+    header = re.search(r"<tr[^>]*>((?:\s*<th[^>]*>\s*\d{4}\s*</th>\s*)+)</tr>", html or "")
+    years = re.findall(r"<th[^>]*>\s*(\d{4})\s*</th>", header.group(1)) if header else []
+    block = re.search(r"<td[^>]*>\s*Annual\s*</td>(.*?)</tr>", html or "", re.S | re.I)
+    if not years or not block:
+        return None
+    cells = re.findall(r"<td[^>]*>(.*?)</td>", block.group(1), re.S)
+    picks: list[tuple[int, str, str]] = []
+    for col_year, cell in zip(years, cells):
+        href = re.search(r'href="(/Resources/fsPdf/[^"]+\.pdf)"', cell, re.I)
+        filed = re.search(r"<p[^>]*>\s*([\d-]{8,10})", cell)
+        if href:
+            picks.append((int(col_year), urljoin(_ORIGIN, href.group(1)),
+                          filed.group(1) if filed else ""))
+    if not picks:
+        return None
+    if year is not None:
+        picks = [p for p in picks if p[0] == year] or picks
+    picks.sort(reverse=True)
+    return picks[0][1], picks[0][2]
+
+
+def _fs_tab_via_browser(symbol: str, fetcher) -> str:  # pragma: no cover - needs browser
+    import contextlib
+
+    with contextlib.ExitStack() as stack:
+        context = fetcher._context(stack)
+        page = context.new_page()
+        page.goto(_PROFILE_URL + symbol, timeout=fetcher.timeout_ms,
+                  wait_until="domcontentloaded")
+        with contextlib.suppress(Exception):
+            page.wait_for_load_state("load", timeout=10000)
+        page.wait_for_timeout(4000)
+        # the statements tab loads its data via NJstatementsTabData; ask for
+        # statementType=6 directly on the now-current portlet.
+        return page.evaluate(
+            """async () => {
+              const s=[...document.scripts].filter(x=>!x.src).map(x=>x.textContent).join('\\n');
+              const m=s.match(/url:\\s*['\"]([^'\"]*NJstatementsTabData=\\/)['\"]/);
+              if(!m) return '';
+              const u=new URL(m[1], location.href.split('?')[0]+'/').href
+                + '?statementType=6&reportType=0&requestLocale=en&symbol=' + %r;
+              const r=await fetch(u); return await r.text();
+            }""" % symbol)
+
+
 def fetch_annual_fs(market: str, symbol: str, *, raw_dir="data/raw",
                     cache_path: str | Path = _DEFAULT_CACHE, refresh: bool = False,
-                    fetcher=None, opener=urlopen) -> dict:
-    """Full flow: find the latest annual-results announcement for ``symbol``,
-    resolve its filed-FS PDF, and archive it through the browser fetch agent."""
+                    year: int | None = None, fetcher=None, opener=urlopen) -> dict:
+    """Archive the audited annual FS for ``symbol``: try the profile "Financial
+    Statements" tab first (the real audited statements), then fall back to an FS
+    PDF attached to the annual-results announcement."""
     from .fetching import BrowserFetcher
 
     fetcher = fetcher or BrowserFetcher(raw_dir=raw_dir)
+    errors = []
+
+    picked = None
+    try:
+        picked = company_annual_fs_url(symbol, fetcher=fetcher, year=year)
+    except Exception as error:  # noqa: BLE001
+        errors.append(f"profile tab: {error}")
+    if picked:
+        pdf_url, filed = picked
+        record = fetcher.fetch(pdf_url, market, symbol)
+        record.update(source_url=pdf_url, source="profile-financial-statements",
+                      filed_at=filed or None)
+        return record
+
     candidates = find_annual_results(symbol, cache_path=cache_path, refresh=refresh,
                                      opener=opener)
-    if not candidates:
-        raise RuntimeError(
-            f"no annual-results announcement found for {symbol} "
-            "(try refresh=True / --refresh)")
-    errors = []
     for candidate in candidates:
         pdf_url = statement_pdf_url(candidate["an_id"], symbol, fetcher=fetcher)
         if not pdf_url:
-            errors.append(f"{candidate['an_id']}: no fsPdf link")
+            errors.append(f"announcement {candidate['an_id']}: no fsPdf")
             continue
         record = fetcher.fetch(pdf_url, market, symbol)
-        record.update(announcement=candidate, source_url=pdf_url)
+        record.update(announcement=candidate, source_url=pdf_url,
+                      source="annual-results-announcement",
+                      note="verify this is the audited FS, not the earnings release")
         return record
+
     raise RuntimeError(
-        f"found {len(candidates)} annual-results announcement(s) for {symbol} "
-        f"(latest anId {candidates[0]['an_id']}, {candidates[0]['date']}) but none "
-        f"attaches an FS PDF -- this issuer files only the summary form; fall back "
-        f"to its annual report. ({'; '.join(errors)})")
+        f"could not locate an FS PDF for {symbol}"
+        + (f" (latest announcement anId {candidates[0]['an_id']}, "
+           f"{candidates[0]['date']})" if candidates else " (no announcement either)")
+        + f" -- {'; '.join(errors)}")

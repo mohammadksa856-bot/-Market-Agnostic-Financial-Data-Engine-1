@@ -120,6 +120,42 @@ class FindAnnualResultsTests(unittest.TestCase):
                 ["12"])
 
 
+class CompanyAnnualFsUrlTests(unittest.TestCase):
+    _HTML = (
+        '<tr class="cf"><th>2026</th><th>2025</th><th>2024</th><th>2023</th></tr>'
+        '<tr><td>Annual</td>'
+        '<td> - </td>'
+        '<td><div class="dwnIcn"><a href="/Resources/fsPdf/454_0_2026-03-31_11-52-35_En.pdf" '
+        'class="btn-pdf"></a></div><p>2026-03-31 </p></td>'
+        '<td><a href="/Resources/fsPdf/454_0_2025-03-25_02-00-19_En.pdf"></a><p>2025-03-25 </p></td>'
+        '<td><a href="/Resources/fsPdf/454_0_2024-03-10_08-03-20_En.pdf"></a><p>2024-03-10 </p></td>'
+        '</tr>')
+
+    def test_picks_the_newest_annual_fs_with_its_filed_date(self):
+        url, filed = tadawul.company_annual_fs_url(
+            "4190", html_getter=lambda _s: self._HTML)
+        self.assertEqual(
+            url, "https://www.saudiexchange.sa/Resources/fsPdf/"
+                 "454_0_2026-03-31_11-52-35_En.pdf")
+        self.assertEqual(filed, "2026-03-31")
+
+    def test_can_target_a_specific_year_column(self):
+        # the column labelled <year> holds that fiscal year's FS, filed the
+        # following March -> the 2024 column links the 2025-03-25 file.
+        url, filed = tadawul.company_annual_fs_url(
+            "4190", year=2024, html_getter=lambda _s: self._HTML)
+        self.assertIn("454_0_2025-03-25", url)
+        self.assertEqual(filed, "2025-03-25")
+
+    def test_returns_none_when_the_tab_has_no_annual_fs(self):
+        self.assertIsNone(tadawul.company_annual_fs_url(
+            "9999", html_getter=lambda _s: "<table><tr><th>2025</th></tr></table>"))
+
+    def test_requires_a_fetcher_or_getter(self):
+        with self.assertRaises(ValueError):
+            tadawul.company_annual_fs_url("9999")
+
+
 class StatementPdfUrlTests(unittest.TestCase):
     def test_scrapes_the_fspdf_link_from_details_html(self):
         html = (
