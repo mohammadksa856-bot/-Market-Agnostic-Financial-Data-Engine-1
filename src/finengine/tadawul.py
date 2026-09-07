@@ -1,12 +1,20 @@
 from __future__ import annotations
 
-"""Locate an issuer's filed financial-statement PDF on the Saudi Exchange.
+"""Locate an issuer's FY announcement + its filed PDF on the Saudi Exchange.
 
-Many Saudi issuers publish only a board report + a summary on their own website;
-the full audited statements are filed with the Exchange as
-``saudiexchange.sa/Resources/fsPdf/<id>_<code>_<datetime>_en.pdf``, linked from
-the announcement-details page. This module finds that link so the fetch agent can
-archive it.
+Use this to *discover* the annual-results filing for any listed company (the
+feed covers all ~250). Getting the **audited** statements from it is only
+partly reliable:
+
+* The ``Resources/fsPdf/<id>_<code>_<datetime>_en.pdf`` attached to the
+  "Annual Financial Results" announcement is usually the **earnings release /
+  summary** (headline table, ~0.3-1 MB), not the full audited FS with notes.
+  A minority of large caps do attach the full statements there.
+* The full audited FS is a separate filing (and, for a chunk of the market as
+  of a given date, is only on the issuer's own IR site / inside the annual
+  report). ``fetch_annual_fs`` archives whatever the announcement links; verify
+  it is the real statements (page count, "notes to the consolidated financial
+  statements") before feeding it to the reader.
 
 Three stages, split by how each endpoint behaves under automation:
 
