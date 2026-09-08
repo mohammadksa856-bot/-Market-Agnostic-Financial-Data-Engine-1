@@ -133,6 +133,7 @@ class ManifestVerifier:
         periods: dict[tuple[str, str, str], dict[str, list]] = {}
         unmapped: list[dict] = []
         skipped: list[str] = []
+        empty_flat: list[str] = []
         for path, payload in manifests:
             company = _company_key(path, payload)
             facts = payload.get("facts", [])
@@ -141,6 +142,12 @@ class ManifestVerifier:
                 # not by this flat-manifest verifier.
                 skipped.append(path.name)
                 continue
+            domain_keys = (
+                "company_attributes", "disclosures", "ownership_positions",
+                "corporate_actions", "market_prices", "consensus_estimates",
+            )
+            if not facts and not any(payload.get(key) for key in domain_keys):
+                empty_flat.append(path.name)
             for fact in facts:
                 if not isinstance(fact, dict):
                     unmapped.append({"file": path.name, "label": repr(fact)})
@@ -159,7 +166,12 @@ class ManifestVerifier:
                      "scope": fact.get("scope", "consolidated"),
                      "dimensions": fact.get("dimensions") or {}})
 
-        checks: list[dict] = []
+        checks: list[dict] = [{
+            "status": "fail",
+            "check": "manifest contains source facts",
+            "file": name,
+            "note": "the reader found no publishable financial facts",
+        } for name in empty_flat]
         checks.extend(self._conflicts(periods))
         checks.extend(self._identities(periods))
         checks.extend(self._cross_kind(periods))

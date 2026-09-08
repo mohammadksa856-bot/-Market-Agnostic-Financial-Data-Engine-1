@@ -43,6 +43,7 @@ LINE_MAP = {
     "cost of sales": ("cost_of_revenue", "fy"),
     "cost of revenue": ("cost_of_revenue", "fy"),
     "gross profit": ("gross_profit", "fy"),
+    "ebitda": ("ebitda", "fy"),
     "income from operations": ("operating_income", "fy"),
     "operating profit": ("operating_income", "fy"),
     "operating income": ("operating_income", "fy"),
@@ -78,6 +79,7 @@ LINE_MAP = {
     "current assets": ("current_assets", "instant"),
     "total current assets": ("current_assets", "instant"),
     "total equity": ("total_equity", "instant"),
+    "total shareholders equity": ("equity_parent", "instant"),
     "total liabilities": ("total_liabilities", "instant"),
     "non-current liabilities": ("noncurrent_liabilities", "instant"),
     "total non-current liabilities": ("noncurrent_liabilities", "instant"),
@@ -86,6 +88,10 @@ LINE_MAP = {
     "total equity and liabilities": ("total_liabilities_equity", "instant"),
     "total liabilities and equity": ("total_liabilities_equity", "instant"),
     "cash and cash equivalents": ("cash", "instant"),
+    "cash & equivalents": ("cash", "instant"),
+    "working capital": ("working_capital", "instant"),
+    "total debt": ("total_debt", "instant"),
+    "net-debt": ("net_debt", "instant"),
     "property, plant and equipment": ("property_plant_equipment", "instant"),
     "right-of-use assets": ("right_of_use_assets", "instant"),
     "intangible assets": ("intangible_assets", "instant"),
@@ -231,6 +237,7 @@ _SCALE_PATTERNS = (
     (re.compile(r"in\s+billions|بالمليارات", re.I), Decimal(1_000_000_000)),
 )
 _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
+_PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
 
 
@@ -454,7 +461,8 @@ class StatementReader:
     # A real primary statement carries these signature line labels; a summary
     # table titled the same way usually does not carry all of them.
     _SIGNATURE = {
-        "income_statement": (("revenue", "sales", "turnover"),
+        "income_statement": (("revenue", "sales", "turnover", "financing income",
+                              "total operating income"),
                              ("profit for the", "net income", "net profit", "loss for the")),
         "balance_sheet": (("total assets",),
                           ("total equity", "total liabilities", "equity and liabilities")),
@@ -468,8 +476,12 @@ class StatementReader:
 
     def _heading_statement(self, page, words) -> str | None:
         top = (page.rect.height or 1000) * 0.42
+        page_text = page.get_text().lower()
         for row in _rows([w for w in words if w[1] < top]):
             text = " ".join(w[4] for w in row).lower().strip()
+            # Investor releases often print a small section number immediately
+            # before the otherwise exact statement heading ("1 Statement of …").
+            text = re.sub(r"^\d+\s+", "", text)
             # A persistent side-nav ("At a glance", "Financial review", ...)
             # sits in this same zone on every page of a glossy annual report
             # and must not veto pages it happens to share the top-42% band
@@ -479,7 +491,10 @@ class StatementReader:
             if any(bad in text for bad in self._NEGATIVE):
                 return None
             for name, anchors in ANCHORS.items():
-                if any(a in text for a in anchors):
+                signature = self._SIGNATURE[name]
+                if (any(a in text for a in anchors) and
+                        all(any(term in page_text for term in group)
+                            for group in signature)):
                     return name
         return None
 
@@ -534,7 +549,10 @@ class StatementReader:
     @staticmethod
     def _aligned_rows(words, columns) -> int:
         count = 0
-        for row in _rows(words):
+        # Some investor-release tables place the label baseline a few points
+        # below the value baseline. Six points joins that visual row without
+        # joining the next line (normal statement rows are much farther apart).
+        for row in _rows(words, y_tol=6.0):
             has_label = any(not _NUMBER.match(w[4]) and len(w[4]) > 2 for w in row)
             has_value = any(
                 _NUMBER.match(w[4]) and any(abs((w[0] + w[2]) / 2 - c) < 45 for c in columns)
@@ -581,7 +599,7 @@ class StatementReader:
         boundary = self._block_boundary(words, blocks) if len(blocks) > 1 else None
         magnitudes = []
         parsed_rows = []
-        for row in _rows(words):
+        for row in _rows(words, y_tol=6.0):
             if boundary is None:
                 panels = [(row, blocks[0])]
             else:
@@ -598,6 +616,8 @@ class StatementReader:
                         value = _parse_number(token)
                         if value is not None:
                             number_tokens.append((center, value))
+                    elif _PERCENT.match(token) and center > max(columns) + 25:
+                        continue  # comparison/change column, not part of the row label
                     elif token.isdigit() and len(token) <= 3 and note_zone[0] < center < note_zone[1]:
                         continue  # a note-reference number, not part of the label
                     else:

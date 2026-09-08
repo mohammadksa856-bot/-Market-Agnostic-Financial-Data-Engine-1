@@ -154,7 +154,7 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     except (KeyError, TypeError, json.JSONDecodeError):
         metadata = {}
     title = str(metadata.get("title") or "")
-    explicit = re.search(r"(\d{2})[-/](\d{2})[-/](\d{4})", title)
+    explicit = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", title)
     if explicit:
         day, month, year = (int(value) for value in explicit.groups())
         try:

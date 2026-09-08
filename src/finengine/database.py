@@ -383,6 +383,7 @@ DEFAULT_METRICS = {
     "share_capital": ("Share capital", "financial", "balance_sheet", "last", "currency"),
     "current_debt": ("Current debt", "financial", "balance_sheet", "last", "currency"),
     "long_term_debt": ("Long-term debt", "financial", "balance_sheet", "last", "currency"),
+    "total_debt": ("Total debt", "financial", "balance_sheet", "last", "currency"),
     "average_realized_crude_oil_price": ("Average realized crude oil price", "operational", "market_driver", "average", "USD/bbl"),
     "total_hydrocarbon_production": ("Total hydrocarbon production", "operational", "production", "average", "mmboed"),
     "total_liquids_production": ("Total liquids production", "operational", "production", "average", "mmbpd"),

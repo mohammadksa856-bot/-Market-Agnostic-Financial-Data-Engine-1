@@ -2,7 +2,8 @@ import unittest
 
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
-    _saudi_financial_announcement_links, _slug, _validate_document_bytes,
+    _published_at_from_url, _saudi_financial_announcement_links, _slug,
+    _validate_document_bytes,
 )
 from finengine.models import Company, Market
 
@@ -94,6 +95,15 @@ class FetchAgentUnitTests(unittest.TestCase):
         _validate_document_bytes(b"PK\x03\x04-test", "https://issuer/data.xlsx", xlsx)
         with self.assertRaisesRegex(RuntimeError, "not an XLSX"):
             _validate_document_bytes(b"<html>", "https://issuer/data.xlsx", xlsx)
+
+    def test_explicit_attachment_upload_date_is_preserved(self):
+        self.assertEqual(
+            _published_at_from_url(
+                "https://exchange.example/fs/23192_480_2026-07-29_11-19-33_en.pdf"
+            ),
+            "2026-07-29",
+        )
+        self.assertIsNone(_published_at_from_url("https://issuer.example/Q2-2026.xlsx"))
 
 
 if __name__ == "__main__":

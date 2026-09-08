@@ -182,6 +182,31 @@ def _interim_pdf(path: Path) -> None:
     doc.close()
 
 
+def _investor_release_pdf(path: Path) -> None:
+    """A release table with a numbered heading, trailing change %, and the
+    label/value baselines slightly offset (the layout used by STC)."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=595, height=842)
+    page.insert_text((45, 60), "1 Statement of Cash Flows", fontsize=12)
+    page.insert_text((345, 90), "H1", fontsize=9)
+    page.insert_text((365, 90), "2026", fontsize=9)
+    page.insert_text((433, 90), "H1", fontsize=9)
+    page.insert_text((453, 90), "2025", fontsize=9)
+    rows = [
+        ("Net Cash from Operating Activities", "8,342", "4,623", "80.4%"),
+        ("Net Cash from Investing Activities", "(4,587)", "9,815", "(146.7%)"),
+        ("Net Cash from Financing Activities", "1,813", "(16,638)", "110.9%"),
+    ]
+    for index, (label, current, prior, change) in enumerate(rows):
+        y = 145 + index * 40
+        page.insert_text((45, y + 5), label, fontsize=9)
+        page.insert_text((350, y), current, fontsize=9)
+        page.insert_text((440, y), prior, fontsize=9)
+        page.insert_text((510, y), change, fontsize=9)
+    doc.save(path)
+    doc.close()
+
+
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class BankStatementTests(unittest.TestCase):
     def _read(self, directory: Path):
@@ -281,6 +306,23 @@ class TwoPanelStatementTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class StatementReaderTests(unittest.TestCase):
+    def test_reads_numbered_investor_release_table(self):
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "release.pdf"
+            _investor_release_pdf(pdf)
+            from finengine.reading import StatementReader
+            manifest = StatementReader(pdf).read(
+                "SA", "7010", "SAR", "https://issuer.example/release.pdf",
+                "2026-07-29", "2026-06-30", 2026, "interim-report",
+            )
+            values = {fact["metric"]: fact["value"] for fact in manifest["facts"]}
+            self.assertEqual(values["operating_cash_flow"], "8342")
+            self.assertEqual(values["investing_cash_flow"], "-4587")
+            self.assertEqual(values["financing_cash_flow"], "1813")
+            self.assertTrue(all(
+                fact["period_kind"] == "ytd" for fact in manifest["facts"]
+            ))
+
     def test_interim_reader_separates_quarter_and_ytd_columns(self):
         from finengine.reading import StatementReader
 

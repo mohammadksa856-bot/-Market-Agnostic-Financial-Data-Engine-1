@@ -197,8 +197,12 @@ class MonitoringTests(unittest.TestCase):
             "title": "Quarterly report 2026 Q2"
         })}
         unknown = {"metadata_json": json.dumps({"title": "Interim results"})}
+        compact = {"metadata_json": json.dumps({
+            "title": "Interim results for the period ending on 30-6-2026"
+        })}
         self.assertEqual(_source_period(explicit, self.aramco), ("2026-06-30", 2026))
         self.assertEqual(_source_period(quarterly, self.aramco), ("2026-06-30", 2026))
+        self.assertEqual(_source_period(compact, self.aramco), ("2026-06-30", 2026))
         self.assertIsNone(_source_period(unknown, self.aramco))
 
     def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):

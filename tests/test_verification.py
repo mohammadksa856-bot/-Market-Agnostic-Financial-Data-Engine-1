@@ -28,6 +28,17 @@ def _instant(label, value):
 
 
 class ManifestVerificationTests(unittest.TestCase):
+    def test_empty_flat_manifest_fails(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "empty.json", [])
+            report = ManifestVerifier(directory).verify()
+            self.assertFalse(report["ok"])
+            self.assertTrue(any(
+                check["check"] == "manifest contains source facts"
+                for check in report["detail"]
+            ))
+
     def test_bundled_aramco_manifests_have_no_identity_failures(self):
         report = ManifestVerifier(REPO_IMPORTS).verify("aramco-")
         self.assertEqual(report["failures"], 0, report["detail"])

@@ -48,6 +48,17 @@ def _validate_document_bytes(content: bytes, url: str, content_type: str) -> Non
         raise RuntimeError(f"downloaded content is not an XLSX workbook: {url}")
 
 
+def _published_at_from_url(url: str) -> str | None:
+    """Extract only an explicit ISO upload date embedded in a document path."""
+    match = re.search(r"(?:^|[_/])(20\d{2}-\d{2}-\d{2})(?:[_./-]|$)", unquote(urlparse(url).path))
+    if not match:
+        return None
+    try:
+        return date.fromisoformat(match.group(1)).isoformat()
+    except ValueError:
+        return None
+
+
 def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
                                         keywords: tuple[str, ...] = _KEYWORDS) -> list[dict]:
     """Extract official announcement-detail links from Saudi Exchange onclick cards."""
@@ -370,7 +381,8 @@ class BrowserIssuerMonitor:
                 hashlib.sha256(item["url"].encode("utf-8")).hexdigest(),
                 item["url"], item["title"],
                 self._document_type(f"{item['title']} {item['url']}"),
-                None, item.get("content_type", "application/pdf"),
+                _published_at_from_url(item["url"]),
+                item.get("content_type", "application/pdf"),
                 {"index_url": self.index_url, **(
                     {"referer": item["referer"]} if item.get("referer") else {}
                 )},
