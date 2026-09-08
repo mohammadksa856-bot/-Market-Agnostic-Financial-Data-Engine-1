@@ -120,6 +120,8 @@ LINE_MAP = {
     "net cash from investing activities": ("investing_cash_flow", "fy"),
     "net cash from financing activities": ("financing_cash_flow", "fy"),
     "net cash generated from financing activities": ("financing_cash_flow", "fy"),
+    "net cash flows generated from / (used in) financing activities":
+        ("financing_cash_flow", "fy"),
     "net cash used in financing activities": ("financing_cash_flow", "fy"),
     "net cash from/(used in) financing activities": ("financing_cash_flow", "fy"),
     "purchase of property, plant and equipment": ("capex", "fy"),
@@ -138,8 +140,10 @@ LINE_MAP = {
     "decrease in cash and cash equivalents": ("cash_change", "fy"),
     "cash and cash equivalents at 1 january": ("cash_beginning", "fy"),
     "cash and cash equivalents at the beginning": ("cash_beginning", "fy"),
+    "cash and cash equivalents, beginning of the year": ("cash_beginning", "fy"),
     "cash and cash equivalents at 31 december": ("cash_end", "fy"),
     "cash and cash equivalents at the end": ("cash_end", "fy"),
+    "cash and cash equivalents, end of the year": ("cash_end", "fy"),
     "effect of movements in exchange rates on cash": ("foreign_exchange_effect", "fy"),
     "effect of exchange rate changes on cash": ("foreign_exchange_effect", "fy"),
     "net foreign exchange gain (loss) on cash and cash equivalents": ("foreign_exchange_effect", "fy"),
@@ -229,7 +233,32 @@ BANK_LINE_MAP = {
     # cash flow lines are the same wording as LINE_MAP; it is used as the fallback
 }
 
-_PROFILE_MAPS = {"corporate": LINE_MAP, "bank": {**LINE_MAP, **BANK_LINE_MAP}}
+INSURANCE_LINE_MAP = {
+    "insurance revenue": ("insurance_revenue", "fy"),
+    "insurance service expenses": ("insurance_service_expense", "fy"),
+    "insurance service result before reinsurance contracts held":
+        ("insurance_service_result", "fy"),
+    "insurance service result - net": ("insurance_service_result", "fy"),
+    "allocation of reinsurance premiums": ("reinsurance_premiums", "fy"),
+    "amounts recoverable from reinsurers for incurred claims":
+        ("reinsurance_recoveries", "fy"),
+    "net expense from reinsurance contracts held": ("reinsurance_result", "fy"),
+    "net investment income": ("insurance_investment_income", "fy"),
+    "revenue from non-insurance services": ("other_operating_revenue", "fy"),
+    "net profit for the year after zakat": ("net_income", "fy"),
+    "insurance contract assets": ("insurance_contract_assets", "instant"),
+    "reinsurance contract assets": ("reinsurance_contract_assets", "instant"),
+    "insurance contract liabilities": ("insurance_contract_liabilities", "instant"),
+    "reinsurance contract liabilities": ("reinsurance_contract_liabilities", "instant"),
+    "property, equipment, and right-of-use assets":
+        ("property_plant_equipment", "instant"),
+}
+
+_PROFILE_MAPS = {
+    "corporate": LINE_MAP,
+    "bank": {**LINE_MAP, **BANK_LINE_MAP},
+    "insurance": {**LINE_MAP, **INSURANCE_LINE_MAP},
+}
 
 # non-controlling interest inside the income statement means a different metric
 _PL_OVERRIDES = {"noncontrolling_interests": "net_income_noncontrolling"}
@@ -309,11 +338,15 @@ class StatementReader:
         self.ocr_page_limit = max(0, ocr_page_limit)
         self.ocr_zoom = ocr_zoom
         self._ocr_engine = None
+        self._hybrid_pages_remaining = 0
+        self._hybrid_section_seen = False
         self._ocr_cache: dict[int, tuple[list[tuple], str]] = {}
         self._ocr_cache_path = self.pdf_path.with_suffix(self.pdf_path.suffix + ".ocr.json")
         if self._ocr_cache_path.is_file():
             try:
                 cached = json.loads(self._ocr_cache_path.read_text(encoding="utf-8"))
+                if cached.get("reader") != "rapidocr/4":
+                    raise ValueError("OCR cache reader version differs")
                 if float(cached.get("zoom", 0)) != float(self.ocr_zoom):
                     raise ValueError("OCR cache zoom differs from reader configuration")
                 self._ocr_cache = {
@@ -327,7 +360,7 @@ class StatementReader:
 
     def _save_ocr_cache(self) -> None:
         payload = {
-            "reader": "rapidocr/3", "zoom": self.ocr_zoom,
+            "reader": "rapidocr/4", "zoom": self.ocr_zoom,
             "pages": {str(index): {"words": words, "text": text}
                       for index, (words, text) in self._ocr_cache.items()},
         }
@@ -363,7 +396,21 @@ class StatementReader:
                       ocr_budget: list[int]) -> tuple[list[tuple], str]:
         text = page.get_text()
         words = page.get_text("words")
-        if text.strip() or words:
+        if (not self._hybrid_section_seen and
+                re.match(r"\s*\d{1,2}\s+financial statements\b", text, re.I)):
+            # Some integrated reports embed the audited section as image-based
+            # two-page spreads while leaving only navigation text selectable.
+            self._hybrid_section_seen = True
+            self._hybrid_pages_remaining = self.ocr_page_limit
+            ocr_budget[0] = max(ocr_budget[0], self.ocr_page_limit)
+        if (self._hybrid_section_seen and
+                "notes to the consolidated financial statements" in text[:400].lower()):
+            self._hybrid_pages_remaining = 0
+        hybrid_page = bool(
+            self._hybrid_pages_remaining and len(text.strip()) >= 1000
+            and page.get_images(full=True)
+        )
+        if (text.strip() or words) and not hybrid_page:
             return words, text
         if (not self.enable_ocr or ocr_budget[0] <= 0):
             return [], ""
@@ -371,6 +418,8 @@ class StatementReader:
         if cached is not None:
             self.used_ocr = True
             ocr_budget[0] -= 1
+            if hybrid_page:
+                self._hybrid_pages_remaining -= 1
             return cached
         try:
             from rapidocr import RapidOCR
@@ -384,8 +433,11 @@ class StatementReader:
         if self._ocr_engine is None:
             self._ocr_engine = RapidOCR()
         import pymupdf
+        # Cap very wide two-page spreads near 1,200 rendered pixels. This keeps
+        # scheduled OCR bounded without reducing normal portrait statements.
+        actual_zoom = min(self.ocr_zoom, 1800 / max(float(page.rect.width), 1))
         pixmap = page.get_pixmap(
-            matrix=pymupdf.Matrix(self.ocr_zoom, self.ocr_zoom), alpha=False,
+            matrix=pymupdf.Matrix(actual_zoom, actual_zoom), alpha=False,
         )
         output = self._ocr_engine(pixmap.tobytes("png"))
         raw_texts = getattr(output, "txts", None)
@@ -401,13 +453,15 @@ class StatementReader:
                 continue
             accepted_text.append(line)
             ocr_words.extend(self._split_ocr_line(
-                box, str(line), self.ocr_zoom, line_index
+                box, str(line), actual_zoom, line_index
             ))
         result = (ocr_words, " ".join(accepted_text))
         self._ocr_cache[page_index] = result
         self._save_ocr_cache()
         self.used_ocr = True
         ocr_budget[0] -= 1
+        if hybrid_page:
+            self._hybrid_pages_remaining -= 1
         return result
 
     def infer_fiscal_year(self) -> int | None:
@@ -472,21 +526,40 @@ class StatementReader:
             words, page_text = self._page_content(page, page_index, ocr_budget)
             blocks = self._column_blocks(page, words)
             columns = blocks[0] if blocks else []
-            heading = self._heading_statement(page, words, page_text)
+            panels: list[tuple[str, list[tuple], list[list[float]]]] = []
+            if len(blocks) > 1:
+                boundary = self._block_boundary(words, blocks)
+                segments = (
+                    [word for word in words if boundary is None or word[0] < boundary],
+                    [word for word in words if boundary is not None and word[0] >= boundary],
+                )
+                for segment, block in zip(segments, blocks):
+                    panel_heading = self._heading_statement(page, segment, page_text)
+                    if panel_heading:
+                        panels.append((panel_heading, segment, [block]))
+                if len(panels) == 1 and panels[0][0] == "balance_sheet":
+                    # A conventional landscape balance sheet may print one
+                    # heading across its assets and liabilities/equity panels.
+                    panels = [("balance_sheet", segment, [block])
+                              for segment, block in zip(segments, blocks)]
+            heading = None if panels else self._heading_statement(page, words, page_text)
             continuation = bool(
-                carry and page_index - carry_page == 1 and columns
+                not panels and carry and page_index - carry_page == 1 and columns
                 and self._looks_tabular(words, columns))
-            if heading:
-                statement = heading
+            if panels:
+                carry = None
+            elif heading:
+                panels = [(heading, words, blocks)]
             elif continuation:
-                statement = carry  # the page right after a statement heading
+                panels = [(carry, words, blocks)]  # page after a statement heading
             else:
                 carry = None
                 continue
             if not blocks:
                 carry = None
                 continue
-            carry, carry_page = statement, page_index
+            if len(panels) == 1:
+                carry, carry_page = panels[0][0], page_index
             scale = self._scale(page_text.lower())
             # A statement can present a continuing-operations subtotal and then
             # the consolidated total using the same short attribution labels.
@@ -496,31 +569,32 @@ class StatementReader:
             # a label in consecutive subtables.
             page_facts: dict[tuple[str, str], dict] = {}
             default_flow_kind = "ytd" if "interim" in filing_type.lower() else "fy"
-            for label, kind, value in self._statement_facts(
-                    page, words, statement, blocks, default_flow_kind):
-                metric = _resolve_line(label, statement, line_map)
-                if metric is None:
-                    continue
-                monetary = metric != "eps_diluted"
-                key = (metric, kind)
-                if key in seen:
-                    continue
-                fact = {
-                    "metric": metric, "source_label": label.strip(), "value": str(value),
-                    "period_end": period_end, "period_kind": kind,
-                    "fiscal_year": fiscal_year, "page": page_index + 1,
-                }
-                if kind in {"fy", "ytd", "quarter"}:
-                    fact["period_start"] = self._period_start(
-                        period_end, fiscal_year, kind, fiscal_year_end
-                    )
-                if kind in {"quarter", "ytd"}:
-                    fact["fiscal_quarter"] = self._fiscal_quarter(
-                        period_end, fiscal_year_end
-                    )
-                if monetary:
-                    fact.update(scale=str(scale), currency=currency, unit=currency)
-                page_facts[key] = fact
+            for statement, panel_words, panel_blocks in panels:
+                for label, kind, value in self._statement_facts(
+                        page, panel_words, statement, panel_blocks, default_flow_kind):
+                    metric = _resolve_line(label, statement, line_map)
+                    if metric is None:
+                        continue
+                    monetary = metric != "eps_diluted"
+                    key = (metric, kind)
+                    if key in seen:
+                        continue
+                    fact = {
+                        "metric": metric, "source_label": label.strip(), "value": str(value),
+                        "period_end": period_end, "period_kind": kind,
+                        "fiscal_year": fiscal_year, "page": page_index + 1,
+                    }
+                    if kind in {"fy", "ytd", "quarter"}:
+                        fact["period_start"] = self._period_start(
+                            period_end, fiscal_year, kind, fiscal_year_end
+                        )
+                    if kind in {"quarter", "ytd"}:
+                        fact["fiscal_quarter"] = self._fiscal_quarter(
+                            period_end, fiscal_year_end
+                        )
+                    if monetary:
+                        fact.update(scale=str(scale), currency=currency, unit=currency)
+                    page_facts[key] = fact
             # The page is already a confirmed statement (leading-heading regex or a
             # continuation of one); a single new mapped line is enough to keep it,
             # and keeps `carry` alive for the rest of a multi-page statement.
@@ -643,7 +717,15 @@ class StatementReader:
                 if not columns or x - columns[-1] > 25:
                     columns.append(x)
             result.append(columns[:4])
-        return result[:2]
+        # Glossy two-page spreads often repeat the report year in navigation
+        # and heading text. Keep the two year clusters that actually align
+        # with the most label/value rows, then restore visual left-to-right order.
+        ranked = sorted(
+            result,
+            key=lambda block: StatementReader._aligned_rows(words, block),
+            reverse=True,
+        )[:2]
+        return sorted(ranked, key=lambda block: block[0])
 
     @staticmethod
     def _year_columns(page, words) -> list[float]:

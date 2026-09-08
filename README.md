@@ -9,8 +9,9 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 The bundled portable snapshot is rebuilt from 55 reviewed manifests and currently contains:
 
 - 15 enabled companies in the bundled snapshot: Saudi Aramco, SABIC, all ten listed
-  Saudi banks, Apple, Microsoft, and NVIDIA. ACWA Power is also enabled in the
-  monitored registry; its live acceptance database remains outside the bundled snapshot.
+  Saudi banks, Apple, Microsoft, and NVIDIA. ACWA Power and Tawuniya are also
+  enabled in the monitored registry; their live acceptance databases remain outside
+  the bundled snapshot.
 - The archived official SEC universe snapshot contains 8,010 issuers and 10,415
   ticker/exchange associations. It is inventory, not automatic publication:
   activation and monitoring are released in controlled batches. The first 100-issuer
@@ -38,9 +39,16 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
   facts, published 58 sourced/calculated points across instant, Q2, and YTD semantics,
   and passed all 11 accounting/quality checks with zero warnings or failures. Production
   points retain the archived PDF source key instead of a temporary manifest identity.
+- Tawuniya is the live insurance acceptance case. Its official 2025 annual report
+  uses audited two-page statement spreads with selectable table text but image-based
+  headings. The hybrid reader isolates each panel, applies the IFRS 17 insurance map,
+  and extracted 30 sourced facts. All five manifest accounting checks passed; a clean
+  publication produced 41 sourced/calculated points. `insurance_revenue` also creates
+  a deterministic universal `revenue` alias so shared coverage and ratio contracts work
+  without relabeling the source fact.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 10, and 125 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
+- Database schema version 17, catalog version 10, and 127 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 

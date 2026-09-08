@@ -87,6 +87,12 @@ class Calculator:
                         formula or f"{numerator} / {denominator}", lookup[numerator])
 
             if base.period_kind in {PeriodKind.FY, PeriodKind.QUARTER, PeriodKind.YTD, PeriodKind.TTM}:
+                if "insurance_revenue" in group and "revenue" not in group:
+                    insurance_revenue = group["insurance_revenue"]
+                    add("revenue", insurance_revenue.value,
+                        "insurance_revenue (IFRS 17 universal revenue alias)",
+                        insurance_revenue, insurance_revenue.unit,
+                        insurance_revenue.currency)
                 if "operating_cash_flow" in group and "capex" in group:
                     add("free_cash_flow", group["operating_cash_flow"].value - abs(group["capex"].value),
                         "operating_cash_flow - abs(capex)", group["operating_cash_flow"],

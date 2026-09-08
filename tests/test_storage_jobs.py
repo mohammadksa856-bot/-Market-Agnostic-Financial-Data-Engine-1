@@ -164,6 +164,21 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertNotIn("loans_to_deposits_ratio", metrics)
         self.assertNotIn("nonperforming_loans_ratio", metrics)
 
+    def test_ifrs17_insurance_revenue_supplies_universal_revenue(self):
+        source = self.source()
+        facts = [
+            Fact(self.company.company_id, "insurance_revenue", Decimal("1000"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+            Fact(self.company.company_id, "net_income", Decimal("100"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+        ]
+        out = {fact.metric: fact for fact in Calculator().calculate(facts)}
+        self.assertEqual(out["revenue"].value, Decimal("1000"))
+        self.assertEqual(out["net_margin"].value, Decimal("0.1"))
+        self.assertIn("IFRS 17", out["revenue"].calculation)
+
     def test_composite_scores_are_sector_aware(self):
         source = self.source()
 

@@ -144,6 +144,8 @@ def _company_profile(company) -> str:
     industry = (getattr(company, "industry", "") or "").lower()
     if "bank" in industry:
         return "bank"
+    if "insurance" in industry:
+        return "insurance"
     return "corporate"
 
 
@@ -333,6 +335,11 @@ def _extract_document_job_handler(db: Database):
                         (source_key,),
                     )
                 ]
+                if db.source_status(source_key) == "review_required":
+                    # A newly installed/updated reader is itself the reviewed
+                    # resolution. Reopen staging while retaining the old
+                    # exception until publication actually succeeds.
+                    db.reset_unfinished_source(source_key)
                 result=Pipeline(db,raw_dir).run(
                     company,LocalFileConnector(
                         manifest_path,row["source_url"],source_key=source_key

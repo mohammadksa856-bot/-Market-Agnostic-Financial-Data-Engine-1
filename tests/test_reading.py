@@ -322,6 +322,46 @@ class TwoPanelStatementTests(unittest.TestCase):
                 period_end="2025-12-31", fiscal_year=2025)
             self.assertIn("total_assets", {f["metric"] for f in manifest["facts"]})
 
+    def test_two_different_statements_on_one_spread_are_isolated(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "insurance-spread.pdf"
+            doc = pymupdf.open()
+            page = doc.new_page(width=1190, height=842)
+            page.insert_text((45, 70), "Consolidated Statement of Financial Position", fontsize=11)
+            page.insert_text((640, 70), "Consolidated Statement of Income", fontsize=11)
+            for x, year in ((455, "2025"), (525, "2024"),
+                            (1050, "2025"), (1120, "2024")):
+                page.insert_text((x, 105), year, fontsize=9)
+            left_rows = [("Cash and cash equivalents", "100", "90"),
+                         ("Total assets", "1000", "900"),
+                         ("Total liabilities", "600", "550"),
+                         ("Total equity", "400", "350")]
+            right_rows = [("Insurance revenue", "800", "700"),
+                          ("Insurance service expenses", "(600)", "(530)"),
+                          ("Net profit for the year after Zakat", "100", "90")]
+            for index, (label, current, prior) in enumerate(left_rows):
+                y = 145 + index * 30
+                page.insert_text((45, y), label, fontsize=9)
+                page.insert_text((445, y), current, fontsize=9)
+                page.insert_text((515, y), prior, fontsize=9)
+            for index, (label, current, prior) in enumerate(right_rows):
+                y = 145 + index * 30
+                page.insert_text((640, y), label, fontsize=9)
+                page.insert_text((1040, y), current, fontsize=9)
+                page.insert_text((1110, y), prior, fontsize=9)
+            doc.save(pdf)
+            doc.close()
+            manifest = StatementReader(pdf).read(
+                "SA", "8010", "SAR", "https://issuer.example/report.pdf",
+                "2026-03-01", "2025-12-31", 2025, profile="insurance",
+            )
+            metrics = {fact["metric"]: fact["value"] for fact in manifest["facts"]}
+            self.assertEqual(metrics["total_assets"], "1000")
+            self.assertEqual(metrics["insurance_revenue"], "800")
+            self.assertEqual(metrics["net_income"], "100")
+
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class StatementReaderTests(unittest.TestCase):
