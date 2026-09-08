@@ -32,7 +32,7 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 10, and 110 unit/integration/release tests (reader/browser tests require their optional dependencies).
+- Database schema version 17, catalog version 10, and 117 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -49,7 +49,7 @@ The catalog is the target model, not fabricated data. Per-company completeness s
         -> versioned production stores
         -> read-only HTTP API / Telegram bot / Arabic report
 
-For Saudi PDF/XLSX documents, the worker archives the binary and creates a durable `document_extraction` backlog item. A reviewed extractor can then produce source-faithful staging facts. Unsupported binary formats never disappear silently and never publish placeholder values.
+For Saudi PDF/XLSX documents, the worker archives the binary before extraction. Reviewed PDF layouts and issuer spreadsheet maps continue automatically through staging, verification, calculations, and publication. An unsupported layout enters a durable `document_extraction` backlog item with a precise reason; it never disappears silently or publishes placeholder values.
 
 ## Fastest way to inspect the bundled data
 
@@ -304,11 +304,11 @@ The deterministic statement reader converts an archived PDF to a source-faithful
 
 Interim PDFs that combine quarter and YTD columns are parsed as separate facts only when the filing headings and the archived source title prove both the column semantics and period end. Cash flows in an interim filing remain YTD. If either identity cannot be proven, the source is archived and held in the exception queue with `interim_period_semantics_required`; it never publishes under a guessed FY/Q/YTD identity.
 
-Large issuers publish a machine-readable "data supplement" / "fact sheet" spreadsheet: the full income statement and balance sheet across ~10 years of annual columns plus quarterly history, produced by the company itself. `read-xlsx` turns one into a source-faithful manifest, driven by a per-issuer row map in `config/supplements/<symbol>.json`. It ingests only the raw reported lines - the supplement's own pre-computed ratios (ROE, NIM, cost-to-income, ...) are skipped, because the engine recomputes every ratio from the ingested lines:
+Large issuers publish a machine-readable "data supplement" / "fact sheet" spreadsheet: the full income statement and balance sheet across ~10 years of annual columns plus quarterly history, produced by the company itself. The browser monitor recognizes these workbooks, preserves their official-page referer, validates the XLSX signature, archives them by SHA-256, and automatically uses a reviewed per-issuer row map in `config/supplements/<symbol>.json`. Annual, discrete-quarter, YTD, and interim balance-sheet dates remain distinct. It ingests only raw reported lines; the supplement's own pre-computed ratios (ROE, NIM, cost-to-income, ...) are skipped because the engine recomputes every ratio from the ingested lines:
 
     finengine read-xlsx "ARB Data Supplement 4Q2025.xlsx" SA 1120 --filed-at 2026-02-04 --out data/imports/alrajhi-supplement.json
 
-One Al Rajhi supplement adds twelve years (2014-2025) of the full statements in a single file. Install `.[xlsx]` for the spreadsheet reader.
+Live acceptance against Al Rajhi Bank's official Q2 2026 supplement archived 247,097 bytes, verified 1,295 sourced facts with 139 checks and zero failures, and published 1,824 sourced/calculated points across FY, quarter, YTD, and instant semantics with zero exceptions. A missing issuer map is held as `xlsx_mapping_required`, never guessed. Install `.[xlsx]` for the spreadsheet reader.
 
 Install `.[reader]` for PDF reading, `.[browser]` for browser fetching, `.[xlsx]` for supplement spreadsheets, or `.[agents]` for everything plus the optional LLM fallback. The LLM reader runs only when explicitly enabled and its output must pass the same deterministic verification and publication gate.
 

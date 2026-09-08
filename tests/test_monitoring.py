@@ -1,4 +1,5 @@
 import json
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -199,6 +200,73 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(_source_period(explicit, self.aramco), ("2026-06-30", 2026))
         self.assertEqual(_source_period(quarterly, self.aramco), ("2026-06-30", 2026))
         self.assertIsNone(_source_period(unknown, self.aramco))
+
+    def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):
+        content = b"PK\x03\x04-test-workbook"
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "xlsx-no-map",
+            "https://www.aramco.com/data.xlsx", "Q2 Data Supplement",
+            "data-supplement", "2026-08-01",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(content),
+        ).fetch(candidate_id)
+        job = type("Job", (), {
+            "payload": {"source_key": archived["source_key"]},
+            "job_id": "xlsx-map-test",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["code"], "xlsx_mapping_required")
+        exception = self.db.conn.execute(
+            "SELECT code FROM exceptions ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        self.assertEqual(exception["code"], "xlsx_mapping_required")
+
+    def test_reviewed_bank_xlsx_is_extracted_and_published(self):
+        try:
+            import openpyxl
+        except ImportError:
+            self.skipTest("openpyxl is not installed")
+        bank = Company(
+            "sa:1120", Market.SA, "1120", "Al Rajhi Bank", "SAR",
+            industry="Banks",
+        )
+        self.db.register_company(bank)
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "1. Income Statement"
+        sheet.append(["SAR mn", "FY 2025", "1Q 2026"])
+        sheet.append(["Net income for the period after Zakat", 21000, 6000])
+        stream = io.BytesIO()
+        workbook.save(stream)
+        workbook.close()
+        candidate = SourceCandidate(
+            bank.company_id, "browser-issuer-reports", "xlsx-reviewed",
+            "https://issuer.example/Q1-2026-data.xlsx", "Q1 2026 Data Supplement",
+            "data-supplement", "2026-04-30",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(stream.getvalue()),
+        ).fetch(candidate_id)
+        registry = Path(__file__).resolve().parents[1] / "config" / "companies.json"
+        job = type("Job", (), {
+            "payload": {
+                "source_key": archived["source_key"], "registry": str(registry),
+                "raw_dir": str(Path(self.temp.name) / "pipeline"),
+            },
+            "job_id": "xlsx-publish-test",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["status"], "published", result)
+        kinds = {row["period_kind"] for row in self.db.conn.execute(
+            "SELECT period_kind FROM data_points "
+            "WHERE company_id='sa:1120' AND is_current=1"
+        )}
+        self.assertEqual(kinds, {"fy", "quarter"})
 
 
 if __name__ == "__main__":

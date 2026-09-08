@@ -2,8 +2,9 @@ import unittest
 
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
-    _saudi_financial_announcement_links, _slug,
+    _saudi_financial_announcement_links, _slug, _validate_document_bytes,
 )
+from finengine.models import Company, Market
 
 
 class FetchAgentUnitTests(unittest.TestCase):
@@ -48,6 +49,10 @@ class FetchAgentUnitTests(unittest.TestCase):
             BrowserIssuerMonitor._document_type("Annual financial results, year ended 2025"),
             "annual-report",
         )
+        self.assertEqual(
+            BrowserIssuerMonitor._document_type("Q2 2026 النتائج المالية"),
+            "interim-report",
+        )
 
     def test_exchange_profile_selects_only_hostname_labelled_issuer_site(self):
         links = [
@@ -61,6 +66,34 @@ class FetchAgentUnitTests(unittest.TestCase):
             ),
             ["https://www.sabic.com/"],
         )
+
+    def test_browser_monitor_preserves_spreadsheet_type(self):
+        class FakeFetcher:
+            def discover(self, _):
+                return [{
+                    "url": "https://issuer.example/Q2-2026-data-supplement.xlsx",
+                    "title": "Q2 2026 Data Supplement",
+                    "content_type": (
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    ),
+                }]
+
+        company = Company("sa:1120", Market.SA, "1120", "Al Rajhi", "SAR")
+        candidate = BrowserIssuerMonitor(
+            "https://issuer.example/investors", FakeFetcher()
+        ).discover(company).candidates[0]
+        self.assertEqual(candidate.document_type, "data-supplement")
+        self.assertEqual(
+            candidate.content_type,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    def test_document_signatures_are_checked_by_type(self):
+        xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        _validate_document_bytes(b"%PDF-test", "https://issuer/report.pdf", "application/pdf")
+        _validate_document_bytes(b"PK\x03\x04-test", "https://issuer/data.xlsx", xlsx)
+        with self.assertRaisesRegex(RuntimeError, "not an XLSX"):
+            _validate_document_bytes(b"<html>", "https://issuer/data.xlsx", xlsx)
 
 
 if __name__ == "__main__":

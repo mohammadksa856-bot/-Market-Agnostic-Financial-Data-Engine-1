@@ -33,7 +33,7 @@ class Pipeline:
         if previous_status=="review_required": return {"status":"exception","stage":"review","source_key":doc.source_key,"published":0,"exceptions":0}
         if previous_status: self.db.reset_unfinished_source(doc.source_key)
         digest=hashlib.sha256(doc.content).hexdigest()
-        extension={"application/json":".json","application/pdf":".pdf","text/html":".html","application/xhtml+xml":".html","application/xml":".xml","text/xml":".xml"}.get(doc.content_type,".bin")
+        extension={"application/json":".json","application/pdf":".pdf","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":".xlsx","text/html":".html","application/xhtml+xml":".html","application/xml":".xml","text/xml":".xml"}.get(doc.content_type,".bin")
         target=self.raw_dir/company.market.value/company.symbol/(doc.source_key.replace(":","_")+extension)
         target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(doc.content)
         if not previous_status: self.db.save_source(doc,digest,str(target))

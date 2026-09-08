@@ -214,6 +214,32 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
     return manifest, report, reader_source
 
 
+def _read_xlsx_manifest(xlsx_path: Path, company, row: dict,
+                        mapping_path: Path) -> tuple[dict, dict]:
+    """Read a reviewed issuer supplement map and verify before publication."""
+    import tempfile
+    from .reading_xlsx import SupplementReader
+    from .verification import ManifestVerifier
+
+    manifest = SupplementReader(xlsx_path, mapping_path).read(
+        market=company.market.value,
+        symbol=company.symbol,
+        currency=company.currency,
+        filed_at=row["filed_at"],
+        filing_type=row["filing_type"],
+        period_kinds=("fy", "quarter", "ytd"),
+    )
+    # The immutable archived URL, not a URL embedded in configuration, is the
+    # authoritative provenance for this particular workbook version.
+    manifest["source_url"] = row["source_url"]
+    with tempfile.TemporaryDirectory() as directory:
+        Path(directory, "manifest.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        report = ManifestVerifier(directory).verify()
+    return manifest, report
+
+
 def _extract_document_job_handler(db: Database):
     def handle(job):
         source_key=job.payload["source_key"]; row=db.stored_source(source_key)
@@ -229,7 +255,22 @@ def _extract_document_job_handler(db: Database):
             return Pipeline(db,raw_dir).run(
                 company,StoredDocumentConnector(document),job.job_id,
             )
-        if row["content_type"] == "application/pdf":
+        if row["content_type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            mapping_path = Path("config") / "supplements" / f"{company.symbol}.json"
+            if not mapping_path.is_file():
+                manifest=None; report=None; reader_source="xlsx-supplement"
+                read_error=f"reviewed issuer mapping is missing: {mapping_path}"
+                code="xlsx_mapping_required"
+            else:
+                try:
+                    manifest,report=_read_xlsx_manifest(path,company,row,mapping_path)
+                except Exception as error:
+                    manifest=None; report=None; read_error=str(error)
+                    code="xlsx_extraction_failed"
+                else:
+                    reader_source="xlsx-supplement"; read_error=None
+                    code="xlsx_extraction_failed"
+        elif row["content_type"] == "application/pdf":
             if (row["filing_type"] == "interim-report" and
                     _source_period(row, company) is None):
                 manifest=None; report=None; reader_source=None
@@ -246,6 +287,13 @@ def _extract_document_job_handler(db: Database):
                     manifest=None; report=None; reader_source=None; read_error=str(error)
                 else:
                     read_error=None
+        else:
+            manifest=None; report=None; reader_source=None; read_error=None
+            code="binary_extractor_required"
+        if row["content_type"] in {
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }:
             if manifest is not None and report["ok"]:
                 manifest_dir=Path(raw_dir)/company.market.value/company.symbol/"manifests"
                 manifest_dir.mkdir(parents=True,exist_ok=True)
@@ -260,9 +308,10 @@ def _extract_document_job_handler(db: Database):
                 result["reader"]=reader_source
                 result["manifest_path"]=str(manifest_path)
                 return result
-            code=("interim_period_semantics_required"
-                  if row["filing_type"] == "interim-report"
-                  else "pdf_extraction_failed")
+            if row["content_type"] == "application/pdf":
+                code=("interim_period_semantics_required"
+                      if row["filing_type"] == "interim-report"
+                      else "pdf_extraction_failed")
             db.exception(
                 company.company_id,source_key,"extraction",code,
                 "The reader agent could not produce a manifest that passes verify.",
@@ -271,7 +320,6 @@ def _extract_document_job_handler(db: Database):
                  "verify_failures":report["failures"] if report else None},
             )
         else:
-            code="binary_extractor_required"
             db.exception(company.company_id,source_key,"extraction",code,
                          "A reviewed PDF/XLSX extraction adapter must produce source-faithful facts.",
                          {"content_type":row["content_type"],"local_path":row["local_path"]})

@@ -95,6 +95,82 @@ class SupplementReaderTests(unittest.TestCase):
             passed = {c["check"] for c in report["detail"] if c["status"] == "pass"}
             self.assertIn("balance_sheet: assets = liabilities + equity", passed)
 
+    def test_flow_mapping_preserves_quarter_semantics(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            xlsx = directory / "supp.xlsx"
+            _supplement_xlsx(xlsx)
+            mapping = dict(_MAPPING)
+            mapping["sheets"] = {
+                "Income Statement": {
+                    "Net income for the year": ["net_income", "flow"],
+                }
+            }
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps(mapping), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2026-02-04", period_kinds=("fy", "quarter")
+            )
+            q1 = next(f for f in manifest["facts"] if f["period_kind"] == "quarter")
+            self.assertEqual(q1["period_start"], "2025-01-01")
+            self.assertEqual(q1["period_end"], "2025-03-31")
+            self.assertEqual(q1["fiscal_quarter"], 1)
+
+    def test_flow_mapping_assigns_ytd_fiscal_quarter(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Income Statement"
+            sheet.append(["SAR mn", "1H 2025", "9M 2025"])
+            sheet.append(["Net income", 120, 190])
+            xlsx = directory / "supp.xlsx"
+            workbook.save(xlsx)
+            workbook.close()
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "scale": "1000000",
+                "sheets": {"Income Statement": {
+                    "Net income": ["net_income", "flow"],
+                }},
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2025-10-30", period_kinds=("ytd",)
+            )
+            by_end = {fact["period_end"]: fact for fact in manifest["facts"]}
+            self.assertEqual(by_end["2025-06-30"]["fiscal_quarter"], 2)
+            self.assertEqual(by_end["2025-09-30"]["fiscal_quarter"], 3)
+
+    def test_instant_mapping_keeps_interim_balance_dates(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Balance Sheet"
+            sheet.append(["SAR mn", "FY 2024", "1Q 2025", "1H 2025"])
+            sheet.append(["Total assets", 900, 940, 970])
+            xlsx = directory / "supp.xlsx"
+            workbook.save(xlsx)
+            workbook.close()
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "sheets": {"Balance Sheet": {
+                    "Total assets": ["total_assets", "instant"],
+                }},
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2025-08-01",
+                period_kinds=("fy", "quarter", "ytd"),
+            )
+            self.assertEqual(
+                [(fact["period_end"], fact["period_kind"]) for fact in manifest["facts"]],
+                [("2024-12-31", "instant"), ("2025-03-31", "instant"),
+                 ("2025-06-30", "instant")],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

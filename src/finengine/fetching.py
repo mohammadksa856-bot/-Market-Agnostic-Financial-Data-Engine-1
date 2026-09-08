@@ -25,8 +25,12 @@ from urllib.parse import unquote, urljoin, urlparse, urlunparse
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 _KEYWORDS = ("financial statement", "financial results", "interim", "annual report",
-             "consolidated", "quarterly", "q1", "q2", "q3", "q4", "fy", "half year")
+             "consolidated", "quarterly", "half year", "data supplement", "databook",
+             "القوائم المالية",
+             "النتائج المالية", "التقرير السنوي", "تقارير سنوية", "ربع سنوي",
+             "مرحلية")
 _SAUDI_EXCHANGE_HOST = "www.saudiexchange.sa"
+_XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _ONCLICK_LOCATION = re.compile(
     r"document\.location\.href\s*=\s*['\"]([^'\"]+)['\"]", re.I
 )
@@ -35,6 +39,13 @@ _ONCLICK_LOCATION = re.compile(
 def _slug(url: str) -> str:
     name = Path(unquote(urlparse(url).path)).name
     return re.sub(r"[^A-Za-z0-9._-]", "_", name) or "document.pdf"
+
+
+def _validate_document_bytes(content: bytes, url: str, content_type: str) -> None:
+    if content_type == "application/pdf" and not content.startswith(b"%PDF"):
+        raise RuntimeError(f"downloaded content is not a PDF: {url}")
+    if content_type == _XLSX_CONTENT_TYPE and not content.startswith(b"PK\x03\x04"):
+        raise RuntimeError(f"downloaded content is not an XLSX workbook: {url}")
 
 
 def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
@@ -104,10 +115,11 @@ class BrowserFetcher:
                                    locale="en-US", ignore_https_errors=True)
 
     def discover(self, index_url: str, keywords: tuple[str, ...] = _KEYWORDS) -> list[dict]:
-        """Render an investor-relations page and return candidate PDF links."""
+        """Render an investor-relations page and return candidate filing links."""
         import contextlib
         host = urlparse(index_url).hostname or ""
         allowed_hosts = {host}
+        trusted_documents: set[str] = set()
         referers: dict[str, str] = {}
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
@@ -119,7 +131,21 @@ class BrowserFetcher:
                 page.wait_for_load_state("load", timeout=8000)
             page.wait_for_timeout(2500)
             raw = page.eval_on_selector_all(
-                "a[href]", "els => els.map(e => [e.href, (e.textContent||'').trim()])")
+                "a[href]", "els => els.map(e => { "
+                "const label=(e.textContent||'').trim(); let node=e.parentElement; "
+                "let heading=''; for(let i=0;i<4 && node;i++,node=node.parentElement){ "
+                "const own=[...node.children].find(c => /^H[1-6]$/.test(c.tagName)); "
+                "if(own){ heading=(own.textContent||'').trim(); break; } } "
+                "return [e.href,(heading+' '+label).trim()]; })")
+            # Exact document URLs linked by the configured official source page
+            # may live on the issuer's cloud/CDN hostname. The trust is the link
+            # provenance, not a broad allow-list for that external host.
+            for linked_url, _ in raw:
+                linked = urlparse(linked_url)
+                if (linked.scheme == "https" and linked.hostname and
+                        any(ext in linked.path.lower() for ext in (".pdf", ".xlsx"))):
+                    trusted_documents.add(linked_url)
+                    referers[linked_url] = page.url
             # Saudi Exchange's company profile uses clickable cards rather than
             # anchors for filing announcements. Follow only financial-result cards,
             # then collect their official PDF attachments. This keeps the generic
@@ -175,13 +201,16 @@ class BrowserFetcher:
                                      parsed.hostname.endswith("." + issuer_host))):
                             continue
                         lowered = f"{label} {parsed.path}".lower()
-                        if ".pdf" in parsed.path.lower():
+                        if any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx")):
                             raw.append([href, label])
                             referers[href] = issuer_page.url
                         elif any(term in lowered for term in (
                                 "annual report", "quarterly report",
                                 "quarterly financial", "financial statement",
                                 "performance-financial", "/investors",
+                                "investor-relations", "علاقات المستثمرين",
+                                "التقارير السنوية", "القوائم المالية",
+                                "النتائج المالية",
                         )):
                             report_pages.append((href, label))
                     crawled = set()
@@ -194,23 +223,27 @@ class BrowserFetcher:
                                              wait_until="domcontentloaded")
                             issuer_page.wait_for_timeout(1500)
                             documents = issuer_page.eval_on_selector_all(
-                                "a[href]", "els => els.map(e => [e.href, "
-                                "(e.textContent||'').trim()])")
+                                "a[href]", "els => els.map(e => { "
+                                "const label=(e.textContent||'').trim(); let node=e.parentElement; "
+                                "let heading=''; for(let i=0;i<4 && node;i++,node=node.parentElement){ "
+                                "const own=[...node.children].find(c => /^H[1-6]$/.test(c.tagName)); "
+                                "if(own){ heading=(own.textContent||'').trim(); break; } } "
+                                "return [e.href,(heading+' '+label).trim()]; })")
                         except Exception:
                             continue
                         for document_url, document_title in documents:
                             parsed = urlparse(document_url)
                             if (parsed.scheme == "https" and parsed.hostname and
-                                    (parsed.hostname == issuer_host or
-                                     parsed.hostname.endswith("." + issuer_host)) and
-                                    ".pdf" in parsed.path.lower()):
+                                    any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx"))):
                                 raw.append([document_url, document_title])
                                 referers[document_url] = report_url
+                                trusted_documents.add(document_url)
         seen, out = set(), []
         for href, text in raw:
             full = urljoin(index_url, href)
             parsed = urlparse(full)
-            if parsed.scheme != "https" or ".pdf" not in parsed.path.lower():
+            if (parsed.scheme != "https" or
+                    not any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx"))):
                 continue
             same_site = any(
                 parsed.hostname == allowed or
@@ -218,21 +251,25 @@ class BrowserFetcher:
                 for allowed in allowed_hosts
             )
             label = (text or _slug(full)).lower()
-            if full in seen or not same_site:
+            if full in seen or (not same_site and full not in trusted_documents):
                 continue
             if not any(k in label or k in parsed.path.lower() for k in keywords):
                 continue
             seen.add(full)
-            item = {"url": full, "title": text.strip() or _slug(full)}
+            content_type = (_XLSX_CONTENT_TYPE if ".xlsx" in parsed.path.lower()
+                            else "application/pdf")
+            item = {"url": full, "title": text.strip() or _slug(full),
+                    "content_type": content_type}
             if full in referers:
                 item["referer"] = referers[full]
             out.append(item)
         return out
 
-    def download_bytes(self, url: str, referer: str | None = None) -> bytes:
+    def download_bytes(self, url: str, referer: str | None = None,
+                       content_type: str = "application/pdf") -> bytes:
         """Fetch one URL's raw bytes through a real browser context - the piece
         `DocumentArchiver` plugs in as its `content_fetcher` for sites a plain
-        HTTP client can't pass. Validates the result is a PDF."""
+        HTTP client can't pass. Validates the expected filing signature."""
         import contextlib
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
@@ -274,14 +311,14 @@ class BrowserFetcher:
                 if not response.ok:
                     raise RuntimeError(f"fetch failed: HTTP {response.status} for {url}")
                 content = response.body()
-        if not content.startswith(b"%PDF"):
-            raise RuntimeError(f"downloaded content is not a PDF: {url}")
+        _validate_document_bytes(content, url, content_type)
         return content
 
     def download_candidate(self, candidate: dict) -> bytes:
         """Download with discovery provenance needed by referer-protected CDNs."""
         return self.download_bytes(
-            candidate["source_url"], (candidate.get("metadata") or {}).get("referer")
+            candidate["source_url"], (candidate.get("metadata") or {}).get("referer"),
+            candidate.get("content_type") or "application/pdf",
         )
 
     def fetch(self, url: str, market: str, symbol: str) -> dict:
@@ -331,8 +368,9 @@ class BrowserIssuerMonitor:
             SourceCandidate(
                 company.company_id, self.name,
                 hashlib.sha256(item["url"].encode("utf-8")).hexdigest(),
-                item["url"], item["title"], self._document_type(item["title"]),
-                None, "application/pdf",
+                item["url"], item["title"],
+                self._document_type(f"{item['title']} {item['url']}"),
+                None, item.get("content_type", "application/pdf"),
                 {"index_url": self.index_url, **(
                     {"referer": item["referer"]} if item.get("referer") else {}
                 )},
@@ -344,9 +382,14 @@ class BrowserIssuerMonitor:
     @staticmethod
     def _document_type(title: str) -> str:
         lowered = title.lower()
-        if "interim" in lowered or "quarter" in lowered or "half year" in lowered:
+        if ".xlsx" in lowered or "data supplement" in lowered or "databook" in lowered:
+            return "data-supplement"
+        if ("interim" in lowered or "quarter" in lowered or "half year" in lowered or
+                "مرحلية" in lowered or "ربع سنوي" in lowered or
+                re.search(r"(?:^|[^a-z0-9])(?:[1-4]q|q[1-4])(?:[^a-z0-9]|$)", lowered)):
             return "interim-report"
-        if "annual" in lowered or "year ending" in lowered or "year ended" in lowered:
+        if ("annual" in lowered or "year ending" in lowered or "year ended" in lowered or
+                "التقرير السنوي" in lowered):
             return "annual-report"
         if "financial" in lowered:
             return "financial-report"

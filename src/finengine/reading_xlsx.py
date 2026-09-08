@@ -134,9 +134,9 @@ class SupplementReader:
                     if index >= len(row):
                         continue
                     if want_kind == "instant":
-                        if kind != "fy":
-                            continue
                         emit_kind, period_end = "instant", column_end
+                    elif want_kind == "flow" and kind in {"fy", "quarter", "ytd"}:
+                        emit_kind, period_end = kind, column_end
                     elif kind == want_kind:
                         emit_kind, period_end = kind, column_end
                     else:
@@ -157,8 +157,15 @@ class SupplementReader:
                         "period_kind": emit_kind, "fiscal_year": fiscal_year,
                         "scale": str(scale), "currency": currency, "unit": currency,
                     }
-                    if emit_kind in {"fy", "ytd", "quarter"}:
+                    if emit_kind == "fy":
                         fact["period_start"] = f"{fiscal_year}-01-01"
+                    elif emit_kind == "ytd":
+                        fact["period_start"] = f"{fiscal_year}-01-01"
+                        fact["fiscal_quarter"] = (int(period_end[5:7]) - 1) // 3 + 1
+                    elif emit_kind == "quarter":
+                        quarter = (int(period_end[5:7]) - 1) // 3 + 1
+                        fact["fiscal_quarter"] = quarter
+                        fact["period_start"] = f"{fiscal_year}-{(quarter - 1) * 3 + 1:02d}-01"
                     seen.add(key)
                     facts.append(fact)
         workbook.close()
