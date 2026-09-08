@@ -35,6 +35,14 @@ class ExtraManifestTests(unittest.TestCase):
         self.assertGreater(report["passed"], 18)
 
 
+class CenomiRetailManifestTests(unittest.TestCase):
+    def test_manifest_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("cenomi-retail-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 14)
+
+
 class JarirSnapshotTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -141,6 +149,35 @@ class JarirSnapshotTests(unittest.TestCase):
             q.close()
         self.assertEqual(parent + nci, Decimal("575989000"))
         self.assertEqual(assets, liabilities + equity)
+
+    def test_cenomi_publishes_without_errors(self):
+        rows = [r for r in self.summary["results"] if r["company_id"] == "sa:4240"]
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertIn(row["status"], {"published", "duplicate"}, row)
+            self.assertNotIn("error", row, row)
+
+    def test_cenomi_is_in_negative_equity_and_the_balance_sheet_still_ties(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            assets = _value(q.metric_history("SA", "4240", "total_assets"), "2025-12-31")
+            liabilities = _value(q.metric_history("SA", "4240", "total_liabilities"), "2025-12-31")
+            equity = _value(q.metric_history("SA", "4240", "total_equity"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertLess(equity, 0)
+        self.assertEqual(assets, liabilities + equity)
+
+    def test_cenomi_loss_splits_into_continuing_and_discontinued(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            cont = _value(q.metric_history("SA", "4240", "continuing_operations_income"), "2025-12-31")
+            disc = _value(q.metric_history("SA", "4240", "discontinued_operations_income"), "2025-12-31")
+            net = _value(q.metric_history("SA", "4240", "net_income"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertEqual(cont + disc, net)
+        self.assertEqual(net, Decimal("-496741735"))
 
 
 def _value(history, period_end):

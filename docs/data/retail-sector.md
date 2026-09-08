@@ -10,6 +10,7 @@ third-party data vendors. No engine or catalog changes.
 |---|---|---|---|---|
 | 4190 | Jarir Marketing Company | `data/imports/jarir-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF |
 | 4003 | United Electronics Company (eXtra) | `data/imports/extra-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF (PwC) |
+| 4240 | AFG International Company (Cenomi Retail) | `data/imports/cenomi-retail-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF (BDO, going-concern paragraph) |
 
 ## Source and archive
 
@@ -17,8 +18,9 @@ third-party data vendors. No engine or catalog changes.
 |---|---|---|---|
 | 4190 | `https://www.saudiexchange.sa/Resources/fsPdf/454_0_2026-03-31_11-52-35_En.pdf` | `7c1e35764a96d4d66cc748468d4608d9e4d2b13ff159e990596948c6e9ce2f36` | `data/raw/SA/4190/documents/7c1e3576…pdf` |
 | 4003 | `https://www.saudiexchange.sa/Resources/fsPdf/434_0_2026-02-18_11-09-38_En.pdf` | `99fc44596d81650a9184561b09a3df278afb66803b712723c573971f6bef25ea` | `data/raw/SA/4003/documents/99fc4459…pdf` |
+| 4240 | `https://www.saudiexchange.sa/Resources/fsPdf/459_0_2026-03-16_23-59-34_En.pdf` | `6e44c326312ed8400b19c82643fefbe91bbd2124963db285edfa7e0b809df04f` | `data/raw/SA/4240/documents/6e44c326…pdf` |
 
-Registered in `data/raw/archive-index.json` (Jarir 2,152,108 bytes; eXtra 4,794,977 bytes; both `application/pdf`).
+Registered in `data/raw/archive-index.json` (Jarir 2,152,108 bytes; eXtra 4,794,977 bytes; Cenomi 2,919,763 bytes; all `application/pdf`).
 
 ### How the audited FS was retrieved
 
@@ -30,6 +32,33 @@ Report" row (board annual report) and the Q1–Q4 rows (interim). The portlet on
 renders through the site's own search flow (from a residential IP), so the tab
 was opened in the browser and the `fsPdf` link scraped; the PDF itself is then a
 plain static resource fetchable by URL. Issuer codes: Jarir 454, eXtra 434.
+
+* **Cenomi Retail / AFG International (4240):** audited consolidated FS, **BDO**
+  auditor. The name changed from Fawaz Abdulaziz Al Hokair & Co. to AFG
+  International Company (EGM 6 January 2026); intermediate parent Al-Futtaim
+  Retail Company, ultimate parent Al-Futtaim Group LLC (UAE). Board approved
+  issuance 23 Ramadan 1447 / **12 March 2026** (`filed_at`). The auditor's report
+  (printed pages 2–5) is a scanned image; **the five primary statements and the
+  notes are digital text** (`reader: manual.text/...`). **Full SAR** (`scale` 1).
+  The report carries a **material-uncertainty-related-to-going-concern**
+  paragraph — net loss SAR 497m, accumulated losses SAR 2,113m, negative equity
+  (total liabilities exceed total assets by SAR 1,466m). So `total_equity`,
+  `equity_parent`, `noncontrolling_interests` and `retained_earnings`
+  (accumulated losses) are all negative. `income_taxes_and_zakat` is the reported
+  "Zakat and Income tax expense"; `income_before_income_taxes_and_zakat` is
+  **not** carried — the reported "Loss before zakat and income tax" is a
+  continuing-operations figure and IFRS 5 discontinued operations sit net below
+  the tax line, so `continuing_operations_income` and
+  `discontinued_operations_income` are carried instead and the verifier checks
+  `net_income = continuing + discontinued`. The non-current-assets /
+  non-current-liabilities subtotals are **not** carried because IFRS 5 disposal
+  groups (`assets_held_for_sale` SAR 30.8m, `liabilities_held_for_sale`
+  SAR 36.2m) sit outside them; the balance-sheet check runs on `total_assets =
+  total_liabilities + total_equity`. `other_reserves` = FX translation reserve +
+  fair value reserve. `intangible_assets` is the combined "Goodwill and
+  intangible assets"; the SAR 120m goodwill impairment is `impairment_charges`.
+  `related_party_loans` is the current "Shareholder's loan" (SAR 1,378m, nil in
+  2024). `finance_costs` = "Net finance costs". No ordinary dividend.
 
 * **eXtra / United Electronics (4003):** audited consolidated FS filed 18 Feb
   2026; **PwC** auditor's report (printed pages 2–6, digital text); the combined
@@ -89,10 +118,20 @@ plain static resource fetchable by URL. Issuer codes: Jarir 454, eXtra 434.
 ## Verification
 
 `finengine verify jarir` → 20 pass / 0 warn / 0 fail; `finengine verify extra` →
-24 pass / 0 warn / 0 fail. No unmapped labels. Bootstrap publishes 193 (Jarir) +
-219 (eXtra) data points with no pipeline errors. All balance-sheet identities,
-the P&L bridge, the profit-to-tax bridge, gross-profit identity and the cash-flow
-reconciliation hold exactly.
+24 pass / 0 warn / 0 fail; `finengine verify cenomi-retail` → 18 pass / 0 warn /
+0 fail. No unmapped labels. Bootstrap publishes 193 (Jarir) + 219 (eXtra) + ~150
+(Cenomi) data points with no pipeline errors. All balance-sheet identities, the
+P&L bridge, the profit-to-tax bridge, the continuing/discontinued split,
+gross-profit identity and the cash-flow reconciliation hold exactly.
+
+### Engine change (for integration review)
+
+`src/finengine/verification.py` gains one `ADDITIVE_IDENTITIES` entry —
+`net_income = continuing_operations_income + discontinued_operations_income` —
+which fires only for issuers that disclose the IFRS 5 split (Cenomi here; also
+newly covers SABIC on `main`, which discloses the split but no `income_taxes_and_zakat`
+line). Committed separately and flagged for integration review. It adds passing
+checks and no new failures across the 58 bundled manifests.
 
 Derived FY2025 — **Jarir:** gross margin 12.5%, operating margin 9.9%, net margin
 9.2%, ROE ≈ 60%, ROA ≈ 24%, current ratio 1.37, free cash flow ≈ SAR 1.37bn,
@@ -107,10 +146,13 @@ Tests: `tests/test_retail_sector.py`.
 
 ## Unresolved fields
 
-* **Cenomi Retail / AFG International (4240), Al Othaim Markets (4001), BinDawood
-  Holding (4161), Nice One (4193), Fitaihi (4180)** — follow-up batches from the
-  same Saudi Exchange company-profile FS tab (audited FS PDFs already archived
-  for 4240 / 4001 / 4161).
+* **Al Othaim Markets (4001), BinDawood Holding (4161), Nice One (4193),
+  Fitaihi (4180), SACO (4008)** — follow-up batches from the same Saudi Exchange
+  company-profile FS tab (audited FS PDFs already archived for 4001 / 4161).
+* **Cenomi (4240)** — segment revenue by concept, store count and gross leasable
+  area are in the board report, not the audited FS. `income_before_income_taxes_and_zakat`
+  is intentionally omitted (see the mapping note above). EBITDA / net debt are
+  not statement lines.
 * **Store count, selling area, e-commerce revenue share, like-for-like sales
   growth** — disclosed in Jarir's board report / investor presentation, not in
   the audited financial statements.
