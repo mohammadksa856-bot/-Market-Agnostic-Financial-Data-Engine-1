@@ -9,7 +9,8 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 The bundled portable snapshot is rebuilt from 55 reviewed manifests and currently contains:
 
 - 15 enabled companies in the bundled snapshot: Saudi Aramco, SABIC, all ten listed
-  Saudi banks, Apple, Microsoft, and NVIDIA.
+  Saudi banks, Apple, Microsoft, and NVIDIA. ACWA Power is also enabled in the
+  monitored registry; its live acceptance database remains outside the bundled snapshot.
 - The archived official SEC universe snapshot contains 8,010 issuers and 10,415
   ticker/exchange associations. It is inventory, not automatic publication:
   activation and monitoring are released in controlled batches. The first 100-issuer
@@ -30,9 +31,16 @@ The bundled portable snapshot is rebuilt from 55 reviewed manifests and currentl
 - Master Schema catalog version 10 contains 1,046 governed fields and 916 metric contracts: 545 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. In addition to oil and gas, the 64-field chemicals pack now includes resource intensity, emissions, waste, process safety, innovation, workforce, and supplier KPIs. The 43-field banking pack powers sector-aware bank ratios and scores. Insurance, telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management are also covered. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
 - Aramco currently populates 395 of 662 applicable catalog fields (59.7% raw target coverage), with all 28 core required fields present. The lower percentage reflects a large target model, not lost data.
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
+- ACWA Power is the live utilities acceptance case. The official Q2/H1 2026
+  consolidated statements are image-only after the auditor pages, so the worker now
+  applies local OCR, persists a derived coordinate cache, and still sends the result
+  through the normal deterministic gate. The acceptance run extracted 39 sourced
+  facts, published 58 sourced/calculated points across instant, Q2, and YTD semantics,
+  and passed all 11 accounting/quality checks with zero warnings or failures. Production
+  points retain the archived PDF source key instead of a temporary manifest identity.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 10, and 120 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
+- Database schema version 17, catalog version 10, and 125 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -49,7 +57,7 @@ The catalog is the target model, not fabricated data. Per-company completeness s
         -> versioned production stores
         -> read-only HTTP API / Telegram bot / Arabic report
 
-For Saudi PDF/XLSX documents, the worker archives the binary before extraction. Reviewed PDF layouts and issuer spreadsheet maps continue automatically through staging, verification, calculations, and publication. An unsupported layout enters a durable `document_extraction` backlog item with a precise reason; it never disappears silently or publishes placeholder values.
+For Saudi PDF/XLSX documents, the worker archives the binary before extraction. Reviewed PDF layouts, image-only statements through the optional local OCR extra, and issuer spreadsheet maps continue automatically through staging, verification, calculations, and publication. OCR coordinates are cached beside the immutable source so a retry is fast and reproducible. An unsupported layout enters a durable `document_extraction` backlog item with a precise reason; it never disappears silently or publishes placeholder values.
 
 ## Fastest way to inspect the bundled data
 

@@ -68,6 +68,20 @@ class MonitoringTests(unittest.TestCase):
                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         self.assertEqual(monitor.discover(self.aramco, first.cursor).candidates, ())
 
+    def test_issuer_monitor_uses_list_item_context_for_icon_only_downloads(self):
+        html = b"""
+        <ul><li><div><h6>30 June 2026</h6>Consolidated Financial Statement</div>
+        <div><a href='/media/acwa-q2-2026-english-fs.pdf'>&nbsp;<i></i></a></div></li></ul>
+        """
+        monitor = IssuerReportsMonitor(
+            self.aramco.sources[0], opener=opener_for(html), max_documents=20,
+        )
+        result = monitor.discover(self.aramco)
+        self.assertEqual(len(result.candidates), 1)
+        self.assertEqual(result.candidates[0].title,
+                         "30 June 2026 Consolidated Financial Statement")
+        self.assertEqual(result.candidates[0].document_type, "interim-report")
+
     def test_sec_monitor_uses_accession_cursor_and_financial_forms(self):
         payload = {"filings": {"recent": {
             "accessionNumber": ["0003", "0002", "0001"],
@@ -189,6 +203,24 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM data_points").fetchone()[0], 0)
 
+    def test_unreadable_interim_with_known_period_reports_extraction_failure(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "interim-unreadable",
+            "https://www.saudiexchange.sa/Resources/fsPdf/interim.pdf",
+            "Interim results for period ending 2026-06-30", "interim-report",
+            "2026-08-06", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-test"),
+        ).fetch(candidate_id)
+        job = type("Job", (), {
+            "payload": {"source_key": archived["source_key"]},
+            "job_id": "interim-unreadable-test",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["code"], "pdf_extraction_failed")
+
     def test_interim_period_is_derived_only_from_explicit_source_title(self):
         explicit = {"metadata_json": json.dumps({
             "title": "Interim Financial Results Period Ending on 30-06-2026"
@@ -200,9 +232,17 @@ class MonitoringTests(unittest.TestCase):
         compact = {"metadata_json": json.dumps({
             "title": "Interim results for the period ending on 30-6-2026"
         })}
+        iso = {"metadata_json": json.dumps({
+            "title": "Interim results for the period ending on 2026-06-30"
+        })}
+        named = {"metadata_json": json.dumps({
+            "title": "30 June 2026 Consolidated Financial Statement"
+        })}
         self.assertEqual(_source_period(explicit, self.aramco), ("2026-06-30", 2026))
         self.assertEqual(_source_period(quarterly, self.aramco), ("2026-06-30", 2026))
         self.assertEqual(_source_period(compact, self.aramco), ("2026-06-30", 2026))
+        self.assertEqual(_source_period(iso, self.aramco), ("2026-06-30", 2026))
+        self.assertEqual(_source_period(named, self.aramco), ("2026-06-30", 2026))
         self.assertIsNone(_source_period(unknown, self.aramco))
 
     def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):
@@ -266,6 +306,8 @@ class MonitoringTests(unittest.TestCase):
         })()
         result = _extract_document_job_handler(self.db)(job)
         self.assertEqual(result["status"], "published", result)
+        self.assertEqual(result["source_key"], archived["source_key"])
+        self.assertEqual(self.db.source_status(archived["source_key"]), "published")
         kinds = {row["period_kind"] for row in self.db.conn.execute(
             "SELECT period_kind FROM data_points "
             "WHERE company_id='sa:1120' AND is_current=1"

@@ -154,11 +154,32 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     except (KeyError, TypeError, json.JSONDecodeError):
         metadata = {}
     title = str(metadata.get("title") or "")
+    iso = re.search(r"\b(20\d{2})-(\d{1,2})-(\d{1,2})\b", title)
+    if iso:
+        year, month, day = (int(value) for value in iso.groups())
+        try:
+            return date(year, month, day).isoformat(), year
+        except ValueError:
+            return None
     explicit = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", title)
     if explicit:
         day, month, year = (int(value) for value in explicit.groups())
         try:
             return date(year, month, day).isoformat(), year
+        except ValueError:
+            return None
+    named = re.search(
+        r"\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|"
+        r"September|October|November|December)\s+(20\d{2})\b", title, re.I,
+    )
+    if named:
+        day, month_name, year = named.groups()
+        month = {name.lower(): index for index, name in enumerate(
+            ("January", "February", "March", "April", "May", "June", "July",
+             "August", "September", "October", "November", "December"), 1
+        )}[month_name.lower()]
+        try:
+            return date(int(year), month, int(day)).isoformat(), int(year)
         except ValueError:
             return None
     quarter = re.search(r"\bQ([1-4])\b", title, re.I)
@@ -203,9 +224,10 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
     source_period = _source_period(row, company)
     if source_period:
         kwargs["period_end"], kwargs["fiscal_year"] = source_period
-    manifest = StatementReader(pdf_path).read(**kwargs)
+    reader = StatementReader(pdf_path)
+    manifest = reader.read(**kwargs)
     report = verify(manifest)
-    reader_source = "deterministic"
+    reader_source = "deterministic+ocr" if reader.used_ocr else "deterministic"
     if not report["ok"] and use_llm and os.environ.get("ANTHROPIC_API_KEY"):
         from .reading_llm import llm_read
         manifest = llm_read(pdf_path, **kwargs)
@@ -271,8 +293,11 @@ def _extract_document_job_handler(db: Database):
                     reader_source="xlsx-supplement"; read_error=None
                     code="xlsx_extraction_failed"
         elif row["content_type"] == "application/pdf":
-            if (row["filing_type"] == "interim-report" and
-                    _source_period(row, company) is None):
+            interim_period_missing = (
+                row["filing_type"] == "interim-report" and
+                _source_period(row, company) is None
+            )
+            if interim_period_missing:
                 manifest=None; report=None; reader_source=None
                 read_error=(
                     "automatic interim extraction is held for review because one PDF can "
@@ -301,17 +326,36 @@ def _extract_document_job_handler(db: Database):
                 manifest_path.write_text(
                     json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8",
                 )
+                prior_extraction_exceptions = [
+                    record["id"] for record in db.conn.execute(
+                        """SELECT id FROM exceptions
+                           WHERE source_key=? AND stage='extraction' AND status='open'""",
+                        (source_key,),
+                    )
+                ]
                 result=Pipeline(db,raw_dir).run(
-                    company,LocalFileConnector(manifest_path,row["source_url"]),job.job_id,
+                    company,LocalFileConnector(
+                        manifest_path,row["source_url"],source_key=source_key
+                    ),job.job_id,
                 )
-                db.set_source_status(source_key,"extracted")
+                if result["status"] == "published":
+                    for exception_id in prior_extraction_exceptions:
+                        db.resolve_exception(
+                            exception_id,
+                            "Document reprocessed and published successfully.",
+                            "pipeline",
+                        )
+                    db.complete_backlog_item(f"extraction:{source_key}")
                 result["reader"]=reader_source
                 result["manifest_path"]=str(manifest_path)
                 return result
             if row["content_type"] == "application/pdf":
-                code=("interim_period_semantics_required"
-                      if row["filing_type"] == "interim-report"
-                      else "pdf_extraction_failed")
+                if interim_period_missing:
+                    code="interim_period_semantics_required"
+                elif read_error and "optional OCR dependencies" in read_error:
+                    code="pdf_ocr_required"
+                else:
+                    code="pdf_extraction_failed"
             db.exception(
                 company.company_id,source_key,"extraction",code,
                 "The reader agent could not produce a manifest that passes verify.",

@@ -15,21 +15,43 @@ class _LinkParser(HTMLParser):
         self.links: list[tuple[str, str]] = []
         self._href: str | None = None
         self._text: list[str] = []
+        self._container_text: list[str] | None = None
+        self._container_links: list[tuple[str, str]] = []
 
     def handle_starttag(self, tag, attrs):
-        if tag.lower() == "a":
+        lowered = tag.lower()
+        if lowered == "li" and self._container_text is None:
+            # Many issuer sites put the report name/date beside an icon-only
+            # download anchor. Preserve the containing list item's text so the
+            # link can still be classified conservatively.
+            self._container_text = []
+            self._container_links = []
+        if lowered == "a":
             self._href = dict(attrs).get("href")
             self._text = []
 
     def handle_data(self, data):
+        if self._container_text is not None:
+            self._container_text.append(data)
         if self._href is not None:
             self._text.append(data)
 
     def handle_endtag(self, tag):
-        if tag.lower() == "a" and self._href is not None:
-            self.links.append((self._href, " ".join("".join(self._text).split())))
+        lowered = tag.lower()
+        if lowered == "a" and self._href is not None:
+            link = (self._href, " ".join("".join(self._text).split()))
+            if self._container_text is None:
+                self.links.append(link)
+            else:
+                self._container_links.append(link)
             self._href = None
             self._text = []
+        if lowered == "li" and self._container_text is not None:
+            context = " ".join(" ".join(self._container_text).split())
+            self.links.extend((href, title or context)
+                              for href, title in self._container_links)
+            self._container_text = None
+            self._container_links = []
 
 
 class IssuerReportsMonitor:
@@ -38,7 +60,7 @@ class IssuerReportsMonitor:
     name = "issuer-reports"
     DEFAULT_KEYWORDS = (
         "annual report", "interim report", "financial report", "financial results",
-        "financials", "databook",
+        "financial statement", "consolidated", "financials", "databook",
     )
 
     def __init__(self, index_url: str, opener=urlopen, keywords: tuple[str, ...] | None = None,
@@ -80,7 +102,9 @@ class IssuerReportsMonitor:
                 continue
             seen_urls.add(full_url)
             extension = extension_match.group(1)
-            document_type = self._document_type(normalized_title, extension)
+            document_type = self._document_type(
+                f"{normalized_title} {full_url}", extension
+            )
             external_id = hashlib.sha256(full_url.encode("utf-8")).hexdigest()
             candidates.append(SourceCandidate(
                 company.company_id, self.name, external_id, full_url, normalized_title,
@@ -103,7 +127,8 @@ class IssuerReportsMonitor:
             return "databook"
         if "annual report" in lowered:
             return "annual-report"
-        if "interim report" in lowered:
+        if ("interim report" in lowered or
+                re.search(r"(?:^|[^a-z0-9])(?:q[1-3]|[1-3]q)(?:[^a-z0-9]|$)", lowered)):
             return "interim-report"
         if "financial" in lowered:
             return "financial-report"

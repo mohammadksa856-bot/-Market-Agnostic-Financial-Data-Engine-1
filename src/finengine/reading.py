@@ -13,6 +13,7 @@ same manifest shape.
 Requires the optional `pymupdf` extra.
 """
 
+import json
 import re
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
@@ -118,6 +119,7 @@ LINE_MAP = {
     "net cash used in investing activities": ("investing_cash_flow", "fy"),
     "net cash from investing activities": ("investing_cash_flow", "fy"),
     "net cash from financing activities": ("financing_cash_flow", "fy"),
+    "net cash generated from financing activities": ("financing_cash_flow", "fy"),
     "net cash used in financing activities": ("financing_cash_flow", "fy"),
     "net cash from/(used in) financing activities": ("financing_cash_flow", "fy"),
     "purchase of property, plant and equipment": ("capex", "fy"),
@@ -141,6 +143,7 @@ LINE_MAP = {
     "effect of movements in exchange rates on cash": ("foreign_exchange_effect", "fy"),
     "effect of exchange rate changes on cash": ("foreign_exchange_effect", "fy"),
     "net foreign exchange gain (loss) on cash and cash equivalents": ("foreign_exchange_effect", "fy"),
+    "net foreign exchange difference": ("foreign_exchange_effect", "fy"),
 }
 
 # Banking sector map. Saudi banks report "special commission income" (interest),
@@ -232,9 +235,9 @@ _PROFILE_MAPS = {"corporate": LINE_MAP, "bank": {**LINE_MAP, **BANK_LINE_MAP}}
 _PL_OVERRIDES = {"noncontrolling_interests": "net_income_noncontrolling"}
 
 _SCALE_PATTERNS = (
-    (re.compile(r"in\s+thousands|'?000'?|bآ?لاف\s+الريالات|بالآلاف", re.I), Decimal(1000)),
-    (re.compile(r"in\s+millions|s?r?\s*million|بالملايين|مليون", re.I), Decimal(1_000_000)),
-    (re.compile(r"in\s+billions|بالمليارات", re.I), Decimal(1_000_000_000)),
+    (re.compile(r"\bthousands\b|'?000'?|bآ?لاف\s+الريالات|بالآلاف", re.I), Decimal(1000)),
+    (re.compile(r"\bmillions?\b|بالملايين|مليون", re.I), Decimal(1_000_000)),
+    (re.compile(r"\bbillions?\b|بالمليارات", re.I), Decimal(1_000_000_000)),
 )
 _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
@@ -295,12 +298,117 @@ def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> s
 
 
 class StatementReader:
-    def __init__(self, pdf_path: str | Path):
+    def __init__(self, pdf_path: str | Path, enable_ocr: bool = True,
+                 ocr_page_limit: int = 8, ocr_zoom: float = 1.5):
         try:
             import pymupdf  # noqa: F401
         except ImportError as error:  # pragma: no cover - environment dependent
             raise RuntimeError("the reader agent needs the optional 'pymupdf' package") from error
         self.pdf_path = Path(pdf_path)
+        self.enable_ocr = enable_ocr
+        self.ocr_page_limit = max(0, ocr_page_limit)
+        self.ocr_zoom = ocr_zoom
+        self._ocr_engine = None
+        self._ocr_cache: dict[int, tuple[list[tuple], str]] = {}
+        self._ocr_cache_path = self.pdf_path.with_suffix(self.pdf_path.suffix + ".ocr.json")
+        if self._ocr_cache_path.is_file():
+            try:
+                cached = json.loads(self._ocr_cache_path.read_text(encoding="utf-8"))
+                if float(cached.get("zoom", 0)) != float(self.ocr_zoom):
+                    raise ValueError("OCR cache zoom differs from reader configuration")
+                self._ocr_cache = {
+                    int(index): ([tuple(word) for word in value["words"]], value["text"])
+                    for index, value in cached.get("pages", {}).items()
+                }
+            except (OSError, ValueError, KeyError, TypeError):
+                self._ocr_cache = {}
+        self.used_ocr = False
+        self.ocr_unavailable = False
+
+    def _save_ocr_cache(self) -> None:
+        payload = {
+            "reader": "rapidocr/3", "zoom": self.ocr_zoom,
+            "pages": {str(index): {"words": words, "text": text}
+                      for index, (words, text) in self._ocr_cache.items()},
+        }
+        temporary = self._ocr_cache_path.with_suffix(self._ocr_cache_path.suffix + ".part")
+        try:
+            temporary.write_text(json.dumps(payload), encoding="utf-8")
+            temporary.replace(self._ocr_cache_path)
+        except OSError:
+            # Caching is an optimization; a read-only archive must not prevent
+            # source-faithful extraction in memory.
+            pass
+
+    @staticmethod
+    def _split_ocr_line(box, text: str, zoom: float, line_index: int) -> list[tuple]:
+        """Turn one OCR line into PyMuPDF-like words while retaining geometry."""
+        tokens = list(re.finditer(r"\S+", text))
+        if not tokens:
+            return []
+        xs = [point[0] for point in box]
+        ys = [point[1] for point in box]
+        left, right = float(min(xs)) / zoom, float(max(xs)) / zoom
+        top, bottom = float(min(ys)) / zoom, float(max(ys)) / zoom
+        width = max(right - left, 1)
+        length = max(len(text), 1)
+        return [
+            (left + width * match.start() / length, top,
+             left + width * match.end() / length, bottom,
+             match.group(), 0, line_index, token_index)
+            for token_index, match in enumerate(tokens)
+        ]
+
+    def _page_content(self, page, page_index: int,
+                      ocr_budget: list[int]) -> tuple[list[tuple], str]:
+        text = page.get_text()
+        words = page.get_text("words")
+        if text.strip() or words:
+            return words, text
+        if (not self.enable_ocr or ocr_budget[0] <= 0):
+            return [], ""
+        cached = self._ocr_cache.get(page_index)
+        if cached is not None:
+            self.used_ocr = True
+            ocr_budget[0] -= 1
+            return cached
+        try:
+            from rapidocr import RapidOCR
+        except ImportError:
+            # Keep looking: a digital statement may follow an image-only cover.
+            # If no facts are ultimately found, `read` reports the precise OCR
+            # requirement instead of masking usable native-text pages.
+            self.ocr_unavailable = True
+            ocr_budget[0] -= 1
+            return [], ""
+        if self._ocr_engine is None:
+            self._ocr_engine = RapidOCR()
+        import pymupdf
+        pixmap = page.get_pixmap(
+            matrix=pymupdf.Matrix(self.ocr_zoom, self.ocr_zoom), alpha=False,
+        )
+        output = self._ocr_engine(pixmap.tobytes("png"))
+        raw_texts = getattr(output, "txts", None)
+        raw_boxes = getattr(output, "boxes", None)
+        raw_scores = getattr(output, "scores", None)
+        texts = tuple(raw_texts) if raw_texts is not None else ()
+        boxes = tuple(raw_boxes) if raw_boxes is not None else ()
+        scores = tuple(raw_scores) if raw_scores is not None else ()
+        ocr_words: list[tuple] = []
+        accepted_text: list[str] = []
+        for line_index, (box, line) in enumerate(zip(boxes, texts)):
+            if scores and scores[line_index] < 0.65:
+                continue
+            accepted_text.append(line)
+            ocr_words.extend(self._split_ocr_line(
+                box, str(line), self.ocr_zoom, line_index
+            ))
+        result = (ocr_words, " ".join(accepted_text))
+        self._ocr_cache[page_index] = result
+        self._save_ocr_cache()
+        self.used_ocr = True
+        ocr_budget[0] -= 1
+        return result
 
     def infer_fiscal_year(self) -> int | None:
         """The reporting year printed on the statements themselves - the
@@ -311,10 +419,11 @@ class StatementReader:
         doc = pymupdf.open(self.pdf_path)
         try:
             votes: dict[int, int] = {}
+            ocr_budget = [self.ocr_page_limit]
             for page_index in range(doc.page_count):
                 page = doc[page_index]
-                words = page.get_text("words")
-                if not self._heading_statement(page, words):
+                words, page_text = self._page_content(page, page_index, ocr_budget)
+                if not self._heading_statement(page, words, page_text):
                     continue
                 columns = self._year_columns(page, words)
                 if not columns:
@@ -341,6 +450,11 @@ class StatementReader:
         if fiscal_year is None:
             fiscal_year = self.infer_fiscal_year()
             if fiscal_year is None:
+                if self.ocr_unavailable:
+                    raise RuntimeError(
+                        "image-only PDF requires the optional OCR dependencies: "
+                        "pip install -e \".[ocr]\""
+                    )
                 raise ValueError(
                     f"could not infer the reporting year from {self.pdf_path.name}; "
                     "pass fiscal_year explicitly")
@@ -352,12 +466,13 @@ class StatementReader:
         seen: set[tuple[str, str]] = set()
         carry: str | None = None
         carry_page = -99
+        ocr_budget = [self.ocr_page_limit]
         for page_index in range(doc.page_count):
             page = doc[page_index]
-            words = page.get_text("words")
+            words, page_text = self._page_content(page, page_index, ocr_budget)
             blocks = self._column_blocks(page, words)
             columns = blocks[0] if blocks else []
-            heading = self._heading_statement(page, words)
+            heading = self._heading_statement(page, words, page_text)
             continuation = bool(
                 carry and page_index - carry_page == 1 and columns
                 and self._looks_tabular(words, columns))
@@ -372,7 +487,7 @@ class StatementReader:
                 carry = None
                 continue
             carry, carry_page = statement, page_index
-            scale = self._scale(page.get_text().lower())
+            scale = self._scale(page_text.lower())
             # A statement can present a continuing-operations subtotal and then
             # the consolidated total using the same short attribution labels.
             # Within one page the later row is the final reported total.  Keep
@@ -413,6 +528,11 @@ class StatementReader:
                 seen.add(key)
                 facts.append(fact)
         doc.close()
+        if not facts and self.ocr_unavailable:
+            raise RuntimeError(
+                "image-only PDF requires the optional OCR dependencies: "
+                "pip install -e \".[ocr]\""
+            )
         return {
             "company_id": f"{market.lower()}:{symbol}",
             "market": market,
@@ -464,8 +584,11 @@ class StatementReader:
         "income_statement": (("revenue", "sales", "turnover", "financing income",
                               "total operating income"),
                              ("profit for the", "net income", "net profit", "loss for the")),
-        "balance_sheet": (("total assets",),
-                          ("total equity", "total liabilities", "equity and liabilities")),
+        # Interim position statements are commonly split across two pages:
+        # assets on the first, equity/liabilities on the next. The exact
+        # statement heading plus either side's total is sufficient evidence.
+        "balance_sheet": (("total assets", "total equity", "total liabilities",
+                           "equity and liabilities"),),
         "cash_flow": (("operating activities",), ("financing activities",)),
     }
 
@@ -474,9 +597,9 @@ class StatementReader:
         r"(statement of |statements of |income statement|balance sheet|"
         r"قائمة )", re.I)
 
-    def _heading_statement(self, page, words) -> str | None:
+    def _heading_statement(self, page, words, page_text: str | None = None) -> str | None:
         top = (page.rect.height or 1000) * 0.42
-        page_text = page.get_text().lower()
+        page_text = (page.get_text() if page_text is None else page_text).lower()
         for row in _rows([w for w in words if w[1] < top]):
             text = " ".join(w[4] for w in row).lower().strip()
             # Investor releases often print a small section number immediately

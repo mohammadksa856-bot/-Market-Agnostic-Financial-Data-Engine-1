@@ -13,7 +13,8 @@ reader = ["pymupdf>=1.24"]
 browser = ["playwright>=1.40"]
 llm = ["anthropic>=0.40", "pymupdf>=1.24"]
 xlsx = ["openpyxl>=3.1"]
-agents = ["pymupdf>=1.24", "playwright>=1.40", "anthropic>=0.40", "openpyxl>=3.1"]
+ocr = ["rapidocr>=3.9", "onnxruntime>=1.20"]
+agents = ["pymupdf>=1.24", "playwright>=1.40", "anthropic>=0.40", "openpyxl>=3.1", "rapidocr>=3.9", "onnxruntime>=1.20"]
 
 [project.scripts]
 finengine = "finengine.cli:main"

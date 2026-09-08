@@ -12,6 +12,25 @@ except ImportError:  # pragma: no cover
 from finengine.verification import ManifestVerifier
 
 
+class OcrGeometryTests(unittest.TestCase):
+    def test_ocr_line_is_split_into_coordinate_words(self):
+        from finengine.reading import StatementReader
+
+        words = StatementReader._split_ocr_line(
+            [[150, 30], [300, 30], [300, 60], [150, 60]],
+            "30 Jun 2026", 1.5, 4,
+        )
+        self.assertEqual([word[4] for word in words], ["30", "Jun", "2026"])
+        self.assertLess(words[0][0], words[-1][0])
+
+    def test_ocr_currency_glyph_does_not_hide_thousands_scale(self):
+        from finengine.reading import StatementReader
+
+        self.assertEqual(StatementReader._scale(
+            "All amounts in # thousands unless otherwise stated"
+        ), 1000)
+
+
 def _statement_pdf(path: Path) -> None:
     doc = pymupdf.open()
     page = doc.new_page(width=595, height=842)
