@@ -43,6 +43,20 @@ class CenomiRetailManifestTests(unittest.TestCase):
         self.assertGreater(report["passed"], 14)
 
 
+class OthaimAndBinDawoodManifestTests(unittest.TestCase):
+    def test_al_othaim_manifest_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("al-othaim-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 18)
+
+    def test_bindawood_manifest_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("bindawood-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 18)
+
+
 class JarirSnapshotTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -178,6 +192,30 @@ class JarirSnapshotTests(unittest.TestCase):
             q.close()
         self.assertEqual(cont + disc, net)
         self.assertEqual(net, Decimal("-496741735"))
+
+    def test_al_othaim_and_bindawood_publish_and_reconcile(self):
+        for symbol, revenue, net_income, assets in (
+            ("4001", "11088796665", "262685255", "7690752689"),
+            ("4161", "6347958607", "270043256", "6141046945"),
+        ):
+            rows = [r for r in self.summary["results"]
+                    if r["company_id"] == f"sa:{symbol}"]
+            self.assertTrue(rows, symbol)
+            for row in rows:
+                self.assertIn(row["status"], {"published", "duplicate"}, row)
+            q = FinancialQueryService(self.dbpath)
+            try:
+                rev = _value(q.metric_history("SA", symbol, "revenue"), "2025-12-31")
+                ni = _value(q.metric_history("SA", symbol, "net_income"), "2025-12-31")
+                ta = _value(q.metric_history("SA", symbol, "total_assets"), "2025-12-31")
+                tl = _value(q.metric_history("SA", symbol, "total_liabilities"), "2025-12-31")
+                te = _value(q.metric_history("SA", symbol, "total_equity"), "2025-12-31")
+            finally:
+                q.close()
+            self.assertEqual(rev, Decimal(revenue), symbol)
+            self.assertEqual(ni, Decimal(net_income), symbol)
+            self.assertEqual(ta, Decimal(assets), symbol)
+            self.assertEqual(ta, tl + te, symbol)
 
 
 def _value(history, period_end):

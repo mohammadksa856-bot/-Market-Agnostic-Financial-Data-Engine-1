@@ -11,6 +11,8 @@ third-party data vendors. No engine or catalog changes.
 | 4190 | Jarir Marketing Company | `data/imports/jarir-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF |
 | 4003 | United Electronics Company (eXtra) | `data/imports/extra-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF (PwC) |
 | 4240 | AFG International Company (Cenomi Retail) | `data/imports/cenomi-retail-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF (BDO, going-concern paragraph) |
+| 4001 | Abdullah Al-Othaim Markets Company | `data/imports/al-othaim-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF (EY) |
+| 4161 | BinDawood Holding Company | `data/imports/bindawood-2025-fy.json` | enabled, published | Saudi Exchange company-profile "Financial Statements" tab → full audited consolidated FS PDF (KPMG) |
 
 ## Source and archive
 
@@ -19,8 +21,10 @@ third-party data vendors. No engine or catalog changes.
 | 4190 | `https://www.saudiexchange.sa/Resources/fsPdf/454_0_2026-03-31_11-52-35_En.pdf` | `7c1e35764a96d4d66cc748468d4608d9e4d2b13ff159e990596948c6e9ce2f36` | `data/raw/SA/4190/documents/7c1e3576…pdf` |
 | 4003 | `https://www.saudiexchange.sa/Resources/fsPdf/434_0_2026-02-18_11-09-38_En.pdf` | `99fc44596d81650a9184561b09a3df278afb66803b712723c573971f6bef25ea` | `data/raw/SA/4003/documents/99fc4459…pdf` |
 | 4240 | `https://www.saudiexchange.sa/Resources/fsPdf/459_0_2026-03-16_23-59-34_En.pdf` | `6e44c326312ed8400b19c82643fefbe91bbd2124963db285edfa7e0b809df04f` | `data/raw/SA/4240/documents/6e44c326…pdf` |
+| 4001 | `https://www.saudiexchange.sa/Resources/fsPdf/432_0_2026-03-30_18-04-51_En.pdf` | `189024cada46cd3ade0fee976c78cde492d629e802624218e17e7144d1774ec8` | `data/raw/SA/4001/documents/189024ca…pdf` |
+| 4161 | `https://www.saudiexchange.sa/Resources/fsPdf/1821_0_2026-03-18_15-07-17_En.pdf` | `30816e63a89d93f7e2f547b634ca3eea33eb36d0ea04bb7be232a081258f90ff` | `data/raw/SA/4161/documents/30816e63…pdf` |
 
-Registered in `data/raw/archive-index.json` (Jarir 2,152,108 bytes; eXtra 4,794,977 bytes; Cenomi 2,919,763 bytes; all `application/pdf`).
+Registered in `data/raw/archive-index.json` (Jarir 2.15 MB; eXtra 4.79 MB; Cenomi 2.92 MB; Al-Othaim 4.05 MB; BinDawood 1.99 MB; all `application/pdf`).
 
 ### How the audited FS was retrieved
 
@@ -32,6 +36,30 @@ Report" row (board annual report) and the Q1–Q4 rows (interim). The portlet on
 renders through the site's own search flow (from a residential IP), so the tab
 was opened in the browser and the `fsPdf` link scraped; the PDF itself is then a
 plain static resource fetchable by URL. Issuer codes: Jarir 454, eXtra 434.
+
+* **Al-Othaim Markets (4001):** grocery retailer, audited consolidated FS, **EY**
+  auditor. Board approved 26 Ramadan 1447H / **15 March 2026** (`filed_at`).
+  Auditor's report is digital text; the five primary statements (printed pages
+  7–11) are scanned images; notes digital text. **Full SAR** (`scale` 1).
+  `income_taxes_and_zakat` is the net zakat/tax effect: FY2025 −11.1m; FY2024 is
+  "Zakat and foreign tax" −17.1m net of a +17.7m prior-year reversal, i.e. a net
+  +0.6m credit (which trips the effective-tax bound as a warn — expected).
+  `operating_income` is the reported "Operating profit"; `rental_income` is
+  "Rental income, net" (Al-Othaim sublets space in its malls). `long_term_debt`
+  is nil; `current_debt` is "Short term loans". `long_term_investments` bundles
+  the three financial-asset lines (amortised cost / FVIS / FVOCI).
+
+* **BinDawood Holding (4161):** grocery retailer (BinDawood + Danube), audited
+  consolidated FS, **KPMG** auditor. Board approved 20 Ramadan 1447H /
+  **9 March 2026** (`filed_at`). All five primary statements (printed pages 5–12)
+  are scanned images; notes digital text. **Full SAR** (`scale` 1). FY2025 was a
+  heavy acquisition year — `intangible_assets` (combined "Intangible assets and
+  goodwill") stepped up SAR 336m, the group took on `long_term_debt` /
+  `current_debt` ("Bank borrowings", both new) to fund it, and NCI jumped as
+  subsidiaries were acquired with minority holders; net income was roughly flat
+  (SAR 270m, EPS 0.24). `bonds_sukuk` is the "Compulsory convertible debentures";
+  `related_party_payables` is "Due to related parties"; `other_operating_revenue`
+  and `other_income` are the two separate other-income lines.
 
 * **Cenomi Retail / AFG International (4240):** audited consolidated FS, **BDO**
   auditor. The name changed from Fawaz Abdulaziz Al Hokair & Co. to AFG
@@ -117,11 +145,12 @@ plain static resource fetchable by URL. Issuer codes: Jarir 454, eXtra 434.
 
 ## Verification
 
-`finengine verify jarir` → 20 pass / 0 warn / 0 fail; `finengine verify extra` →
-24 pass / 0 warn / 0 fail; `finengine verify cenomi-retail` → 18 pass / 0 warn /
-0 fail. No unmapped labels. Bootstrap publishes 193 (Jarir) + 219 (eXtra) + ~150
-(Cenomi) data points with no pipeline errors. All balance-sheet identities, the
-P&L bridge, the profit-to-tax bridge, the continuing/discontinued split,
+`finengine verify` per issuer: jarir 20/0/0, extra 24/0/0, cenomi-retail 18/0/0,
+al-othaim 23/1/0 (the one warn is FY2024's positive effective-tax ratio from the
+prior-year zakat reversal), bindawood 24/0/0. No unmapped labels. Bootstrap
+publishes 193 (Jarir) + 219 (eXtra) + ~150 (Cenomi) + 218 (Al-Othaim) + 211
+(BinDawood) data points with no pipeline errors. All balance-sheet identities,
+the P&L bridge, the profit-to-tax bridge, the continuing/discontinued split,
 gross-profit identity and the cash-flow reconciliation hold exactly.
 
 ### Engine change (for integration review)
@@ -146,9 +175,13 @@ Tests: `tests/test_retail_sector.py`.
 
 ## Unresolved fields
 
-* **Al Othaim Markets (4001), BinDawood Holding (4161), Nice One (4193),
-  Fitaihi (4180), SACO (4008)** — follow-up batches from the same Saudi Exchange
-  company-profile FS tab (audited FS PDFs already archived for 4001 / 4161).
+* **Nice One (4193), Fitaihi (4180), SACO (4008), Alsaif Gallery (4183),
+  Thob Al Aseel (4180…)** — follow-up batches from the same Saudi Exchange
+  company-profile FS tab.
+* **Al-Othaim / BinDawood** — store count, selling area, like-for-like sales and
+  e-commerce share are in the board report, not the audited FS. `long_term_debt`
+  omitted for Al-Othaim (nil). BinDawood's acquisition-driven goodwill detail is
+  in the notes, not carried as facts.
 * **Cenomi (4240)** — segment revenue by concept, store count and gross leasable
   area are in the board report, not the audited FS. `income_before_income_taxes_and_zakat`
   is intentionally omitted (see the mapping note above). EBITDA / net debt are
