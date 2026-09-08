@@ -31,6 +31,12 @@ ADDITIVE_IDENTITIES = (
     ("income_statement: pre-tax income - tax = net income",
      "net_income",
      ("income_before_income_taxes_and_zakat", "income_taxes_and_zakat")),
+    # IFRS 5: profit/loss from discontinued operations is presented net, below the
+    # continuing-operations result. When an issuer discloses the split this ties
+    # net income back to the two lines; dormant for issuers with no disposal.
+    ("income_statement: net income = continuing + discontinued operations",
+     "net_income",
+     ("continuing_operations_income", "discontinued_operations_income")),
     ("income_statement: net income = owners + non-controlling",
      "net_income",
      ("net_income_parent", "net_income_noncontrolling")),
