@@ -21,6 +21,7 @@ import re
 from datetime import date
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
+from urllib.request import Request, urlopen
 
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
@@ -46,6 +47,45 @@ def _validate_document_bytes(content: bytes, url: str, content_type: str) -> Non
         raise RuntimeError(f"downloaded content is not a PDF: {url}")
     if content_type == _XLSX_CONTENT_TYPE and not content.startswith(b"PK\x03\x04"):
         raise RuntimeError(f"downloaded content is not an XLSX workbook: {url}")
+
+
+def _request_document_bytes(context, url: str, referer: str | None = None,
+                            timeout_ms: int = 60000) -> bytes:
+    """Download through Playwright's cookie-sharing request context.
+
+    Some issuer pages allow the document itself but block an in-page ``fetch``
+    with CORS.  ``BrowserContext.request`` shares the browser cookie jar without
+    being subject to page CORS, so it is the safe second path after visiting the
+    official referer.
+    """
+    options = {"timeout": timeout_ms}
+    if referer:
+        options["headers"] = {"Referer": referer}
+    response = context.request.get(url, **options)
+    if not response.ok:
+        raise RuntimeError(f"fetch failed: HTTP {response.status} for {url}")
+    return response.body()
+
+
+def _direct_document_bytes(url: str, referer: str | None = None,
+                           timeout_seconds: float = 60, opener=urlopen,
+                           max_bytes: int = 100 * 1024 * 1024) -> bytes:
+    """Bounded ordinary-HTTP fallback for issuer CDNs with inverted bot rules."""
+    headers = {"User-Agent": "MarketAgnosticFinancialDataEngine/0.6"}
+    if referer:
+        headers["Referer"] = referer
+    request = Request(url, headers=headers)
+    chunks, total = [], 0
+    with opener(request, timeout=timeout_seconds) as response:
+        while True:
+            chunk = response.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"document exceeded {max_bytes} bytes")
+            chunks.append(chunk)
+    return b"".join(chunks)
 
 
 def _published_at_from_url(url: str) -> str | None:
@@ -282,6 +322,9 @@ class BrowserFetcher:
         `DocumentArchiver` plugs in as its `content_fetcher` for sites a plain
         HTTP client can't pass. Validates the expected filing signature."""
         import contextlib
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or not parsed.hostname:
+            raise ValueError("document URL must be HTTPS")
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
             # a real navigation first sets cookies some CDNs require for the asset
@@ -297,6 +340,7 @@ class BrowserFetcher:
                 # Saudi Exchange rejects API-context requests even with a Referer,
                 # but accepts the browser document's cookies and fetch metadata.
                 response = None
+                page_error = None
                 for attempt in range(3):
                     try:
                         with page.expect_response(lambda item: item.url == url,
@@ -308,20 +352,38 @@ class BrowserFetcher:
                         response = response_info.value
                         break
                     except Exception as error:
+                        page_error = error
                         if (attempt == 2 or
                                 "execution context was destroyed" not in str(error).lower()):
-                            raise
+                            break
                         page.wait_for_timeout(1000)
-                if response is None:  # defensive: the loop either succeeds or raises
-                    raise RuntimeError(f"fetch produced no response for {url}")
-                if status < 200 or status >= 300:
-                    raise RuntimeError(f"fetch failed: HTTP {status} for {url}")
-                content = response.body()
+                if response is not None and 200 <= status < 300:
+                    content = response.body()
+                else:
+                    try:
+                        content = _request_document_bytes(
+                            context, url, referer, self.timeout_ms
+                        )
+                    except Exception as request_error:
+                        try:
+                            # A few issuer CDNs reject browser-shaped requests
+                            # while allowing a conventional document client. This
+                            # final bounded path is still limited to the exact URL
+                            # selected from the official monitored page.
+                            content = _direct_document_bytes(
+                                url, referer, self.timeout_ms / 1000
+                            )
+                        except Exception as direct_error:
+                            detail = (f"; browser page fetch: {page_error}"
+                                      if page_error is not None else "")
+                            raise RuntimeError(
+                                f"all document download paths failed for {url}{detail}; "
+                                f"request context: {request_error}; direct: {direct_error}"
+                            ) from direct_error
             else:
-                response = context.request.get(url, timeout=self.timeout_ms)
-                if not response.ok:
-                    raise RuntimeError(f"fetch failed: HTTP {response.status} for {url}")
-                content = response.body()
+                content = _request_document_bytes(
+                    context, url, timeout_ms=self.timeout_ms
+                )
         _validate_document_bytes(content, url, content_type)
         return content
 

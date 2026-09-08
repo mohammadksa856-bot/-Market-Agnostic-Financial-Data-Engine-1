@@ -233,6 +233,13 @@ Examples:
     GET /v1/dimensions
     GET /v1/universe?market=SA&limit=100
     GET /v1/universe/status
+    GET /v1/universe/inventory?market=SA&limit=100&offset=0
+
+The inventory endpoint deliberately separates exchange membership from product
+coverage. Each security reports whether it is merely discovered, staged, enabled
+but awaiting data, blocked by exceptions, or actively publishing, together with
+its schedule, archived-source count, current fact count, latest period, backlog,
+and completeness score.
     GET /v1/exceptions?status=open
 
 `/page` is the stable website/Telegram contract. It separates FY, quarter, YTD,

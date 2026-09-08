@@ -73,6 +73,11 @@ class ServiceTests(unittest.TestCase):
                             headers={"X-API-Key":"secret"})
             dimensions=json.loads(urlopen(request).read())
             self.assertIn("segment",{item["dimension_key"] for item in dimensions})
+            request=Request(f"http://127.0.0.1:{port}/v1/universe/inventory?market=SA",
+                            headers={"X-API-Key":"secret"})
+            inventory=json.loads(urlopen(request).read())
+            self.assertEqual(inventory["coverage_warning"],
+                             "inventory_membership_is_not_product_coverage")
             request=Request(f"http://127.0.0.1:{port}/health",data=b"{}",method="POST",
                             headers={"X-API-Key":"secret"})
             with self.assertRaises(HTTPError) as readonly: urlopen(request)

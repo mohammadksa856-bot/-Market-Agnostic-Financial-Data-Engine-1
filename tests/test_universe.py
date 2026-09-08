@@ -143,6 +143,19 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM schedules WHERE enabled=1").fetchone()[0], 1)
 
+        query = FinancialQueryService(str(self.db_path))
+        try:
+            inventory = query.universe_rollout("US")
+        finally:
+            query.close()
+        self.assertEqual(inventory["total"], 1)
+        self.assertEqual(inventory["coverage_warning"],
+                         "inventory_membership_is_not_product_coverage")
+        operations = inventory["items"][0]["operations"]
+        self.assertEqual(operations["readiness_state"], "enabled_awaiting_data")
+        self.assertEqual(operations["schedule_id"], "monitor:US:AAPL")
+        self.assertEqual(operations["published_points"], 0)
+
     def test_enabled_saudi_activation_schedules_official_profile_source(self):
         profile_url = "https://www.saudiexchange.sa/company/2010"
         source = self.root / "saudi.json"

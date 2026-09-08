@@ -555,6 +555,98 @@ class FinancialQueryService:
             item["selection"] = json.loads(item.pop("selection_json"))
         return {"markets": markets, "snapshots": snapshots, "activation_batches": activations}
 
+    def universe_rollout(self, market: str | None = None, limit: int = 100,
+                         offset: int = 0) -> dict:
+        """Expose honest per-security ingestion readiness for rollout operators.
+
+        Universe membership alone must not be confused with populated product
+        coverage.  This inventory joins discovery, activation, scheduling,
+        archives, published facts, validation exceptions, and completeness while
+        keeping inactive/delisted securities out of the default response.
+        """
+        limit = min(max(limit, 1), 500)
+        offset = max(offset, 0)
+        market = market.upper() if market else None
+        items = self.universe(market, limit, offset)
+        states: dict[str, int] = {}
+        for item in items:
+            company = self.conn.execute(
+                "SELECT company_id,enabled FROM companies WHERE market=? AND symbol=?",
+                (item["market"], item["symbol"]),
+            ).fetchone()
+            activation = self.conn.execute(
+                "SELECT status,schedule_id,error FROM universe_activations WHERE issuer_id=?",
+                (item["issuer_id"],),
+            ).fetchone()
+            profile = self.conn.execute(
+                """SELECT eligibility_status,eligibility_reason,observed_at
+                FROM universe_issuer_profiles WHERE issuer_id=?""",
+                (item["issuer_id"],),
+            ).fetchone()
+            operational = {
+                "registered": bool(company), "enabled": bool(company and company["enabled"]),
+                "activation_status": activation["status"] if activation else None,
+                "schedule_id": activation["schedule_id"] if activation else None,
+                "activation_error": activation["error"] if activation else None,
+                "eligibility": dict(profile) if profile else None,
+                "archived_sources": 0, "published_points": 0,
+                "latest_period_end": None, "open_exceptions": 0,
+                "open_backlog": 0, "completeness_score": None,
+            }
+            if company:
+                company_id = company["company_id"]
+                counts = self.conn.execute(
+                    """SELECT
+                    (SELECT count(*) FROM source_documents WHERE company_id=?) AS sources,
+                    (SELECT count(*) FROM data_points WHERE company_id=? AND is_current=1) AS points,
+                    (SELECT max(period_end) FROM data_points WHERE company_id=? AND is_current=1) AS latest,
+                    (SELECT count(*) FROM exceptions WHERE company_id=? AND status='open') AS exceptions,
+                    (SELECT count(*) FROM backlog_items WHERE company_id=?
+                     AND status IN ('open','ready','in_progress','blocked')) AS backlog""",
+                    (company_id,) * 5,
+                ).fetchone()
+                expected, populated = self.conn.execute(
+                    """SELECT COALESCE(sum(expected_fields),0),COALESCE(sum(populated_fields),0)
+                    FROM company_completeness WHERE company_id=?""", (company_id,),
+                ).fetchone()
+                operational.update({
+                    "archived_sources": counts["sources"],
+                    "published_points": counts["points"],
+                    "latest_period_end": counts["latest"],
+                    "open_exceptions": counts["exceptions"],
+                    "open_backlog": counts["backlog"],
+                    "completeness_score": (str(Decimal(populated) / Decimal(expected))
+                                           if expected else None),
+                })
+            if not company:
+                state = "inventory_only"
+            elif profile and profile["eligibility_status"] == "excluded":
+                state = "excluded"
+            elif profile and profile["eligibility_status"] == "review":
+                state = "needs_review"
+            elif not company["enabled"]:
+                state = "staged"
+            elif operational["open_exceptions"]:
+                state = "enabled_with_exceptions"
+            elif not operational["published_points"]:
+                state = "enabled_awaiting_data"
+            else:
+                state = "publishing"
+            operational["readiness_state"] = state
+            states[state] = states.get(state, 0) + 1
+            item["operations"] = operational
+        filters = ["i.active=1", "s.active=1"]
+        args: list = []
+        if market:
+            filters.append("i.market=?"); args.append(market)
+        total = self.conn.execute(
+            """SELECT count(*) FROM issuer_universe i JOIN security_universe s USING(issuer_id)
+            WHERE """ + " AND ".join(filters), args,
+        ).fetchone()[0]
+        return {"market": market, "total": total, "limit": limit, "offset": offset,
+                "returned": len(items), "page_states": states, "items": items,
+                "coverage_warning": "inventory_membership_is_not_product_coverage"}
+
     def completeness(self, market: str, symbol: str) -> dict:
         company=self.conn.execute(
             "SELECT company_id FROM companies WHERE market=? AND symbol=?",(market.upper(),symbol.upper())).fetchone()

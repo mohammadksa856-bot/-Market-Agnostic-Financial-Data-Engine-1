@@ -2,7 +2,8 @@ import unittest
 
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
-    _published_at_from_url, _saudi_financial_announcement_links, _slug,
+    _direct_document_bytes, _published_at_from_url, _request_document_bytes,
+    _saudi_financial_announcement_links, _slug,
     _validate_document_bytes,
 )
 from finengine.models import Company, Market
@@ -104,6 +105,66 @@ class FetchAgentUnitTests(unittest.TestCase):
             "2026-07-29",
         )
         self.assertIsNone(_published_at_from_url("https://issuer.example/Q2-2026.xlsx"))
+
+    def test_request_context_download_preserves_official_referer(self):
+        class Response:
+            ok = True
+            status = 200
+            def body(self): return b"%PDF-test"
+
+        class Request:
+            def __init__(self): self.call = None
+            def get(self, url, **kwargs):
+                self.call = (url, kwargs)
+                return Response()
+
+        class Context:
+            request = Request()
+
+        context = Context()
+        content = _request_document_bytes(
+            context, "https://issuer.example/report.pdf",
+            "https://issuer.example/investors",
+        )
+        self.assertEqual(content, b"%PDF-test")
+        self.assertEqual(context.request.call, (
+            "https://issuer.example/report.pdf",
+            {"headers": {"Referer": "https://issuer.example/investors"},
+             "timeout": 60000},
+        ))
+
+    def test_browser_download_rejects_non_https_urls_before_launch(self):
+        with self.assertRaisesRegex(ValueError, "HTTPS"):
+            BrowserFetcher().download_bytes("http://issuer.example/report.pdf")
+
+    def test_direct_fallback_is_bounded_and_preserves_provenance(self):
+        class Response:
+            def __init__(self): self.parts = [b"%PDF", b"-test", b""]
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def read(self, _size): return self.parts.pop(0)
+
+        observed = {}
+        def opener(request, **kwargs):
+            observed["url"] = request.full_url
+            observed["headers"] = dict(request.header_items())
+            observed["timeout"] = kwargs["timeout"]
+            return Response()
+
+        content = _direct_document_bytes(
+            "https://issuer.example/report.pdf",
+            "https://issuer.example/investors", 12, opener, 20,
+        )
+        self.assertEqual(content, b"%PDF-test")
+        self.assertEqual(observed["timeout"], 12)
+        self.assertEqual(observed["headers"]["Referer"],
+                         "https://issuer.example/investors")
+        self.assertIn("MarketAgnostic", observed["headers"]["User-agent"])
+
+        with self.assertRaisesRegex(ValueError, "exceeded"):
+            _direct_document_bytes(
+                "https://issuer.example/report.pdf", opener=opener, max_bytes=4
+            )
 
 
 if __name__ == "__main__":
