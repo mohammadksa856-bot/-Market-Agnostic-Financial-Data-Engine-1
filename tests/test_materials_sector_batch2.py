@@ -1,9 +1,12 @@
 """Acceptance tests for the Saudi materials / petrochemicals data batch 2.
 
-Covers SABIC Agri-Nutrients (2020) and SIPCHEM (2310), transcribed from their
-official FY2025 audited consolidated financial statements (the full audited PDFs
-linked on the Saudi Exchange company-profile "Financial Statements" tab). This
-batch also carries one flagged engine change to bootstrap._manifest_company.
+Covers SABIC Agri-Nutrients (2020), SIPCHEM (2310), Saudi Kayan (2350), Petro
+Rabigh (2380) and Tasnee / National Industrialization (2060), transcribed from
+their official FY2025 audited financial statements (the full audited PDFs linked
+on the Saudi Exchange company-profile "Financial Statements" tab). This batch
+also carries two flagged engine changes: bootstrap._manifest_company (name-token
+preference) and a verification.py ADDITIVE_IDENTITIES entry for the IFRS 5
+`net income = continuing + discontinued operations` bridge (needed by Tasnee).
 """
 
 import tempfile
@@ -38,6 +41,31 @@ class MaterialsBatch2ManifestTests(unittest.TestCase):
         self.assertEqual(report["unmapped_labels"], [])
         self.assertGreater(report["passed"], 14)
 
+    def test_petro_rabigh_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("petro-rabigh-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 14)
+
+    def test_tasnee_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("tasnee-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 12)
+
+    def test_tasnee_ifrs5_continuing_plus_discontinued_bridge_fires(self):
+        # The manifest drops income_before_income_taxes_and_zakat and relies on the
+        # net income = continuing + discontinued identity (flagged verification.py
+        # change). Confirm that check runs and passes for both periods.
+        report = ManifestVerifier(REPO_IMPORTS).verify("tasnee-")
+        rows = [
+            c for c in report["detail"]
+            if c["check"] == "income_statement: net income = continuing + discontinued operations"
+        ]
+        self.assertEqual(len(rows), 2, report["detail"])
+        for row in rows:
+            self.assertEqual(row["status"], "pass", row)
+
 
 class MaterialsBatch2SnapshotTests(unittest.TestCase):
     @classmethod
@@ -56,8 +84,8 @@ class MaterialsBatch2SnapshotTests(unittest.TestCase):
     def tearDownClass(cls):
         cls._tmp.cleanup()
 
-    def test_both_publish_without_errors(self):
-        for cid in ("sa:2020", "sa:2310"):
+    def test_all_publish_without_errors(self):
+        for cid in ("sa:2020", "sa:2310", "sa:2350", "sa:2380", "sa:2060"):
             rows = [r for r in self.summary["results"] if r["company_id"] == cid]
             self.assertTrue(rows, cid)
             for row in rows:
@@ -111,6 +139,40 @@ class MaterialsBatch2SnapshotTests(unittest.TestCase):
         self.assertEqual(ni, Decimal("-2293883000"))
         self.assertLess(gp, 0)  # gross LOSS - cost of sales exceeded revenue
         self.assertEqual(ta, tl + te)
+
+    def test_petro_rabigh_loss_and_balance_sheet(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            ni = _v(q.metric_history("SA", "2380", "net_income"), "2025-12-31")
+            gp = _v(q.metric_history("SA", "2380", "gross_profit"), "2025-12-31")
+            ta = _v(q.metric_history("SA", "2380", "total_assets"), "2025-12-31")
+            tl = _v(q.metric_history("SA", "2380", "total_liabilities"), "2025-12-31")
+            te = _v(q.metric_history("SA", "2380", "total_equity"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertEqual(ni, Decimal("-3898704000"))
+        self.assertLess(gp, 0)  # gross LOSS
+        self.assertEqual(ta, tl + te)
+
+    def test_tasnee_ifrs5_loss_and_balance_sheet(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            ni = _v(q.metric_history("SA", "2060", "net_income"), "2025-12-31")
+            cont = _v(q.metric_history("SA", "2060", "continuing_operations_income"), "2025-12-31")
+            disc = _v(q.metric_history("SA", "2060", "discontinued_operations_income"), "2025-12-31")
+            nip = _v(q.metric_history("SA", "2060", "net_income_parent"), "2025-12-31")
+            nin = _v(q.metric_history("SA", "2060", "net_income_noncontrolling"), "2025-12-31")
+            ta = _v(q.metric_history("SA", "2060", "total_assets"), "2025-12-31")
+            tl = _v(q.metric_history("SA", "2060", "total_liabilities"), "2025-12-31")
+            te = _v(q.metric_history("SA", "2060", "total_equity"), "2025-12-31")
+            hfs = _v(q.metric_history("SA", "2060", "assets_held_for_sale"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertEqual(ni, Decimal("-1466168000"))
+        self.assertEqual(cont + disc, ni)          # IFRS 5 bridge
+        self.assertEqual(nip + nin, ni)            # owners + NCI
+        self.assertEqual(ta, tl + te)              # IFRS 5: no non-current subtotals
+        self.assertEqual(hfs, Decimal("1102343000"))
 
 
 def _v(history, period_end):
