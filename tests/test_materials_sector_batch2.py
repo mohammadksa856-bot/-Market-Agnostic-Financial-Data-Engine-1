@@ -32,6 +32,12 @@ class MaterialsBatch2ManifestTests(unittest.TestCase):
         self.assertEqual(report["unmapped_labels"], [])
         self.assertGreater(report["passed"], 18)
 
+    def test_saudi_kayan_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("saudi-kayan-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 14)
+
 
 class MaterialsBatch2SnapshotTests(unittest.TestCase):
     @classmethod
@@ -87,6 +93,24 @@ class MaterialsBatch2SnapshotTests(unittest.TestCase):
             q.close()
         self.assertEqual(ni, Decimal("-772434000"))
         self.assertGreater(ni_prev, 0)
+
+    def test_saudi_kayan_loss_and_balance_sheet(self):
+        rows = [r for r in self.summary["results"] if r["company_id"] == "sa:2350"]
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertIn(row["status"], {"published", "duplicate"}, row)
+        q = FinancialQueryService(self.dbpath)
+        try:
+            ni = _v(q.metric_history("SA", "2350", "net_income"), "2025-12-31")
+            gp = _v(q.metric_history("SA", "2350", "gross_profit"), "2025-12-31")
+            ta = _v(q.metric_history("SA", "2350", "total_assets"), "2025-12-31")
+            tl = _v(q.metric_history("SA", "2350", "total_liabilities"), "2025-12-31")
+            te = _v(q.metric_history("SA", "2350", "total_equity"), "2025-12-31")
+        finally:
+            q.close()
+        self.assertEqual(ni, Decimal("-2293883000"))
+        self.assertLess(gp, 0)  # gross LOSS - cost of sales exceeded revenue
+        self.assertEqual(ta, tl + te)
 
 
 def _v(history, period_end):
