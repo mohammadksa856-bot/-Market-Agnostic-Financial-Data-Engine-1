@@ -75,7 +75,9 @@ def create_portable_bundle(
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     target = destination_dir / f"financial-bundle-{stamp}.zip"
     partial = target.with_suffix(".zip.part")
-    files: dict[Path, dict] = {}
+    # Content-address the archive entries. The same immutable artifact may be
+    # referenced from more than one table/path; ZIP members must be written once.
+    files: dict[str, dict] = {}
     tables = (
         ("source_documents", "source_key", "local_path", "content_hash"),
         ("source_artifacts", "artifact_key", "local_path", "content_hash"),
@@ -98,11 +100,14 @@ def create_portable_bundle(
                 digest = hashlib.sha256(absolute.read_bytes()).hexdigest()
                 if digest != row["content_hash"]:
                     raise ValueError(f"bundle source hash mismatch: {row['identity']}")
-                entry = files.setdefault(absolute, {
+                bundle_path = f"files/{digest}{absolute.suffix.lower()}"
+                entry = files.setdefault(bundle_path, {
                     "content_hash": digest, "bytes": absolute.stat().st_size,
-                    "bundle_path": f"files/{digest}{absolute.suffix.lower()}",
-                    "original_path": str(path), "references": [],
+                    "bundle_path": bundle_path, "original_path": str(path),
+                    "original_paths": [], "references": [], "_absolute": absolute,
                 })
+                if str(path) not in entry["original_paths"]:
+                    entry["original_paths"].append(str(path))
                 entry["references"].append({"table": table, "identity": row["identity"]})
     finally:
         conn.close()
@@ -114,19 +119,23 @@ def create_portable_bundle(
                 if backup_db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                     raise RuntimeError("bundle database integrity check failed")
         database_hash = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+        manifest_files = [
+            {key: value for key, value in item.items() if key != "_absolute"}
+            for item in files.values()
+        ]
         manifest = {
             "format": "finengine-portable-bundle-v1",
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "database": {"bundle_path": "database/financial.sqlite3",
                          "content_hash": database_hash, "bytes": snapshot.stat().st_size},
-            "files": sorted(files.values(), key=lambda item: item["bundle_path"]),
+            "files": sorted(manifest_files, key=lambda item: item["bundle_path"]),
         }
         manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode()
         with zipfile.ZipFile(partial, "w", compression=zipfile.ZIP_DEFLATED,
                              compresslevel=6) as archive:
             archive.write(snapshot, "database/financial.sqlite3")
-            for absolute, item in files.items():
-                archive.write(absolute, item["bundle_path"])
+            for item in files.values():
+                archive.write(item["_absolute"], item["bundle_path"])
             archive.writestr("manifest.json", manifest_bytes)
         partial.replace(target)
     verification = verify_portable_bundle(target)

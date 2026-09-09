@@ -3,6 +3,7 @@ import json
 import tempfile
 import threading
 import unittest
+import zipfile
 from decimal import Decimal
 from pathlib import Path
 from urllib.error import HTTPError
@@ -139,6 +140,26 @@ class ServiceTests(unittest.TestCase):
         verified=verify_portable_bundle(result["bundle"])
         self.assertEqual(verified["format"],"finengine-portable-bundle-v1")
         self.assertGreater(verified["database_bytes"],0)
+
+    def test_portable_bundle_deduplicates_identical_artifact_content(self):
+        duplicate=Path(self.temp.name)/"duplicate.json"
+        duplicate.write_bytes(self.raw.read_bytes())
+        digest=hashlib.sha256(duplicate.read_bytes()).hexdigest()
+        db=Database(self.dbpath)
+        try:
+            db.save_source_artifact("artifact:test","sa:TST","https://example.test/artifact",
+                                    digest,str(duplicate),"application/json",
+                                    duplicate.stat().st_size)
+        finally:
+            db.close()
+        result=create_portable_bundle(self.dbpath,Path(self.temp.name)/"bundles",
+                                      self.temp.name,keep=1)
+        self.assertEqual(result["files"],1)
+        with zipfile.ZipFile(result["bundle"],"r") as archive:
+            members=archive.namelist()
+            self.assertEqual(len(members),len(set(members)))
+            manifest=json.loads(archive.read("manifest.json"))
+        self.assertEqual(len(manifest["files"][0]["original_paths"]),2)
 
     def test_production_schedule_configuration_is_idempotent(self):
         registry=Path(self.temp.name)/"companies.json"

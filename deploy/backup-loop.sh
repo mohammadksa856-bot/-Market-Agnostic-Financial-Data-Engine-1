@@ -38,8 +38,9 @@ PY
 
 while true; do
     result_file="$(mktemp)"
+    error_file="$(mktemp)"
     if finengine --db "$database" backup-bundle \
-        --output-dir "$output_dir" --project-root /app --keep "$keep" >"$result_file" 2>&1; then
+        --output-dir "$output_dir" --project-root /app --keep "$keep" >"$result_file" 2>"$error_file"; then
         if bundle_path="$(python - "$result_file" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
@@ -52,15 +53,15 @@ verify_portable_bundle(sys.argv[1])
 PY
         then
             write_status "ready" "portable bundle created and independently verified" "$bundle_path"
-            rm -f "$result_file"
+            rm -f "$result_file" "$error_file"
             sleep "$interval"
             continue
         fi
         detail="bundle verification failed"
     else
-        detail="$(tail -n 20 "$result_file" | tr '\n' ' ' | cut -c1-2000)"
+        detail="$(tail -n 20 "$error_file" | tr '\n' ' ' | cut -c1-2000)"
     fi
     write_status "failed" "$detail"
-    rm -f "$result_file"
+    rm -f "$result_file" "$error_file"
     sleep "$retry_delay"
 done

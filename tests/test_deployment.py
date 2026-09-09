@@ -69,6 +69,7 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("backup-status.json", worker)
         self.assertIn("FINENGINE_BACKUP_RETRY_SECONDS", worker)
         self.assertIn('sleep "$retry_delay"', worker)
+        self.assertIn('>"$result_file" 2>"$error_file"', worker)
         self.assertIn("backup-loop.sh", dockerfile)
         self.assertIn("backup-status.json", compose)
         self.assertIn("kill -0 1", compose)
