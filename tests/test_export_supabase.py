@@ -135,6 +135,28 @@ class UpsertTransportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             SupabaseExporter("db", "https://x.supabase.co", "", engine_version="x")
 
+    def test_opaque_secret_key_is_not_sent_as_a_bearer_jwt(self):
+        calls = []
+
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return b"[]"
+
+        def opener(request, timeout=None):
+            calls.append(request)
+            return _Resp()
+
+        exporter = SupabaseExporter(
+            "unused.sqlite3", "https://proj.supabase.co", "sb_secret_example",
+            engine_version="1.5.0", opener=opener,
+        )
+        exporter._upsert([flatten_fact(
+            _company(), _SOURCED_FACT, engine_version="1.5.0", synced_at="t",
+        )])
+        self.assertEqual(calls[0].headers["Apikey"], "sb_secret_example")
+        self.assertNotIn("Authorization", calls[0].headers)
+
 
 if __name__ == "__main__":
     unittest.main()

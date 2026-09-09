@@ -148,9 +148,13 @@ class SupabaseExporter:
     def _request(self, method: str, path: str, *, body: bytes | None = None, prefer: str = "") -> bytes:
         headers = {
             "apikey": self.service_key,
-            "Authorization": f"Bearer {self.service_key}",
             "Content-Type": "application/json",
         }
+        # Supabase's current sb_secret_/sb_publishable_ keys are opaque API
+        # keys, not JWTs, and must not be sent as Bearer tokens. Legacy
+        # service_role JWTs still require Authorization for compatibility.
+        if not self.service_key.startswith("sb_"):
+            headers["Authorization"] = f"Bearer {self.service_key}"
         if prefer:
             headers["Prefer"] = prefer
         request = urllib.request.Request(

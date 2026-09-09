@@ -680,8 +680,10 @@ def main():
                 print(json.dumps({"dry_run":True,"facts":len(rows),"companies":len(targets),"sample":rows[:3]},ensure_ascii=False,indent=2,default=str))
             return
         url=os.environ.get(a.url_env,"").strip(); key=os.environ.get(a.key_env,"").strip()
+        if not key and a.key_env == "SUPABASE_SERVICE_KEY":
+            key=os.environ.get("SUPABASE_SECRET_KEY","").strip()
         if not url: p.error(f"{a.url_env} is required (or use --sql-out)")
-        if not key: p.error(f"{a.key_env} is required (or use --sql-out)")
+        if not key: p.error(f"SUPABASE_SECRET_KEY or {a.key_env} is required (or use --sql-out)")
         exporter=SupabaseExporter(a.db,url,key,engine_version=__version__)
         results=[exporter.export(m,s,registry,prune=a.prune,batch=a.batch) for m,s in targets]
         print(json.dumps({"exported":results,"total_facts":sum(r["facts"] for r in results)},indent=2)); return

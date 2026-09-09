@@ -7,7 +7,9 @@ create table if not exists public.financial_facts (
     category text,
     statement text,
     period_end date not null,
-    period_kind text not null check (period_kind in ('instant', 'quarter', 'ytd', 'fy', 'ttm')),
+    period_kind text not null check (period_kind in (
+        'instant', 'quarter', 'ytd', 'fy', 'ttm', 'as_of', 'daily', 'event'
+    )),
     fiscal_year integer,
     fiscal_quarter integer check (fiscal_quarter between 1 and 4),
     scope text not null default 'consolidated',

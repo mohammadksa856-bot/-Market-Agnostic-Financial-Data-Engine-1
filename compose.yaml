@@ -82,6 +82,7 @@ services:
         required: false
     environment:
       SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
       FINENGINE_SUPABASE_SYNC_SECONDS: ${FINENGINE_SUPABASE_SYNC_SECONDS:-300}
       FINENGINE_DB: /app/state/financial.sqlite3

@@ -252,14 +252,14 @@ When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Beare
 `export-supabase` is the one-way bridge from the engine's SQLite production store to a flat `financial_facts` table the website and Telegram bot read. It upserts the engine's *current* facts - the same rows `finengine facts` returns - carrying every provenance column per row: official source URL, archived SHA-256, the raw extracted label and value, mapping confidence, and, for derived rows, the deterministic formula. It is additive and never touches the application's own tables.
 
     export SUPABASE_URL=https://<project-ref>.supabase.co
-    export SUPABASE_SERVICE_KEY=<service-role key>        # write path; never commit it
+    export SUPABASE_SECRET_KEY=<sb_secret key>            # write path; never commit it
 
     finengine export-supabase SA 2222                     # one company
     finengine export-supabase --all --prune               # every enabled company
     finengine export-supabase SA 1120 --dry-run           # print the rows, send nothing
     finengine export-supabase --all --sql-out facts.sql   # emit an idempotent script to review first
 
-`--prune` deletes rows a company's current export no longer produces (a restated or withdrawn fact). Without a service-role key locally, use `--sql-out` and apply the reviewed script through the Supabase SQL editor. No third-party package is required - the engine talks to PostgREST over stdlib HTTP.
+`--prune` deletes rows a company's current export no longer produces (a restated or withdrawn fact). Legacy `SUPABASE_SERVICE_KEY` JWTs remain supported. Without a secret key locally, use `--sql-out` and apply the reviewed script through the Supabase SQL editor. No third-party package is required - the engine talks to PostgREST over stdlib HTTP.
 
 For a new project, apply `supabase/migrations/0001_financial_facts.sql` once in
 the Supabase SQL editor. It creates the unique upsert key, query indexes, and a

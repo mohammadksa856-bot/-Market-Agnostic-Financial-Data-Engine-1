@@ -85,7 +85,7 @@ Telegram token only if the bot is enabled. A practical initial host is 4 vCPU,
 
 To use Supabase as the permanent read database, apply
 `supabase/migrations/0001_financial_facts.sql` to the Supabase project, set
-`SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in `.env`, then add
+`SUPABASE_URL` and the current `SUPABASE_SECRET_KEY` in `.env`, then add
 `COMPOSE_PROFILES=supabase` (or `supabase,telegram`). The publisher continuously
 upserts validated current facts and prunes withdrawn/restated projections; the
 service-role key never reaches the website or Telegram client.

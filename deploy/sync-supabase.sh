@@ -5,8 +5,8 @@ database="${FINENGINE_DB:-/app/state/financial.sqlite3}"
 registry="${FINENGINE_REGISTRY:-/app/config/companies.json}"
 interval="${FINENGINE_SUPABASE_SYNC_SECONDS:-300}"
 
-if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
-    echo "SUPABASE_URL and SUPABASE_SERVICE_KEY are required." >&2
+if [ -z "${SUPABASE_URL:-}" ] || { [ -z "${SUPABASE_SECRET_KEY:-}" ] && [ -z "${SUPABASE_SERVICE_KEY:-}" ]; }; then
+    echo "SUPABASE_URL and SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_KEY) are required." >&2
     exit 2
 fi
 

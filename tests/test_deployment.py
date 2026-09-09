@@ -22,6 +22,7 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("enable row level security", migration)
         self.assertIn("on public.financial_facts from anon", migration)
         self.assertIn("grant select", migration)
+        self.assertIn("'as_of', 'daily', 'event'", migration)
         self.assertIn("supabase-publisher", compose)
 
     def test_release_deploys_only_after_successful_main_tests(self):
