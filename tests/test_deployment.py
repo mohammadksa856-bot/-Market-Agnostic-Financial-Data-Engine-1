@@ -32,6 +32,10 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("PRODUCTION_DEPLOY_ENABLED", workflow)
         self.assertIn("VPS_KNOWN_HOSTS", workflow)
 
+    def test_ci_parses_every_deployment_shell_script(self):
+        workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+        self.assertIn("sh -n deploy/*.sh", workflow)
+
     def test_supabase_publish_rebuilds_and_audits_before_export(self):
         workflow = (ROOT / ".github" / "workflows" / "publish-supabase.yml").read_text(encoding="utf-8")
         self.assertIn("SUPABASE_PUBLISH_ENABLED", workflow)
@@ -39,6 +43,27 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertLess(workflow.index("bootstrap"), workflow.index("audit"))
         self.assertLess(workflow.index("audit"), workflow.index("export-supabase"))
         self.assertIn("SUPABASE_SECRET_KEY", workflow)
+
+    def test_vps_preflight_checks_resources_secrets_and_compose(self):
+        preflight = (ROOT / "deploy" / "preflight.sh").read_text(encoding="utf-8")
+        self.assertIn("_NPROCESSORS_ONLN", preflight)
+        self.assertIn("/proc/meminfo", preflight)
+        self.assertIn("150 GiB", preflight)
+        self.assertIn("FINENGINE_API_KEY", preflight)
+        self.assertIn("API_DOMAIN", preflight)
+        self.assertIn("docker compose", preflight)
+        self.assertIn("must be an absolute server path", preflight)
+
+    def test_backup_worker_verifies_bundle_and_backs_off_on_failure(self):
+        compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        worker = (ROOT / "deploy" / "backup-loop.sh").read_text(encoding="utf-8")
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn('/app/deploy/backup-loop.sh', compose)
+        self.assertIn("verify_portable_bundle", worker)
+        self.assertIn("backup-status.json", worker)
+        self.assertIn("FINENGINE_BACKUP_RETRY_SECONDS", worker)
+        self.assertIn('sleep "$retry_delay"', worker)
+        self.assertIn("backup-loop.sh", dockerfile)
 
 
 if __name__ == "__main__":

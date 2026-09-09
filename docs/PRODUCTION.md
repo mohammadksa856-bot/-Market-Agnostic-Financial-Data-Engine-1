@@ -72,7 +72,9 @@ Requirements are a persistent Linux Docker host, a domain whose DNS points to
 that host, a monitored contact address in `SEC_USER_AGENT`, a strong
 `FINENGINE_API_KEY`, durable storage for runtime state and backups, and a
 Telegram token only if the bot is enabled. A practical initial host is 4 vCPU,
-8 GB RAM, and 150 GB or more of SSD storage.
+8 GB RAM, and 150 GB or more of SSD storage. Use 200–300 GB NVMe for a
+less constrained pilot and put the immutable archive in separate object
+storage before whole-market rollout.
 
     cp .env.example .env
     # Replace example values in .env before continuing.
@@ -80,6 +82,8 @@ Telegram token only if the bot is enabled. A practical initial host is 4 vCPU,
     # FINENGINE_STATE_DIR=/srv/finengine/state
     # FINENGINE_BACKUP_DIR=/srv/finengine/backups
     # API_DOMAIN=api.example.com
+    mkdir -p /srv/finengine/state /srv/finengine/backups
+    ./deploy/preflight.sh
     docker compose -f compose.yaml -f compose.production.yaml up -d --build
     docker compose -f compose.yaml -f compose.production.yaml --profile telegram up -d --build
 
@@ -108,7 +112,10 @@ universe refresh service archives the official SEC and Saudi Exchange inventorie
 daily without activating newly discovered issuers. The
 backup service creates a portable ZIP containing an online SQLite snapshot and all
 referenced raw sources, verifies every SHA-256 from its manifest, writes a bundle
-sidecar, and retains the configured number of daily bundles. Copy that directory
+sidecar, independently verifies the completed archive, writes atomic freshness
+state to `backups/backup-status.json`, and retains the configured number of daily
+bundles. Failures retry after a bounded delay instead of restart-hammering the
+host. Copy that directory
 to encrypted off-host or S3-compatible storage for disaster recovery.
 
 ### Automatic deployment from GitHub
