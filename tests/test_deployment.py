@@ -20,7 +20,7 @@ class DeploymentContractTests(unittest.TestCase):
         migration = (ROOT / "supabase" / "migrations" / "0001_financial_facts.sql").read_text(encoding="utf-8")
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
         self.assertIn("enable row level security", migration)
-        self.assertIn("revoke insert, update, delete", migration)
+        self.assertIn("on public.financial_facts from anon", migration)
         self.assertIn("grant select", migration)
         self.assertIn("supabase-publisher", compose)
 

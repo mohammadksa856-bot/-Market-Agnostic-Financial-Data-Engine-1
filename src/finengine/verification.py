@@ -240,6 +240,16 @@ class ManifestVerifier:
                 if result_metric not in metrics:
                     continue
                 present = [c for c in components if c in metrics]
+                # IFRS 5 presents discontinued operations net of tax below the
+                # continuing pre-tax/tax bridge. Include that line when it is
+                # explicitly reported; ordinary issuers retain the two-line
+                # identity and its validation strength.
+                if (
+                    name == "income_statement: pre-tax income - tax = net income"
+                    and all(c in metrics for c in components)
+                    and "discontinued_operations_income" in metrics
+                ):
+                    present.append("discontinued_operations_income")
                 if len(present) < 2:
                     continue
                 result = self._one(metrics[result_metric])

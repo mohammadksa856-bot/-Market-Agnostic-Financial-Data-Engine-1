@@ -49,8 +49,11 @@ create index if not exists financial_facts_dimensions_idx
 
 alter table public.financial_facts enable row level security;
 
+-- Keep any existing authenticated content-manager policy intact when this
+-- migration is applied to an application database. Public clients remain
+-- strictly read-only; the engine publishes with the server-only service role.
 revoke insert, update, delete, truncate, references, trigger
-    on public.financial_facts from anon, authenticated;
+    on public.financial_facts from anon;
 grant select on public.financial_facts to anon, authenticated;
 
 drop policy if exists "public read-only financial facts" on public.financial_facts;
