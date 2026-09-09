@@ -68,14 +68,37 @@ demonstration data.
 
 ## Always-on deployment
 
-Requirements are a persistent Docker host, a monitored contact address in
-`SEC_USER_AGENT`, a strong `FINENGINE_API_KEY`, durable storage for `data/` and
-`backups/`, and a Telegram token only if the bot is enabled.
+Requirements are a persistent Linux Docker host, a domain whose DNS points to
+that host, a monitored contact address in `SEC_USER_AGENT`, a strong
+`FINENGINE_API_KEY`, durable storage for runtime state and backups, and a
+Telegram token only if the bot is enabled. A practical initial host is 4 vCPU,
+8 GB RAM, and 150 GB or more of SSD storage.
 
     cp .env.example .env
     # Replace example values in .env before continuing.
-    docker compose up -d --build
-    docker compose --profile telegram up -d --build
+    # Prefer absolute host paths in production:
+    # FINENGINE_STATE_DIR=/srv/finengine/state
+    # FINENGINE_BACKUP_DIR=/srv/finengine/backups
+    # API_DOMAIN=api.example.com
+    docker compose -f compose.yaml -f compose.production.yaml up -d --build
+    docker compose -f compose.yaml -f compose.production.yaml --profile telegram up -d --build
+
+To use Supabase as the permanent read database, apply
+`supabase/migrations/0001_financial_facts.sql` to the Supabase project, set
+`SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in `.env`, then add
+`COMPOSE_PROFILES=supabase` (or `supabase,telegram`). The publisher continuously
+upserts validated current facts and prunes withdrawn/restated projections; the
+service-role key never reaches the website or Telegram client.
+
+The production overlay adds Caddy, obtains and renews HTTPS certificates, and
+proxies only the API. Ports 80 and 443 must reach the host. The engine itself
+remains bound to localhost and also requires the API key for protected routes.
+
+Code and runtime state are deliberately separate. Reviewed manifests and seed
+source archives are baked into the image under `/app/data`; the live database,
+new source documents, cursors, jobs, and exception state live under `/app/state`.
+On the first boot only, the startup script builds a clean live database from the
+reviewed manifests. Later releases never replace an existing database.
 
 The engine startup script idempotently creates or updates one monitor schedule for
 every enabled registry company. It does not duplicate schedules after restarts and
@@ -88,6 +111,32 @@ referenced raw sources, verifies every SHA-256 from its manifest, writes a bundl
 sidecar, and retains the configured number of daily bundles. Copy that directory
 to encrypted off-host or S3-compatible storage for disaster recovery.
 
-Keep the API bound to localhost unless it sits behind an authenticated TLS reverse
-proxy. SQLite supports one publishing worker; use PostgreSQL before horizontally
-scaling publishers.
+### Automatic deployment from GitHub
+
+The `deploy-production` workflow runs only after the `tests` workflow succeeds on
+`main` (or by an explicit manual dispatch). Configure a protected GitHub
+Environment named `production` and these encrypted secrets:
+
+- `VPS_HOST`, `VPS_USER`, and `VPS_PORT`;
+- `VPS_SSH_KEY` (a deploy-only private key);
+- `VPS_KNOWN_HOSTS` (the server host-key line, captured through a trusted path);
+- `DEPLOY_PATH` (the absolute repository checkout on the server).
+
+After the first manual deployment succeeds, set the repository variable
+`PRODUCTION_DEPLOY_ENABLED=true`. Until then, pushes remain safe: the automatic
+deployment job is skipped instead of failing because the server is not configured.
+
+The server checkout needs read access to the repository and a completed `.env`.
+The deployment script refuses dirty tracked files, performs a fast-forward-only
+pull, rebuilds the containers, and fails unless the engine becomes healthy. It
+never resets Git state or deletes the persistent runtime directory.
+
+SQLite supports one publishing worker. Keep a single engine/publisher instance
+for this phase and move to PostgreSQL plus durable object storage before horizontal
+scaling. Also replicate backup bundles off-host; a disk attached only to the same
+server is not a disaster-recovery copy.
+
+The server makes collection, validation, publishing, API, bot, backups, and
+schedules independent of a laptop or an interactive AI session. It does not bypass
+Codex or Claude usage limits; routine production ingestion must rely on this
+deterministic engine, with agents reserved for new mappings and exceptions.

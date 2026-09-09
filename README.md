@@ -261,6 +261,12 @@ When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Beare
 
 `--prune` deletes rows a company's current export no longer produces (a restated or withdrawn fact). Without a service-role key locally, use `--sql-out` and apply the reviewed script through the Supabase SQL editor. No third-party package is required - the engine talks to PostgREST over stdlib HTTP.
 
+For a new project, apply `supabase/migrations/0001_financial_facts.sql` once in
+the Supabase SQL editor. It creates the unique upsert key, query indexes, and a
+read-only RLS policy: anonymous/authenticated clients may select, while only the
+server-held service role publishes. Set `COMPOSE_PROFILES=supabase` in the server
+`.env` to continuously synchronize every enabled company (five-minute default).
+
 ## Telegram bot
 
 Create a bot with BotFather, keep the token outside the repository, then run:

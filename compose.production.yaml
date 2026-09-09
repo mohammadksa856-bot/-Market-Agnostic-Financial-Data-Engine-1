@@ -1,0 +1,17 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${CADDY_DATA_DIR:-./runtime/caddy/data}:/data
+      - ${CADDY_CONFIG_DIR:-./runtime/caddy/config}:/config
+    depends_on:
+      engine:
+        condition: service_healthy

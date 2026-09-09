@@ -12,23 +12,26 @@ services:
       FINENGINE_SCHEDULE_SECONDS: ${FINENGINE_SCHEDULE_SECONDS:-21600}
       FINENGINE_SOURCE_LIMIT: ${FINENGINE_SOURCE_LIMIT:-50}
       FINENGINE_BROWSER_HEADLESS: ${FINENGINE_BROWSER_HEADLESS:-false}
+      FINENGINE_STATE_DIR: /app/state
+      FINENGINE_DB: /app/state/financial.sqlite3
+      FINENGINE_RAW_DIR: /app/state/raw
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
-      - ./data:/app/data
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state
     init: true
 
   backup:
     build: .
     restart: unless-stopped
-    command: ["sh", "-c", "while true; do finengine --db /app/data/financial.sqlite3 backup-bundle --output-dir /app/backups/bundles --project-root /app --keep $${FINENGINE_BUNDLE_KEEP:-7}; sleep $${FINENGINE_BACKUP_SECONDS:-86400}; done"]
+    command: ["sh", "-c", "while true; do finengine --db /app/state/financial.sqlite3 backup-bundle --output-dir /app/backups/bundles --project-root /app --keep $${FINENGINE_BUNDLE_KEEP:-7}; sleep $${FINENGINE_BACKUP_SECONDS:-86400}; done"]
     environment:
       FINENGINE_BACKUP_KEEP: ${FINENGINE_BACKUP_KEEP:-14}
       FINENGINE_BUNDLE_KEEP: ${FINENGINE_BUNDLE_KEEP:-7}
       FINENGINE_BACKUP_SECONDS: ${FINENGINE_BACKUP_SECONDS:-86400}
     volumes:
-      - ./data:/app/data:ro
-      - ./backups:/app/backups
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state:ro
+      - ${FINENGINE_BACKUP_DIR:-./backups}:/app/backups
     depends_on:
       engine:
         condition: service_healthy
@@ -43,9 +46,11 @@ services:
     environment:
       SEC_USER_AGENT: ${SEC_USER_AGENT:?Set SEC_USER_AGENT in .env}
       FINENGINE_UNIVERSE_REFRESH_SECONDS: ${FINENGINE_UNIVERSE_REFRESH_SECONDS:-86400}
+      FINENGINE_DB_PATH: /app/state/financial.sqlite3
+      FINENGINE_UNIVERSE_RAW_DIR: /app/state/raw/universe
     command: ["/app/deploy/refresh-universe.sh"]
     volumes:
-      - ./data:/app/data
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state
     depends_on:
       engine:
         condition: service_healthy
@@ -60,9 +65,30 @@ services:
         required: false
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-    command: ["finengine", "--db", "/app/data/financial.sqlite3", "telegram"]
+    command: ["finengine", "--db", "/app/state/financial.sqlite3", "telegram"]
     volumes:
-      - ./data:/app/data:ro
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state:ro
+    depends_on:
+      engine:
+        condition: service_healthy
+    init: true
+
+  supabase-publisher:
+    build: .
+    profiles: ["supabase"]
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      FINENGINE_SUPABASE_SYNC_SECONDS: ${FINENGINE_SUPABASE_SYNC_SECONDS:-300}
+      FINENGINE_DB: /app/state/financial.sqlite3
+      FINENGINE_REGISTRY: /app/config/companies.json
+    command: ["/app/deploy/sync-supabase.sh"]
+    volumes:
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state:ro
     depends_on:
       engine:
         condition: service_healthy

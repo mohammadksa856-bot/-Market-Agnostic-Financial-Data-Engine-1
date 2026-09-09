@@ -147,8 +147,9 @@ class ServiceTests(unittest.TestCase):
             "currency":"SAR","industry":"Diversified Chemicals",
             "sources":["https://example.test/reports"]
         }]),encoding="utf-8")
-        first=configure_production_schedules(self.dbpath,registry,3600,25,True)
-        second=configure_production_schedules(self.dbpath,registry,3600,25,True)
+        runtime_raw=Path(self.temp.name)/"runtime"/"raw"
+        first=configure_production_schedules(self.dbpath,registry,3600,25,True,runtime_raw)
+        second=configure_production_schedules(self.dbpath,registry,3600,25,True,runtime_raw)
         self.assertEqual(first["count"],1)
         self.assertEqual(second["configured"],["monitor:SA:TST"])
         db=Database(self.dbpath)
@@ -161,6 +162,7 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(payload["browser"])
         self.assertTrue(payload["llm"])
         self.assertEqual(payload["source_limit"],25)
+        self.assertEqual(payload["raw_dir"],str(runtime_raw))
 
     def test_official_source_artifact_is_archived_and_indexed(self):
         root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()

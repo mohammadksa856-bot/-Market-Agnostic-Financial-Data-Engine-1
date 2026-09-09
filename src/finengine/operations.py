@@ -167,6 +167,7 @@ def configure_production_schedules(
     interval_seconds: int = 21600,
     source_limit: int = 50,
     use_llm: bool = True,
+    raw_dir: str | Path = "data/raw",
 ) -> dict:
     """Idempotently configure monitoring for every enabled registry company."""
     registry = CompanyRegistry.from_json(registry_path)
@@ -182,7 +183,7 @@ def configure_production_schedules(
                 "market": company.market.value,
                 "symbol": company.symbol,
                 "registry": str(registry_path),
-                "raw_dir": "data/raw",
+                "raw_dir": str(raw_dir),
                 "sa_manifest": None,
                 "source_index": company.sources[0] if company.sources else None,
                 "source_limit": source_limit,
