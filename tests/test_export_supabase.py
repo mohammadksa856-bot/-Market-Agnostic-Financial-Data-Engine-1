@@ -157,6 +157,28 @@ class UpsertTransportTests(unittest.TestCase):
         self.assertEqual(calls[0].headers["Apikey"], "sb_secret_example")
         self.assertNotIn("Authorization", calls[0].headers)
 
+    def test_prune_url_encodes_company_and_timezone_offset(self):
+        calls = []
+
+        class _Resp:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return b"[]"
+
+        def opener(request, timeout=None):
+            calls.append(request)
+            return _Resp()
+
+        exporter = SupabaseExporter(
+            "unused.sqlite3", "https://proj.supabase.co", "sb_secret_example",
+            engine_version="1.5.0", opener=opener,
+        )
+        exporter._prune("sa:2222", "2026-09-09T16:29:02.995201+00:00")
+
+        self.assertIn("company_id=eq.sa%3A2222", calls[0].full_url)
+        self.assertIn("synced_at=lt.2026-09-09T16%3A29%3A02.995201%2B00%3A00", calls[0].full_url)
+        self.assertNotIn("+", calls[0].full_url)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -175,9 +176,14 @@ class SupabaseExporter:
         )
 
     def _prune(self, company_id: str, before: str) -> int:
+        # PostgREST filters live in the URL query string.  In particular, an
+        # ISO-8601 timezone offset contains "+", which query parsers otherwise
+        # decode as a space and PostgreSQL rejects as an invalid timestamp.
+        company_filter = urllib.parse.quote(f"eq.{company_id}", safe="")
+        timestamp_filter = urllib.parse.quote(f"lt.{before}", safe="")
         raw = self._request(
             "DELETE",
-            f"{TABLE}?company_id=eq.{company_id}&synced_at=lt.{before}",
+            f"{TABLE}?company_id={company_filter}&synced_at={timestamp_filter}",
             prefer="return=representation",
         )
         try:
