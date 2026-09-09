@@ -6,10 +6,10 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 
 ## Release status
 
-The bundled portable snapshot is rebuilt from 64 reviewed manifests and currently contains:
+The bundled portable snapshot is rebuilt from 67 reviewed manifests and currently contains:
 
-- 24 enabled companies in the bundled snapshot: Saudi Aramco, SABIC, ACWA Power,
-  stc, Tawuniya, six reviewed cement issuers, all ten listed Saudi banks, Apple,
+- 27 enabled companies in the bundled snapshot: Saudi Aramco, SABIC, ACWA Power,
+  stc, Tawuniya, nine reviewed cement issuers, all ten listed Saudi banks, Apple,
   Microsoft, and NVIDIA.
 - The archived official SEC universe snapshot contains 8,010 issuers and 10,415
   ticker/exchange associations. It is inventory, not automatic publication:
@@ -21,12 +21,12 @@ The bundled portable snapshot is rebuilt from 64 reviewed manifests and currentl
   securities and 124 Nomu securities: 376 operating-company records and 20
   fund/REIT records. The connector keeps the two markets separate, records ISIN
   and profile provenance, and excludes funds from normal company activation.
-- 5,641 current facts and 5,791 total fact versions in the clean rebuilt snapshot.
+- 6,222 current facts and 6,372 total fact versions in the clean rebuilt snapshot.
 - 1,020 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 207 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA. A local
   `FLWS` acceptance run also completed the live SEC monitor/fetch/validate/publish
   path with 1,780 facts; that operational snapshot is kept outside the code release.
-- 64 published source documents and 29 independently hashed raw archive entries in the
+- 67 published source documents and 32 independently hashed raw archive entries in the
   bundled snapshot, with zero open publication exceptions and zero dead jobs.
 - Master Schema catalog version 11 contains 1,047 governed fields and 917 metric contracts: 545 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. In addition to oil and gas, the 64-field chemicals pack now includes resource intensity, emissions, waste, process safety, innovation, workforce, and supplier KPIs. The 44-field banking pack powers sector-aware bank ratios and scores. Insurance, telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management are also covered. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
 - Aramco currently populates 395 of 662 applicable catalog fields (59.7% raw target coverage), with all 28 core required fields present. The lower percentage reflects a large target model, not lost data.
@@ -47,7 +47,7 @@ The bundled portable snapshot is rebuilt from 64 reviewed manifests and currentl
   without relabeling the source fact.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 11, and 148 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
+- Database schema version 17, catalog version 11, and 155 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
