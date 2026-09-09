@@ -22,6 +22,14 @@ def _company_for_manifest(path: Path, payload: dict, registry: CompanyRegistry):
         matches = [company for company in registry.all() if company.cik == normalized]
         if len(matches) == 1:
             return matches[0]
+    source_host = urlparse(payload.get("source_url", "")).hostname
+    if source_host:
+        matches = [
+            company for company in registry.all()
+            if any(urlparse(url).hostname == source_host for url in company.sources)
+        ]
+        if len(matches) == 1:
+            return matches[0]
     stem = path.stem.lower()
     matches = [company for company in registry.all() if company.symbol.lower() in stem]
     if len(matches) == 1:

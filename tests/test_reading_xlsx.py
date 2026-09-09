@@ -171,6 +171,38 @@ class SupplementReaderTests(unittest.TestCase):
                  ("2025-06-30", "instant")],
             )
 
+    def test_row_options_override_units_and_retain_excluded_source_values(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Income Statement"
+            sheet.append(["SAR mn", "FY 2024", "FY 2025"])
+            sheet.append(["Earnings per share", 4.5, 5.5])
+            xlsx = directory / "supp.xlsx"
+            workbook.save(xlsx); workbook.close()
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "scale": "1000000",
+                "sheets": {"Income Statement": {
+                    "Earnings per share": ["eps_diluted", "flow", {
+                        "scale": 1, "unit": "SAR/share",
+                        "exclude_period_ends": ["2025-12-31"],
+                        "exclude_reason": "audited filing takes precedence",
+                    }],
+                }},
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2026-02-04"
+            )
+            self.assertEqual(manifest["facts"][0]["scale"], "1")
+            self.assertEqual(manifest["facts"][0]["unit"], "SAR/share")
+            self.assertEqual(manifest["excluded_facts"][0]["period_end"], "2025-12-31")
+            self.assertEqual(manifest["excluded_facts"][0]["value"], "5.5")
+            self.assertEqual(manifest["excluded_facts"][0]["reason"],
+                             "audited filing takes precedence")
+
 
 if __name__ == "__main__":
     unittest.main()

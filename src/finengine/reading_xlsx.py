@@ -103,6 +103,7 @@ class SupplementReader:
         only = set(period_kinds) | {"fy"}
         workbook = openpyxl.load_workbook(self.xlsx_path, data_only=True)
         facts: list[dict] = []
+        excluded_facts: list[dict] = []
         seen: set[tuple] = set()
 
         for sheet_name, row_map in self.mapping.get("sheets", {}).items():
@@ -130,6 +131,10 @@ class SupplementReader:
                     continue
                 metric, want_kind = spec[0], spec[1]
                 negate = len(spec) > 2 and spec[2] == "negate"
+                options = next((item for item in spec[2:] if isinstance(item, dict)), {})
+                fact_scale = int(options.get("scale", scale))
+                fact_unit = str(options.get("unit", currency))
+                excluded_periods = set(options.get("exclude_period_ends", []))
                 for index, (kind, fiscal_year, column_end) in columns.items():
                     if index >= len(row):
                         continue
@@ -148,6 +153,19 @@ class SupplementReader:
                         continue
                     if negate:
                         value = -value
+                    if period_end in excluded_periods:
+                        excluded_facts.append({
+                            "metric": metric, "source_label": str(raw_label).strip(),
+                            "value": str(value), "period_end": period_end,
+                            "period_kind": emit_kind, "fiscal_year": fiscal_year,
+                            "scale": str(fact_scale), "currency": currency,
+                            "unit": fact_unit,
+                            "reason": options.get(
+                                "exclude_reason",
+                                "source value conflicts with a higher-authority filing",
+                            ),
+                        })
+                        continue
                     key = (metric, period_end, emit_kind)
                     if key in seen:
                         continue  # a supplement often repeats a subtotal label; the first hit wins
@@ -155,7 +173,7 @@ class SupplementReader:
                         "metric": metric, "source_label": str(raw_label).strip(),
                         "value": str(value), "period_end": period_end,
                         "period_kind": emit_kind, "fiscal_year": fiscal_year,
-                        "scale": str(scale), "currency": currency, "unit": currency,
+                        "scale": str(fact_scale), "currency": currency, "unit": fact_unit,
                     }
                     if emit_kind == "fy":
                         fact["period_start"] = f"{fiscal_year}-01-01"
@@ -177,4 +195,7 @@ class SupplementReader:
             "source_url": self.mapping.get("source_url", ""),
             "reader": "finengine.reading_xlsx/1",
             "facts": sorted(facts, key=lambda f: (f["period_end"], f["metric"])),
+            "excluded_facts": sorted(
+                excluded_facts, key=lambda f: (f["period_end"], f["metric"])
+            ),
         }

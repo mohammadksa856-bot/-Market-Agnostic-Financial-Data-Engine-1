@@ -6,12 +6,17 @@ from finengine.models import Company, Market
 class FileConnectorTests(unittest.TestCase):
     def test_local_file_preserves_provenance(self):
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/"filing.json"; p.write_text(json.dumps({"filed_at":"2026-01-01","facts":{}}))
+            p=Path(d)/"filing.json"; p.write_text(json.dumps({
+                "filed_at":"2026-01-01","filed_at_basis":"pdf_creation_metadata",
+                "filed_at_confidence":"inferred","facts":{}
+            }))
             c=Company("us:TST",Market.US,"TST","Test","USD",cik="1")
             doc=LocalFileConnector(p,"https://www.sec.gov/example").fetch(c)
             self.assertEqual(doc.source_url,"https://www.sec.gov/example")
             self.assertTrue(doc.source_key.startswith("file:"))
             self.assertEqual(doc.filed_at,"2026-01-01")
+            self.assertEqual(doc.metadata["filed_at_basis"],"pdf_creation_metadata")
+            self.assertEqual(doc.metadata["filed_at_confidence"],"inferred")
 
     def test_local_manifest_can_retain_archived_document_identity(self):
         with tempfile.TemporaryDirectory() as d:

@@ -20,14 +20,18 @@ class FinancialQueryService:
         if not source_key:
             return None
         row = self.conn.execute(
-            """SELECT s.source_key,s.source_url,s.filing_type,s.filed_at,s.content_hash,
+            """SELECT s.source_key,s.source_url,s.filing_type,s.filed_at,s.content_hash,s.metadata_json,
             s.local_path AS manifest_path,a.artifact_key,a.local_path AS archived_path,
             a.content_hash AS artifact_sha256,a.content_type,a.byte_size
             FROM source_documents s LEFT JOIN source_artifact_links l USING(source_key)
             LEFT JOIN source_artifacts a USING(artifact_key) WHERE s.source_key=?
             ORDER BY a.archived_at DESC LIMIT 1""", (source_key,),
         ).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        result = dict(row)
+        result["metadata"] = json.loads(result.pop("metadata_json") or "{}")
+        return result
 
     def _fact_trace(self, point_id: int) -> dict:
         point = self.conn.execute(

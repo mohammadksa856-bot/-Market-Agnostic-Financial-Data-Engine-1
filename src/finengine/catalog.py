@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 10
+CATALOG_SCHEMA_VERSION = 11
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -549,7 +549,7 @@ GROUPS = (
         "risk_weighted_assets regulatory_capital"
     )),
     ("banking", "data_points", "banking_income", "flow", "currency", "sum", "industry", "Banks", _keys(
-        "financing_income financing_expense net_financing_income fee_income fee_expense exchange_income "
+        "financing_income financing_expense net_financing_income fee_income fee_expense net_fee_income exchange_income "
         "trading_income dividend_income total_operating_income "
         "salaries_and_employee_expenses provision_expense operating_expense_banking total_operating_expenses"
     )),

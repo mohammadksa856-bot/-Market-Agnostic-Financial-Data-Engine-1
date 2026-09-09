@@ -1,7 +1,7 @@
 {
   "company_id": "sa:1120",
   "issuer": "Al Rajhi Bank",
-  "source_url": "https://www.alrajhibank.com.sa/en/About-alrajhi-bank/Investor-Relations",
+  "source_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/n/ax0k7s74wvl7/b/Marketing_Email_Images/o/ARB%20External%20Data%20Supplement%20-%204Q2025.xlsx",
   "notes": "External Data Supplement (quarterly .xlsx). Raw reported lines only; the supplement's own ratios (ROE, ROA, NIM, cost-to-income, cost of risk, CET1/Tier1/CAR, LDR, NPL ratio/coverage) are intentionally not mapped - the engine recomputes every ratio from the ingested lines.",
   "scale": "1000000",
   "sheets": {
@@ -19,7 +19,7 @@
         "flow"
       ],
       "Fee from banking services, net": [
-        "fee_income",
+        "net_fee_income",
         "flow"
       ],
       "Exchange Income, net": [
@@ -72,15 +72,23 @@
       ],
       "Weighted average number of shares*": [
         "weighted_average_shares_diluted",
-        "flow"
+        "flow",
+        {"unit": "shares"}
       ],
       "Earnings per share (SAR)": [
         "eps_diluted",
-        "flow"
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share",
+          "exclude_period_ends": ["2025-12-31"],
+          "exclude_reason": "The management supplement reports unrounded EPS while the same-day audited annual financial statements publish SAR 5.85; retain the raw supplement row but publish the audited value."
+        }
       ],
       "Dividends per share (SAR)": [
         "dividends_per_share",
-        "flow"
+        "flow",
+        {"scale": 1, "unit": "SAR/share"}
       ]
     },
     "2. Balance Sheet": {
@@ -94,7 +102,11 @@
       ],
       "Investments, net": [
         "bank_investments",
-        "instant"
+        "instant",
+        {
+          "exclude_period_ends": ["2025-12-31"],
+          "exclude_reason": "The Q4 management supplement reports SAR 175,461.841m while the same-day audited financial statements and Pillar III reconciliation report SAR 174,304.596m; retain the raw row but publish the audited value."
+        }
       ],
       "Financing, net": [
         "net_loans",

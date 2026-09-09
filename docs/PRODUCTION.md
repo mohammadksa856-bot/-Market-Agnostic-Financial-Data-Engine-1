@@ -3,8 +3,8 @@
 ## Honest current status
 
 The engine is production-shaped, but the bundled dataset is still a controlled
-pilot. Its enabled registry contains Aramco, SABIC, all ten listed Saudi banks,
-Apple, Microsoft, and NVIDIA. It must
+pilot. Its enabled registry contains Aramco, SABIC, ACWA Power, stc, Tawuniya,
+all ten listed Saudi banks, Apple, Microsoft, and NVIDIA. It must
 not be described as covering every Saudi and US listed company yet.
 
 | Layer | Current readiness | What remains for whole-market use |

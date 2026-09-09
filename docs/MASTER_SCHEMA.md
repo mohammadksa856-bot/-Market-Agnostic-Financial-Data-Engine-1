@@ -1,4 +1,4 @@
-# Master Schema v9
+# Master Schema v11
 
 The catalog is the governed target for collection. It is not a claim that every
 company discloses every field, and it never authorizes agents to invent a value.
@@ -11,12 +11,12 @@ by its reviewed canonical `industry` in the company registry.
 
 | Pack | Canonical industry | Fields |
 |---|---|---:|
-| `company_core_v5` | All companies | 541 |
+| `company_core_v5` | All companies | 545 |
 | `dividends_v1` | All companies | 20 |
 | `announcements_v1` | All companies | 28 |
 | `oil_gas_v2` | Integrated Oil & Gas | 69 |
 | `chemicals_v1` | Diversified Chemicals | 64 |
-| `banking_v1` | Banks | 34 |
+| `banking_v1` | Banks | 44 |
 | `insurance_v1` | Insurance | 26 |
 | `telecommunications_v1` | Telecommunications | 25 |
 | `utilities_v1` | Utilities | 23 |
@@ -30,7 +30,7 @@ by its reviewed canonical `industry` in the company registry.
 | `food_agriculture_v1` | Food & Agriculture | 20 |
 | `asset_management_v1` | Asset Management | 20 |
 
-There are 1,046 unique catalog fields, 916 enforceable metric contracts, and 61
+There are 1,047 unique catalog fields, 917 enforceable metric contracts, and 61
 governed dimensions. Shared accounting, valuation, market, ownership, disclosure,
 segment, and calculation fields remain in the universal packs so a sector pack
 does not duplicate them.

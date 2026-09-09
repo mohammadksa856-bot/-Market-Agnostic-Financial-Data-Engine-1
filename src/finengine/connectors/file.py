@@ -16,7 +16,16 @@ class LocalFileConnector:
         if not filed: raise ValueError("local filing must contain a filed date")
         url=self.source_url or payload.get("source_url") or self.path.resolve().as_uri()
         key=self.source_key or "file:"+hashlib.sha256(content).hexdigest()
-        return SourceDocument(company.company_id,company.market,url,key,payload.get("filing_type","companyfacts"),filed,content)
+        metadata = {
+            name: payload[name]
+            for name in ("reader", "profile", "filed_at_basis", "filed_at_confidence", "filed_at_note")
+            if name in payload
+        }
+        return SourceDocument(
+            company.company_id, company.market, url, key,
+            payload.get("filing_type", "companyfacts"), filed, content,
+            metadata=metadata,
+        )
 
 
 class StoredDocumentConnector:

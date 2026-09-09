@@ -198,6 +198,34 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(db.health()["source_artifacts"],1)
         finally: db.close()
 
+    def test_archive_resolves_legacy_manifest_by_official_source_host(self):
+        root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()
+        (imports/"legacy-report.json").write_text(json.dumps({
+            "source_url":"https://issuer.example/reports/annual.pdf","facts":[]
+        }),encoding="utf-8")
+        registry=root/"companies.json"
+        registry.write_text(json.dumps([{
+            "company_id":"sa:TST","market":"SA","symbol":"TST","name":"Test Company",
+            "currency":"SAR","sources":["https://issuer.example/investors"]
+        }]),encoding="utf-8")
+
+        class Headers(dict):
+            def get_content_type(self): return "application/pdf"
+        class Response:
+            headers=Headers()
+            def __init__(self): self.sent=False
+            def __enter__(self): return self
+            def __exit__(self,*_): return None
+            def read(self,_size):
+                if self.sent: return b""
+                self.sent=True; return b"%PDF-1.7 archived"
+        result=archive_manifest_sources(
+            self.dbpath,imports,registry,root/"raw",project_root=root,
+            opener=lambda _request,timeout=0: Response(),
+        )
+        self.assertEqual(result["archived"],1)
+        self.assertEqual(result["results"][0]["company_id"],"sa:TST")
+
     def test_domain_only_manifest_publishes_market_prices(self):
         root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()
         manifest=imports/"aramco-market.json"
