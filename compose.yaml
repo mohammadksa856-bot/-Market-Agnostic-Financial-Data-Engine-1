@@ -47,13 +47,6 @@ services:
       engine:
         condition: service_healthy
     init: true
-    healthcheck:
-      test: ["CMD-SHELL", "kill -0 1"]
-      interval: 30s
-      timeout: 5s
-      start_period: 20s
-      retries: 3
-
   universe-refresh:
     build: .
     restart: unless-stopped
@@ -72,6 +65,12 @@ services:
       engine:
         condition: service_healthy
     init: true
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
 
   telegram:
     build: .
