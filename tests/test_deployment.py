@@ -11,6 +11,10 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("/app/state/financial.sqlite3", compose)
         self.assertNotIn("./data:/app/data", compose)
 
+    def test_container_installs_xauth_for_xvfb_runtime(self):
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("xauth", dockerfile)
+
     def test_startup_preserves_existing_database(self):
         startup = (ROOT / "deploy" / "start-production.sh").read_text(encoding="utf-8")
         self.assertIn('if [ ! -s "$database" ]', startup)
