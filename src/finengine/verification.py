@@ -321,6 +321,11 @@ class ManifestVerifier:
                 denom = self._one(metrics[denominator])
                 if not denom:
                     continue
+                # An effective-tax-rate bound is not economically meaningful in a
+                # loss year: Saudi zakat can remain an expense while pre-tax income
+                # is negative, producing a positive quotient without a bad source.
+                if name.startswith("effective tax") and denom < 0:
+                    continue
                 ratio = self._one(metrics[numerator]) / denom
                 out.append({
                     "status": "pass" if low <= ratio <= high else "warn",

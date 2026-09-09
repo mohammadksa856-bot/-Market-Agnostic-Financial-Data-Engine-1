@@ -144,6 +144,20 @@ class ManifestVerificationTests(unittest.TestCase):
             self.assertTrue(report["ok"], report["detail"])
             self.assertEqual(report["failures"], 0)
 
+    def test_loss_year_with_zakat_expense_skips_effective_tax_bound(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "loss-2025-fy.json", [
+                _fy("income before income taxes and zakat", -35),
+                _fy("income taxes and zakat", -13),
+                _fy("net income", -48),
+            ])
+            report = ManifestVerifier(directory).verify()
+            self.assertTrue(report["ok"], report["detail"])
+            self.assertFalse(any(
+                c["check"].startswith("effective tax") for c in report["detail"]
+            ))
+
 
 if __name__ == "__main__":
     unittest.main()
