@@ -131,6 +131,14 @@ The deployment script refuses dirty tracked files, performs a fast-forward-only
 pull, rebuilds the containers, and fails unless the engine becomes healthy. It
 never resets Git state or deletes the persistent runtime directory.
 
+Before the VPS is available, the `publish-supabase` workflow provides a safe
+cloud bridge for reviewed data. Store `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
+in the protected `production` environment, then set the repository variable
+`SUPABASE_PUBLISH_ENABLED=true`. After every successful `main` test run, and as
+a six-hour repair schedule, it rebuilds from tracked manifests, enforces the
+strict release audit, and only then upserts the current projection. It does not
+perform live source monitoring; that remains the persistent engine's job.
+
 SQLite supports one publishing worker. Keep a single engine/publisher instance
 for this phase and move to PostgreSQL plus durable object storage before horizontal
 scaling. Also replicate backup bundles off-host; a disk attached only to the same

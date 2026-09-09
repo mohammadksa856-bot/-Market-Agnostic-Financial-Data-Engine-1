@@ -32,6 +32,14 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("PRODUCTION_DEPLOY_ENABLED", workflow)
         self.assertIn("VPS_KNOWN_HOSTS", workflow)
 
+    def test_supabase_publish_rebuilds_and_audits_before_export(self):
+        workflow = (ROOT / ".github" / "workflows" / "publish-supabase.yml").read_text(encoding="utf-8")
+        self.assertIn("SUPABASE_PUBLISH_ENABLED", workflow)
+        self.assertIn("bootstrap", workflow)
+        self.assertLess(workflow.index("bootstrap"), workflow.index("audit"))
+        self.assertLess(workflow.index("audit"), workflow.index("export-supabase"))
+        self.assertIn("SUPABASE_SECRET_KEY", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
