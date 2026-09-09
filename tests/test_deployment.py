@@ -9,6 +9,8 @@ class DeploymentContractTests(unittest.TestCase):
     def test_runtime_state_is_not_mounted_over_seed_data(self):
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
         self.assertIn("/app/state/financial.sqlite3", compose)
+        self.assertIn("FINENGINE_SEED_RAW_DIR", compose)
+        self.assertIn("/app/data/raw:ro", compose)
         self.assertNotIn("./data:/app/data", compose)
 
     def test_container_installs_xauth_for_xvfb_runtime(self):
@@ -68,6 +70,8 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("FINENGINE_BACKUP_RETRY_SECONDS", worker)
         self.assertIn('sleep "$retry_delay"', worker)
         self.assertIn("backup-loop.sh", dockerfile)
+        self.assertIn("backup-status.json", compose)
+        self.assertIn("kill -0 1", compose)
 
 
 if __name__ == "__main__":
