@@ -146,6 +146,7 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["source_index"], fallback)
         self.assertEqual(result["attempted_sources"], 3)
         self.assertEqual(len(result["fallback_errors"]), 2)
+        self.assertEqual(result["successful_sources"], [fallback])
 
     def test_bulk_monitor_job_tracks_every_candidate(self):
         html = b"""

@@ -87,7 +87,7 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
         raise ValueError("issuer monitoring requires source_index or a registry source URL")
     browser = bool(payload.get("browser"))
     errors = []
-    empty_result = None
+    successful = []
     for source_index in source_indexes:
         if browser:
             from .fetching import BrowserFetcher, BrowserIssuerMonitor
@@ -112,20 +112,31 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
         except Exception as error:
             errors.append({"source_index": source_index, "error": str(error)[:500]})
             continue
-        result["source_index"] = source_index
-        result["attempted_sources"] = len(errors) + 1
-        if result["discovered"]:
-            result["fallback_errors"] = errors
-            return result
-        empty_result = result
-    if empty_result is not None:
-        # A reachable official source with no new documents is a successful
-        # monitoring cycle even when another source endpoint was unavailable.
+        successful.append((source_index, result))
+    if successful:
+        # Monitor every registered official endpoint. Issuer-hosted documents
+        # can be blocked while the same filing remains downloadable from the
+        # exchange; stopping at the first link would strand that fallback.
+        selected_source, selected = next(
+            ((url, result) for url, result in successful if result["discovered"]),
+            successful[-1],
+        )
+        combined = dict(selected)
+        combined["source_index"] = selected_source
+        combined["successful_sources"] = [url for url, _ in successful]
+        combined["attempted_sources"] = len(source_indexes)
+        combined["fallback_errors"] = errors
+        combined["discovered"] = sum(result["discovered"] for _, result in successful)
+        combined["new_candidates"] = sum(
+            result["new_candidates"] for _, result in successful)
+        combined["queued_jobs"] = sum(result["queued_jobs"] for _, result in successful)
+        combined["job_ids"] = [
+            job_id for _, result in successful for job_id in result["job_ids"]]
+        # A reachable official source is a successful monitoring cycle even
+        # when another endpoint was unavailable after it.
         db.mark_monitor_success(
-            company.company_id, monitor.name, empty_result["cursor"])
-        empty_result["fallback_errors"] = errors
-        empty_result["attempted_sources"] = len(source_indexes)
-        return empty_result
+            company.company_id, monitor.name, successful[-1][1]["cursor"])
+        return combined
     details = "; ".join(
         f"{item['source_index']}: {item['error']}" for item in errors)
     raise RuntimeError(f"all official company sources failed: {details}")
