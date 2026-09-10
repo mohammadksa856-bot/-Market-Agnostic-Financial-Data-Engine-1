@@ -115,6 +115,7 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
                     fetch_payload[key] = common_payload[key]
             result = service.poll(
                 company, monitor, "fetch_document", fetch_payload, True,
+                job_priority=5 if common_payload.get("discovery_scope") == "historical" else 100,
             )
         except Exception as error:
             errors.append({"source_index": source_index, "error": str(error)[:500]})
@@ -183,7 +184,8 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
                         extraction_payload[key] = job.payload[key]
                 extraction_job,created=queue.enqueue(
                     "extract_document",extraction_payload,job.company_id,result["source_key"],
-                    idempotency_key=f"extract:{result['source_key']}",priority=20,
+                    idempotency_key=f"extract:{result['source_key']}",
+                    priority=5 if job.payload.get("discovery_scope") == "historical" else 20,
                 )
                 result["extraction_job_id"]=extraction_job
                 result["extraction_job_created"]=created

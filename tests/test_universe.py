@@ -151,6 +151,26 @@ class UniverseTests(unittest.TestCase):
         status = saudi_historical_backfill_status(self.db, first["run_id"])
         self.assertEqual((status["status"], status["jobs"].get("queued")),
                          ("running", 2))
+        self.assertEqual(status["total_companies"], 2)
+
+        changed = self.root / "saudi-changed.json"
+        changed.write_bytes(normalize_saudi_directory_rows({"M": [
+            {"symbol": "2222", "lonaName": "Saudi Arabian Oil Company",
+             "shortName": "SAUDI ARAMCO", "isinCode": "SA14TG012N13",
+             "companyURL": "/company/2222"},
+            {"symbol": "4330", "lonaName": "Riyad REIT Fund",
+             "shortName": "RIYAD REIT", "isinCode": "SA145G523L57",
+             "companyURL": "/company/4330"},
+        ]}))
+        sync_universe(self.db, "SA", self.root / "raw", input_path=changed)
+        blocked = enqueue_saudi_historical_backfill(
+            self.db, raw_dir=self.root / "documents"
+        )
+        self.assertEqual(blocked["status"], "in_progress")
+        self.assertEqual(blocked["run_id"], first["run_id"])
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM jobs WHERE job_type='monitor'"
+        ).fetchone()[0], 2)
 
     def test_activation_stages_a_bounded_batch_without_schedules(self):
         source = self.root / "sec.json"

@@ -19,7 +19,8 @@ class MonitorService:
         self.queue = queue or DurableJobQueue(db)
 
     def poll(self, company: Company, monitor, job_type: str | None = None,
-             job_payload: dict | None = None, enqueue_per_candidate: bool = False) -> dict:
+             job_payload: dict | None = None, enqueue_per_candidate: bool = False,
+             job_priority: int = 100) -> dict:
         self.db.register_company(company)
         state = self.db.get_monitor_state(company.company_id, monitor.name)
         try:
@@ -38,6 +39,7 @@ class MonitorService:
                         job_id, created = self.queue.enqueue(
                             job_type, payload, company.company_id,
                             idempotency_key=f"candidate:{candidate_id}:{job_type}",
+                            priority=job_priority,
                         )
                         if created:
                             jobs.append(job_id)
@@ -50,6 +52,7 @@ class MonitorService:
                         idempotency_key=(
                             f"monitor:{company.company_id}:{monitor.name}:{result.cursor}:{job_type}"
                         ),
+                        priority=job_priority,
                     )
                     if created:
                         jobs.append(job_id)

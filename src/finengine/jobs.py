@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -223,10 +225,57 @@ class Worker:
         job = self.queue.claim(self.worker_id, tuple(self.handlers), self.lease_seconds)
         if not job:
             return False
+        stop_heartbeat = threading.Event()
+        heartbeat_error: list[Exception] = []
+
+        def keep_lease_alive() -> None:
+            # Handlers may spend several minutes inside a browser or downloading a
+            # large filing.  Use a separate SQLite connection because the queue's
+            # connection belongs to the worker thread that runs the handler.
+            if self.queue.db.path == ":memory:":
+                return
+            interval = max(1.0, min(60.0, self.lease_seconds / 3))
+            conn = sqlite3.connect(self.queue.db.path, timeout=30)
+            try:
+                conn.execute("PRAGMA busy_timeout=30000")
+                while not stop_heartbeat.wait(interval):
+                    now_dt = _now(); now = _iso(now_dt)
+                    try:
+                        with conn:
+                            conn.execute(
+                                """INSERT INTO workers(worker_id,started_at,heartbeat_at,status)
+                                VALUES(?,?,?,'online') ON CONFLICT(worker_id) DO UPDATE SET
+                                heartbeat_at=excluded.heartbeat_at,status='online'""",
+                                (self.worker_id, now, now),
+                            )
+                            updated = conn.execute(
+                                """UPDATE jobs SET lease_until=?,updated_at=?
+                                WHERE job_id=? AND status='running' AND leased_by=?""",
+                                (_iso(now_dt + timedelta(seconds=self.lease_seconds)), now,
+                                 job.job_id, self.worker_id),
+                            )
+                        if updated.rowcount != 1:
+                            heartbeat_error.append(RuntimeError("job lease was lost"))
+                            return
+                    except sqlite3.OperationalError:
+                        # A transient writer lock is safe: the next heartbeat still
+                        # occurs well before the extended lease expires.
+                        continue
+            finally:
+                conn.close()
+
+        heartbeat_thread = threading.Thread(
+            target=keep_lease_alive, name=f"lease-{job.job_id[:8]}", daemon=True,
+        )
+        heartbeat_thread.start()
         try:
             result = self.handlers[job.job_type](job)
+            stop_heartbeat.set(); heartbeat_thread.join(timeout=5)
+            if heartbeat_error:
+                raise heartbeat_error[0]
             self.queue.complete(job, result)
         except Exception as error:
+            stop_heartbeat.set(); heartbeat_thread.join(timeout=5)
             self.queue.fail(job, error)
         return True
 

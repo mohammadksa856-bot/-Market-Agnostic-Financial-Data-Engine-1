@@ -682,6 +682,30 @@ def enqueue_saudi_historical_backfill(
     if not snapshot:
         raise ValueError("Saudi universe must be synchronized before historical backfill")
     run_id = f"sa-historical:{snapshot['snapshot_id'].split(':')[-1][:16]}:v2"
+    active = db.conn.execute(
+        """SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id
+        FROM jobs WHERE json_extract(payload_json,'$.discovery_scope')='historical'
+        AND json_extract(payload_json,'$.backfill_run_id') IS NOT NULL
+        AND status IN ('queued','running','failed')
+        ORDER BY created_at LIMIT 1"""
+    ).fetchone()
+    if active and active["run_id"] != run_id:
+        # A refreshed universe snapshot must not start a second full crawl while
+        # the current one is still producing downstream fetch/extract jobs.
+        progress = saudi_historical_backfill_status(db, active["run_id"])
+        return {
+            "status": "in_progress", "run_id": active["run_id"],
+            "requested_run_id": run_id, "queued": 0, "existing": 0,
+            "missing_source": 0, "recurring_paused": bool(pause_recurring),
+            "source_limit": source_limit, "progress": progress,
+        }
+    with db.conn:
+        db.conn.execute(
+            """UPDATE jobs SET priority=5,updated_at=CURRENT_TIMESTAMP
+            WHERE status='queued' AND job_type IN ('fetch_document','extract_document')
+            AND json_extract(payload_json,'$.discovery_scope')='historical'
+            AND priority>5"""
+        )
     if pause_recurring:
         with db.conn:
             db.conn.execute(
@@ -741,7 +765,10 @@ def saudi_historical_backfill_status(db: Database, run_id: str | None = None) ->
         row = db.conn.execute(
             """SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id
             FROM jobs WHERE json_extract(payload_json,'$.discovery_scope')='historical'
-            ORDER BY created_at DESC LIMIT 1"""
+            AND json_extract(payload_json,'$.backfill_run_id') IS NOT NULL
+            GROUP BY run_id
+            ORDER BY SUM(status IN ('queued','running','failed'))>0 DESC,
+                     MIN(created_at) ASC LIMIT 1"""
         ).fetchone()
         run_id = row["run_id"] if row else None
     if not run_id:
@@ -755,11 +782,19 @@ def saudi_historical_backfill_status(db: Database, run_id: str | None = None) ->
     }
     total = sum(counts.values())
     pending = sum(counts.get(key, 0) for key in ("queued", "running", "failed"))
+    company_counts = {
+        row["status"]: row["n"] for row in db.conn.execute(
+            """SELECT status,count(*) AS n FROM jobs
+            WHERE json_extract(payload_json,'$.backfill_run_id')=?
+            AND job_type='monitor' GROUP BY status""", (run_id,),
+        )
+    }
     return {
         "status": "complete" if total and pending == 0 and not counts.get("dead", 0)
                   else "attention" if counts.get("dead", 0) else "running",
         "run_id": run_id, "jobs": counts, "total_jobs": total,
         "pending_jobs": pending, "dead_jobs": counts.get("dead", 0),
+        "companies": company_counts, "total_companies": sum(company_counts.values()),
     }
 
 

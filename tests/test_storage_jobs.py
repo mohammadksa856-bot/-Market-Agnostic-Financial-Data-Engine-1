@@ -1,4 +1,6 @@
 import tempfile
+import threading
+import time
 import unittest
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -6,7 +8,7 @@ from pathlib import Path
 
 from finengine.calculations import Calculator
 from finengine.database import Database
-from finengine.jobs import DurableJobQueue, DurableScheduler
+from finengine.jobs import DurableJobQueue, DurableScheduler, Worker
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
 from finengine.query import FinancialQueryService
 
@@ -105,6 +107,30 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(len(scheduler.tick(due)), 1)
         self.assertEqual(len(scheduler.tick(due)), 0)
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
+
+    def test_worker_renews_lease_while_long_handler_runs(self):
+        queue = DurableJobQueue(self.db)
+        job_id, _ = queue.enqueue("slow", {}, "sa:TST", idempotency_key="slow:1")
+        competing_claims = []
+
+        def compete():
+            time.sleep(2.2)
+            other_db = Database(self.path)
+            try:
+                competing_claims.append(DurableJobQueue(other_db).claim("worker-2", ("slow",), 2))
+            finally:
+                other_db.close()
+
+        contender = threading.Thread(target=compete)
+        contender.start()
+        worker = Worker(queue, "worker-1", {"slow": lambda _job: time.sleep(3)}, lease_seconds=2)
+        self.assertTrue(worker.run_once())
+        contender.join()
+        row = self.db.conn.execute(
+            "SELECT status,attempts FROM jobs WHERE job_id=?", (job_id,),
+        ).fetchone()
+        self.assertEqual(competing_claims, [None])
+        self.assertEqual((row["status"], row["attempts"]), ("succeeded", 1))
 
     def _bank_fact(self, metric, value, kind, source):
         return Fact(self.company.company_id, metric, Decimal(value), "SAR", "SAR",
