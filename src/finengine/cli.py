@@ -459,7 +459,7 @@ def main():
     universe_promote=sub.add_parser("universe-promote"); universe_promote.add_argument("batch"); universe_promote.add_argument("--limit",type=int,default=10); universe_promote.add_argument("--schedule-every",type=int,default=21600); universe_promote.add_argument("--registry",default="config/companies.json"); universe_promote.add_argument("--raw-dir",default="data/raw")
     universe_onboard=sub.add_parser("universe-onboard"); universe_onboard.add_argument("--raw-dir",default="data/raw/universe"); universe_onboard.add_argument("--us-limit",type=int,default=25); universe_onboard.add_argument("--sa-limit",type=int,default=10); universe_onboard.add_argument("--schedule-every",type=int,default=86400)
     universe_reconcile=sub.add_parser("universe-reconcile-runtime"); universe_reconcile.add_argument("--raw-dir",default="data/raw"); universe_reconcile.add_argument("--recover-running",action="store_true")
-    historical=sub.add_parser("sa-historical-backfill"); historical.add_argument("--limit",type=int,default=500); historical.add_argument("--source-limit",type=int,default=500); historical.add_argument("--registry",default="config/companies.json"); historical.add_argument("--raw-dir",default="data/raw"); historical.add_argument("--keep-recurring",action="store_true")
+    historical=sub.add_parser("sa-historical-backfill"); historical.add_argument("--limit",type=int,default=500); historical.add_argument("--source-limit",type=int,default=500); historical.add_argument("--registry",default="config/companies.json"); historical.add_argument("--raw-dir",default="data/raw"); historical.add_argument("--keep-recurring",action="store_true"); historical.add_argument("--force-new-run",action="store_true",help="start another complete crawl even if a prior historical run succeeded")
     historical_status=sub.add_parser("sa-historical-status"); historical_status.add_argument("--run-id")
     sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
@@ -562,7 +562,8 @@ def main():
         db=Database(a.db)
         try:
             result=enqueue_saudi_historical_backfill(
-                db,a.limit,a.source_limit,a.registry,a.raw_dir,not a.keep_recurring)
+                db,a.limit,a.source_limit,a.registry,a.raw_dir,not a.keep_recurring,
+                a.force_new_run)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="sa-historical-status":

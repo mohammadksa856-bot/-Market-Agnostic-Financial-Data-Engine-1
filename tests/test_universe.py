@@ -172,6 +172,30 @@ class UniverseTests(unittest.TestCase):
             "SELECT count(*) FROM jobs WHERE job_type='monitor'"
         ).fetchone()[0], 2)
 
+        with self.db.conn:
+            self.db.conn.execute(
+                """UPDATE jobs SET status='succeeded',finished_at=CURRENT_TIMESTAMP
+                WHERE json_extract(payload_json,'$.backfill_run_id')=?""",
+                (first["run_id"],),
+            )
+        completed = enqueue_saudi_historical_backfill(
+            self.db, raw_dir=self.root / "documents"
+        )
+        self.assertEqual(completed["status"], "complete")
+        self.assertEqual(completed["run_id"], first["run_id"])
+        self.assertNotEqual(completed["requested_run_id"], first["run_id"])
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM jobs WHERE job_type='monitor'"
+        ).fetchone()[0], 2)
+
+        forced = enqueue_saudi_historical_backfill(
+            self.db, raw_dir=self.root / "documents", force_new_run=True
+        )
+        self.assertEqual((forced["status"], forced["queued"]), ("queued", 2))
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM jobs WHERE job_type='monitor'"
+        ).fetchone()[0], 4)
+
     def test_activation_stages_a_bounded_batch_without_schedules(self):
         source = self.root / "sec.json"
         source.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],

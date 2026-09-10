@@ -660,14 +660,16 @@ def promote_activation_batch(
 def enqueue_saudi_historical_backfill(
     db: Database, limit: int = 500, source_limit: int = 500,
     registry_path: str = "config/companies.json", raw_dir: str | Path = "data/raw",
-    pause_recurring: bool = True,
+    pause_recurring: bool = True, force_new_run: bool = False,
 ) -> dict:
     """Activate the complete Saudi inventory and queue one historical crawl each.
 
     This is intentionally separate from recurring monitoring.  It includes funds
     because the archived issuer universe is the coverage contract even while their
     fund-specific metric pack is developed later.  Re-running against the same
-    universe snapshot is idempotent and cannot duplicate the crawl jobs.
+    universe snapshot is idempotent and cannot duplicate the crawl jobs.  Once a
+    full run succeeds, later universe metadata snapshots do not silently trigger
+    another full crawl; an operator must explicitly request ``force_new_run``.
     """
     limit = min(max(int(limit), 1), 500)
     source_limit = min(max(int(source_limit), 1), 1000)
@@ -692,6 +694,28 @@ def enqueue_saudi_historical_backfill(
             AND ((job_type='fetch_document' AND priority>5)
               OR (job_type='extract_document' AND priority>1))"""
         )
+    completed = None if force_new_run else db.conn.execute(
+        """SELECT run_id,total_jobs,total_companies FROM (
+            SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id,
+                   count(*) AS total_jobs,
+                   sum(job_type='monitor') AS total_companies,
+                   sum(status!='succeeded') AS incomplete_jobs
+            FROM jobs
+            WHERE json_extract(payload_json,'$.discovery_scope')='historical'
+              AND json_extract(payload_json,'$.backfill_run_id') IS NOT NULL
+            GROUP BY run_id
+        ) WHERE total_companies>0 AND incomplete_jobs=0
+        ORDER BY run_id LIMIT 1"""
+    ).fetchone()
+    if completed:
+        progress = saudi_historical_backfill_status(db, completed["run_id"])
+        return {
+            "status": "complete", "run_id": completed["run_id"],
+            "requested_run_id": run_id, "queued": 0,
+            "existing": completed["total_companies"], "missing_source": 0,
+            "recurring_paused": bool(pause_recurring),
+            "source_limit": source_limit, "progress": progress,
+        }
     active = db.conn.execute(
         """SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id
         FROM jobs WHERE json_extract(payload_json,'$.discovery_scope')='historical'
