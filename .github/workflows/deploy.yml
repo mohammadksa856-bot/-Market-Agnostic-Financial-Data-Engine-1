@@ -36,6 +36,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: >-
-          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST"
-          "cd '$DEPLOY_PATH' && ./deploy/update-server.sh"
+        run: |
+          port="${VPS_PORT:-22}"
+          ssh -p "$port" "$VPS_USER@$VPS_HOST" \
+            "cd '$DEPLOY_PATH' && ./deploy/update-server.sh"
