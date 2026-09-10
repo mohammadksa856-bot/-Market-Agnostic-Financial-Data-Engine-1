@@ -185,7 +185,7 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
                 extraction_job,created=queue.enqueue(
                     "extract_document",extraction_payload,job.company_id,result["source_key"],
                     idempotency_key=f"extract:{result['source_key']}",
-                    priority=5 if job.payload.get("discovery_scope") == "historical" else 20,
+                    priority=1 if job.payload.get("discovery_scope") == "historical" else 20,
                 )
                 result["extraction_job_id"]=extraction_job
                 result["extraction_job_created"]=created

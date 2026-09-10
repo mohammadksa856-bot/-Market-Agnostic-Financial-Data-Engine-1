@@ -684,10 +684,13 @@ def enqueue_saudi_historical_backfill(
     run_id = f"sa-historical:{snapshot['snapshot_id'].split(':')[-1][:16]}:v2"
     with db.conn:
         db.conn.execute(
-            """UPDATE jobs SET priority=5,updated_at=CURRENT_TIMESTAMP
+            """UPDATE jobs SET priority=CASE job_type
+                WHEN 'extract_document' THEN 1 ELSE 5 END,
+                updated_at=CURRENT_TIMESTAMP
             WHERE status='queued' AND job_type IN ('fetch_document','extract_document')
             AND json_extract(payload_json,'$.discovery_scope')='historical'
-            AND priority>5"""
+            AND ((job_type='fetch_document' AND priority>5)
+              OR (job_type='extract_document' AND priority>1))"""
         )
     active = db.conn.execute(
         """SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id
