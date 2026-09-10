@@ -1,4 +1,4 @@
-import argparse, calendar, json, os, re, socket, threading, time
+import argparse, calendar, json, os, re, socket, sqlite3, threading, time
 from datetime import date
 from pathlib import Path
 from .connectors import (
@@ -714,9 +714,10 @@ def main():
         # Production universe companies are persisted in SQLite and can greatly
         # outnumber the small reviewed seed registry.  Exporting only the JSON
         # registry silently leaves newly onboarded issuers out of Supabase.
-        registry_db=Database(a.db)
+        registry_db=sqlite3.connect(a.db)
+        registry_db.row_factory=sqlite3.Row
         try:
-            registry=CompanyRegistry.combined(registry_db.conn,a.registry)
+            registry=CompanyRegistry.combined(registry_db,a.registry)
         finally:
             registry_db.close()
         if a.all:
