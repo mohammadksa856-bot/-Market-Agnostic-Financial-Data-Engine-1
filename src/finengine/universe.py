@@ -659,7 +659,7 @@ def reconcile_onboarding_runtime_paths(
 ) -> dict:
     """Repair only onboarding-owned runtime paths and the jobs affected by them."""
     runtime_raw = str(Path(raw_dir))
-    schedule_updates = job_updates = retried = download_retried = recovered = 0
+    schedule_updates = job_updates = retried = download_retried = fallback_retried = recovered = 0
     activation_companies = "SELECT company_id FROM universe_activations"
     with db.conn:
         schedules = db.conn.execute(
@@ -675,7 +675,7 @@ def reconcile_onboarding_runtime_paths(
                 schedule_updates += 1
         statuses = "('queued','dead'" + (",'running'" if recover_running else "") + ")"
         jobs = db.conn.execute(
-            f"""SELECT job_id,job_type,status,last_error,payload_json,attempts,max_attempts
+            f"""SELECT job_id,job_type,company_id,status,last_error,payload_json,attempts,max_attempts
             FROM jobs
             WHERE job_type IN ('monitor','fetch_document','extract_document')
             AND company_id IN ({activation_companies}) AND status IN {statuses}"""
@@ -692,8 +692,16 @@ def reconcile_onboarding_runtime_paths(
             retry_download_error = (row["status"] == "dead" and
                                     "evicted from inspector cache" in
                                     (row["last_error"] or "").lower())
+            retry_source_fallback = False
+            if (row["status"] == "dead" and row["job_type"] == "monitor" and
+                    (row["last_error"] or "").startswith("Page.goto:")):
+                source_count = db.conn.execute(
+                    "SELECT count(*) FROM company_sources WHERE company_id=? AND enabled=1",
+                    (row["company_id"],),
+                ).fetchone()[0]
+                retry_source_fallback = source_count > 1
             recover = recover_running and row["status"] == "running"
-            if retry_path_error or retry_download_error or recover:
+            if retry_path_error or retry_download_error or retry_source_fallback or recover:
                 previous_attempt = db.conn.execute(
                     "SELECT COALESCE(MAX(attempt_number),0) FROM job_attempts WHERE job_id=?",
                     (row["job_id"],),
@@ -716,6 +724,8 @@ def reconcile_onboarding_runtime_paths(
                     recovered += 1
                 elif retry_download_error:
                     download_retried += 1
+                elif retry_source_fallback:
+                    fallback_retried += 1
                 else:
                     retried += 1
                 candidate_id = payload.get("candidate_id")
@@ -726,6 +736,7 @@ def reconcile_onboarding_runtime_paths(
             "schedule_updates": schedule_updates, "job_updates": job_updates,
             "retried_path_failures": retried,
             "retried_download_failures": download_retried,
+            "retried_source_fallbacks": fallback_retried,
             "recovered_running": recovered}
 
 

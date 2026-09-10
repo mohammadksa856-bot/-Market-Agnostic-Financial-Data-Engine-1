@@ -284,6 +284,15 @@ class UniverseTests(unittest.TestCase):
         )
         with self.db.conn:
             self.db.conn.execute(
+                "INSERT INTO company_sources(company_id,source_type,url,priority) "
+                "VALUES('sa:2010','issuer','https://issuer.example/investors',200)"
+            )
+        fallback_job, _ = queue.enqueue(
+            "monitor", {"raw_dir": "data/raw"}, "sa:2010",
+            idempotency_key="source-fallback", max_attempts=1,
+        )
+        with self.db.conn:
+            self.db.conn.execute(
                 "UPDATE jobs SET attempts=1 WHERE job_id=?", (path_job,),
             )
             self.db.conn.execute(
@@ -302,12 +311,17 @@ class UniverseTests(unittest.TestCase):
                 "UPDATE jobs SET status='dead',last_error='Request content was evicted from "
                 "inspector cache' WHERE job_id=?", (evicted_job,),
             )
+            self.db.conn.execute(
+                "UPDATE jobs SET status='dead',last_error='Page.goto: endpoint unavailable' "
+                "WHERE job_id=?", (fallback_job,),
+            )
         runtime = self.root / "runtime-raw"
         result = reconcile_onboarding_runtime_paths(self.db, runtime)
         self.assertEqual(result["schedule_updates"], 1)
-        self.assertEqual(result["job_updates"], 3)
+        self.assertEqual(result["job_updates"], 4)
         self.assertEqual(result["retried_path_failures"], 1)
         self.assertEqual(result["retried_download_failures"], 1)
+        self.assertEqual(result["retried_source_fallbacks"], 1)
         schedule = self.db.conn.execute("SELECT payload_json FROM schedules").fetchone()
         self.assertEqual(json.loads(schedule["payload_json"])["raw_dir"], str(runtime))
         states = {row["job_id"]: row for row in self.db.conn.execute(
@@ -316,6 +330,7 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(states[path_job]["attempts"], 1)
         self.assertGreaterEqual(states[path_job]["max_attempts"], 6)
         self.assertEqual(states[evicted_job]["status"], "queued")
+        self.assertEqual(states[fallback_job]["status"], "queued")
         self.assertEqual(states[unrelated_job]["status"], "dead")
 
     def test_enrichment_archives_and_profiles_sec_metadata(self):
