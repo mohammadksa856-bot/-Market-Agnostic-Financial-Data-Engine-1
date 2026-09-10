@@ -257,7 +257,7 @@ class FinancialQueryService:
 
     def period_history(
         self, market: str, symbol: str, period_kind: str,
-        metrics: tuple[str, ...], periods: int = 5,
+        metrics: tuple[str, ...], periods: int = 5, annual_only: bool = False,
     ) -> dict:
         """Return sourced, period-safe history for page charts and comparison tables."""
         allowed = {"instant", "quarter", "ytd", "fy", "ttm", "as_of", "daily", "event"}
@@ -270,9 +270,11 @@ class FinancialQueryService:
         if not company:
             raise KeyError(f"unknown company {market}:{symbol}")
         periods = min(max(periods, 1), 40)
+        annual_filter = " AND COALESCE(fiscal_quarter,0)=0" if annual_only else ""
         period_rows = self.conn.execute(
             """SELECT period_end FROM data_points WHERE company_id=? AND period_kind=?
-            AND is_current=1 GROUP BY period_end ORDER BY period_end DESC LIMIT ?""",
+            AND is_current=1""" + annual_filter +
+            " GROUP BY period_end ORDER BY period_end DESC LIMIT ?",
             (company["company_id"], period_kind, periods),
         ).fetchall()
         period_ends = [row["period_end"] for row in period_rows]
@@ -292,6 +294,7 @@ class FinancialQueryService:
             d.source_url,d.filed_at,d.is_calculated,d.calculation
             FROM data_points d JOIN metric_definitions m ON m.metric_key=d.metric_key
             WHERE d.company_id=? AND d.period_kind=? AND d.is_current=1
+            {annual_filter.replace('fiscal_quarter', 'd.fiscal_quarter')}
             AND d.metric_key IN ({metric_slots}) AND d.period_end IN ({period_slots})
             ORDER BY d.period_end DESC,m.category,d.metric_key,d.scope,d.dimensions_json""",
             (company["company_id"], period_kind, *metrics, *period_ends),
@@ -334,7 +337,7 @@ class FinancialQueryService:
             "capital_expenditure", "free_cash_flow", "eps_basic", "dividend_per_share",
             "gross_margin", "operating_margin", "ebitda_margin", "net_margin",
             "return_on_assets", "return_on_equity", "return_on_invested_capital",
-        ), 5)
+        ), 5, annual_only=True)
         balance_history = self.period_history(market, symbol, "instant", (
             "cash_and_cash_equivalents", "current_assets", "total_assets",
             "current_liabilities", "total_liabilities", "total_debt", "net_debt",
