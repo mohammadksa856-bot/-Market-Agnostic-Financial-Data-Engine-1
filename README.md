@@ -357,6 +357,9 @@ periodic filings. Saudi companies require an official issuer-profile URL archive
 the exchange universe. SEC SIC codes select only supported broad sector packs; unknown
 codes retain the universal pack. Onboarding creates monitoring schedules but cannot
 bypass staging, canonical mapping, period semantics, validation, or the exception queue.
+The default production stack also runs one dedicated worker alongside the API worker.
+Both use durable SQLite leases and idempotency keys, giving the current two-vCPU server
+bounded parallelism without allowing the same scheduled job to publish twice.
 
 For a deliberate Saudi historical discovery pass:
 

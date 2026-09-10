@@ -102,6 +102,30 @@ services:
       start_period: 180s
       retries: 3
 
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SEC_USER_AGENT: ${SEC_USER_AGENT:?Set SEC_USER_AGENT in .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FINENGINE_BROWSER_HEADLESS: ${FINENGINE_BROWSER_HEADLESS:-false}
+    command: ["sh", "-c", "exec xvfb-run -a finengine --db /app/state/financial.sqlite3 worker --poll 10"]
+    volumes:
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state
+    depends_on:
+      engine:
+        condition: service_healthy
+    init: true
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
   telegram:
     build: .
     profiles: ["telegram"]

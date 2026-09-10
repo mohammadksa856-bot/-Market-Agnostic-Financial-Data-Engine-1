@@ -87,6 +87,13 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("FINENGINE_ONBOARDING_SCHEDULE_SECONDS", compose)
         self.assertIn("universe-refresh", compose)
 
+    def test_background_worker_adds_bounded_parallel_capacity(self):
+        compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        self.assertIn("  worker:", compose)
+        self.assertIn("financial.sqlite3 worker --poll 10", compose)
+        self.assertIn("xvfb-run -a", compose)
+        self.assertIn("kill -0 1", compose)
+
 
 if __name__ == "__main__":
     unittest.main()
