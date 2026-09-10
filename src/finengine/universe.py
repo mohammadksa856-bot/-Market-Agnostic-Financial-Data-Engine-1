@@ -642,9 +642,16 @@ def promote_activation_batch(
             AND a.status='staged' AND EXISTS(SELECT 1 FROM company_sources cs
             WHERE cs.company_id=a.company_id AND cs.enabled=1)""", (batch_id,),
         ).fetchone()[0]
+    backlog_refreshed = 0
+    if promoted:
+        from .domains import CompanyDomainStore
+        domains = CompanyDomainStore(db)
+        for item in promoted:
+            domains.refresh_company_backlog(item["company_id"])
+            backlog_refreshed += 1
     return {"status": "active" if promoted else "empty", "batch_id": batch_id,
             "promoted": len(promoted), "eligible_remaining": eligible_remaining,
-            "companies": promoted}
+            "backlog_refreshed": backlog_refreshed, "companies": promoted}
 
 
 def onboard_universe(

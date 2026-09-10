@@ -248,6 +248,10 @@ class UniverseTests(unittest.TestCase):
             "SELECT sector,industry FROM companies WHERE company_id='us:AAA'").fetchone()
         self.assertEqual((company["sector"], company["industry"]),
                          ("Technology", "Technology"))
+        self.assertEqual(result["markets"]["US"]["promotion"]["backlog_refreshed"], 1)
+        self.assertEqual(result["markets"]["SA"]["promotion"]["backlog_refreshed"], 1)
+        self.assertGreater(self.db.conn.execute(
+            "SELECT count(*) FROM company_completeness").fetchone()[0], 0)
 
     def test_enrichment_archives_and_profiles_sec_metadata(self):
         source = self.root / "sec.json"

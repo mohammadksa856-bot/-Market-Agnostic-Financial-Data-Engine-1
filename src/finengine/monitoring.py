@@ -148,7 +148,14 @@ class DocumentArchiver:
             candidate["company_id"], Market(company["market"]), candidate["source_url"], source_key,
             candidate["document_type"], filed_at, content, content_type,
             {"candidate_id": candidate_id, "title": candidate["title"],
-             "connector": candidate["connector"]},
+             "connector": candidate["connector"],
+             "discovery": candidate.get("metadata") or {},
+             "source_role": (candidate.get("metadata") or {}).get(
+                 "source_role", "official_document"),
+             "authority_tier": (candidate.get("metadata") or {}).get(
+                 "authority_tier", "configured_official_source"),
+             "numeric_authority": bool((candidate.get("metadata") or {}).get(
+                 "numeric_authority", True))},
         )
         previous_status = self.db.source_status(source_key)
         if previous_status is None:

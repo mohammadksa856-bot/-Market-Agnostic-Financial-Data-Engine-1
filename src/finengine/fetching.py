@@ -445,7 +445,16 @@ class BrowserIssuerMonitor:
                 self._document_type(f"{item['title']} {item['url']}"),
                 _published_at_from_url(item["url"]),
                 item.get("content_type", "application/pdf"),
-                {"index_url": self.index_url, **(
+                {"index_url": self.index_url,
+                 "source_role": "official_filing",
+                 "authority_tier": (
+                     "exchange_official" if (
+                         urlparse(self.index_url).hostname == _SAUDI_EXCHANGE_HOST or
+                         urlparse(item.get("referer") or "").hostname == _SAUDI_EXCHANGE_HOST
+                     ) else "issuer_official"
+                 ),
+                 "numeric_authority": True,
+                 **(
                     {"referer": item["referer"]} if item.get("referer") else {}
                 )},
             )
