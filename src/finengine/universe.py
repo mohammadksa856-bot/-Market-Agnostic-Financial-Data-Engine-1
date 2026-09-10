@@ -386,7 +386,10 @@ def activate_universe(
         existing = db.conn.execute(
             "SELECT enabled FROM companies WHERE company_id=?", (company_id,)
         ).fetchone()
-        company_enabled = bool(existing["enabled"]) if existing else enable
+        # An explicit enabled activation promotes an already-known disabled
+        # registry company too; otherwise a seed-stage record could never join
+        # a later complete-universe rollout.
+        company_enabled = bool(enable or (existing and existing["enabled"]))
         company = Company(
             company_id=company_id, market=Market(market), symbol=row["symbol"],
             name=row["name"], currency=row["currency"],
