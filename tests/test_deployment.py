@@ -74,6 +74,19 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("backup-status.json", compose)
         self.assertIn("kill -0 1", compose)
 
+    def test_onboarding_worker_is_bounded_durable_and_quality_gated(self):
+        compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        worker = (ROOT / "deploy" / "onboarding-loop.sh").read_text(encoding="utf-8")
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("universe-onboard", worker)
+        self.assertIn("FINENGINE_ONBOARDING_US_LIMIT", worker)
+        self.assertIn("FINENGINE_ONBOARDING_SA_LIMIT", worker)
+        self.assertIn("onboarding-status.json", worker)
+        self.assertIn("onboarding-loop.sh", dockerfile)
+        self.assertIn("onboarding:", compose)
+        self.assertIn("FINENGINE_ONBOARDING_SCHEDULE_SECONDS", compose)
+        self.assertIn("universe-refresh", compose)
+
 
 if __name__ == "__main__":
     unittest.main()

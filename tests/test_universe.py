@@ -7,9 +7,9 @@ from finengine.database import Database
 from finengine.query import FinancialQueryService
 from finengine.registry import CompanyRegistry
 from finengine.universe import (
-    activate_universe, classify_sec_submission, enrich_activation_batch,
+    activate_universe, classify_sec_sic, classify_sec_submission, enrich_activation_batch,
     normalize_saudi_directory_rows, parse_saudi_reference, parse_sec_ticker_exchange,
-    promote_activation_batch,
+    onboard_universe, promote_activation_batch,
     sync_universe,
 )
 
@@ -212,6 +212,42 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(classify_sec_submission(operating)[0], "eligible")
         self.assertEqual(classify_sec_submission(blank_check)[0], "excluded")
         self.assertEqual(classify_sec_submission(unclear)[0], "review")
+
+    def test_sec_sic_selects_only_a_supported_broad_sector_pack(self):
+        self.assertEqual(classify_sec_sic("3571"), ("Technology", "Technology"))
+        self.assertEqual(classify_sec_sic("6022"), ("Financials", "Banks"))
+        self.assertEqual(classify_sec_sic("0000"), (None, None))
+
+    def test_bounded_onboarding_qualifies_and_schedules_both_markets(self):
+        us = self.root / "us.json"
+        us.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],
+            "data": [[1, "Alpha Inc", "AAA", "Nasdaq"]]}), encoding="utf-8")
+        sa = self.root / "sa.json"
+        sa.write_bytes(normalize_saudi_directory_rows({"M": [{
+            "symbol": "2010", "lonaName": "Saudi Basic Industries Corp.",
+            "shortName": "SABIC", "isinCode": "SA0007879121",
+            "companyURL": "https://www.saudiexchange.sa/company/2010",
+        }]}))
+        sync_universe(self.db, "US", self.root / "raw", input_path=us)
+        sync_universe(self.db, "SA", self.root / "raw", input_path=sa)
+        profile = json.dumps({"name": "Alpha Inc", "entityType": "operating",
+            "sic": "3571", "sicDescription": "Electronic Computers",
+            "fiscalYearEnd": "1231", "filings": {"recent": {"form": ["10-K"]}}}).encode()
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def read(self): return profile
+        result = onboard_universe(
+            self.db, self.root / "raw", "Product test@example.com", 1, 1, 86400,
+            opener=lambda *_args, **_kwargs: Response(), request_interval=0,
+        )
+        self.assertEqual(result["activated"], 2)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM schedules WHERE enabled=1").fetchone()[0], 2)
+        company = self.db.conn.execute(
+            "SELECT sector,industry FROM companies WHERE company_id='us:AAA'").fetchone()
+        self.assertEqual((company["sector"], company["industry"]),
+                         ("Technology", "Technology"))
 
     def test_enrichment_archives_and_profiles_sec_metadata(self):
         source = self.root / "sec.json"

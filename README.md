@@ -347,6 +347,17 @@ Poll official sources once:
     finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 12
     finengine --db data/financial.sqlite3 monitor US AAPL
 
+Run one safe, bounded company-onboarding cycle across both discovered markets:
+
+    finengine --db data/financial.sqlite3 universe-onboard --us-limit 25 --sa-limit 10
+
+The production `onboarding` service runs this cycle daily. US companies are enabled
+only after an archived SEC registrant profile proves they are operating issuers with
+periodic filings. Saudi companies require an official issuer-profile URL archived in
+the exchange universe. SEC SIC codes select only supported broad sector packs; unknown
+codes retain the universal pack. Onboarding creates monitoring schedules but cannot
+bypass staging, canonical mapping, period semantics, validation, or the exception queue.
+
 For a deliberate Saudi historical discovery pass:
 
     finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 500

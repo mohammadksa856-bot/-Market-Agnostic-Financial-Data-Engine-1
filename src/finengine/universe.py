@@ -446,6 +446,41 @@ def classify_sec_submission(payload: dict) -> tuple[str, str]:
     return "review", "SEC metadata is insufficient for automatic eligibility"
 
 
+def classify_sec_sic(sic: str | int | None) -> tuple[str | None, str | None]:
+    """Map authoritative SEC SIC codes to broad reviewed sector packs."""
+    text = str(sic or "").strip()
+    if not text.isdigit():
+        return None, None
+    code = int(text)
+    if 100 <= code <= 999:
+        return "Consumer Staples", "Food & Agriculture"
+    if 1300 <= code <= 1389:
+        return "Energy", "Integrated Oil & Gas"
+    if 1000 <= code <= 1499:
+        return "Materials", "Mining"
+    if 2800 <= code <= 2829:
+        return "Materials", "Diversified Chemicals"
+    if 2830 <= code <= 2839 or 8000 <= code <= 8099:
+        return "Health Care", "Health Care"
+    if 3570 <= code <= 3579 or 3670 <= code <= 3679 or 7370 <= code <= 7379:
+        return "Technology", "Technology"
+    if 4810 <= code <= 4899:
+        return "Communication Services", "Telecommunications"
+    if 4000 <= code <= 4799:
+        return "Industrials", "Transportation & Logistics"
+    if 4900 <= code <= 4999:
+        return "Utilities", "Utilities"
+    if 5000 <= code <= 5999:
+        return "Consumer", "Retail"
+    if 6000 <= code <= 6099:
+        return "Financials", "Banks"
+    if 6310 <= code <= 6419:
+        return "Financials", "Insurance"
+    if 6500 <= code <= 6799:
+        return "Real Estate", "Real Estate & REITs"
+    return None, None
+
+
 def enrich_activation_batch(
     db: Database, raw_dir: str | Path, user_agent: str, batch_id: str | None = None,
     limit: int = 25, opener=urlopen, request_interval: float = 0.12,
@@ -488,6 +523,7 @@ def enrich_activation_batch(
         if hashlib.sha256(archived.read_bytes()).hexdigest() != digest:
             raise RuntimeError("archived SEC profile hash mismatch")
         status, reason = classify_sec_submission(payload)
+        sector, industry = classify_sec_sic(payload.get("sic"))
         observed_at = _now()
         metadata = {key: payload.get(key) for key in (
             "name", "tickers", "exchanges", "stateOfIncorporation", "addresses"
@@ -509,6 +545,12 @@ def enrich_activation_batch(
                  str(payload.get("sic") or ""), payload.get("sicDescription"),
                  payload.get("fiscalYearEnd"), status, reason, _json(metadata), observed_at),
             )
+            if sector and industry:
+                db.conn.execute(
+                    """UPDATE companies SET sector=?,industry=? WHERE company_id IN
+                    (SELECT company_id FROM universe_activations WHERE issuer_id=?)""",
+                    (sector, industry, row["issuer_id"]),
+                )
         counts[status] += 1
         processed.append({"issuer_id": row["issuer_id"], "status": status, "reason": reason})
     remaining = db.conn.execute(
@@ -533,23 +575,36 @@ def promote_activation_batch(
     ).fetchone()
     if not batch:
         raise KeyError(f"unknown activation batch {batch_id}")
-    if batch["market"] != "US":
-        raise ValueError("automatic eligibility promotion currently supports US batches only")
-    rows = db.conn.execute(
-        """SELECT a.issuer_id,a.company_id,c.symbol,p.fiscal_year_end FROM universe_activations a
-        JOIN companies c USING(company_id)
-        JOIN universe_issuer_profiles p USING(issuer_id)
-        WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'
-        ORDER BY a.priority LIMIT ?""", (batch_id, limit),
-    ).fetchall()
+    market = batch["market"]
+    if market == "US":
+        rows = db.conn.execute(
+            """SELECT a.issuer_id,a.company_id,c.symbol,p.fiscal_year_end,
+            NULL AS source_index FROM universe_activations a
+            JOIN companies c USING(company_id)
+            JOIN universe_issuer_profiles p USING(issuer_id)
+            WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'
+            ORDER BY a.priority LIMIT ?""", (batch_id, limit),
+        ).fetchall()
+    else:
+        rows = db.conn.execute(
+            """SELECT a.issuer_id,a.company_id,c.symbol,c.fiscal_year_end,
+            (SELECT url FROM company_sources cs WHERE cs.company_id=a.company_id
+             AND cs.enabled=1 ORDER BY cs.priority,cs.id LIMIT 1) AS source_index
+            FROM universe_activations a JOIN companies c USING(company_id)
+            WHERE a.batch_id=? AND a.status='staged'
+            AND EXISTS(SELECT 1 FROM company_sources cs WHERE cs.company_id=a.company_id
+                       AND cs.enabled=1)
+            ORDER BY a.priority LIMIT ?""", (batch_id, limit),
+        ).fetchall()
     scheduler = DurableScheduler(db)
     promoted = []
     for row in rows:
-        schedule_id = f"monitor:US:{row['symbol']}"
+        schedule_id = f"monitor:{market}:{row['symbol']}"
         scheduler.upsert(
-            schedule_id, f"Monitor US:{row['symbol']}", "monitor", schedule_every,
-            {"market": "US", "symbol": row["symbol"], "registry": registry_path,
-             "raw_dir": "data/raw", "source_limit": 12, "browser": False, "llm": False},
+            schedule_id, f"Monitor {market}:{row['symbol']}", "monitor", schedule_every,
+            {"market": market, "symbol": row["symbol"], "registry": registry_path,
+             "raw_dir": "data/raw", "source_index": row["source_index"],
+             "source_limit": 12, "browser": market == "SA", "llm": False},
             row["company_id"],
         )
         with db.conn:
@@ -574,14 +629,54 @@ def promote_activation_batch(
                 activated_at=COALESCE(activated_at,CURRENT_TIMESTAMP) WHERE batch_id=?""",
                 (batch_id,),
             )
-    eligible_remaining = db.conn.execute(
-        """SELECT count(*) FROM universe_activations a JOIN universe_issuer_profiles p USING(issuer_id)
-        WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'""",
-        (batch_id,),
-    ).fetchone()[0]
+    if market == "US":
+        eligible_remaining = db.conn.execute(
+            """SELECT count(*) FROM universe_activations a
+            JOIN universe_issuer_profiles p USING(issuer_id)
+            WHERE a.batch_id=? AND a.status='staged' AND p.eligibility_status='eligible'""",
+            (batch_id,),
+        ).fetchone()[0]
+    else:
+        eligible_remaining = db.conn.execute(
+            """SELECT count(*) FROM universe_activations a WHERE a.batch_id=?
+            AND a.status='staged' AND EXISTS(SELECT 1 FROM company_sources cs
+            WHERE cs.company_id=a.company_id AND cs.enabled=1)""", (batch_id,),
+        ).fetchone()[0]
     return {"status": "active" if promoted else "empty", "batch_id": batch_id,
             "promoted": len(promoted), "eligible_remaining": eligible_remaining,
             "companies": promoted}
+
+
+def onboard_universe(
+    db: Database, raw_dir: str | Path, user_agent: str,
+    us_limit: int = 25, sa_limit: int = 10, schedule_every: int = 86400,
+    opener=urlopen, request_interval: float = 0.12,
+) -> dict:
+    """Run one bounded, idempotent onboarding cycle for both markets.
+
+    US issuers must pass the archived SEC-profile eligibility gate. Saudi issuers
+    must have an official issuer profile URL. Enabling monitoring never bypasses
+    staging, canonical mapping, normalization, or deterministic publication rules.
+    """
+    limits = {"US": min(max(int(us_limit), 1), 100),
+              "SA": min(max(int(sa_limit), 1), 100)}
+    results: dict[str, dict] = {}
+    for market in ("US", "SA"):
+        activation = activate_universe(db, market, limit=limits[market])
+        result: dict = {"activation": activation}
+        if activation.get("batch_id"):
+            if market == "US":
+                result["enrichment"] = enrich_activation_batch(
+                    db, raw_dir, user_agent, activation["batch_id"], limits[market],
+                    opener=opener, request_interval=request_interval,
+                )
+            result["promotion"] = promote_activation_batch(
+                db, activation["batch_id"], limits[market], schedule_every,
+            )
+        results[market] = result
+    return {"status": "ready", "markets": results,
+            "activated": sum(item.get("promotion", {}).get("promoted", 0)
+                             for item in results.values())}
 
 
 def sync_universe(db: Database, market: str, raw_dir: str | Path,

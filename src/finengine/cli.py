@@ -400,6 +400,7 @@ def main():
     universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json"); universe_activate.add_argument("--include-funds",action="store_true")
     universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
     universe_promote=sub.add_parser("universe-promote"); universe_promote.add_argument("batch"); universe_promote.add_argument("--limit",type=int,default=10); universe_promote.add_argument("--schedule-every",type=int,default=21600); universe_promote.add_argument("--registry",default="config/companies.json")
+    universe_onboard=sub.add_parser("universe-onboard"); universe_onboard.add_argument("--raw-dir",default="data/raw/universe"); universe_onboard.add_argument("--us-limit",type=int,default=25); universe_onboard.add_argument("--sa-limit",type=int,default=10); universe_onboard.add_argument("--schedule-every",type=int,default=86400)
     sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
@@ -488,6 +489,13 @@ def main():
         from .universe import promote_activation_batch
         db=Database(a.db)
         try: result=promote_activation_batch(db,a.batch,a.limit,a.schedule_every,a.registry)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-onboard":
+        from .universe import onboard_universe
+        db=Database(a.db)
+        try: result=onboard_universe(db,a.raw_dir,_sec_user_agent(),a.us_limit,
+                                    a.sa_limit,a.schedule_every)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="universe-status":

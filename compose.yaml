@@ -72,6 +72,36 @@ services:
       start_period: 20s
       retries: 3
 
+  onboarding:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SEC_USER_AGENT: ${SEC_USER_AGENT:?Set SEC_USER_AGENT in .env}
+      FINENGINE_DB: /app/state/financial.sqlite3
+      FINENGINE_ONBOARDING_RAW_DIR: /app/state/raw/universe
+      FINENGINE_ONBOARDING_SECONDS: ${FINENGINE_ONBOARDING_SECONDS:-86400}
+      FINENGINE_ONBOARDING_RETRY_SECONDS: ${FINENGINE_ONBOARDING_RETRY_SECONDS:-900}
+      FINENGINE_ONBOARDING_US_LIMIT: ${FINENGINE_ONBOARDING_US_LIMIT:-25}
+      FINENGINE_ONBOARDING_SA_LIMIT: ${FINENGINE_ONBOARDING_SA_LIMIT:-10}
+      FINENGINE_ONBOARDING_SCHEDULE_SECONDS: ${FINENGINE_ONBOARDING_SCHEDULE_SECONDS:-86400}
+      FINENGINE_ONBOARDING_STATUS_FILE: /app/state/onboarding-status.json
+    command: ["/app/deploy/onboarding-loop.sh"]
+    volumes:
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state
+    depends_on:
+      universe-refresh:
+        condition: service_healthy
+    init: true
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /app/state/onboarding-status.json && grep -q '\"state\": \"ready\"' /app/state/onboarding-status.json"]
+      interval: 30s
+      timeout: 5s
+      start_period: 180s
+      retries: 3
+
   telegram:
     build: .
     profiles: ["telegram"]
