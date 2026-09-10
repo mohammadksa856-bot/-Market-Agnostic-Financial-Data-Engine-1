@@ -357,9 +357,16 @@ class BrowserFetcher:
                                 "execution context was destroyed" not in str(error).lower()):
                             break
                         page.wait_for_timeout(1000)
+                content = None
                 if response is not None and 200 <= status < 300:
-                    content = response.body()
-                else:
+                    try:
+                        content = response.body()
+                    except Exception as error:
+                        # Chromium may evict a large response body after the page
+                        # has consumed it. Continue through the two bounded,
+                        # provenance-preserving download paths below.
+                        page_error = error
+                if content is None:
                     try:
                         content = _request_document_bytes(
                             context, url, referer, self.timeout_ms

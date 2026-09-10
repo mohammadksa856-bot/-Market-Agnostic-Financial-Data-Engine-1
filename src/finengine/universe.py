@@ -564,7 +564,7 @@ def enrich_activation_batch(
 
 def promote_activation_batch(
     db: Database, batch_id: str, limit: int = 10, schedule_every: int = 21600,
-    registry_path: str = "config/companies.json",
+    registry_path: str = "config/companies.json", raw_dir: str | Path = "data/raw",
 ) -> dict:
     """Enable only SEC-profiled operating issuers and create durable schedules."""
     limit = min(max(int(limit), 1), 100)
@@ -603,7 +603,7 @@ def promote_activation_batch(
         scheduler.upsert(
             schedule_id, f"Monitor {market}:{row['symbol']}", "monitor", schedule_every,
             {"market": market, "symbol": row["symbol"], "registry": registry_path,
-             "raw_dir": "data/raw", "source_index": row["source_index"],
+             "raw_dir": str(raw_dir), "source_index": row["source_index"],
              "source_limit": 12, "browser": market == "SA", "llm": False},
             row["company_id"],
         )
@@ -654,6 +654,73 @@ def promote_activation_batch(
             "backlog_refreshed": backlog_refreshed, "companies": promoted}
 
 
+def reconcile_onboarding_runtime_paths(
+    db: Database, raw_dir: str | Path, recover_running: bool = False,
+) -> dict:
+    """Repair only onboarding-owned runtime paths and the jobs affected by them."""
+    runtime_raw = str(Path(raw_dir))
+    schedule_updates = job_updates = retried = download_retried = recovered = 0
+    activation_companies = "SELECT company_id FROM universe_activations"
+    with db.conn:
+        schedules = db.conn.execute(
+            f"SELECT schedule_id,payload_json FROM schedules WHERE job_type='monitor' "
+            f"AND company_id IN ({activation_companies})"
+        ).fetchall()
+        for row in schedules:
+            payload = json.loads(row["payload_json"])
+            if payload.get("raw_dir") != runtime_raw:
+                payload["raw_dir"] = runtime_raw
+                db.conn.execute("UPDATE schedules SET payload_json=?,updated_at=CURRENT_TIMESTAMP "
+                                "WHERE schedule_id=?", (_json(payload), row["schedule_id"]))
+                schedule_updates += 1
+        statuses = "('queued','dead'" + (",'running'" if recover_running else "") + ")"
+        jobs = db.conn.execute(
+            f"""SELECT job_id,job_type,status,last_error,payload_json FROM jobs
+            WHERE job_type IN ('monitor','fetch_document','extract_document')
+            AND company_id IN ({activation_companies}) AND status IN {statuses}"""
+        ).fetchall()
+        for row in jobs:
+            payload = json.loads(row["payload_json"])
+            if payload.get("raw_dir") != runtime_raw:
+                payload["raw_dir"] = runtime_raw
+                db.conn.execute("UPDATE jobs SET payload_json=?,updated_at=CURRENT_TIMESTAMP "
+                                "WHERE job_id=?", (_json(payload), row["job_id"]))
+                job_updates += 1
+            retry_path_error = (row["status"] == "dead" and
+                                "Read-only file system" in (row["last_error"] or ""))
+            retry_download_error = (row["status"] == "dead" and
+                                    "evicted from inspector cache" in
+                                    (row["last_error"] or "").lower())
+            recover = recover_running and row["status"] == "running"
+            if retry_path_error or retry_download_error or recover:
+                db.conn.execute(
+                    """UPDATE jobs SET status='queued',attempts=0,last_error=NULL,
+                    leased_by=NULL,lease_until=NULL,finished_at=NULL,
+                    available_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE job_id=?""",
+                    (row["job_id"],),
+                )
+                if recover:
+                    db.conn.execute(
+                        """UPDATE job_attempts SET status='expired',finished_at=CURRENT_TIMESTAMP,
+                        error='worker stopped for runtime path reconciliation'
+                        WHERE job_id=? AND finished_at IS NULL""", (row["job_id"],),
+                    )
+                    recovered += 1
+                elif retry_download_error:
+                    download_retried += 1
+                else:
+                    retried += 1
+                candidate_id = payload.get("candidate_id")
+                if candidate_id is not None:
+                    db.conn.execute("UPDATE source_candidates SET status='queued' WHERE id=?",
+                                    (int(candidate_id),))
+    return {"status": "ready", "raw_dir": runtime_raw,
+            "schedule_updates": schedule_updates, "job_updates": job_updates,
+            "retried_path_failures": retried,
+            "retried_download_failures": download_retried,
+            "recovered_running": recovered}
+
+
 def onboard_universe(
     db: Database, raw_dir: str | Path, user_agent: str,
     us_limit: int = 25, sa_limit: int = 10, schedule_every: int = 86400,
@@ -667,6 +734,9 @@ def onboard_universe(
     """
     limits = {"US": min(max(int(us_limit), 1), 100),
               "SA": min(max(int(sa_limit), 1), 100)}
+    raw_path = Path(raw_dir)
+    document_raw_dir = raw_path.parent if raw_path.name == "universe" else raw_path
+    reconciliation = reconcile_onboarding_runtime_paths(db, document_raw_dir)
     results: dict[str, dict] = {}
     for market in ("US", "SA"):
         activation = activate_universe(db, market, limit=limits[market])
@@ -679,9 +749,10 @@ def onboard_universe(
                 )
             result["promotion"] = promote_activation_batch(
                 db, activation["batch_id"], limits[market], schedule_every,
+                raw_dir=document_raw_dir,
             )
         results[market] = result
-    return {"status": "ready", "markets": results,
+    return {"status": "ready", "reconciliation": reconciliation, "markets": results,
             "activated": sum(item.get("promotion", {}).get("promoted", 0)
                              for item in results.values())}
 

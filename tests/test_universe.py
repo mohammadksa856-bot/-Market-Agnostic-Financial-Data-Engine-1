@@ -4,12 +4,13 @@ import unittest
 from pathlib import Path
 
 from finengine.database import Database
+from finengine.jobs import DurableJobQueue
 from finengine.query import FinancialQueryService
 from finengine.registry import CompanyRegistry
 from finengine.universe import (
     activate_universe, classify_sec_sic, classify_sec_submission, enrich_activation_batch,
     normalize_saudi_directory_rows, parse_saudi_reference, parse_sec_ticker_exchange,
-    onboard_universe, promote_activation_batch,
+    onboard_universe, promote_activation_batch, reconcile_onboarding_runtime_paths,
     sync_universe,
 )
 
@@ -244,6 +245,11 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(result["activated"], 2)
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM schedules WHERE enabled=1").fetchone()[0], 2)
+        schedule_paths = {
+            json.loads(row["payload_json"])["raw_dir"]
+            for row in self.db.conn.execute("SELECT payload_json FROM schedules")
+        }
+        self.assertEqual(schedule_paths, {str(self.root / "raw")})
         company = self.db.conn.execute(
             "SELECT sector,industry FROM companies WHERE company_id='us:AAA'").fetchone()
         self.assertEqual((company["sector"], company["industry"]),
@@ -252,6 +258,56 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(result["markets"]["SA"]["promotion"]["backlog_refreshed"], 1)
         self.assertGreater(self.db.conn.execute(
             "SELECT count(*) FROM company_completeness").fetchone()[0], 0)
+
+    def test_runtime_path_reconciliation_is_scoped_and_retries_only_fixed_defect(self):
+        source = self.root / "sa.json"
+        source.write_bytes(normalize_saudi_directory_rows({"M": [{
+            "symbol": "2010", "lonaName": "Saudi Basic Industries Corp.",
+            "shortName": "SABIC", "isinCode": "SA0007879121",
+            "companyURL": "https://www.saudiexchange.sa/company/2010",
+        }]}))
+        sync_universe(self.db, "SA", self.root / "universe", input_path=source)
+        activation = activate_universe(self.db, "SA", limit=1)
+        promote_activation_batch(self.db, activation["batch_id"], raw_dir="data/raw")
+        queue = DurableJobQueue(self.db)
+        path_job, _ = queue.enqueue(
+            "fetch_document", {"raw_dir": "data/raw", "candidate_id": 1},
+            "sa:2010", idempotency_key="path-error", max_attempts=1,
+        )
+        unrelated_job, _ = queue.enqueue(
+            "fetch_document", {"raw_dir": "data/raw"}, "sa:2010",
+            idempotency_key="http-error", max_attempts=1,
+        )
+        evicted_job, _ = queue.enqueue(
+            "fetch_document", {"raw_dir": "data/raw"}, "sa:2010",
+            idempotency_key="evicted-error", max_attempts=1,
+        )
+        with self.db.conn:
+            self.db.conn.execute(
+                "UPDATE jobs SET status='dead',last_error='[Errno 30] Read-only file system' "
+                "WHERE job_id=?", (path_job,),
+            )
+            self.db.conn.execute(
+                "UPDATE jobs SET status='dead',last_error='HTTP 403' WHERE job_id=?",
+                (unrelated_job,),
+            )
+            self.db.conn.execute(
+                "UPDATE jobs SET status='dead',last_error='Request content was evicted from "
+                "inspector cache' WHERE job_id=?", (evicted_job,),
+            )
+        runtime = self.root / "runtime-raw"
+        result = reconcile_onboarding_runtime_paths(self.db, runtime)
+        self.assertEqual(result["schedule_updates"], 1)
+        self.assertEqual(result["job_updates"], 3)
+        self.assertEqual(result["retried_path_failures"], 1)
+        self.assertEqual(result["retried_download_failures"], 1)
+        schedule = self.db.conn.execute("SELECT payload_json FROM schedules").fetchone()
+        self.assertEqual(json.loads(schedule["payload_json"])["raw_dir"], str(runtime))
+        states = {row["job_id"]: row["status"] for row in self.db.conn.execute(
+            "SELECT job_id,status FROM jobs")}
+        self.assertEqual(states[path_job], "queued")
+        self.assertEqual(states[evicted_job], "queued")
+        self.assertEqual(states[unrelated_job], "dead")
 
     def test_enrichment_archives_and_profiles_sec_metadata(self):
         source = self.root / "sec.json"
