@@ -711,7 +711,14 @@ def main():
     if a.cmd=="export-supabase":
         from . import __version__
         from .export_supabase import SupabaseExporter, facts_to_sql
-        registry=CompanyRegistry.from_json(a.registry)
+        # Production universe companies are persisted in SQLite and can greatly
+        # outnumber the small reviewed seed registry.  Exporting only the JSON
+        # registry silently leaves newly onboarded issuers out of Supabase.
+        registry_db=Database(a.db)
+        try:
+            registry=CompanyRegistry.combined(registry_db.conn,a.registry)
+        finally:
+            registry_db.close()
         if a.all:
             targets=[(c.market.value,c.symbol) for c in registry.all() if c.enabled]
         elif a.market and a.symbol:
