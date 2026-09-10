@@ -3,7 +3,8 @@ import unittest
 from types import SimpleNamespace
 
 from finengine.export_supabase import (
-    SupabaseExporter, canonical_dimensions, facts_to_sql, flatten_fact,
+    SupabaseExporter, canonical_dimensions, deduplicate_rows, facts_to_sql,
+    flatten_fact,
 )
 from finengine.models import Market
 
@@ -75,6 +76,16 @@ class FlattenTests(unittest.TestCase):
             canonical_dimensions({"segment": "upstream", "geography": "ksa"}),
             canonical_dimensions({"geography": "ksa", "segment": "upstream"}),
         )
+
+    def test_duplicate_consumer_identity_prefers_latest_official_filing(self):
+        older = flatten_fact(
+            _company(), _SOURCED_FACT, engine_version="1.5.0", synced_at="t"
+        )
+        newer = dict(older)
+        newer.update({"filed_at": "2026-04-01", "source_key": "file:new"})
+        selected = deduplicate_rows([older, newer])
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]["source_key"], "file:new")
 
 
 class SqlTests(unittest.TestCase):

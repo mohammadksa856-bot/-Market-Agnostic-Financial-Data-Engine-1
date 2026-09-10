@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 
 TABLE = "financial_facts"
 CONFLICT = "company_id,metric,period_end,period_kind,scope,dimensions_key"
+CONFLICT_COLUMNS = tuple(CONFLICT.split(","))
 
 # Columns on the target table, in a stable order. The exporter only ever sends
 # these keys; anything else on a fact row is ignored.
@@ -53,6 +54,37 @@ def canonical_dimensions(dimensions: dict | None) -> str:
     if not dimensions:
         return ""
     return json.dumps(dimensions, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def deduplicate_rows(rows: list[dict]) -> list[dict]:
+    """Select one deterministic current row for each Supabase identity.
+
+    SQLite keeps source-specific current facts so provenance from two official
+    filings can coexist.  The consumer table intentionally has a source-agnostic
+    unique key, therefore a single PostgREST batch must collapse those rows.
+    Prefer a sourced fact over a calculation, then the latest filing and the
+    highest quality score.  The complete source history remains in SQLite.
+    """
+    selected: dict[tuple, dict] = {}
+
+    def rank(row: dict) -> tuple:
+        try:
+            quality = float(row.get("quality_score") or -1)
+        except (TypeError, ValueError):
+            quality = -1
+        return (
+            int(not row.get("is_calculated")),
+            row.get("filed_at") or "",
+            quality,
+            row.get("source_key") or "",
+        )
+
+    for row in rows:
+        identity = tuple(row.get(column) for column in CONFLICT_COLUMNS)
+        current = selected.get(identity)
+        if current is None or rank(row) > rank(current):
+            selected[identity] = row
+    return list(selected.values())
 
 
 def _num(value):
@@ -206,7 +238,7 @@ class SupabaseExporter:
             if len(batch) < page:
                 break
             offset += page
-        return rows
+        return deduplicate_rows(rows)
 
     def export(self, market: str, symbol: str, registry, *, prune: bool = False, batch: int = 500) -> dict:
         from .query import FinancialQueryService
