@@ -291,6 +291,10 @@ class UniverseTests(unittest.TestCase):
             "monitor", {"raw_dir": "data/raw"}, "sa:2010",
             idempotency_key="source-fallback", max_attempts=1,
         )
+        lease_job, _ = queue.enqueue(
+            "monitor", {"raw_dir": "data/raw"}, "sa:2010",
+            idempotency_key="expired-lease", max_attempts=1,
+        )
         with self.db.conn:
             self.db.conn.execute(
                 "UPDATE jobs SET attempts=1 WHERE job_id=?", (path_job,),
@@ -315,13 +319,18 @@ class UniverseTests(unittest.TestCase):
                 "UPDATE jobs SET status='dead',last_error='Page.goto: endpoint unavailable' "
                 "WHERE job_id=?", (fallback_job,),
             )
+            self.db.conn.execute(
+                "UPDATE jobs SET status='dead',last_error='worker lease expired' "
+                "WHERE job_id=?", (lease_job,),
+            )
         runtime = self.root / "runtime-raw"
         result = reconcile_onboarding_runtime_paths(self.db, runtime)
         self.assertEqual(result["schedule_updates"], 1)
-        self.assertEqual(result["job_updates"], 4)
+        self.assertEqual(result["job_updates"], 5)
         self.assertEqual(result["retried_path_failures"], 1)
         self.assertEqual(result["retried_download_failures"], 1)
         self.assertEqual(result["retried_source_fallbacks"], 1)
+        self.assertEqual(result["retried_expired_leases"], 1)
         schedule = self.db.conn.execute("SELECT payload_json FROM schedules").fetchone()
         self.assertEqual(json.loads(schedule["payload_json"])["raw_dir"], str(runtime))
         states = {row["job_id"]: row for row in self.db.conn.execute(
@@ -331,6 +340,7 @@ class UniverseTests(unittest.TestCase):
         self.assertGreaterEqual(states[path_job]["max_attempts"], 6)
         self.assertEqual(states[evicted_job]["status"], "queued")
         self.assertEqual(states[fallback_job]["status"], "queued")
+        self.assertEqual(states[lease_job]["status"], "queued")
         self.assertEqual(states[unrelated_job]["status"], "dead")
 
     def test_enrichment_archives_and_profiles_sec_metadata(self):

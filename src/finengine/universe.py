@@ -659,7 +659,8 @@ def reconcile_onboarding_runtime_paths(
 ) -> dict:
     """Repair only onboarding-owned runtime paths and the jobs affected by them."""
     runtime_raw = str(Path(raw_dir))
-    schedule_updates = job_updates = retried = download_retried = fallback_retried = recovered = 0
+    schedule_updates = job_updates = retried = download_retried = fallback_retried = 0
+    lease_retried = recovered = 0
     activation_companies = "SELECT company_id FROM universe_activations"
     with db.conn:
         schedules = db.conn.execute(
@@ -700,8 +701,11 @@ def reconcile_onboarding_runtime_paths(
                     (row["company_id"],),
                 ).fetchone()[0]
                 retry_source_fallback = source_count > 1
+            retry_expired_lease = (row["status"] == "dead" and
+                                   row["last_error"] == "worker lease expired")
             recover = recover_running and row["status"] == "running"
-            if retry_path_error or retry_download_error or retry_source_fallback or recover:
+            if (retry_path_error or retry_download_error or retry_source_fallback or
+                    retry_expired_lease or recover):
                 previous_attempt = db.conn.execute(
                     "SELECT COALESCE(MAX(attempt_number),0) FROM job_attempts WHERE job_id=?",
                     (row["job_id"],),
@@ -726,6 +730,8 @@ def reconcile_onboarding_runtime_paths(
                     download_retried += 1
                 elif retry_source_fallback:
                     fallback_retried += 1
+                elif retry_expired_lease:
+                    lease_retried += 1
                 else:
                     retried += 1
                 candidate_id = payload.get("candidate_id")
@@ -737,6 +743,7 @@ def reconcile_onboarding_runtime_paths(
             "retried_path_failures": retried,
             "retried_download_failures": download_retried,
             "retried_source_fallbacks": fallback_retried,
+            "retried_expired_leases": lease_retried,
             "recovered_running": recovered}
 
 
