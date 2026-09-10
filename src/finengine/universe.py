@@ -682,6 +682,13 @@ def enqueue_saudi_historical_backfill(
     if not snapshot:
         raise ValueError("Saudi universe must be synchronized before historical backfill")
     run_id = f"sa-historical:{snapshot['snapshot_id'].split(':')[-1][:16]}:v2"
+    with db.conn:
+        db.conn.execute(
+            """UPDATE jobs SET priority=5,updated_at=CURRENT_TIMESTAMP
+            WHERE status='queued' AND job_type IN ('fetch_document','extract_document')
+            AND json_extract(payload_json,'$.discovery_scope')='historical'
+            AND priority>5"""
+        )
     active = db.conn.execute(
         """SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id
         FROM jobs WHERE json_extract(payload_json,'$.discovery_scope')='historical'
@@ -699,13 +706,6 @@ def enqueue_saudi_historical_backfill(
             "missing_source": 0, "recurring_paused": bool(pause_recurring),
             "source_limit": source_limit, "progress": progress,
         }
-    with db.conn:
-        db.conn.execute(
-            """UPDATE jobs SET priority=5,updated_at=CURRENT_TIMESTAMP
-            WHERE status='queued' AND job_type IN ('fetch_document','extract_document')
-            AND json_extract(payload_json,'$.discovery_scope')='historical'
-            AND priority>5"""
-        )
     if pause_recurring:
         with db.conn:
             db.conn.execute(
