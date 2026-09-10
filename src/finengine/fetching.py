@@ -165,8 +165,10 @@ class BrowserFetcher:
         return browser.new_context(accept_downloads=True, user_agent=_UA,
                                    locale="en-US", ignore_https_errors=True)
 
-    def discover(self, index_url: str, keywords: tuple[str, ...] = _KEYWORDS) -> list[dict]:
+    def discover(self, index_url: str, keywords: tuple[str, ...] = _KEYWORDS,
+                 max_documents: int = 20) -> list[dict]:
         """Render an investor-relations page and return candidate filing links."""
+        max_documents = max(1, min(int(max_documents), 200))
         import contextlib
         host = urlparse(index_url).hostname or ""
         allowed_hosts = {host}
@@ -209,7 +211,7 @@ class BrowserFetcher:
                 )
                 announcements = _saudi_financial_announcement_links(
                     index_url, cards, keywords
-                )[:12]
+                )[:max_documents]
                 detail = context.new_page()
                 for announcement in announcements:
                     try:
@@ -266,7 +268,7 @@ class BrowserFetcher:
                             report_pages.append((href, label))
                     crawled = set()
                     for report_url, _ in report_pages:
-                        if report_url in crawled or len(crawled) >= 5:
+                        if report_url in crawled or len(crawled) >= min(max_documents, 25):
                             continue
                         crawled.add(report_url)
                         try:
@@ -439,7 +441,16 @@ class BrowserIssuerMonitor:
     def discover(self, company, cursor: str | None = None):
         from .models import DiscoveryResult, SourceCandidate
 
-        found = self.fetcher.discover(self.index_url)[: self.max_documents]
+        try:
+            found = self.fetcher.discover(
+                self.index_url, max_documents=self.max_documents
+            )[: self.max_documents]
+        except TypeError as error:
+            # Preserve compatibility with small injected test/custom fetchers
+            # that implement the original one-argument discovery contract.
+            if "max_documents" not in str(error):
+                raise
+            found = self.fetcher.discover(self.index_url)[: self.max_documents]
         digest = hashlib.sha256(
             "\n".join(sorted(item["url"] for item in found)).encode("utf-8")).hexdigest()
         if cursor == digest:

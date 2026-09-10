@@ -90,6 +90,21 @@ class FetchAgentUnitTests(unittest.TestCase):
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
+    def test_browser_monitor_forwards_historical_discovery_limit(self):
+        class RecordingFetcher:
+            limit = None
+
+            def discover(self, _, max_documents=20):
+                self.limit = max_documents
+                return []
+
+        fetcher = RecordingFetcher()
+        company = Company("sa:2010", Market.SA, "2010", "SABIC", "SAR")
+        BrowserIssuerMonitor(
+            "https://issuer.example/investors", fetcher, max_documents=200
+        ).discover(company)
+        self.assertEqual(fetcher.limit, 200)
+
     def test_document_signatures_are_checked_by_type(self):
         xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         _validate_document_bytes(b"%PDF-test", "https://issuer/report.pdf", "application/pdf")
