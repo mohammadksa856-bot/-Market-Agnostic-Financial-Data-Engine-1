@@ -186,16 +186,6 @@ class FinancialQueryService:
         categories: dict[str, list[dict]] = {}
         for fact in facts:
             categories.setdefault(fact["category"], []).append(fact)
-        sources = self.conn.execute(
-            """SELECT s.filing_type,s.filed_at,s.source_url,s.status,s.content_hash,
-            a.artifact_key,a.local_path AS archived_path,a.content_hash AS artifact_hash,
-            a.content_type AS artifact_content_type,a.byte_size AS artifact_bytes
-            FROM source_documents s JOIN companies c USING(company_id)
-            LEFT JOIN source_artifact_links l USING(source_key)
-            LEFT JOIN source_artifacts a USING(artifact_key)
-            WHERE c.market=? AND c.symbol=? ORDER BY s.filed_at DESC""",
-            (market.upper(), symbol.upper()),
-        ).fetchall()
         return {
             "overview": overview,
             "attributes": self.attributes(market, symbol),
@@ -207,8 +197,22 @@ class FinancialQueryService:
             "latest_snapshot": self.snapshot(market, symbol),
             "facts_by_category": categories,
             "coverage": self.coverage(market, symbol, limit=1000),
-            "sources": [dict(row) for row in sources],
+            "sources": self.official_sources(market, symbol, limit=1000),
         }
+
+    def official_sources(self, market: str, symbol: str, limit: int = 200) -> list[dict]:
+        """Return the immutable source archive inventory exposed to consumers."""
+        rows = self.conn.execute(
+            """SELECT s.source_key,s.filing_type,s.filed_at,s.source_url,s.status,s.content_hash,
+            a.artifact_key,a.local_path AS archived_path,a.content_hash AS artifact_hash,
+            a.content_type AS artifact_content_type,a.byte_size AS artifact_bytes
+            FROM source_documents s JOIN companies c USING(company_id)
+            LEFT JOIN source_artifact_links l USING(source_key)
+            LEFT JOIN source_artifacts a USING(artifact_key)
+            WHERE c.market=? AND c.symbol=? ORDER BY s.filed_at DESC,s.source_key LIMIT ?""",
+            (market.upper(), symbol.upper(), min(max(limit, 1), 2000)),
+        ).fetchall()
+        return [dict(row) for row in rows]
 
     def period_snapshot(self, market: str, symbol: str, period_kind: str) -> dict:
         """Return only the newest period of one explicit semantic kind.
@@ -251,6 +255,56 @@ class FinancialQueryService:
         return {"status": "available", "reason": None, "period_kind": period_kind,
                 "period_end": latest, "metrics": grouped}
 
+    def period_history(
+        self, market: str, symbol: str, period_kind: str,
+        metrics: tuple[str, ...], periods: int = 5,
+    ) -> dict:
+        """Return sourced, period-safe history for page charts and comparison tables."""
+        allowed = {"instant", "quarter", "ytd", "fy", "ttm", "as_of", "daily", "event"}
+        if period_kind not in allowed:
+            raise ValueError(f"unsupported period_kind: {period_kind}")
+        company = self.conn.execute(
+            "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+            (market.upper(), symbol.upper()),
+        ).fetchone()
+        if not company:
+            raise KeyError(f"unknown company {market}:{symbol}")
+        periods = min(max(periods, 1), 40)
+        period_rows = self.conn.execute(
+            """SELECT period_end FROM data_points WHERE company_id=? AND period_kind=?
+            AND is_current=1 GROUP BY period_end ORDER BY period_end DESC LIMIT ?""",
+            (company["company_id"], period_kind, periods),
+        ).fetchall()
+        period_ends = [row["period_end"] for row in period_rows]
+        if not period_ends:
+            return {"status": "unavailable", "reason": f"no_{period_kind}_history",
+                    "period_kind": period_kind, "periods": []}
+        if not metrics:
+            return {"status": "unavailable", "reason": "no_metrics_requested",
+                    "period_kind": period_kind, "periods": []}
+        metric_slots = ",".join("?" for _ in metrics)
+        period_slots = ",".join("?" for _ in period_ends)
+        rows = self.conn.execute(
+            f"""SELECT d.id AS data_point_id,d.metric_key AS metric,m.display_name,m.category,
+            m.statement,d.value_decimal AS value,d.value_text,d.value_json,d.value_type,
+            d.currency,d.unit,d.period_start,d.period_end,d.period_kind,d.fiscal_year,
+            d.fiscal_quarter,d.scope,d.dimensions_json,d.version,d.quality_score,d.source_key,
+            d.source_url,d.filed_at,d.is_calculated,d.calculation
+            FROM data_points d JOIN metric_definitions m ON m.metric_key=d.metric_key
+            WHERE d.company_id=? AND d.period_kind=? AND d.is_current=1
+            AND d.metric_key IN ({metric_slots}) AND d.period_end IN ({period_slots})
+            ORDER BY d.period_end DESC,m.category,d.metric_key,d.scope,d.dimensions_json""",
+            (company["company_id"], period_kind, *metrics, *period_ends),
+        ).fetchall()
+        grouped = {period_end: {} for period_end in period_ends}
+        for row in rows:
+            item = self._point_with_trace(row)
+            grouped[item["period_end"]].setdefault(item.pop("metric"), []).append(item)
+        result = [{"period_end": period_end, "metrics": grouped[period_end]}
+                  for period_end in period_ends]
+        return {"status": "available", "reason": None, "period_kind": period_kind,
+                "periods": result}
+
     @staticmethod
     def _availability(items: list | dict, missing_reason: str, partial: bool = False) -> dict:
         count = len(items)
@@ -274,6 +328,24 @@ class FinancialQueryService:
         disclosures = self.disclosures(market, symbol, limit=100)
         estimates = self.consensus_estimates(market, symbol, limit=100)
         completeness = self.completeness(market, symbol)
+        annual_history = self.period_history(market, symbol, "fy", (
+            "revenue", "gross_profit", "operating_income", "ebit", "ebitda",
+            "net_income", "net_income_parent", "operating_cash_flow",
+            "capital_expenditure", "free_cash_flow", "eps_basic", "dividend_per_share",
+            "gross_margin", "operating_margin", "ebitda_margin", "net_margin",
+            "return_on_assets", "return_on_equity", "return_on_invested_capital",
+        ), 5)
+        balance_history = self.period_history(market, symbol, "instant", (
+            "cash_and_cash_equivalents", "current_assets", "total_assets",
+            "current_liabilities", "total_liabilities", "total_debt", "net_debt",
+            "parent_equity", "total_equity", "shares_outstanding",
+        ), 5)
+        quarterly_history = self.period_history(market, symbol, "quarter", (
+            "revenue", "gross_profit", "operating_income", "ebitda", "net_income",
+            "net_income_parent", "operating_cash_flow", "free_cash_flow", "eps_basic",
+        ), 12)
+        sources = self.official_sources(market, symbol)
+        history_count = len(annual_history["periods"])
         capabilities = {
             "profile": self._availability(attributes, "no_sourced_company_attributes"),
             "annual_financials": {
@@ -292,21 +364,32 @@ class FinancialQueryService:
             "consensus": self._availability(estimates, "licensed_consensus_feed_required"),
             "news": {"status": "unavailable", "count": 0,
                      "reason": "authorized_news_feed_required"},
+            "five_year_history": {
+                "status": "available" if history_count >= 5 else
+                          "partial" if history_count else "unavailable",
+                "count": history_count,
+                "reason": None if history_count >= 5 else "fewer_than_five_annual_periods",
+            },
+            "official_sources": self._availability(sources, "no_archived_official_sources"),
         }
         return {
-            "contract_version": 1,
+            "contract_version": 2,
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "placeholder_policy": "never_substitute_demo_values",
             "company": overview,
             "sections": {
                 "profile": attributes,
                 "financials": {"annual": annual, "quarter": quarter, "ytd": ytd,
-                               "ttm": ttm, "instant": instant},
+                               "ttm": ttm, "instant": instant,
+                               "history": {"annual": annual_history,
+                                           "annual_position": balance_history,
+                                           "quarter": quarterly_history}},
                 "market": {"latest": prices[0] if prices else None, "history": prices},
                 "ownership": ownership,
                 "corporate_actions": actions,
                 "disclosures": disclosures,
                 "consensus": estimates,
+                "official_sources": sources,
             },
             "capabilities": capabilities,
             "data_quality": {"completeness": completeness,

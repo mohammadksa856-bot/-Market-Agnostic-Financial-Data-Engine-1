@@ -112,6 +112,12 @@ class ServiceTests(unittest.TestCase):
         finally: query.close()
         self.assertEqual(page["sections"]["financials"]["quarter"]["metrics"]["revenue"][0]["value"],"30")
         self.assertEqual(page["sections"]["financials"]["ytd"]["metrics"]["revenue"][0]["value"],"55")
+        self.assertEqual(page["contract_version"],2)
+        quarter_history=page["sections"]["financials"]["history"]["quarter"]
+        self.assertEqual(quarter_history["period_kind"],"quarter")
+        self.assertEqual(quarter_history["periods"][0]["metrics"]["revenue"][0]["value"],"30")
+        self.assertNotIn("55", [item["value"] for period in quarter_history["periods"]
+                                for item in period["metrics"].get("revenue",[])])
 
     def test_release_audit_checks_source_hashes(self):
         result=audit_release(self.dbpath)
