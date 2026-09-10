@@ -73,28 +73,62 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
     if company.market.value == "US":
         monitor = SecFilingsMonitor(_sec_user_agent())
         return service.poll(company, monitor, "ingest", common_payload)
-    source_index = payload.get("source_index") or (company.sources[0] if company.sources else None)
-    if not source_index:
+    source_indexes = []
+    for url in (
+        [payload.get("source_index")] +
+        [row["url"] for row in db.conn.execute(
+            "SELECT url FROM company_sources WHERE company_id=? AND enabled=1 "
+            "ORDER BY priority,id", (company.company_id,),
+        )] + list(company.sources)
+    ):
+        if url and url not in source_indexes:
+            source_indexes.append(url)
+    if not source_indexes:
         raise ValueError("issuer monitoring requires source_index or a registry source URL")
     browser = bool(payload.get("browser"))
-    if browser:
-        from .fetching import BrowserFetcher, BrowserIssuerMonitor
-        monitor = BrowserIssuerMonitor(
-            source_index,
-            fetcher=BrowserFetcher(
-                raw_dir=payload.get("raw_dir", "data/raw"),
-                headless=_browser_headless(),
-            ),
-            max_documents=int(payload.get("source_limit", 12)),
-        )
-    else:
-        monitor = IssuerReportsMonitor(source_index, max_documents=int(payload.get("source_limit", 12)))
-    return service.poll(
-        company, monitor, "fetch_document", {
-            "raw_dir": common_payload["raw_dir"], "registry": registry_path,
-            "browser": browser, "llm": bool(payload.get("llm")),
-        }, True,
-    )
+    errors = []
+    empty_result = None
+    for source_index in source_indexes:
+        if browser:
+            from .fetching import BrowserFetcher, BrowserIssuerMonitor
+            monitor = BrowserIssuerMonitor(
+                source_index,
+                fetcher=BrowserFetcher(
+                    raw_dir=payload.get("raw_dir", "data/raw"),
+                    headless=_browser_headless(),
+                ),
+                max_documents=int(payload.get("source_limit", 12)),
+            )
+        else:
+            monitor = IssuerReportsMonitor(
+                source_index, max_documents=int(payload.get("source_limit", 12)))
+        try:
+            result = service.poll(
+                company, monitor, "fetch_document", {
+                    "raw_dir": common_payload["raw_dir"], "registry": registry_path,
+                    "browser": browser, "llm": bool(payload.get("llm")),
+                }, True,
+            )
+        except Exception as error:
+            errors.append({"source_index": source_index, "error": str(error)[:500]})
+            continue
+        result["source_index"] = source_index
+        result["attempted_sources"] = len(errors) + 1
+        if result["discovered"]:
+            result["fallback_errors"] = errors
+            return result
+        empty_result = result
+    if empty_result is not None:
+        # A reachable official source with no new documents is a successful
+        # monitoring cycle even when another source endpoint was unavailable.
+        db.mark_monitor_success(
+            company.company_id, monitor.name, empty_result["cursor"])
+        empty_result["fallback_errors"] = errors
+        empty_result["attempted_sources"] = len(source_indexes)
+        return empty_result
+    details = "; ".join(
+        f"{item['source_index']}: {item['error']}" for item in errors)
+    raise RuntimeError(f"all official company sources failed: {details}")
 
 
 def _monitor_job_handler(db: Database, queue: DurableJobQueue):

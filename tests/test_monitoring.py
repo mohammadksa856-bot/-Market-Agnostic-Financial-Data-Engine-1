@@ -3,12 +3,13 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
-from finengine.cli import _extract_document_job_handler, _source_period
+from finengine.cli import _extract_document_job_handler, _monitor_once, _source_period
 from finengine.database import Database
 from finengine.jobs import DurableJobQueue
-from finengine.models import Company, Market, SourceCandidate
+from finengine.models import Company, DiscoveryResult, Market, SourceCandidate
 from finengine.monitoring import DocumentArchiver, MonitorService
 
 
@@ -114,6 +115,37 @@ class MonitoringTests(unittest.TestCase):
         row = self.db.conn.execute("SELECT status FROM source_candidates").fetchone()
         self.assertEqual(row["status"], "queued")
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
+
+    def test_monitor_job_falls_back_across_registered_official_sources(self):
+        fallback = "https://www.saudiexchange.sa/company/2222"
+        with self.db.conn:
+            self.db.conn.execute(
+                "INSERT INTO company_sources(company_id,source_type,url,priority) "
+                "VALUES(?,?,?,?)", (self.aramco.company_id, "exchange", fallback, 200),
+            )
+
+        class FakeMonitor:
+            name = "browser-issuer-reports"
+            def __init__(self, index_url, **_kwargs):
+                self.index_url = index_url
+            def discover(self, _company, _cursor=None):
+                if self.index_url != fallback:
+                    raise RuntimeError("endpoint unavailable")
+                return DiscoveryResult("fallback-cursor", ())
+
+        payload = {
+            "market": "SA", "symbol": "2222", "browser": True,
+            "source_index": "https://unreachable.example/investors",
+            "registry": str(Path(self.temp.name) / "missing.json"),
+            "raw_dir": str(Path(self.temp.name) / "raw"),
+        }
+        with patch("finengine.fetching.BrowserFetcher"), patch(
+            "finengine.fetching.BrowserIssuerMonitor", FakeMonitor
+        ):
+            result = _monitor_once(self.db, DurableJobQueue(self.db), payload)
+        self.assertEqual(result["source_index"], fallback)
+        self.assertEqual(result["attempted_sources"], 3)
+        self.assertEqual(len(result["fallback_errors"]), 2)
 
     def test_bulk_monitor_job_tracks_every_candidate(self):
         html = b"""
