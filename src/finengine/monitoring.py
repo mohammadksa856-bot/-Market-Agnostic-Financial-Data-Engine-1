@@ -157,17 +157,24 @@ class DocumentArchiver:
              "numeric_authority": bool((candidate.get("metadata") or {}).get(
                  "numeric_authority", True))},
         )
+        numeric_authority = bool(document.metadata["numeric_authority"])
         previous_status = self.db.source_status(source_key)
         if previous_status is None:
             self.db.save_source(document, digest, str(target))
-            self.db.set_source_status(source_key, "awaiting_extraction")
+            self.db.set_source_status(
+                source_key,
+                "awaiting_extraction" if numeric_authority else "context_only",
+            )
         self.db.set_source_candidate_status(candidate_id, "fetched")
-        return {
+        result = {
             "status": "archived" if previous_status is None else "duplicate",
             "candidate_id": candidate_id,
             "source_key": source_key,
             "content_type": content_type,
             "bytes": total,
             "local_path": str(target),
-            "next_stage": "extraction",
+            "numeric_authority": numeric_authority,
         }
+        if numeric_authority:
+            result["next_stage"] = "extraction"
+        return result

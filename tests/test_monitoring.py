@@ -183,6 +183,24 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["status"], "archived")
         self.assertEqual(received["metadata"]["referer"], referer)
 
+    def test_context_only_news_is_archived_but_never_sent_to_numeric_extraction(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "official-announcements", "news-1",
+            "https://www.aramco.com/news/example.html", "Company announcement",
+            "announcement", "2026-09-10", "text/html",
+            {"source_role": "official_news", "authority_tier": "issuer_official",
+             "numeric_authority": False},
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        result = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"<html>news</html>"),
+        ).fetch(candidate_id)
+        self.assertNotIn("next_stage", result)
+        self.assertFalse(result["numeric_authority"])
+        self.assertEqual(self.db.source_status(result["source_key"]), "context_only")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM extracted_facts").fetchone()[0], 0)
+
     def test_interim_pdf_is_held_until_period_semantics_are_proven(self):
         candidate = SourceCandidate(
             self.aramco.company_id, "browser-issuer-reports", "interim-review",

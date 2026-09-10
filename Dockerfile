@@ -5,14 +5,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY . /app
-
+COPY pyproject.toml README.md /tmp/finengine-deps/
 RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir -e ".[agents]" \
+    && mkdir -p /tmp/finengine-deps/src/finengine \
+    && touch /tmp/finengine-deps/src/finengine/__init__.py \
+    && python -m pip install --no-cache-dir -e "/tmp/finengine-deps[agents]" \
     && python -m playwright install --with-deps chromium \
     && apt-get update \
     && apt-get install -y --no-install-recommends xauth \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY . /app
+
+RUN python -m pip install --no-cache-dir --no-deps -e . \
     && chmod +x /app/deploy/start-production.sh /app/deploy/refresh-universe.sh \
         /app/deploy/sync-supabase.sh /app/deploy/update-server.sh \
         /app/deploy/preflight.sh /app/deploy/backup-loop.sh /app/deploy/onboarding-loop.sh

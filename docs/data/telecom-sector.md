@@ -9,7 +9,7 @@ statements. No third-party data vendors were used.
 | Symbol | Company | Manifest | Status | Primary source |
 |---|---|---|---|---|
 | 7010 | Saudi Telecom Company (stc) | `data/imports/stc-2025-fy.json` | enabled, published | stc IR annual FS PDF |
-| 7020 | Etihad Etisalat (Mobily) | — | registered, **disabled**, no manifest | see "Unresolved" below |
+| 7020 | Etihad Etisalat (Mobily) | — | monitoring enabled, audited manifest pending | see "Unresolved" below |
 | 7030 | Mobile Telecommunications Company Saudi Arabia (Zain KSA) | `data/imports/zain-ksa-2025-fy.json` | enabled, published | Zain KSA IR signed FS PDF |
 
 ## Sources and archives
@@ -74,10 +74,10 @@ Tests: `tests/test_telecom_sector.py` (8 tests).
 
 * **Mobily (7020) — whole company.** During the extraction window
   `mobily.com.sa` served an "Under Maintenance" page and the EurolandIR investor
-  mirror refused navigation. The only FY2025 document reachable was the 9-page
+  mirror refused navigation during the manual extraction window. The only FY2025 document reachable was the 9-page
   Tadawul earnings release (`19852_481_2026-02-16`), which is a KPI summary with
-  no full audited primary statements. Left `enabled: false` with no manifest;
-  add it in a follow-up batch once the audited FS PDF is reachable.
+  no full audited primary statements. Automated monitoring is enabled; the
+  company remains explicitly incomplete until an audited FS PDF is archived.
 * **Operational KPIs (ARPU, subscriber base, blended churn, 5G coverage).** Not
   presented in the audited IFRS financial statements — disclosed only in investor
   presentations and earnings releases. Out of scope for source-faithful FS

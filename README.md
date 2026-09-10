@@ -322,6 +322,13 @@ A source cannot be reopened while it still has open exceptions. This prevents a 
 
 Saudi issuer pages can be discovered and fetched through Chromium when ordinary HTTP is blocked by a CDN. For activated Saudi Exchange companies, the monitor follows official financial-result announcement cards, records each announcement as the PDF's referer provenance, and uses that browser session to archive referer-protected attachments. Docker runs Chromium inside an isolated virtual display by default, so no desktop window is shown. The downloaded document is content-addressed and archived before extraction:
 
+Source authority is explicit. Audited statements and official financial filings
+from Saudi Exchange or the issuer site may enter numeric staging. Official news,
+press releases, and general disclosures can be archived for company context, but
+documents marked `numeric_authority=false` stop at `context_only` and are never
+sent to numeric extraction or production. Third-party news is not a financial
+fact source.
+
     finengine fetch SA 2222 https://issuer.example/investors --discover
     finengine fetch SA 2222 https://issuer.example/report.pdf
 
