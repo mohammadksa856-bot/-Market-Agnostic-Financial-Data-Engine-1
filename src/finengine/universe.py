@@ -14,7 +14,7 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 from .database import Database, _json
-from .jobs import DurableScheduler
+from .jobs import DurableJobQueue, DurableScheduler
 from .models import Company, Market
 
 
@@ -652,6 +652,112 @@ def promote_activation_batch(
     return {"status": "active" if promoted else "empty", "batch_id": batch_id,
             "promoted": len(promoted), "eligible_remaining": eligible_remaining,
             "backlog_refreshed": backlog_refreshed, "companies": promoted}
+
+
+def enqueue_saudi_historical_backfill(
+    db: Database, limit: int = 500, source_limit: int = 500,
+    registry_path: str = "config/companies.json", raw_dir: str | Path = "data/raw",
+    pause_recurring: bool = True,
+) -> dict:
+    """Activate the complete Saudi inventory and queue one historical crawl each.
+
+    This is intentionally separate from recurring monitoring.  It includes funds
+    because the archived issuer universe is the coverage contract even while their
+    fund-specific metric pack is developed later.  Re-running against the same
+    universe snapshot is idempotent and cannot duplicate the crawl jobs.
+    """
+    limit = min(max(int(limit), 1), 500)
+    source_limit = min(max(int(source_limit), 1), 1000)
+    activation = activate_universe(
+        db, "SA", limit=limit, enable=True, registry_path=registry_path,
+        include_funds=True,
+    )
+    snapshot = db.conn.execute(
+        """SELECT snapshot_id FROM universe_snapshots WHERE market='SA'
+        ORDER BY observed_at DESC LIMIT 1"""
+    ).fetchone()
+    if not snapshot:
+        raise ValueError("Saudi universe must be synchronized before historical backfill")
+    run_id = f"sa-historical:{snapshot['snapshot_id'].split(':')[-1][:16]}:v2"
+    if pause_recurring:
+        with db.conn:
+            db.conn.execute(
+                """UPDATE schedules SET enabled=0,updated_at=CURRENT_TIMESTAMP
+                WHERE job_type='monitor' AND company_id IN
+                (SELECT company_id FROM companies WHERE market='SA')"""
+            )
+    rows = db.conn.execute(
+        """SELECT c.company_id,c.symbol,
+        (SELECT url FROM company_sources cs WHERE cs.company_id=c.company_id
+         AND cs.enabled=1 ORDER BY cs.priority,cs.id LIMIT 1) AS source_index
+        FROM issuer_universe i JOIN security_universe s USING(issuer_id)
+        JOIN universe_activations a USING(issuer_id)
+        JOIN companies c ON c.company_id=a.company_id
+        WHERE i.market='SA' AND i.active=1 AND s.active=1 AND s.is_primary=1
+        ORDER BY c.symbol LIMIT ?""", (limit,),
+    ).fetchall()
+    queue = DurableJobQueue(db)
+    queued = existing = missing_source = 0
+    job_ids = []
+    for row in rows:
+        if not row["source_index"]:
+            missing_source += 1
+            db.exception(
+                row["company_id"], None, "historical_backfill", "missing_official_source",
+                "No archived Saudi Exchange issuer profile URL is available",
+                {"run_id": run_id, "symbol": row["symbol"]},
+            )
+            continue
+        payload = {
+            "market": "SA", "symbol": row["symbol"],
+            "registry": registry_path, "raw_dir": str(raw_dir),
+            "source_index": row["source_index"], "source_limit": source_limit,
+            "browser": True, "llm": False, "backfill_run_id": run_id,
+            "discovery_scope": "historical",
+        }
+        job_id, created = queue.enqueue(
+            "monitor", payload, row["company_id"],
+            idempotency_key=f"{run_id}:{row['company_id']}", priority=10,
+            max_attempts=8,
+        )
+        job_ids.append(job_id)
+        queued += int(created)
+        existing += int(not created)
+    return {
+        "status": "queued" if queued else "ready", "run_id": run_id,
+        "universe_entities": len(rows), "queued": queued, "existing": existing,
+        "missing_source": missing_source, "recurring_paused": bool(pause_recurring),
+        "source_limit": source_limit, "activation": activation,
+        "job_ids": job_ids,
+    }
+
+
+def saudi_historical_backfill_status(db: Database, run_id: str | None = None) -> dict:
+    """Report auditable progress for a queued Saudi historical backfill."""
+    if run_id is None:
+        row = db.conn.execute(
+            """SELECT json_extract(payload_json,'$.backfill_run_id') AS run_id
+            FROM jobs WHERE json_extract(payload_json,'$.discovery_scope')='historical'
+            ORDER BY created_at DESC LIMIT 1"""
+        ).fetchone()
+        run_id = row["run_id"] if row else None
+    if not run_id:
+        return {"status": "not_started", "run_id": None, "jobs": {}}
+    counts = {
+        row["status"]: row["n"] for row in db.conn.execute(
+            """SELECT status,count(*) AS n FROM jobs
+            WHERE json_extract(payload_json,'$.backfill_run_id')=? GROUP BY status""",
+            (run_id,),
+        )
+    }
+    total = sum(counts.values())
+    pending = sum(counts.get(key, 0) for key in ("queued", "running", "failed"))
+    return {
+        "status": "complete" if total and pending == 0 and not counts.get("dead", 0)
+                  else "attention" if counts.get("dead", 0) else "running",
+        "run_id": run_id, "jobs": counts, "total_jobs": total,
+        "pending_jobs": pending, "dead_jobs": counts.get("dead", 0),
+    }
 
 
 def reconcile_onboarding_runtime_paths(

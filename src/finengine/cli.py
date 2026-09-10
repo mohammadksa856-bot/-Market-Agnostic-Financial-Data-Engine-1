@@ -69,6 +69,9 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
         "registry": registry_path, "raw_dir": payload.get("raw_dir", "data/raw"),
         "sa_manifest": payload.get("sa_manifest"),
     }
+    for key in ("backfill_run_id", "discovery_scope"):
+        if payload.get(key):
+            common_payload[key] = payload[key]
     service = MonitorService(db, queue)
     if company.market.value == "US":
         monitor = SecFilingsMonitor(_sec_user_agent())
@@ -103,11 +106,15 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
             monitor = IssuerReportsMonitor(
                 source_index, max_documents=int(payload.get("source_limit", 12)))
         try:
+            fetch_payload = {
+                "raw_dir": common_payload["raw_dir"], "registry": registry_path,
+                "browser": browser, "llm": bool(payload.get("llm")),
+            }
+            for key in ("backfill_run_id", "discovery_scope"):
+                if common_payload.get(key):
+                    fetch_payload[key] = common_payload[key]
             result = service.poll(
-                company, monitor, "fetch_document", {
-                    "raw_dir": common_payload["raw_dir"], "registry": registry_path,
-                    "browser": browser, "llm": bool(payload.get("llm")),
-                }, True,
+                company, monitor, "fetch_document", fetch_payload, True,
             )
         except Exception as error:
             errors.append({"source_index": source_index, "error": str(error)[:500]})
@@ -171,6 +178,9 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
                     "registry":job.payload.get("registry","config/companies.json"),
                     "llm":bool(job.payload.get("llm")),
                 }
+                for key in ("backfill_run_id", "discovery_scope"):
+                    if job.payload.get(key):
+                        extraction_payload[key] = job.payload[key]
                 extraction_job,created=queue.enqueue(
                     "extract_document",extraction_payload,job.company_id,result["source_key"],
                     idempotency_key=f"extract:{result['source_key']}",priority=20,
@@ -447,6 +457,8 @@ def main():
     universe_promote=sub.add_parser("universe-promote"); universe_promote.add_argument("batch"); universe_promote.add_argument("--limit",type=int,default=10); universe_promote.add_argument("--schedule-every",type=int,default=21600); universe_promote.add_argument("--registry",default="config/companies.json"); universe_promote.add_argument("--raw-dir",default="data/raw")
     universe_onboard=sub.add_parser("universe-onboard"); universe_onboard.add_argument("--raw-dir",default="data/raw/universe"); universe_onboard.add_argument("--us-limit",type=int,default=25); universe_onboard.add_argument("--sa-limit",type=int,default=10); universe_onboard.add_argument("--schedule-every",type=int,default=86400)
     universe_reconcile=sub.add_parser("universe-reconcile-runtime"); universe_reconcile.add_argument("--raw-dir",default="data/raw"); universe_reconcile.add_argument("--recover-running",action="store_true")
+    historical=sub.add_parser("sa-historical-backfill"); historical.add_argument("--limit",type=int,default=500); historical.add_argument("--source-limit",type=int,default=500); historical.add_argument("--registry",default="config/companies.json"); historical.add_argument("--raw-dir",default="data/raw"); historical.add_argument("--keep-recurring",action="store_true")
+    historical_status=sub.add_parser("sa-historical-status"); historical_status.add_argument("--run-id")
     sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
@@ -541,6 +553,20 @@ def main():
         from .universe import reconcile_onboarding_runtime_paths
         db=Database(a.db)
         try: result=reconcile_onboarding_runtime_paths(db,a.raw_dir,a.recover_running)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="sa-historical-backfill":
+        from .universe import enqueue_saudi_historical_backfill
+        db=Database(a.db)
+        try:
+            result=enqueue_saudi_historical_backfill(
+                db,a.limit,a.source_limit,a.registry,a.raw_dir,not a.keep_recurring)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="sa-historical-status":
+        from .universe import saudi_historical_backfill_status
+        db=Database(a.db)
+        try: result=saudi_historical_backfill_status(db,a.run_id)
         finally: db.close()
         print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="universe-onboard":

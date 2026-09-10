@@ -2,7 +2,8 @@ import unittest
 
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
-    _direct_document_bytes, _published_at_from_url, _request_document_bytes,
+    _direct_document_bytes, _is_report_page, _published_at_from_url,
+    _request_document_bytes,
     _saudi_financial_announcement_links, _slug,
     _validate_document_bytes,
 )
@@ -10,6 +11,18 @@ from finengine.models import Company, Market
 
 
 class FetchAgentUnitTests(unittest.TestCase):
+    def test_historical_report_pages_and_year_children_are_detected(self):
+        reports = "https://issuer.example/investors/annual-reports"
+        self.assertTrue(_is_report_page(reports, "Annual reports"))
+        self.assertTrue(_is_report_page(
+            "https://issuer.example/investors/annual-reports/2021",
+            "2021", reports,
+        ))
+        self.assertFalse(_is_report_page(
+            "https://issuer.example/careers/2021", "Careers",
+            "https://issuer.example/",
+        ))
+
     def test_slug_is_filesystem_safe(self):
         self.assertEqual(
             _slug("https://issuer.example/reports/FY%202025%20Financials.pdf"),

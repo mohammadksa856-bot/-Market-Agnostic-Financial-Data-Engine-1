@@ -9,9 +9,10 @@ from finengine.query import FinancialQueryService
 from finengine.registry import CompanyRegistry
 from finengine.universe import (
     activate_universe, classify_sec_sic, classify_sec_submission, enrich_activation_batch,
+    enqueue_saudi_historical_backfill,
     normalize_saudi_directory_rows, parse_saudi_reference, parse_sec_ticker_exchange,
     onboard_universe, promote_activation_batch, reconcile_onboarding_runtime_paths,
-    sync_universe,
+    saudi_historical_backfill_status, sync_universe,
 )
 
 
@@ -100,15 +101,56 @@ class UniverseTests(unittest.TestCase):
         source = self.root / "saudi.json"
         source.write_bytes(normalize_saudi_directory_rows({"M": [
             {"symbol": "2222", "lonaName": "Saudi Arabian Oil Co.",
-             "shortName": "SAUDI ARAMCO", "isinCode": "SA14TG012N13"},
+             "shortName": "SAUDI ARAMCO", "isinCode": "SA14TG012N13",
+             "companyURL": "/company/2222"},
             {"symbol": "4330", "lonaName": "Riyad REIT Fund",
-             "shortName": "RIYAD REIT", "isinCode": "SA145G523L57"},
+             "shortName": "RIYAD REIT", "isinCode": "SA145G523L57",
+             "companyURL": "/company/4330"},
         ]}))
         sync_universe(self.db, "SA", self.root / "raw", input_path=source)
         default = activate_universe(self.db, "SA", limit=10)
         self.assertEqual([row["symbol"] for row in default["companies"]], ["2222"])
         with_funds = activate_universe(self.db, "SA", limit=10, include_funds=True)
         self.assertEqual([row["symbol"] for row in with_funds["companies"]], ["4330"])
+
+    def test_historical_backfill_includes_funds_and_pauses_recurring_monitoring(self):
+        source = self.root / "saudi.json"
+        source.write_bytes(normalize_saudi_directory_rows({"M": [
+            {"symbol": "2222", "lonaName": "Saudi Arabian Oil Co.",
+             "shortName": "SAUDI ARAMCO", "isinCode": "SA14TG012N13",
+             "companyURL": "/company/2222"},
+            {"symbol": "4330", "lonaName": "Riyad REIT Fund",
+             "shortName": "RIYAD REIT", "isinCode": "SA145G523L57",
+             "companyURL": "/company/4330"},
+        ]}))
+        sync_universe(self.db, "SA", self.root / "raw", input_path=source)
+        activate_universe(self.db, "SA", limit=10, enable=True, include_funds=True)
+        self.db.conn.execute(
+            """INSERT INTO schedules(schedule_id,name,job_type,company_id,payload_json,
+            interval_seconds,next_run_at) VALUES('monitor:SA:old','old','monitor','sa:2222',
+            '{}',21600,CURRENT_TIMESTAMP)"""
+        )
+        self.db.conn.commit()
+
+        first = enqueue_saudi_historical_backfill(
+            self.db, raw_dir=self.root / "documents"
+        )
+        second = enqueue_saudi_historical_backfill(
+            self.db, raw_dir=self.root / "documents"
+        )
+
+        self.assertEqual(first["universe_entities"], 2)
+        self.assertEqual((first["queued"], first["missing_source"]), (2, 0))
+        self.assertEqual((second["queued"], second["existing"]), (0, 2))
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM companies WHERE market='SA' AND enabled=1"
+        ).fetchone()[0], 2)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT enabled FROM schedules WHERE schedule_id='monitor:SA:old'"
+        ).fetchone()[0], 0)
+        status = saudi_historical_backfill_status(self.db, first["run_id"])
+        self.assertEqual((status["status"], status["jobs"].get("queued")),
+                         ("running", 2))
 
     def test_activation_stages_a_bounded_batch_without_schedules(self):
         source = self.root / "sec.json"

@@ -131,13 +131,21 @@ class MonitoringTests(unittest.TestCase):
             def discover(self, _company, _cursor=None):
                 if self.index_url != fallback:
                     raise RuntimeError("endpoint unavailable")
-                return DiscoveryResult("fallback-cursor", ())
+                candidate = SourceCandidate(
+                    self_company.company_id, self.name, "historic-2021",
+                    f"{fallback}/annual-report-2021.pdf", "Annual report 2021",
+                    "annual-report", "2022-03-01", "application/pdf",
+                )
+                return DiscoveryResult("fallback-cursor", (candidate,))
 
+        self_company = self.aramco
         payload = {
             "market": "SA", "symbol": "2222", "browser": True,
             "source_index": "https://unreachable.example/investors",
             "registry": str(Path(self.temp.name) / "missing.json"),
             "raw_dir": str(Path(self.temp.name) / "raw"),
+            "backfill_run_id": "sa-historical:test:v2",
+            "discovery_scope": "historical",
         }
         with patch("finengine.fetching.BrowserFetcher"), patch(
             "finengine.fetching.BrowserIssuerMonitor", FakeMonitor
@@ -147,6 +155,11 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["attempted_sources"], 3)
         self.assertEqual(len(result["fallback_errors"]), 2)
         self.assertEqual(result["successful_sources"], [fallback])
+        job_payload = json.loads(self.db.conn.execute(
+            "SELECT payload_json FROM jobs WHERE job_type='fetch_document'"
+        ).fetchone()[0])
+        self.assertEqual(job_payload["backfill_run_id"], "sa-historical:test:v2")
+        self.assertEqual(job_payload["discovery_scope"], "historical")
 
     def test_bulk_monitor_job_tracks_every_candidate(self):
         html = b"""

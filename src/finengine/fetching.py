@@ -35,6 +35,12 @@ _XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetm
 _ONCLICK_LOCATION = re.compile(
     r"document\.location\.href\s*=\s*['\"]([^'\"]+)['\"]", re.I
 )
+_REPORT_PAGE_TERMS = (
+    "annual report", "quarterly report", "quarterly financial",
+    "financial statement", "financial result", "reports-and-presentations",
+    "performance-financial", "investor-relations", "/investors", "/reports",
+    "علاقات المستثمرين", "التقارير السنوية", "القوائم المالية", "النتائج المالية",
+)
 
 
 def _slug(url: str) -> str:
@@ -99,6 +105,21 @@ def _published_at_from_url(url: str) -> str | None:
         return None
 
 
+def _is_report_page(url: str, label: str, parent_url: str = "") -> bool:
+    """Conservatively identify an official page likely to contain filings."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        return False
+    lowered = f"{label} {unquote(parsed.path)} {parsed.query}".lower()
+    if any(extension in parsed.path.lower() for extension in (".pdf", ".xlsx")):
+        return False
+    if any(term in lowered for term in _REPORT_PAGE_TERMS):
+        return True
+    parent = unquote(urlparse(parent_url).path).lower()
+    return bool(
+        any(term.strip("/") in parent for term in _REPORT_PAGE_TERMS)
+        and re.search(r"(?:^|[/=_-])20(?:0\d|1\d|2\d)(?:$|[/=&_-])", lowered)
+    )
 def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
                                         keywords: tuple[str, ...] = _KEYWORDS) -> list[dict]:
     """Extract official announcement-detail links from Saudi Exchange onclick cards."""
@@ -199,6 +220,11 @@ class BrowserFetcher:
                         any(ext in linked.path.lower() for ext in (".pdf", ".xlsx"))):
                     trusted_documents.add(linked_url)
                     referers[linked_url] = page.url
+            if host != _SAUDI_EXCHANGE_HOST:
+                self._crawl_report_pages(
+                    page, host, list(raw), raw, referers, trusted_documents,
+                    max_pages=min(max_documents, 50),
+                )
             # Saudi Exchange's company profile uses clickable cards rather than
             # anchors for filing announcements. Follow only financial-result cards,
             # then collect their official PDF attachments. This keeps the generic
@@ -246,51 +272,10 @@ class BrowserFetcher:
                             "(e.textContent||'').trim()])")
                     except Exception:
                         continue
-                    report_pages = []
-                    for href, label in issuer_links:
-                        parsed = urlparse(href)
-                        if (parsed.scheme != "https" or parsed.hostname is None or
-                                not (parsed.hostname == issuer_host or
-                                     parsed.hostname.endswith("." + issuer_host))):
-                            continue
-                        lowered = f"{label} {parsed.path}".lower()
-                        if any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx")):
-                            raw.append([href, label])
-                            referers[href] = issuer_page.url
-                        elif any(term in lowered for term in (
-                                "annual report", "quarterly report",
-                                "quarterly financial", "financial statement",
-                                "performance-financial", "/investors",
-                                "investor-relations", "علاقات المستثمرين",
-                                "التقارير السنوية", "القوائم المالية",
-                                "النتائج المالية",
-                        )):
-                            report_pages.append((href, label))
-                    crawled = set()
-                    for report_url, _ in report_pages:
-                        if report_url in crawled or len(crawled) >= min(max_documents, 25):
-                            continue
-                        crawled.add(report_url)
-                        try:
-                            issuer_page.goto(report_url, timeout=self.timeout_ms,
-                                             wait_until="domcontentloaded")
-                            issuer_page.wait_for_timeout(1500)
-                            documents = issuer_page.eval_on_selector_all(
-                                "a[href]", "els => els.map(e => { "
-                                "const label=(e.textContent||'').trim(); let node=e.parentElement; "
-                                "let heading=''; for(let i=0;i<4 && node;i++,node=node.parentElement){ "
-                                "const own=[...node.children].find(c => /^H[1-6]$/.test(c.tagName)); "
-                                "if(own){ heading=(own.textContent||'').trim(); break; } } "
-                                "return [e.href,(heading+' '+label).trim()]; })")
-                        except Exception:
-                            continue
-                        for document_url, document_title in documents:
-                            parsed = urlparse(document_url)
-                            if (parsed.scheme == "https" and parsed.hostname and
-                                    any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx"))):
-                                raw.append([document_url, document_title])
-                                referers[document_url] = report_url
-                                trusted_documents.add(document_url)
+                    self._crawl_report_pages(
+                        issuer_page, issuer_host, issuer_links, raw, referers,
+                        trusted_documents, max_pages=min(max_documents, 50),
+                    )
         seen, out = set(), []
         for href, text in raw:
             full = urljoin(index_url, href)
@@ -317,6 +302,55 @@ class BrowserFetcher:
                 item["referer"] = referers[full]
             out.append(item)
         return out
+
+    def _crawl_report_pages(self, page, issuer_host: str,
+                            initial_links: list[list[str]], raw: list[list[str]],
+                            referers: dict[str, str], trusted_documents: set[str],
+                            max_pages: int) -> None:
+        """Follow the bounded official IR tree, including year sub-pages."""
+        queue: list[tuple[str, str, int, str]] = []
+        queued: set[str] = set()
+
+        def inspect_links(links, parent_url: str, depth: int) -> None:
+            for href, label in links:
+                parsed = urlparse(href)
+                same_host = bool(
+                    parsed.scheme == "https" and parsed.hostname and
+                    (parsed.hostname == issuer_host or
+                     parsed.hostname.endswith("." + issuer_host))
+                )
+                if not same_host:
+                    continue
+                if any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx")):
+                    raw.append([href, label])
+                    referers[href] = parent_url
+                    trusted_documents.add(href)
+                elif depth <= 2 and href not in queued and _is_report_page(
+                        href, label, parent_url):
+                    queued.add(href)
+                    queue.append((href, label, depth, parent_url))
+
+        inspect_links(initial_links, page.url, 0)
+        crawled: set[str] = set()
+        while queue and len(crawled) < max_pages:
+            report_url, _, depth, _ = queue.pop(0)
+            if report_url in crawled:
+                continue
+            crawled.add(report_url)
+            try:
+                page.goto(report_url, timeout=self.timeout_ms,
+                          wait_until="domcontentloaded")
+                page.wait_for_timeout(1500)
+                links = page.eval_on_selector_all(
+                    "a[href]", "els => els.map(e => { "
+                    "const label=(e.textContent||'').trim(); let node=e.parentElement; "
+                    "let heading=''; for(let i=0;i<4 && node;i++,node=node.parentElement){ "
+                    "const own=[...node.children].find(c => /^H[1-6]$/.test(c.tagName)); "
+                    "if(own){ heading=(own.textContent||'').trim(); break; } } "
+                    "return [e.href,(heading+' '+label).trim()]; })")
+            except Exception:
+                continue
+            inspect_links(links, report_url, depth + 1)
 
     def download_bytes(self, url: str, referer: str | None = None,
                        content_type: str = "application/pdf") -> bytes:
@@ -380,7 +414,7 @@ class BrowserFetcher:
                             # final bounded path is still limited to the exact URL
                             # selected from the official monitored page.
                             content = _direct_document_bytes(
-                                url, referer, self.timeout_ms / 1000
+                                url, referer, max(self.timeout_ms / 1000, 300)
                             )
                         except Exception as direct_error:
                             detail = (f"; browser page fetch: {page_error}"

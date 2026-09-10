@@ -126,6 +126,34 @@ services:
       start_period: 20s
       retries: 3
 
+  historical-backfill:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FINENGINE_DB: /app/state/financial.sqlite3
+      FINENGINE_RAW_DIR: /app/state/raw
+      FINENGINE_HISTORICAL_SOURCE_LIMIT: ${FINENGINE_HISTORICAL_SOURCE_LIMIT:-500}
+      FINENGINE_HISTORICAL_RETRY_SECONDS: ${FINENGINE_HISTORICAL_RETRY_SECONDS:-300}
+      FINENGINE_HISTORICAL_STATUS_FILE: /app/state/historical-backfill-status.json
+    command: ["/app/deploy/historical-backfill-loop.sh"]
+    volumes:
+      - ${FINENGINE_STATE_DIR:-./runtime}:/app/state
+    depends_on:
+      universe-refresh:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    init: true
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /app/state/historical-backfill-status.json"]
+      interval: 30s
+      timeout: 5s
+      start_period: 180s
+      retries: 3
+
   telegram:
     build: .
     profiles: ["telegram"]

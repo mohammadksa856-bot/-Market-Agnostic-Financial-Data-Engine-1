@@ -20,7 +20,8 @@ COPY . /app
 RUN python -m pip install --no-cache-dir --no-deps -e . \
     && chmod +x /app/deploy/start-production.sh /app/deploy/refresh-universe.sh \
         /app/deploy/sync-supabase.sh /app/deploy/update-server.sh \
-        /app/deploy/preflight.sh /app/deploy/backup-loop.sh /app/deploy/onboarding-loop.sh
+        /app/deploy/preflight.sh /app/deploy/backup-loop.sh /app/deploy/onboarding-loop.sh \
+        /app/deploy/historical-backfill-loop.sh
 
 EXPOSE 8000
 VOLUME ["/app/state"]

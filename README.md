@@ -372,6 +372,21 @@ For a deliberate Saudi historical discovery pass:
 
     finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 500
 
+Queue the complete archived Saudi universe—including the 20 fund/REIT records—for
+the initial historical build. This pauses Saudi recurring monitor schedules so
+worker capacity remains focused on the one-time foundation crawl. The command is
+idempotent for a universe snapshot and archives provenance before extraction:
+
+    finengine --db data/financial.sqlite3 sa-historical-backfill --limit 500 --source-limit 500
+    finengine --db data/financial.sqlite3 sa-historical-status
+
+The production stack runs that backfill controller continuously. Its live status is
+written to `historical-backfill-status.json`. A complete run means every discovered
+document has left the durable queue successfully; inaccessible or unmapped inputs
+remain explicit dead jobs/exceptions with their source and error, never fabricated
+zeros. Six-hour recurring monitoring is enabled only after this foundation phase is
+accepted.
+
 Live SEC ingestion uses Company Facts/XBRL JSON:
 
     finengine --db data/financial.sqlite3 ingest US AAPL
