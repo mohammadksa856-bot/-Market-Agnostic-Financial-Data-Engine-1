@@ -675,7 +675,8 @@ def reconcile_onboarding_runtime_paths(
                 schedule_updates += 1
         statuses = "('queued','dead'" + (",'running'" if recover_running else "") + ")"
         jobs = db.conn.execute(
-            f"""SELECT job_id,job_type,status,last_error,payload_json FROM jobs
+            f"""SELECT job_id,job_type,status,last_error,payload_json,attempts,max_attempts
+            FROM jobs
             WHERE job_type IN ('monitor','fetch_document','extract_document')
             AND company_id IN ({activation_companies}) AND status IN {statuses}"""
         ).fetchall()
@@ -693,11 +694,18 @@ def reconcile_onboarding_runtime_paths(
                                     (row["last_error"] or "").lower())
             recover = recover_running and row["status"] == "running"
             if retry_path_error or retry_download_error or recover:
+                previous_attempt = db.conn.execute(
+                    "SELECT COALESCE(MAX(attempt_number),0) FROM job_attempts WHERE job_id=?",
+                    (row["job_id"],),
+                ).fetchone()[0]
+                # Preserve the append-only attempt audit trail. Retried repairs
+                # receive a fresh allowance above the last recorded attempt.
+                max_attempts = max(int(row["max_attempts"]), previous_attempt + 5)
                 db.conn.execute(
-                    """UPDATE jobs SET status='queued',attempts=0,last_error=NULL,
+                    """UPDATE jobs SET status='queued',attempts=?,max_attempts=?,last_error=NULL,
                     leased_by=NULL,lease_until=NULL,finished_at=NULL,
                     available_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE job_id=?""",
-                    (row["job_id"],),
+                    (previous_attempt, max_attempts, row["job_id"]),
                 )
                 if recover:
                     db.conn.execute(

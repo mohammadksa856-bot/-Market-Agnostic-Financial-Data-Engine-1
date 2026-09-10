@@ -284,6 +284,13 @@ class UniverseTests(unittest.TestCase):
         )
         with self.db.conn:
             self.db.conn.execute(
+                "UPDATE jobs SET attempts=1 WHERE job_id=?", (path_job,),
+            )
+            self.db.conn.execute(
+                "INSERT INTO job_attempts(job_id,attempt_number,worker_id,started_at,status) "
+                "VALUES(?,1,'old-worker',CURRENT_TIMESTAMP,'dead')", (path_job,),
+            )
+            self.db.conn.execute(
                 "UPDATE jobs SET status='dead',last_error='[Errno 30] Read-only file system' "
                 "WHERE job_id=?", (path_job,),
             )
@@ -303,11 +310,13 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(result["retried_download_failures"], 1)
         schedule = self.db.conn.execute("SELECT payload_json FROM schedules").fetchone()
         self.assertEqual(json.loads(schedule["payload_json"])["raw_dir"], str(runtime))
-        states = {row["job_id"]: row["status"] for row in self.db.conn.execute(
-            "SELECT job_id,status FROM jobs")}
-        self.assertEqual(states[path_job], "queued")
-        self.assertEqual(states[evicted_job], "queued")
-        self.assertEqual(states[unrelated_job], "dead")
+        states = {row["job_id"]: row for row in self.db.conn.execute(
+            "SELECT job_id,status,attempts,max_attempts FROM jobs")}
+        self.assertEqual(states[path_job]["status"], "queued")
+        self.assertEqual(states[path_job]["attempts"], 1)
+        self.assertGreaterEqual(states[path_job]["max_attempts"], 6)
+        self.assertEqual(states[evicted_job]["status"], "queued")
+        self.assertEqual(states[unrelated_job]["status"], "dead")
 
     def test_enrichment_archives_and_profiles_sec_metadata(self):
         source = self.root / "sec.json"
