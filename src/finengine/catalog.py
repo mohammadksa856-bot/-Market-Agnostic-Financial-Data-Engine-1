@@ -359,7 +359,8 @@ GROUPS = (
         "listing_date fiscal_year_end sector industry sub_industry business_description headquarters_address website "
         "investor_relations_url incorporation_date founding_date legal_form employees auditor credit_rating sharia_status "
         "reporting_standard reporting_languages ceo_name chairman_name products_services geographic_presence "
-        "subsidiaries_count investor_contact_email business_model"
+        "subsidiaries_count investor_contact_email business_model "
+        "executive_management_team board_of_directors index_memberships"
     )),
     ("income_statement", "data_points", "income_statement", "flow", "currency", "sum", "all", "*", _keys(
         "revenue other_income_related_to_sales revenue_and_other_income_related_to_sales cost_of_revenue gross_profit "
@@ -440,7 +441,8 @@ GROUPS = (
         "price_open price_high price_low price_close price_adjusted_close trading_volume trading_turnover vwap "
         "previous_close free_float_market_cap free_float_shares beta_1y beta_5y volatility_30d average_volume_30d "
         "fifty_two_week_high fifty_two_week_low percent_from_52w_high percent_from_52w_low market_return_1m market_return_3m "
-        "market_return_6m market_return_ytd market_return_1y market_return_3y market_return_5y"
+        "market_return_6m market_return_ytd market_return_1y market_return_3y market_return_5y "
+        "short_interest_shares short_interest_percent_float short_interest_days_to_cover"
     )),
     ("ownership", "ownership_positions", "ownership", "event", "decimal", "none", "all", "*", _keys(
         "holder_name holder_type shares_held ownership_percentage government_ownership institutional_ownership insider_ownership "
@@ -457,7 +459,8 @@ GROUPS = (
         "financial_results_announcement earnings_release annual_report interim_report board_change management_change contract_award "
         "litigation regulatory_action related_party_transaction guidance risk_factor strategy_update material_event "
         "announcement_id announcement_date announcement_category announcement_title_ar announcement_title_en announcement_body "
-        "related_financial_period materiality_tag dividend_flag earnings_flag contract_flag merger_acquisition_flag governance_flag announcement_source_url"
+        "related_financial_period materiality_tag dividend_flag earnings_flag contract_flag merger_acquisition_flag governance_flag announcement_source_url "
+        "next_earnings_date next_agm_date"
     )),
     ("financial_notes", "data_points", "financial_notes", "mixed", "currency", "none", "all", "*", _keys(
         "revenue_by_product revenue_by_geography revenue_by_customer_type contract_assets contract_liabilities "
@@ -559,6 +562,11 @@ GROUPS = (
     ("banking", "data_points", "banking_ratios", "mixed", "ratio", "none", "industry", "Banks", _keys(
         "net_interest_margin cost_of_funds nonperforming_loans_ratio nonperforming_loans_coverage cet1_ratio tier1_capital_ratio "
         "capital_adequacy_ratio loans_to_deposits_ratio casa_ratio cost_to_income_ratio cost_of_risk bank_health_score"
+    )),
+    ("banking", "data_points", "banking_operations", "mixed", "decimal", "none", "industry", "Banks", _keys(
+        "branches_count atms_count pos_terminals_count remittance_centres_count digital_active_users total_customers "
+        "digital_to_manual_transaction_ratio net_promoter_score saudization_rate average_monthly_transactions "
+        "personal_finance_market_share mortgage_market_share auto_finance_market_share credit_card_market_share"
     )),
     ("insurance", "data_points", "insurance_income", "flow", "currency", "sum", "industry", "Insurance", _keys(
         "gross_written_premium insurance_revenue insurance_service_expense claims_incurred insurance_service_result "
