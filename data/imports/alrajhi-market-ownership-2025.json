@@ -1,0 +1,351 @@
+{
+  "company_id": "sa:1120",
+  "market": "SA",
+  "symbol": "1120",
+  "filing_type": "Saudi Exchange (Tadawul) official company-profile page — live price snapshot, shareholding disclosure, corporate actions and equity profile",
+  "filed_at": "2026-09-11",
+  "period_end": "2026-09-11",
+  "source_url": "https://www.saudiexchange.sa/wps/portal/saudiexchange/ourmarkets/main-market-watch/company-profile-main?companySymbol=1120",
+  "reader": "manual.browser/alrajhi-tadawul-profile-2026-09-11",
+  "profile": "corporate",
+  "notes": "Retrieved directly from Tadawul's own company-profile page for symbol 1120 (the exchange's own official disclosure, not a third-party aggregator) on 2026-09-11. Tadawul's own page states 'Prices are delayed' -- this is an end-of/during-day delayed snapshot, not a licensed real-time feed; the day's OHLC and volume/turnover are published through the dedicated `market_prices` array (interval '1d', observed_at 2026-09-11) rather than as generic facts -- open/high/low/close, trading volume and turnover are all engine-derived from that table (see src/finengine/domains.py's price_map), so listing them again as manual facts would be redundant and was removed after the first pipeline run correctly rejected it (those metric names are reserved for the market_prices table, not the generic fact extractor -- a real lesson from building this batch, not a guess). The 52-week high/low similarly goes through a second `market_prices` row (interval '1y') rather than a generic fact, for the same reason. market_cap and price_to_earnings are deliberately NOT hand-entered either -- both are already deterministically calculated by the engine from market_prices plus the audited financial-statement facts already published (see aramco-2025-annual-metrics.json for the same is_calculated pattern); manually duplicating them risks a stale or conflicting second value. Only `shares_outstanding` and `share_capital` are published here as plain facts, since the calculation engine needs shares_outstanding to derive market_cap and this page gives an explicitly dated (2026-09-11), authoritative value (Total Issued Shares 6,000,000,000; Paid Capital SAR 60,000,000,000) that also independently reproduces the quoted price: 396,000,000,000 / 6,000,000,000 = 66.00, an internal consistency check that passed.\n\nOwnership: Tadawul's own 'Substantial Shareholders' tab (>=5% holders) returned 'No data available in table' with the footnote 'N/A: the ownership is less than 5%' -- i.e. Tadawul's own official disclosure shows NO shareholder currently holds 5% or more of Al Rajhi Bank. This directly contradicts an unverified third-party claim found earlier this batch (that GOSI holds ~9.6%) -- that third-party figure is NOT carried into this manifest; only Tadawul's own Board-of-Directors ownership table is used, which happens to independently confirm the earlier-found individual figure for the Chairman (~2.18%). This is exactly the scenario the batch's primary-source-only rule exists for.\n\nCorporate actions: 5 historical bonus-share (stock split via capitalisation) events and 5 historical cash dividend distributions, both read directly from Tadawul's own 'Corporate Actions' and 'Dividends' tabs on the same page.\n\nCompany-profile cross-check: Tadawul's own 'Company Profile' tab gives a more precise incorporation narrative than the annual report front matter used in the sibling manifest (alrajhi-company-profile-2025.json) -- Royal Decree No. 59 dated 03/11/1407H (1988) for the joint-stock conversion, Ministerial Resolution No. 1398 dated 05/04/1409H for developing it into Al Rajhi Banking and Investment Corporation, and an exact listing date of 1988/12/01 -- these supplement rather than conflict with the annual report's 1957 founding-as-exchange-house account (different milestones in the same history). One real discrepancy found and NOT silently resolved: Tadawul's marketing-style company overview text says '+370,000 POSs', while the audited annual report's Five-Year Summary table (already in the sibling manifest, page 18) gives an exact, dated 991,927 POS terminals for FY2025 -- the annual report's precise dated figure is kept as the published pos_terminals_count fact; Tadawul's rounder overview text is not used for that metric, since it reads as unrevised standing marketing copy rather than a dated disclosure.",
+  "facts": [
+    {
+      "metric": "shares_outstanding",
+      "source_label": "Total Issued Shares",
+      "value": "6000000000",
+      "period_end": "2026-09-11",
+      "period_kind": "instant",
+      "table": "Equity Profile",
+      "scale": "1",
+      "unit": "shares",
+      "scope": "consolidated",
+      "fiscal_year": 2026
+    },
+    {
+      "metric": "share_capital",
+      "source_label": "Paid Capital",
+      "value": "60000000000",
+      "period_end": "2026-09-11",
+      "period_kind": "instant",
+      "table": "Equity Profile",
+      "scale": "1",
+      "unit": "SAR",
+      "currency": "SAR",
+      "scope": "consolidated",
+      "fiscal_year": 2026
+    }
+  ],
+  "market_prices": [
+    {
+      "observed_at": "2026-09-11",
+      "interval": "1d",
+      "open": "66.10",
+      "high": "67.05",
+      "low": "66.00",
+      "close": "66.00",
+      "volume": "8479286",
+      "turnover": "563145635.30",
+      "currency": "SAR"
+    },
+    {
+      "observed_at": "2026-09-11",
+      "interval": "1y",
+      "high": "75.33",
+      "low": "60.10",
+      "close": "66.00",
+      "currency": "SAR"
+    }
+  ],
+  "ownership_positions": [
+    {
+      "holder_key": "alrajhi_chairman_abdullah_sulaiman",
+      "holder_name": "Abdullah bin Sulaiman Abdulaziz Al Rajhi",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 0.021791737,
+      "country": "SA",
+      "metadata": {
+        "role": "Chairman"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_bandar_mohammed",
+      "holder_name": "Bandar Mohammed Abdulaziz Al Rajhi",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 9.21e-07,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_ibrahim_mohammed",
+      "holder_name": "Ibrahim Mohammed Abdulaziz Abdullah Al Rumaih",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 5.753e-06,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_mansour_abdulaziz",
+      "holder_name": "Mansour Abdulaziz Rashed Al Busaily",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 3.63e-05,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_ceo_waleed_almogbel",
+      "holder_name": "Waleed Abdullah Ali Al-Mogbel",
+      "holder_type": "individual_executive",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 2.5e-08,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors and Senior Executives (Managing Director and CEO)"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_raed_altamimi",
+      "holder_name": "Raed Abdullah Saleh Al Tamimi",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 2.5e-08,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_exec_abdulrahman_alfaddah",
+      "holder_name": "Abdulrahman Abdullah Abdulrahman Al-Faddah",
+      "holder_type": "individual_executive",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 1.8088e-05,
+      "country": "SA",
+      "metadata": {
+        "role": "Senior Executives"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_hamza_khashaym",
+      "holder_name": "Hamza Othman Hamza Khashaym",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 1.3e-08,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_mutasim_almashouq",
+      "holder_name": "Mutasim Abdulaziz Fahad Al Mashouq",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 1.8e-08,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_khalid_alqwaiz",
+      "holder_name": "Khalid Abdulrahman Abdullah Al Qwaiz",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 2.075e-06,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_faisal_abalkhail",
+      "holder_name": "Faisal Salah Ali Abalkhail",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 2.66e-07,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    },
+    {
+      "holder_key": "alrajhi_board_abdulaziz_alghofaily",
+      "holder_name": "Abdulaziz Khalid Ali Al Ghofaily",
+      "holder_type": "individual_board",
+      "ownership_type": "direct",
+      "as_of_date": "2026-09-10",
+      "ownership_pct": 1.2923e-05,
+      "country": "SA",
+      "metadata": {
+        "role": "Board of Directors"
+      }
+    }
+  ],
+  "corporate_actions": [
+    {
+      "action_key": "sa:1120:bonus:2026-04-20",
+      "action_type": "bonus_shares",
+      "title": "Bonus share issue -- capital increase to SAR 60,000,000,000",
+      "status": "effective",
+      "details": {
+        "new_capital_sar": 60000000000,
+        "date_caveat": "Tadawul's Corporate Actions tab only disclosed an eligibility date for historical bonus-share events; announcement_date is set equal to it as the only date available, not a separately confirmed announcement date."
+      },
+      "eligibility_date": "2026-04-20",
+      "announcement_date": "2026-04-20"
+    },
+    {
+      "action_key": "sa:1120:bonus:2022-05-08",
+      "action_type": "bonus_shares",
+      "title": "Bonus share issue -- capital increase to SAR 40,000,000,000",
+      "status": "effective",
+      "details": {
+        "new_capital_sar": 40000000000,
+        "date_caveat": "Tadawul's Corporate Actions tab only disclosed an eligibility date for historical bonus-share events; announcement_date is set equal to it as the only date available, not a separately confirmed announcement date."
+      },
+      "eligibility_date": "2022-05-08",
+      "announcement_date": "2022-05-08"
+    },
+    {
+      "action_key": "sa:1120:bonus:2019-04-03",
+      "action_type": "bonus_shares",
+      "title": "Bonus share issue -- capital increase to SAR 25,000,000,000",
+      "status": "effective",
+      "details": {
+        "new_capital_sar": 25000000000,
+        "date_caveat": "Tadawul's Corporate Actions tab only disclosed an eligibility date for historical bonus-share events; announcement_date is set equal to it as the only date available, not a separately confirmed announcement date."
+      },
+      "eligibility_date": "2019-04-03",
+      "announcement_date": "2019-04-03"
+    },
+    {
+      "action_key": "sa:1120:bonus:2014-04-14",
+      "action_type": "bonus_shares",
+      "title": "Bonus share issue -- capital increase to SAR 16,250,000,000",
+      "status": "effective",
+      "details": {
+        "new_capital_sar": 16250000000,
+        "date_caveat": "Tadawul's Corporate Actions tab only disclosed an eligibility date for historical bonus-share events; announcement_date is set equal to it as the only date available, not a separately confirmed announcement date."
+      },
+      "eligibility_date": "2014-04-14",
+      "announcement_date": "2014-04-14"
+    },
+    {
+      "action_key": "sa:1120:bonus:2008-02-24",
+      "action_type": "bonus_shares",
+      "title": "Bonus share issue -- capital increase to SAR 15,000,000,000",
+      "status": "effective",
+      "details": {
+        "new_capital_sar": 15000000000,
+        "date_caveat": "Tadawul's Corporate Actions tab only disclosed an eligibility date for historical bonus-share events; announcement_date is set equal to it as the only date available, not a separately confirmed announcement date."
+      },
+      "eligibility_date": "2008-02-24",
+      "announcement_date": "2008-02-24"
+    },
+    {
+      "action_key": "sa:1120:dividend:2026-04-30",
+      "action_type": "cash_dividend",
+      "title": "Cash dividend, SAR 1.75/share",
+      "announcement_date": "2026-01-27",
+      "effective_date": "2026-04-20",
+      "status": "paid",
+      "cash_amount": null,
+      "currency": "SAR",
+      "details": {
+        "dividend_per_share_sar": 1.75,
+        "distribution_date": "2026-04-30",
+        "distribution_way": "Account Transfer"
+      }
+    },
+    {
+      "action_key": "sa:1120:dividend:2025-10-02",
+      "action_type": "cash_dividend",
+      "title": "Cash dividend, SAR 0.75/share",
+      "announcement_date": "2025-09-15",
+      "effective_date": "2025-09-22",
+      "status": "paid",
+      "currency": "SAR",
+      "details": {
+        "dividend_per_share_sar": 0.75,
+        "distribution_date": "2025-10-02",
+        "distribution_way": "Account Transfer"
+      }
+    },
+    {
+      "action_key": "sa:1120:dividend:2025-04-24",
+      "action_type": "cash_dividend",
+      "title": "Cash dividend, SAR 1.46/share",
+      "announcement_date": "2025-01-29",
+      "effective_date": "2025-04-13",
+      "status": "paid",
+      "currency": "SAR",
+      "details": {
+        "dividend_per_share_sar": 1.46,
+        "distribution_date": "2025-04-24",
+        "distribution_way": "Account Transfer"
+      }
+    },
+    {
+      "action_key": "sa:1120:dividend:2024-08-26",
+      "action_type": "cash_dividend",
+      "title": "Cash dividend, SAR 1.25/share",
+      "announcement_date": "2024-08-05",
+      "effective_date": "2024-08-12",
+      "status": "paid",
+      "currency": "SAR",
+      "details": {
+        "dividend_per_share_sar": 1.25,
+        "distribution_date": "2024-08-26",
+        "distribution_way": "Account Transfer"
+      }
+    },
+    {
+      "action_key": "sa:1120:dividend:2024-04-03",
+      "action_type": "cash_dividend",
+      "title": "Cash dividend, SAR 1.15/share",
+      "announcement_date": "2024-02-25",
+      "effective_date": "2024-03-24",
+      "status": "paid",
+      "currency": "SAR",
+      "details": {
+        "dividend_per_share_sar": 1.15,
+        "distribution_date": "2024-04-03",
+        "distribution_way": "Account Transfer"
+      }
+    }
+  ],
+  "disclosures": [
+    {
+      "disclosure_type": "material_event",
+      "title": "Tadawul Substantial Shareholders disclosure: no holder currently at or above 5%",
+      "body_text": "Tadawul's own company-profile Shareholding Information tab, Substantial Shareholders view, returned 'No data available in table' with the standard footnote that N/A means ownership below 5%. Recorded here as an explicit disclosure rather than left silently absent, since the absence of a >=5% holder is itself a material ownership fact for this bank.",
+      "published_at": "2026-09-11",
+      "period_end": "2026-09-11",
+      "metadata": {
+        "source_section": "Shareholding Information / Substantial Shareholders"
+      }
+    }
+  ]
+}

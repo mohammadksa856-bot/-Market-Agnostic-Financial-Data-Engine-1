@@ -25,6 +25,7 @@ batch completes rather than starts its profile.
 | Symbol | Company | Manifest | Primary source |
 |---|---|---|---|
 | 1120 | Al Rajhi Bank | `data/imports/alrajhi-company-profile-2025.json` | alrajhi bank's own Investor Relations page → Integrated Annual Report 2025 PDF |
+| 1120 | Al Rajhi Bank | `data/imports/alrajhi-market-ownership-2025.json` | Tadawul's own company-profile page for symbol 1120 (live price, shareholding, corporate actions) |
 
 ## Source and archive
 
@@ -64,16 +65,59 @@ Registered in `data/raw/archive-index.json`.
   (38.4%, with a 2024 comparative of 35.4%) — p.15-18 and p.56.
 * **Risk factors** (`disclosures`, `risk_factor` type): the bank's own
   top-10 risk ranking and 5 emerging risks for 2025, p.264-266.
+* **Live price, shareholding and corporate actions** (second manifest,
+  `alrajhi-market-ownership-2025.json`, sourced directly from Tadawul's own
+  company-profile page for symbol 1120, retrieved 2026-09-11):
+  - a dated `market_prices` snapshot (1d interval: open/high/low/close,
+    volume, turnover; 1y interval: 52-week high/low) — this is what
+    unlocks the engine's automatic valuation chain (market_cap, P/E,
+    dividend yield, enterprise value all became `is_calculated: true`
+    once this landed, where they were previously skipped with reason
+    `no_market_price`);
+  - `shares_outstanding` (6,000,000,000) and `share_capital` (SAR
+    60,000,000,000) from the page's Equity Profile — dated 2026-09-11,
+    and independently reproduces the quoted price exactly
+    (396,000,000,000 / 6,000,000,000 = 66.00);
+  - **12 ownership positions** from Tadawul's own Board-of-Directors
+    shareholding table (Chairman Abdullah bin Sulaiman Al Rajhi at
+    2.1791737%, 11 other board/senior-executive holdings, all under
+    0.004% individually);
+  - a disclosure recording that Tadawul's own **Substantial Shareholders**
+    (≥5%) tab returned no rows for Al Rajhi — i.e. no shareholder
+    currently holds 5% or more, sourced from the exchange's own page,
+    not inferred;
+  - **10 corporate actions**: 5 historical bonus-share (capitalisation)
+    issues 2008–2026 and 5 historical cash dividends 2024–2026, both from
+    Tadawul's own Corporate Actions and Dividends tabs.
+
+## A real discrepancy this batch surfaced and did not silently resolve
+
+The engine's own calculated `price_to_earnings` for Al Rajhi comes out to
+**15.95**, while Tadawul's own Peer Comparison tool on the same page shows
+**14.94** for the same day. Both are legitimate, sourced numbers — the gap
+is a real methodology effect, not an error: the engine's formula is
+`market_cap / latest_filed_fy(net_income)`, and `market_cap` uses
+**today's** share count (6,000,000,000, current as of 2026-09-11), while
+FY2025's `net_income` (and the reported EPS of 5.85 it implies) was earned
+over a **smaller** weighted-average share count, since Al Rajhi's bonus
+share issue that raised capital to SAR 60bn only took effect in April
+2026 — after FY2025 closed. Dividing a post-bonus-issue market cap by a
+pre-bonus-issue net income structurally inflates the ratio until FY2026's
+own EPS is reported on the new share count. This is a real, useful
+observation for the platform workstream (retroactive split/bonus-share
+adjustment of historical per-share figures is standard practice in
+equity data platforms) — flagged here rather than fixed, since it is a
+`calculations.py` change and belongs with Codex's platform ownership per
+`docs/WORKSTREAMS.md`.
 
 ## Backlog — deliberately not included
 
 | Field / item | Why not carried | Resolution |
 |---|---|---|
-| Major shareholders / ownership percentages | Third-party trackers report figures (GOSI ~9.6%, an Al Rajhi family member individually ~2.18%) but none were sourced from Tadawul directly or an official bank disclosure — this batch's own primary-source-only rule excludes them | Retrieve directly from Tadawul's company-profile ownership tab (requires the browser-driven retrieval flow, not a plain HTTP request — Tadawul returns 403 to non-browser clients) in a follow-up batch |
-| Current share price / market cap / valuation multiples | Not sourced in this batch | Archive a same-day Saudi Exchange price snapshot, same pattern as `aramco-market-prices-2026-09-04.json` |
-| Index memberships (TASI, MSCI, Nomu) | Not disclosed in the annual report itself | Source from the index provider or Saudi Exchange's own index-constituent pages |
-| Short interest | Catalog field added this batch (`short_interest_*`) but Saudi short-selling activity is rare/limited; needs a per-company check of whether it is even offered before treating a missing value as a gap | Confirm with Tadawul's securities-lending disclosure before the next batch |
+| Index memberships (TASI, MSCI, Nomu) | Not disclosed on either the annual report or the Tadawul company-profile page checked this batch | Source from the index provider or Saudi Exchange's own index-constituent pages |
+| Short interest | Catalog field added this batch (`short_interest_*`) but Saudi short-selling activity is rare/limited, and Tadawul's own company-profile page for 1120 has no securities-lending/short-interest tab | Confirm whether Tadawul discloses this for any Saudi issuer before treating a missing value as a gap |
 | Business-line commentary translated to Arabic | Only the English edition of the Integrated Annual Report was read this pass | Source the Arabic edition (alrajhi bank publishes one) for `_ar` attribute variants |
+| Foreign-ownership aggregate percentage | Tadawul's page has a separate "Foreign Ownership" tab; opened but not fully read before this batch closed | Read it in the next banking batch |
 
 ## Engine / catalog changes (separate commit, "For integration review")
 
@@ -92,14 +136,36 @@ other sector pack.
 
 `finengine verify alrajhi` → 54 pass / 0 warn / 0 fail (financial-statement
 identities from the already-merged manifests; this batch adds no new
-numeric identity to check since segment/operational/qualitative facts are
-not accounting identities). A clean scratch `bootstrap` across the full
-`data/imports` tree publishes the new manifest with 0 rejected facts (20/20
-company attributes, 3/3 disclosures, all segment and operational facts
-inserted) and `finengine audit --strict-warnings` against that scratch
-database returns **0 failures / 0 warnings** across all checks, including
-`source_archive_hashes` for the newly archived PDF.
+numeric identity to check since segment/operational/qualitative/ownership
+facts are not accounting identities). A clean scratch `bootstrap` across
+the full `data/imports` tree publishes both new manifests with 0 rejected
+facts:
+- `alrajhi-company-profile-2025.json`: 20/20 company attributes, 3/3
+  disclosures;
+- `alrajhi-market-ownership-2025.json`: 2/2 facts, 2/2 market-price rows,
+  12/12 ownership positions, 10/10 corporate actions, 1/1 disclosure —
+  and this is what flips `market_valuations` for `sa:1120` from `skipped
+  (no_market_price)` to **published, 11 calculated facts** (market_cap,
+  P/E, dividend yield, enterprise value, price-to-book, etc.), independently
+  cross-checked: `market_cap` (396,000,000,000) exactly equals
+  `shares_outstanding × price_close` (6,000,000,000 × 66.00).
 
-Tests: `tests/test_banking_company_profiles_batch1.py` — 2 tests, both
-pass (manifest structural checks + a snapshot-rebuild check that the
-segment and operational facts land with the correct dimensions).
+`finengine audit --strict-warnings` against that scratch database returns
+**0 failures / 0 warnings** across all checks, including
+`source_archive_hashes` for the newly archived annual-report PDF.
+
+Two real lessons from building this manifest, both now documented in its
+`notes` field rather than left implicit: (1) `price_open`/`price_high`/
+`price_low`/`previous_close`/`fifty_two_week_high`/`fifty_two_week_low`
+are reserved metric names the mapping engine only accepts via the
+dedicated `market_prices` array (see `src/finengine/domains.py`'s
+`price_map`), not the generic `facts` array — the first bootstrap attempt
+correctly rejected them there; (2) every `corporate_actions` entry
+requires an `announcement_date`, even when the only date Tadawul discloses
+for an older bonus-share event is an eligibility date — handled by setting
+`announcement_date` equal to `eligibility_date` with an explicit caveat in
+`details`, not by inventing a separate date.
+
+Tests: `tests/test_banking_company_profiles_batch1.py` (5 tests) and
+`tests/test_banking_market_ownership_batch1.py` (5 tests), all pass. Full
+repo suite: 201 passed, 1 skipped, 0 failed.
