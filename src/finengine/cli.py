@@ -484,6 +484,7 @@ def main():
     readprofile=sub.add_parser("read-profile"); readprofile.add_argument("pdf"); readprofile.add_argument("market",choices=["SA","US"]); readprofile.add_argument("symbol"); readprofile.add_argument("--source-url",required=True); readprofile.add_argument("--filed-at",required=True); readprofile.add_argument("--pages",help="comma-separated page numbers to read, e.g. 10,11,25,224,225; omit to read the whole document"); readprofile.add_argument("--model",default="claude-opus-5"); readprofile.add_argument("--out")
     newssearch=sub.add_parser("news-search"); newssearch.add_argument("company_name"); newssearch.add_argument("market",choices=["SA","US"]); newssearch.add_argument("symbol"); newssearch.add_argument("--model",default="claude-haiku-4-5-20251001"); newssearch.add_argument("--out")
     newsrss=sub.add_parser("news-search-rss"); newsrss.add_argument("company_names",help="one or more names/aliases to match, comma-separated (English and/or Arabic), e.g. 'Qassim Cement,Arabic name variant'"); newsrss.add_argument("market",choices=["SA","US"]); newsrss.add_argument("symbol"); newsrss.add_argument("--out")
+    newsalerts=sub.add_parser("news-search-email-alerts"); newsalerts.add_argument("market",choices=["SA","US"]); newsalerts.add_argument("symbol"); newsalerts.add_argument("--since-days",type=int,default=2); newsalerts.add_argument("--mailbox",default="INBOX"); newsalerts.add_argument("--out")
     readx=sub.add_parser("read-xlsx"); readx.add_argument("xlsx"); readx.add_argument("market",choices=["SA","US"]); readx.add_argument("symbol"); readx.add_argument("--registry",default="config/companies.json"); readx.add_argument("--mapping"); readx.add_argument("--filed-at",required=True); readx.add_argument("--filing-type",default="data-supplement"); readx.add_argument("--period-kinds",default="fy"); readx.add_argument("--out")
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
@@ -704,6 +705,24 @@ def main():
             _print_utf8(output)
         print(f"official={len(result['official'])} press={len(result['press'])} "
               f"feed_errors={len(result['feed_errors'])} cost={result['cost']}")
+        return
+    if a.cmd=="news-search-email-alerts":
+        from .email_alerts_connector import find_news_from_email_alerts
+        address=os.environ.get("GOOGLE_ALERTS_EMAIL","").strip()
+        app_password=os.environ.get("GOOGLE_ALERTS_APP_PASSWORD","").strip()
+        if not address or not app_password:
+            print("set GOOGLE_ALERTS_EMAIL and GOOGLE_ALERTS_APP_PASSWORD in the environment (.env) first",
+                  file=__import__("sys").stderr)
+            raise SystemExit(2)
+        result=find_news_from_email_alerts(market=a.market,symbol=a.symbol,email_address=address,
+                                           app_password=app_password,since_days=a.since_days,mailbox=a.mailbox)
+        output=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+        else:
+            _print_utf8(output)
+        print(f"official={len(result['official'])} press={len(result['press'])} "
+              f"rejected_offlist={len(result['rejected_offlist'])} cost={result['cost']}")
         return
     if a.cmd=="fetch":
         from .fetching import BrowserFetcher

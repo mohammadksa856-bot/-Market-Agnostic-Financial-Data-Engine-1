@@ -156,9 +156,51 @@ that failed to fetch or parse, surfaced rather than silently treated as
 CLI: `finengine news-search-rss "<Company Name>,<alias>" <market>
 <symbol> [--out result.json]`.
 
+## `src/finengine/email_alerts_connector.py` — zero-cost news via Google Alerts
+
+A second free source, added on request after the user recalled using
+Google Alerts (keyword-based email notifications) for exactly this kind
+of monitoring before. Google itself does the discovery here -- its own
+web crawler, covering far more sites than the two feeds
+`rss_news_connector.py` currently polls -- this module only reads the
+alert emails Google already sends and decodes each result's Google
+redirect link (`google.com/url?...&url=<encoded real URL>&...`) back to
+its real destination, which is then checked against the exact same
+`news_connector.ALLOWLIST` domain gate as every other source in this
+pipeline. Broader discovery does not relax the trust bar: an alert
+pointing at an unlisted domain (an anonymous blog, a rumor site) is
+reported in `rejected_offlist`, never published, proven by a test using
+a synthetic alert email that mixes one Argaam result with one
+off-allowlist blog result in the same message.
+
+Setup this module needs and cannot do on its own: an active Google Alert
+per company, delivered to a Gmail inbox; and a Gmail **App Password**
+for that inbox (`myaccount.google.com/apppasswords`, requires 2-Step
+Verification) -- never the account's real password. Both go in `.env` as
+`GOOGLE_ALERTS_EMAIL` / `GOOGLE_ALERTS_APP_PASSWORD`, the same pattern as
+`ANTHROPIC_API_KEY`.
+
+Uses only the Python standard library (`imaplib`, `email`,
+`html.parser`) -- no new dependency. The HTML parser deliberately does
+not assume a specific div/class structure inside the alert email (Google
+has changed that markup before); it looks only for the `url=` redirect
+pattern, the one part that has stayed stable.
+
+**Recommended layering for a real monitoring job, cheapest first:**
+1. `rss_news_connector.py` (verified outlets' own feeds -- free, narrow)
+2. `email_alerts_connector.py` (Google's own crawl via Alerts -- free,
+   broad, depends on an alert already existing for the company)
+3. `news_connector.py` (LLM + web search -- paid, Haiku by default,
+   reserved for whatever the free layers do not surface)
+
+CLI: `finengine news-search-email-alerts <market> <symbol> [--since-days 2]
+[--mailbox INBOX] [--out result.json]` (reads credentials from the
+environment, refuses to run with a clear message if they are not set).
+
 ## Tests
 
 `tests/test_reading_qualitative.py` (6 tests), `tests/test_news_connector.py`
-(4 tests), and `tests/test_rss_news_connector.py` (6 tests, all using a
-fake fetcher -- no real network call in the test suite), all pass. Full
-repo suite: 207 passed, 1 skipped, 0 failed.
+(4 tests), `tests/test_rss_news_connector.py` (6 tests), and
+`tests/test_email_alerts_connector.py` (4 tests) -- all using fake
+fetchers/connectors, no real network call anywhere in the test suite.
+Full repo suite: 211 passed, 1 skipped, 0 failed.
