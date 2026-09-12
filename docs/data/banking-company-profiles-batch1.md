@@ -1,5 +1,10 @@
 # Saudi banking sector — company-profile pilot batch 1
 
+**Status: all 6 data categories now populated for Al Rajhi Bank (1120)** —
+financial history, financial ratios (auto-calculated), operational KPIs,
+company profile/business model, news, and valuation. See "News pilot"
+below for the sixth and final category added to this batch.
+
 Batch branch: `claude/data-banking-profiles-1` (branched from `origin/main` @
 `64964c6`). This batch adds the qualitative/operational/segment/risk layer
 that the existing financial-statement manifests do not cover — it is
@@ -110,6 +115,39 @@ equity data platforms) — flagged here rather than fixed, since it is a
 `calculations.py` change and belongs with Codex's platform ownership per
 `docs/WORKSTREAMS.md`.
 
+## News pilot (sixth category)
+
+`data/imports/alrajhi-news-2026-09.json` — first real application of the
+project's two-tier news sourcing policy:
+
+* **Tier 1, `official_announcement`** (5 items): Tadawul's own
+  Announcements tab on the same company-profile page used for the
+  market/ownership manifest — same trust level as a financial disclosure,
+  since it is the exchange's own record of the issuer's own filing (a
+  USD 600m Tier 2 social sukuk's intent/commencement/completion
+  announcements, the H1 2026 interim-results announcement, and a
+  board-membership nomination notice).
+* **Tier 2, `press_coverage`** (2 items): named third-party outlets only
+  — a sukuk-pricing story and an Argaam Q2 2026 results article — each
+  carrying `source_name`, `source_url` and an explicit `display_rule` in
+  its metadata (e.g. "must show 'per Argaam' to the reader, never as a
+  bare fact"), per the agreed rule that press coverage is always
+  attributed, never presented as an engine-verified number.
+
+One sourcing-honesty note worth keeping visible: the sukuk-pricing item's
+originating URL pattern strongly suggests a syndicated Reuters wire
+story, but the fetched page itself credited "Zawya/Refinitiv" in its
+byline area. Rather than pick whichever attribution sounds more
+authoritative, the manifest cites the verifiable publisher of the page
+actually retrieved (TradingView, carrying a Reuters-tagged story) and
+says so explicitly in its metadata.
+
+News items carry no numeric facts, so they publish through the
+`disclosures` table directly (domain-only manifest path), not the
+fact-extraction pipeline — confirmed via `tests/test_banking_news_batch1.py`.
+No automated refresh is wired for this category yet; it is a one-time
+manual pull, tracked in the backlog below.
+
 ## Backlog — deliberately not included
 
 | Field / item | Why not carried | Resolution |
@@ -118,6 +156,8 @@ equity data platforms) — flagged here rather than fixed, since it is a
 | Short interest | Catalog field added this batch (`short_interest_*`) but Saudi short-selling activity is rare/limited, and Tadawul's own company-profile page for 1120 has no securities-lending/short-interest tab | Confirm whether Tadawul discloses this for any Saudi issuer before treating a missing value as a gap |
 | Business-line commentary translated to Arabic | Only the English edition of the Integrated Annual Report was read this pass | Source the Arabic edition (alrajhi bank publishes one) for `_ar` attribute variants |
 | Foreign-ownership aggregate percentage | Tadawul's page has a separate "Foreign Ownership" tab; opened but not fully read before this batch closed | Read it in the next banking batch |
+| **Automated refresh for any category in this batch** | Everything above (profile, segments, KPIs, price, ownership, news) was a one-time manual pull. Only the pre-existing financial-statement monitor runs on a schedule (on the production deployment) | Wire a scheduled job per category at the agreed cadence: price daily, disclosures/financials weekly, news daily — none of this exists yet for these new domains, only for financial-statement filings |
+| **Connecting this data to the website, Telegram bot, or a public API** | Out of scope for this batch (engine-side only, per `docs/WORKSTREAMS.md`'s Codex/Claude split) | A separate bridge/integration workstream, not a data batch |
 
 ## Engine / catalog changes (separate commit, "For integration review")
 
@@ -166,6 +206,7 @@ for an older bonus-share event is an eligibility date — handled by setting
 `announcement_date` equal to `eligibility_date` with an explicit caveat in
 `details`, not by inventing a separate date.
 
-Tests: `tests/test_banking_company_profiles_batch1.py` (5 tests) and
-`tests/test_banking_market_ownership_batch1.py` (5 tests), all pass. Full
-repo suite: 201 passed, 1 skipped, 0 failed.
+Tests: `tests/test_banking_company_profiles_batch1.py` (5 tests),
+`tests/test_banking_market_ownership_batch1.py` (5 tests), and
+`tests/test_banking_news_batch1.py` (3 tests), all pass. Full repo suite:
+204 passed, 1 skipped, 0 failed.
