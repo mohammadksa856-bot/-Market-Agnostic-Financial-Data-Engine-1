@@ -482,6 +482,7 @@ def main():
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
     read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank","insurance"])
     readprofile=sub.add_parser("read-profile"); readprofile.add_argument("pdf"); readprofile.add_argument("market",choices=["SA","US"]); readprofile.add_argument("symbol"); readprofile.add_argument("--source-url",required=True); readprofile.add_argument("--filed-at",required=True); readprofile.add_argument("--pages",help="comma-separated page numbers to read, e.g. 10,11,25,224,225; omit to read the whole document"); readprofile.add_argument("--model",default="claude-opus-5"); readprofile.add_argument("--out")
+    popprofile=sub.add_parser("populate-profile"); popprofile.add_argument("pdf"); popprofile.add_argument("market",choices=["SA","US"]); popprofile.add_argument("symbol"); popprofile.add_argument("--source-url",required=True); popprofile.add_argument("--filed-at",required=True); popprofile.add_argument("--period-end"); popprofile.add_argument("--company-id"); popprofile.add_argument("--max-pages",type=int,default=40); popprofile.add_argument("--model",default="claude-opus-5"); popprofile.add_argument("--out",required=True,help="writes <out>.json (manifest) and <out>.review-queue.json")
     newssearch=sub.add_parser("news-search"); newssearch.add_argument("company_name"); newssearch.add_argument("market",choices=["SA","US"]); newssearch.add_argument("symbol"); newssearch.add_argument("--model",default="claude-haiku-4-5-20251001"); newssearch.add_argument("--out")
     newsrss=sub.add_parser("news-search-rss"); newsrss.add_argument("company_names",help="one or more names/aliases to match, comma-separated (English and/or Arabic), e.g. 'Qassim Cement,Arabic name variant'"); newsrss.add_argument("market",choices=["SA","US"]); newsrss.add_argument("symbol"); newsrss.add_argument("--out")
     newsalerts=sub.add_parser("news-search-email-alerts"); newsalerts.add_argument("market",choices=["SA","US"]); newsalerts.add_argument("symbol"); newsalerts.add_argument("--since-days",type=int,default=2); newsalerts.add_argument("--mailbox",default="INBOX"); newsalerts.add_argument("--out")
@@ -682,6 +683,20 @@ def main():
             _print_utf8(output)
         print(f"accepted={len(result['accepted'])} review_queue={len(result['review_queue'])} "
               f"(never auto-published -- route review_queue items to the exceptions table)")
+        return
+    if a.cmd=="populate-profile":
+        from .populate_profile import build_profile_manifest
+        result=build_profile_manifest(a.pdf,market=a.market,symbol=a.symbol,source_url=a.source_url,
+                                      filed_at=a.filed_at,period_end=a.period_end,company_id=a.company_id,
+                                      max_pages=a.max_pages,model=a.model)
+        Path(f"{a.out}.json").write_text(json.dumps(result["manifest"],indent=2,ensure_ascii=False),encoding="utf-8")
+        Path(f"{a.out}.review-queue.json").write_text(json.dumps(result["review_queue"],indent=2,ensure_ascii=False),encoding="utf-8")
+        sel=result["page_selection"]
+        print(f"pages: {len(sel['selected_pages'])}/{sel['total_pages']} selected -- "
+              f"attributes={len(result['manifest']['company_attributes'])} "
+              f"disclosures={len(result['manifest']['disclosures'])} "
+              f"review_queue={len(result['review_queue'])} "
+              f"(wrote {a.out}.json, {a.out}.review-queue.json)")
         return
     if a.cmd=="news-search":
         from .news_connector import find_news
