@@ -460,7 +460,8 @@ GROUPS = (
         "litigation regulatory_action related_party_transaction guidance risk_factor strategy_update material_event "
         "announcement_id announcement_date announcement_category announcement_title_ar announcement_title_en announcement_body "
         "related_financial_period materiality_tag dividend_flag earnings_flag contract_flag merger_acquisition_flag governance_flag announcement_source_url "
-        "next_earnings_date next_agm_date"
+        "next_earnings_date next_agm_date "
+        "official_announcement press_coverage press_source_name press_source_tier"
     )),
     ("financial_notes", "data_points", "financial_notes", "mixed", "currency", "none", "all", "*", _keys(
         "revenue_by_product revenue_by_geography revenue_by_customer_type contract_assets contract_liabilities "
