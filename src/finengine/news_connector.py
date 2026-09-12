@@ -27,7 +27,16 @@ import json
 import re
 from urllib.parse import urlparse
 
-DEFAULT_MODEL = "claude-opus-5"
+# Measured live against the real API during development (2026-09-12), same
+# task, same company: Opus 5 cost ~$1.04/run (47,122 in / 3,157 out tokens,
+# 12 web searches); Haiku 4.5 cost ~$0.02/run (10,401 in / 477 out tokens) --
+# roughly 50x cheaper, at the cost of finding fewer results per run in that
+# comparison. Opus remains available via the `model=` argument for a company
+# that needs deeper digging, but the default favors the cost that is actually
+# viable to run across hundreds of companies on a recurring schedule. Prefer
+# `rss_news_connector.py` first wherever it covers a company/outlet -- it is
+# free -- and reserve this module for what an RSS feed can't surface.
+DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
 # Named, reputable outlets only -- widened per the 2026-09-12 request to
 # go beyond the original 3-outlet pilot (Reuters, Argaam, Maaal). Tier 1
@@ -120,7 +129,7 @@ def _search(company_name: str, market: str, symbol: str, client, model: str):
         model=model,
         max_tokens=4000,
         system=system,
-        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 2}],
         messages=[{"role": "user", "content": user}],
         output_config={"format": {"type": "json_schema", "schema": _SCHEMA}},
     )

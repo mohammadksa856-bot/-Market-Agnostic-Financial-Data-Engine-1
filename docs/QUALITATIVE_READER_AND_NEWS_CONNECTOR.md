@@ -111,9 +111,54 @@ clients in `tests/test_reading_qualitative.py` and
 should be treated as a fresh acceptance test, not assumed to work
 identically to the mocked tests.
 
+## `src/finengine/rss_news_connector.py` — zero-cost news via public RSS feeds
+
+Added after live-testing `news_connector.py` against the real API surfaced
+a real cost problem: one `find_news` run (Opus 5, live, 2026-09-12)
+consumed roughly **$1.04** (47,122 input / 3,157 output tokens, 12 web
+searches) -- switching the default model to Haiku 4.5 cut that to
+roughly **$0.02** (measured the same way, same day), but running either
+one daily across hundreds of companies is still a real, non-trivial
+recurring cost purely for *discovering* news, before any is even
+published.
+
+This module removes that cost for whatever it can cover: it polls named
+outlets' own public RSS feeds directly (no LLM, no search tool, a plain
+HTTP GET) and matches company names/aliases against each item's title
+and description with case-insensitive substring matching (Arabic and
+English both handled -- normalization strips the invisible LTR/RTL marks
+these feeds' Arabic-adjacent English titles carry). Verified live against
+Argaam's own "company disclosures" and "companies" RSS feeds
+(`https://www.argaam.com/en/rss/...`) on 2026-09-12: a real, current
+Qassim Cement acquisition disclosure was found with the correct title,
+URL, and timestamp, at **zero API cost**.
+
+**Coverage is intentionally partial, and grows by adding verified feeds,
+not by loosening the matching logic.** Researched during development:
+Reuters discontinued public RSS feeds entirely (no URL exists to add);
+Arab News's advertised `/rss` endpoint returned an empty/non-XML response
+on a plain GET (needs investigation -- a browser-rendered fetch or
+different request headers, not assumed unusable). Only Argaam's two feeds
+are wired in as of this commit; every other outlet in
+`news_connector.py`'s `ALLOWLIST` remains reachable only through the paid
+LLM+search path until its own RSS feed (if any) is found and verified the
+same way.
+
+**Recommended order for a real monitoring job**: try
+`rss_news_connector.find_news_rss` first (free, frequent -- hourly is
+fine); fall back to `news_connector.find_news` (paid, Haiku by default)
+only for a company/outlet combination the RSS path has not covered over
+some longer window. This module does not decide that fallback policy
+itself -- it only reports what it found, plus `feed_errors` for any feed
+that failed to fetch or parse, surfaced rather than silently treated as
+"no news this run".
+
+CLI: `finengine news-search-rss "<Company Name>,<alias>" <market>
+<symbol> [--out result.json]`.
+
 ## Tests
 
-`tests/test_reading_qualitative.py` (5 tests) and
-`tests/test_news_connector.py` (4 tests), both using the same fake-client
-injection pattern `tests/test_reading_llm.py` already established. Full
-repo suite: 200 passed, 1 skipped, 0 failed.
+`tests/test_reading_qualitative.py` (6 tests), `tests/test_news_connector.py`
+(4 tests), and `tests/test_rss_news_connector.py` (6 tests, all using a
+fake fetcher -- no real network call in the test suite), all pass. Full
+repo suite: 207 passed, 1 skipped, 0 failed.

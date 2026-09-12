@@ -21,6 +21,21 @@ from .monitoring import DocumentArchiver, MonitorService
 from .telegram import TelegramBot
 
 
+def _print_utf8(text: str) -> None:
+    """print() that never crashes on a console codepage that can't
+    represent the output (e.g. Windows' default cp1252 hitting Arabic
+    text or bidi marks from a real fetched source). Falls back to
+    replacing unencodable characters rather than raising -- found while
+    testing news-search-rss against real Argaam content on Windows."""
+    import sys
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        encoding = sys.stdout.encoding or "utf-8"
+        sys.stdout.buffer.write(text.encode(encoding, errors="replace"))
+        sys.stdout.buffer.write(b"\n")
+
+
 def _sec_user_agent() -> str:
     value = os.environ.get("SEC_USER_AGENT", "").strip()
     if "@" not in value:
@@ -467,7 +482,8 @@ def main():
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
     read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank","insurance"])
     readprofile=sub.add_parser("read-profile"); readprofile.add_argument("pdf"); readprofile.add_argument("market",choices=["SA","US"]); readprofile.add_argument("symbol"); readprofile.add_argument("--source-url",required=True); readprofile.add_argument("--filed-at",required=True); readprofile.add_argument("--pages",help="comma-separated page numbers to read, e.g. 10,11,25,224,225; omit to read the whole document"); readprofile.add_argument("--model",default="claude-opus-5"); readprofile.add_argument("--out")
-    newssearch=sub.add_parser("news-search"); newssearch.add_argument("company_name"); newssearch.add_argument("market",choices=["SA","US"]); newssearch.add_argument("symbol"); newssearch.add_argument("--model",default="claude-opus-5"); newssearch.add_argument("--out")
+    newssearch=sub.add_parser("news-search"); newssearch.add_argument("company_name"); newssearch.add_argument("market",choices=["SA","US"]); newssearch.add_argument("symbol"); newssearch.add_argument("--model",default="claude-haiku-4-5-20251001"); newssearch.add_argument("--out")
+    newsrss=sub.add_parser("news-search-rss"); newsrss.add_argument("company_names",help="one or more names/aliases to match, comma-separated (English and/or Arabic), e.g. 'Qassim Cement,Arabic name variant'"); newsrss.add_argument("market",choices=["SA","US"]); newsrss.add_argument("symbol"); newsrss.add_argument("--out")
     readx=sub.add_parser("read-xlsx"); readx.add_argument("xlsx"); readx.add_argument("market",choices=["SA","US"]); readx.add_argument("symbol"); readx.add_argument("--registry",default="config/companies.json"); readx.add_argument("--mapping"); readx.add_argument("--filed-at",required=True); readx.add_argument("--filing-type",default="data-supplement"); readx.add_argument("--period-kinds",default="fy"); readx.add_argument("--out")
     fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
     ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
@@ -617,7 +633,7 @@ def main():
             Path(a.out).write_text(output,encoding="utf-8")
             print(f"wrote {len(manifest['facts'])} facts to {a.out}; verify ok={verification['ok']} ({verification['passed']} checks, {verification['failures']} fail)")
         else:
-            print(output)
+            _print_utf8(output)
         if not verification["ok"]: raise SystemExit(1)
         return
     if a.cmd=="read":
@@ -650,7 +666,7 @@ def main():
             Path(a.out).write_text(output,encoding="utf-8")
             print(f"wrote {len(manifest['facts'])} facts ({source}) to {a.out}; verify ok={verification['ok']}")
         else:
-            print(output)
+            _print_utf8(output)
         if not verification["ok"]: raise SystemExit(1)
         return
     if a.cmd=="read-profile":
@@ -662,7 +678,7 @@ def main():
         if a.out:
             Path(a.out).write_text(output,encoding="utf-8")
         else:
-            print(output)
+            _print_utf8(output)
         print(f"accepted={len(result['accepted'])} review_queue={len(result['review_queue'])} "
               f"(never auto-published -- route review_queue items to the exceptions table)")
         return
@@ -673,9 +689,21 @@ def main():
         if a.out:
             Path(a.out).write_text(output,encoding="utf-8")
         else:
-            print(output)
+            _print_utf8(output)
         print(f"official={len(result['official'])} press={len(result['press'])} "
               f"rejected_offlist={len(result['rejected_offlist'])}")
+        return
+    if a.cmd=="news-search-rss":
+        from .rss_news_connector import find_news_rss
+        names=[n.strip() for n in a.company_names.split(",") if n.strip()]
+        result=find_news_rss(names,market=a.market,symbol=a.symbol)
+        output=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+        else:
+            _print_utf8(output)
+        print(f"official={len(result['official'])} press={len(result['press'])} "
+              f"feed_errors={len(result['feed_errors'])} cost={result['cost']}")
         return
     if a.cmd=="fetch":
         from .fetching import BrowserFetcher
