@@ -197,6 +197,48 @@ CLI: `finengine news-search-email-alerts <market> <symbol> [--since-days 2]
 [--mailbox INBOX] [--out result.json]` (reads credentials from the
 environment, refuses to run with a clear message if they are not set).
 
+## Scoping news coverage to the full Saudi market, not just the pilot registry
+
+The 31-company pilot registry above is a small slice of the real Saudi
+market. Checked live against Tadawul's own `main-market-watch` page
+(`searchableSymbols`, 2026-09-12): **292 Main Market entities** (`market_type
+"M"`, which includes 19 REITs as one of its own sectors -- confirmed by
+reading the live Main Market Watch table itself) + **147 Nomu (parallel
+market) entities** (`market_type "S"`) = **439 real listed equities today**.
+This is higher than the commonly-cited "272 Main Market / 396 total" figures
+(the market has grown since those were current) -- treat the live count as
+the source of truth, not any cached figure in this repo or elsewhere. The
+other `searchableSymbols` codes (`C` traded funds, `B`/`O` sukuk, `E` ETFs,
+`D` options/derivatives, `F` non-traded funds) are not operating companies
+and are out of scope for company news.
+
+**Decision: do not mass-create a per-company Google Alert for all 439
+entities.** Reason, found live rather than assumed: Argaam's two RSS feeds
+that `rss_news_connector.py` already polls are themselves **market-wide**,
+not scoped to whichever companies happen to be passed in -- a real poll on
+2026-09-12 surfaced disclosures for Horizon Educational, Al-Jouf
+Agricultural, UCA, SARCO, IA, FIPCO, SABIC AN, National Gypsum, Edarat,
+Qomel, Smile Care, KEC, and Elm, none of which are in the pilot registry or
+have a Google Alert configured anywhere. `find_news_rss` filters that
+market-wide feed down to whatever company names you pass it, but the
+underlying feed already covers the whole market for zero cost and zero
+per-company setup. Manually clicking through Google's UI to create ~400
+more individual alerts would mostly duplicate that coverage while adding
+real setup time and standing external state (400+ rules) in one personal
+Gmail account for marginal benefit.
+
+**What this means in practice**: the 32 Google Alerts already created
+(pilot registry + one Arabic alert) stay as-is -- a supplementary layer for
+that batch, not a pattern to repeat for the rest of the market. For the
+remaining ~408 entities, `rss_news_connector.py` is the primary zero-cost
+layer; `news_connector.py` (paid, Haiku) is the fallback for whatever a
+company's RSS-covered outlets do not surface. The real gap worth closing
+next is **feed breadth**, not per-company alert count: today only Argaam's
+two feeds are wired in (see above) -- adding a second market-wide feed
+(Maaal, Mubasher, or another allowlisted outlet, if one exists) would widen
+coverage for all ~439 companies at once, the same zero-cost way, rather
+than scaling a manual per-company process.
+
 ## Tests
 
 `tests/test_reading_qualitative.py` (6 tests), `tests/test_news_connector.py`
