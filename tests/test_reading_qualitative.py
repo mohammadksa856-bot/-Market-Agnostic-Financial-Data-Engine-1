@@ -102,6 +102,31 @@ class QualitativeReaderTests(unittest.TestCase):
             self.assertEqual(result["accepted"], [])
             self.assertEqual(result["review_queue"][0]["reason"], "ungrounded")
 
+    def test_punctuation_only_phrasing_differences_still_agree(self):
+        """Found running this reader against a real Al Rajhi Bank annual
+        report page (431, 'Auditors: Ernst and Young / Deloitte and Touche
+        & Co'): two independent, correct readings of the same real text
+        rendered it with '&' vs 'and' and different punctuation. An exact
+        string-equality agreement check flagged that as a disagreement,
+        which would have sent a genuinely-agreed, correctly-grounded fact
+        to manual review for no real reason. `_values_agree` compares
+        word sets instead, specifically to tolerate this."""
+        from finengine.reading_qualitative import qualitative_read
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "acme.pdf"
+            _profile_pdf(pdf)
+            quote = "Chief Executive Officer: Jane Doe"
+            client = _fake_client(
+                findings_a=[{"attribute_key": "ceo_name", "value": "Jane Doe; Chief Executive", "quote": quote, "page": 1}],
+                findings_b=[{"attribute_key": "ceo_name", "value": "Jane Doe & Chief Executive", "quote": quote, "page": 1}],
+            )
+            result = qualitative_read(
+                pdf, market="SA", symbol="9999", source_url="https://example.test/acme.pdf",
+                filed_at="2026-03-01", client=client)
+            self.assertEqual(len(result["accepted"]), 1)
+            self.assertEqual(result["review_queue"], [])
+
     def test_single_pass_finding_goes_to_review(self):
         from finengine.reading_qualitative import qualitative_read
 

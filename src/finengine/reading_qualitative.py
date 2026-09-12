@@ -135,8 +135,30 @@ def _run_pass(document: str, system: str, client, model: str):
     return payload.get("findings", []), usage
 
 
+def _value_words(text: str) -> set[str]:
+    """A deliberately looser normalization than `_normalize`, used only for
+    comparing `value` (the model's own rendering of a fact) between the two
+    passes -- never for `quote` (the verbatim grounding proof, which must
+    stay strict). Two agents independently describing the same real fact
+    ('Ernst and Young; Deloitte and Touche & Co' vs 'Ernst & Young and
+    Deloitte and Touche & Co') can legitimately differ in punctuation and
+    '&'-vs-'and' without disagreeing about the underlying fact -- found by
+    running this reader against a real annual report page during
+    development, not a hypothetical. Comparing as a word set (order- and
+    punctuation-insensitive) catches that case while still catching an
+    actual disagreement (different names, different numbers, a missing
+    qualifier)."""
+    text = unicodedata.normalize("NFKC", text).lower().replace("&", " and ")
+    text = re.sub(r"[^\w\s]", " ", text)
+    return set(text.split())
+
+
 def _values_agree(a: str, b: str) -> bool:
-    return _normalize(a) == _normalize(b)
+    words_a, words_b = _value_words(a), _value_words(b)
+    if not words_a or not words_b:
+        return words_a == words_b
+    overlap = len(words_a & words_b) / len(words_a | words_b)
+    return overlap >= 0.8
 
 
 def qualitative_read(
