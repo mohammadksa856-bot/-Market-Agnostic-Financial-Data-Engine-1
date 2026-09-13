@@ -332,6 +332,7 @@ class FinancialQueryService:
         disclosures = self.disclosures(market, symbol, limit=100)
         estimates = self.consensus_estimates(market, symbol, limit=100)
         completeness = self.completeness(market, symbol)
+        understanding = self.understanding(market, symbol)
         annual_history = self.period_history(market, symbol, "fy", (
             "revenue", "gross_profit", "operating_income", "ebit", "ebitda",
             "net_income", "net_income_parent", "operating_cash_flow",
@@ -377,7 +378,7 @@ class FinancialQueryService:
             "official_sources": self._availability(sources, "no_archived_official_sources"),
         }
         return {
-            "contract_version": 2,
+            "contract_version": 3,
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "placeholder_policy": "never_substitute_demo_values",
             "company": overview,
@@ -396,7 +397,7 @@ class FinancialQueryService:
                 "official_sources": sources,
             },
             "capabilities": capabilities,
-            "data_quality": {"completeness": completeness,
+            "data_quality": {"completeness": completeness, "understanding": understanding,
                              "open_backlog": len(self.backlog(market, symbol, "active", 5000))},
         }
 
@@ -762,6 +763,58 @@ class FinancialQueryService:
                 "completeness_score":str(Decimal(populated)/Decimal(expected) if expected else Decimal(1)),
                 "categories":categories}
 
+    def understanding(self, market: str, symbol: str) -> dict:
+        company = self.conn.execute(
+            "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+            (market.upper(), symbol.upper()),
+        ).fetchone()
+        if not company:
+            raise KeyError(f"unknown company {market}:{symbol}")
+        company_id = company["company_id"]
+        readiness = self.conn.execute(
+            "SELECT * FROM company_readiness WHERE company_id=?", (company_id,),
+        ).fetchone()
+        rows = self.conn.execute(
+            """SELECT k.category_key,k.ordinal,k.name_en,k.name_ar,k.weight,k.description,
+            s.score,s.weighted_score,s.status,s.evidence_json,s.gaps_json,s.checked_at
+            FROM knowledge_categories k LEFT JOIN company_understanding_scores s
+            ON s.category_key=k.category_key AND s.company_id=?
+            WHERE k.enabled=1 ORDER BY k.ordinal""", (company_id,),
+        ).fetchall()
+        categories = []
+        for row in rows:
+            item = dict(row)
+            item["evidence"] = json.loads(item.pop("evidence_json") or "{}")
+            item["gaps"] = json.loads(item.pop("gaps_json") or "[]")
+            categories.append(item)
+        if not readiness:
+            return {"company_id": company_id, "readiness_state": "not_assessed",
+                    "total_score": None, "hard_gates": {},
+                    "blocking_reasons": ["run_understanding_refresh"], "categories": categories}
+        result = dict(readiness)
+        result["hard_gates"] = json.loads(result.pop("hard_gates_json"))
+        result["blocking_reasons"] = json.loads(result.pop("blocking_reasons_json"))
+        result["categories"] = categories
+        return result
+
+    def source_governance(self) -> dict:
+        sources = []
+        for row in self.conn.execute("SELECT * FROM source_authorities ORDER BY source_class,source_code"):
+            sources.append(dict(row))
+        categories = []
+        for row in self.conn.execute(
+            """SELECT k.category_key,k.ordinal,k.name_en,k.name_ar,k.weight,r.source_code,
+            r.source_role,r.priority,r.field_groups_json FROM knowledge_categories k
+            LEFT JOIN category_source_rules r USING(category_key)
+            WHERE k.enabled=1 ORDER BY k.ordinal,r.priority"""
+        ):
+            item = dict(row)
+            item["field_groups"] = json.loads(item.pop("field_groups_json") or "[]")
+            categories.append(item)
+        return {"source_classes": {"P": "primary fact", "C": "computed",
+                                   "O": "external opinion", "S": "attributed secondary"},
+                "sources": sources, "category_rules": categories}
+
     def disclosures(self, market: str, symbol: str, disclosure_type: str | None = None,
                     limit: int = 50) -> list[dict]:
         filters = ["c.market=?", "c.symbol=?", "d.is_current=1"]
@@ -858,6 +911,9 @@ class FinancialQueryService:
             "dimensions": "dimension_definitions WHERE enabled=1",
             "metric_contracts": "metric_contracts WHERE enabled=1",
             "completeness_rows": "company_completeness",
+            "understanding_scores": "company_understanding_scores",
+            "readiness_rows": "company_readiness",
+            "governed_sources": "source_authorities",
         }
         return {key: self.conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 for key, table in tables.items()}

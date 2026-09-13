@@ -75,6 +75,13 @@ class Pipeline:
             try: coverage.append(self.domains.refresh_coverage(company.company_id,period_end,period_kind))
             except Exception as error: self.db.exception(company.company_id,doc.source_key,"coverage","coverage_refresh_failed",str(error),severity="warning")
         self.db.set_normalized_status(normalized_ids,"published"); self.db.set_source_status(doc.source_key,"published"); self.db.publication_batch(doc.source_key,company.company_id,"published",len(facts),len(states))
+        try:
+            self.domains.refresh_catalog_completeness(company.company_id)
+            from .understanding import refresh_company_understanding
+            refresh_company_understanding(self.db.conn, company.company_id)
+        except Exception as error:
+            self.db.exception(company.company_id,doc.source_key,"understanding",
+                              "understanding_refresh_failed",str(error),severity="warning")
         return {"status":"published","source_key":doc.source_key,"published":len(states),"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"exceptions":len(validation),"coverage":coverage,"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"minimum_confidence":"0.95"}}
 
     def backfill_staging(self, company: Company, doc) -> dict:

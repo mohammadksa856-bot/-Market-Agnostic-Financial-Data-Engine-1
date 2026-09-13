@@ -64,6 +64,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                         result=query.metric_history(market,symbol,tail[1],self._int(params,"limit",20))
                     elif tail==["coverage"]: result=query.coverage(market,symbol,self._int(params,"limit",100))
                     elif tail==["completeness"]: result=query.completeness(market,symbol)
+                    elif tail==["understanding"]: result=query.understanding(market,symbol)
                     elif tail==["backlog"]: result=query.backlog(market,symbol,params.get("status",["active"])[0],self._int(params,"limit",500))
                     elif tail==["disclosures"]: result=query.disclosures(market,symbol,params.get("type",[None])[0],self._int(params,"limit",50))
                     elif tail==["attributes"]: result=query.attributes(market,symbol)
@@ -81,6 +82,8 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     result=query.catalog_history(parts[3])
                 elif parts == ["v1","dimensions"]:
                     result=query.dimensions()
+                elif parts == ["v1","source-governance"]:
+                    result=query.source_governance()
                 elif parts == ["v1","universe"]:
                     result=query.universe(params.get("market",[None])[0],
                                           self._int(params,"limit",100),

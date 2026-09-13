@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -355,6 +355,43 @@ CREATE TABLE IF NOT EXISTS validation_results(
 CREATE TABLE IF NOT EXISTS publication_batches(
  id INTEGER PRIMARY KEY, source_key TEXT NOT NULL REFERENCES source_documents(source_key), company_id TEXT NOT NULL,
  status TEXT NOT NULL, staged_count INTEGER NOT NULL, published_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS knowledge_categories(
+ category_key TEXT PRIMARY KEY, ordinal INTEGER NOT NULL UNIQUE, name_en TEXT NOT NULL,
+ name_ar TEXT NOT NULL, weight INTEGER NOT NULL CHECK(weight > 0), description TEXT NOT NULL,
+ enabled INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS source_authorities(
+ source_code TEXT PRIMARY KEY, name TEXT NOT NULL,
+ source_class TEXT NOT NULL CHECK(source_class IN ('P','C','O','S')),
+ assurance_level TEXT NOT NULL CHECK(assurance_level IN
+ ('audited','regulatory_filing','management_reported','regulator_published',
+  'deterministic_calculation','external_opinion','attributed_secondary')),
+ internal_use_allowed INTEGER NOT NULL DEFAULT 1,
+ platform_display_allowed INTEGER NOT NULL DEFAULT 0,
+ api_redistribution_allowed INTEGER NOT NULL DEFAULT 0,
+ raw_redistribution_allowed INTEGER NOT NULL DEFAULT 0,
+ rights_status TEXT NOT NULL CHECK(rights_status IN ('cleared','review_required','licensed','restricted')),
+ rate_limit_policy TEXT, retention_policy TEXT NOT NULL DEFAULT 'archive_with_hash',
+ methodology TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS category_source_rules(
+ category_key TEXT NOT NULL REFERENCES knowledge_categories(category_key),
+ source_code TEXT NOT NULL REFERENCES source_authorities(source_code),
+ source_role TEXT NOT NULL CHECK(source_role IN ('record','supporting','calculated','opinion')),
+ priority INTEGER NOT NULL DEFAULT 100, field_groups_json TEXT NOT NULL DEFAULT '[]',
+ PRIMARY KEY(category_key,source_code,source_role));
+CREATE TABLE IF NOT EXISTS company_understanding_scores(
+ company_id TEXT NOT NULL REFERENCES companies(company_id),
+ category_key TEXT NOT NULL REFERENCES knowledge_categories(category_key),
+ score TEXT NOT NULL, weighted_score TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('complete','partial','missing','not_applicable')),
+ evidence_json TEXT NOT NULL DEFAULT '{}', gaps_json TEXT NOT NULL DEFAULT '[]',
+ checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(company_id,category_key));
+CREATE TABLE IF NOT EXISTS company_readiness(
+ company_id TEXT PRIMARY KEY REFERENCES companies(company_id),
+ total_score TEXT NOT NULL, readiness_state TEXT NOT NULL CHECK(readiness_state IN
+ ('ready','not_ready','awaiting_data','blocked')),
+ hard_gates_json TEXT NOT NULL DEFAULT '{}', blocking_reasons_json TEXT NOT NULL DEFAULT '[]',
+ checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 """
 
 
@@ -455,6 +492,8 @@ class Database:
         self._seed_data_catalog()
         self._seed_calculation_definitions()
         self._seed_metric_applicability()
+        from .understanding import seed_understanding_governance
+        seed_understanding_governance(self.conn)
         self._backfill_data_points()
         self._backfill_company_entities()
 

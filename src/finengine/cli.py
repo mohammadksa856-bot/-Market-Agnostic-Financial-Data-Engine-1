@@ -507,6 +507,8 @@ def main():
     ownership=sub.add_parser("ownership"); ownership.add_argument("market"); ownership.add_argument("symbol"); ownership.add_argument("--as-of"); ownership.add_argument("--limit",type=int,default=100)
     catalog=sub.add_parser("catalog"); catalog.add_argument("--category"); catalog.add_argument("--domain"); catalog.add_argument("--limit",type=int,default=1000)
     completeness=sub.add_parser("completeness"); completeness.add_argument("market"); completeness.add_argument("symbol"); completeness.add_argument("--refresh",action="store_true")
+    understanding=sub.add_parser("understanding"); understanding.add_argument("market",nargs="?"); understanding.add_argument("symbol",nargs="?"); understanding.add_argument("--refresh",action="store_true"); understanding.add_argument("--all",action="store_true")
+    sub.add_parser("source-governance")
     exceptions=sub.add_parser("exceptions"); exceptions.add_argument("market",nargs="?"); exceptions.add_argument("symbol",nargs="?"); exceptions.add_argument("--status",default="open",choices=["open","resolved","all"]); exceptions.add_argument("--limit",type=int,default=100)
     resolve=sub.add_parser("resolve-exception"); resolve.add_argument("exception_id",type=int); resolve.add_argument("--resolution",required=True); resolve.add_argument("--assigned-to")
     resolve_source=sub.add_parser("resolve-source-exceptions"); resolve_source.add_argument("source_key"); resolve_source.add_argument("--resolution",required=True); resolve_source.add_argument("--assigned-to")
@@ -914,6 +916,23 @@ def main():
             if not row: db.close(); raise KeyError(f"unknown company {a.market}:{a.symbol}")
             CompanyDomainStore(db).refresh_catalog_completeness(row["company_id"]); db.close()
         q=FinancialQueryService(a.db); print(json.dumps(q.completeness(a.market,a.symbol),indent=2)); q.close(); return
+    if a.cmd=="understanding":
+        if a.all:
+            if a.symbol: p.error("symbol cannot be combined with --all")
+            from .understanding import refresh_all_understanding
+            db=Database(a.db); result=refresh_all_understanding(db.conn,a.market); db.close()
+            print(json.dumps(result,indent=2)); return
+        if not a.market or not a.symbol: p.error("market and symbol are required unless --all is used")
+        if a.refresh:
+            from .understanding import refresh_company_understanding
+            db=Database(a.db); row=db.conn.execute(
+                "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+                (a.market.upper(),a.symbol.upper())).fetchone()
+            if not row: db.close(); raise KeyError(f"unknown company {a.market}:{a.symbol}")
+            refresh_company_understanding(db.conn,row["company_id"]); db.close()
+        q=FinancialQueryService(a.db); print(json.dumps(q.understanding(a.market,a.symbol),indent=2)); q.close(); return
+    if a.cmd=="source-governance":
+        q=FinancialQueryService(a.db); print(json.dumps(q.source_governance(),indent=2)); q.close(); return
     if a.cmd=="backlog":
         if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
         if a.refresh:

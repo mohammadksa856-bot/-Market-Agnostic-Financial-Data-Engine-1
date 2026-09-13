@@ -112,7 +112,8 @@ class ServiceTests(unittest.TestCase):
         finally: query.close()
         self.assertEqual(page["sections"]["financials"]["quarter"]["metrics"]["revenue"][0]["value"],"30")
         self.assertEqual(page["sections"]["financials"]["ytd"]["metrics"]["revenue"][0]["value"],"55")
-        self.assertEqual(page["contract_version"],2)
+        self.assertEqual(page["contract_version"],3)
+        self.assertIn("understanding", page["data_quality"])
         quarter_history=page["sections"]["financials"]["history"]["quarter"]
         self.assertEqual(quarter_history["period_kind"],"quarter")
         self.assertEqual(quarter_history["periods"][0]["metrics"]["revenue"][0]["value"],"30")

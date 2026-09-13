@@ -2,6 +2,23 @@
 
 An auditable financial-data factory for Saudi and US companies. It discovers official filings, archives source documents, extracts source-faithful facts into staging, maps them to a canonical schema, normalizes and validates them deterministically, calculates derived metrics, and only then publishes versioned production data.
 
+The production contract includes an investor-understanding model covering 18
+company categories. Each category is weighted, mapped to governed sources, and
+scored independently. A company is never labelled ready merely because it exists
+in the universe: five annual periods, twelve available quarters, complete core
+facts, source provenance, and zero critical exceptions are hard gates.
+
+```bash
+finengine --db data/financial.sqlite3 understanding SA 2222 --refresh
+finengine --db data/financial.sqlite3 source-governance
+```
+
+Read-only consumers use `GET /v1/companies/{market}/{symbol}/understanding` and
+`GET /v1/source-governance`. Source classes are `P` primary, `C` deterministic
+calculation, `O` external opinion, and `S` attributed secondary. The source
+registry records assurance and display/API/raw-redistribution rights; an unknown
+right is review-required, never silently assumed.
+
 AI or probabilistic extractors never write to production. PDF/XLSX output enters staging and must pass the same mapping, normalization, validation, and publication gate as deterministic connectors.
 
 ## Release status
