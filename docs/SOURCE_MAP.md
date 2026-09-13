@@ -9,15 +9,18 @@ The conflicts are the reason this file exists. Collecting data turned out
 to be the easy half; deciding which number wins, and saying so publicly,
 is the half that makes the numbers defensible.
 
-## The three tiers
+## The four source classes
 
 | Tier | Meaning | How it is shown to a reader |
 | --- | --- | --- |
 | **P — Primary** | The issuer, the exchange, or the auditor. The filer's own words. | Published as fact |
-| **D — Derived/market** | A number that exists only because a third party produced it (analyst targets, credit ratings, MSCI scores). No primary source exists. | Always attributed: "per MarketScreener", "per S&P" |
 | **C — Computed** | We calculate it ourselves from P data, with the method declared. | Published as fact, with the formula and basis shown |
+| **O — Opinion** | A third-party judgement such as an analyst target, credit rating or ESG rating. | Always attributed with author, method/scale and as-of date |
+| **S — Secondary** | Named press or licensed vendor data that reports an externally produced fact. | Attributed and never promoted to a primary filing fact |
 
-**The governing rule: if it can be computed, compute it — never fetch it.**
+**The governing rule: if it can be computed, compute the canonical value.** A
+provider value may still be retained as attributed comparison evidence, but it
+can never overwrite the reproducible internally calculated value.
 Beta returned 0.34 / 0.58 / 1.09 / 1.15 / 1.34 from five vendors because
 each uses a different window and benchmark. Fetching any one of them
 imports an undeclared methodology. Computing it from the price series we
@@ -40,7 +43,7 @@ can be kept inside the primary-source rule.
 | 3 Governance | appointments, resignations, committee changes | **P** | **Tadawul issuer announcements** | ❌ no connector |
 | 3 Governance | insider share dealings | **P** | Tadawul disclosure (mandatory filing) | ❌ no connector |
 | 4 Ownership | holders ≥5%, foreign ownership %, free float | **P** | Tadawul company page + ownership disclosures | ⚠️ store exists (`domains.py`), fetcher missing |
-| 4 Ownership | institutional holders (Vanguard, BlackRock…) | **D** | MarketScreener | ❌ |
+| 4 Ownership | institutional holders (Vanguard, BlackRock…) | **S** | Licensed/attributed market-data provider | ❌ |
 | 4 Ownership | index weight | **C** | Computed from free float × price ÷ index total | ❌ |
 
 ## Layer B — Performance
@@ -73,8 +76,8 @@ can be kept inside the primary-source rule.
 | Category | Field group | Tier | Source of record | Engine status |
 | --- | --- | --- | --- | --- |
 | 13 Forecasts | **company guidance** (the issuer's own targets) | **P** | Results presentation and Tadawul announcement — e.g. Al Rajhi published NIM +25–35bps, CIR <23%, RoE >23.5%, Tier 1 >20% for 2026 | ❌ |
-| 13 Forecasts | analyst estimates by year | **D** | Research PDFs, MarketScreener | ❌ no free systematic index — Argaam's research listing is gated, though individual PDFs are open once the URL is known |
-| 14 Analyst coverage | ratings, target prices, consensus | **D** | MarketScreener, TradingView, Argaam public page | ❌ — **no primary source exists for this category** |
+| 13 Forecasts | analyst estimates by year | **O** | Research PDFs, licensed consensus provider | ❌ no licensed systematic feed yet |
+| 14 Analyst coverage | ratings, target prices, consensus | **O** | Attributed research or licensed consensus provider | ❌ — **no primary source exists for this category** |
 | 14 Analyst coverage | split adjustment of historical targets | **C** | Computed — a SAR 105.4 target set before Al Rajhi's 3:2 split is not comparable to a SAR 74.95 target set after it | ❌ |
 | 15 Valuation | P/E, P/B, EV/EBITDA, yield | **C** | Computed from category 5 + live price, basis declared | ⚠️ partial |
 | 15 Valuation | intrinsic value (DCF/DDM) | **C** | **Built in-house.** External models returned SAR 41.72 to 85.46 for the same company on the same day — a 2× spread. A valuation we cannot explain is worse than none | ❌ |
@@ -86,11 +89,11 @@ can be kept inside the primary-source rule.
 | 16 Risks | risk factors as disclosed | **P** | Annual report risk section | ⚠️ partial |
 | 16 Risks | debt maturity ladder, concentration, contingent liabilities | **P** | Notes to the statements — maturity analysis is in the liquidity note | ❌ |
 | 16 Risks | sukuk/bond issuance terms | **P** | Tadawul announcement + issuer press release | ❌ |
-| 16 Risks | credit rating | **D** | S&P, Fitch, Moody's public releases | ❌ |
+| 16 Risks | credit rating | **O** | S&P, Fitch, Moody's public releases | ❌ |
 | 17 ESG | emissions, Saudization, sustainable finance, social programmes | **P** | Issuer sustainability report | ❌ |
-| 17 ESG | MSCI / Sustainalytics rating | **D** | Rating agency | ❌ |
+| 17 ESG | MSCI / Sustainalytics rating | **O** | Rating agency | ❌ |
 | 18 News | official announcements | **P** | **Tadawul issuer announcements** | ❌ no connector |
-| 18 News | press coverage | **D** | Argaam RSS (free), Google Alerts (free), LLM+search (paid fallback) | ✅ all three built |
+| 18 News | press coverage | **S** | Named RSS/news sources and monitored alerts | ✅ connectors built; rights remain source-specific |
 | 18 News | events calendar | **P** | Tadawul + issuer IR calendar | ❌ |
 | 18 News | investor presentations, transcripts, annual reports | **P** | Issuer IR page | ⚠️ ad-hoc |
 
