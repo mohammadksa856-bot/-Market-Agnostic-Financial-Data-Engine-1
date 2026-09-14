@@ -232,6 +232,44 @@ class SupplementReaderTests(unittest.TestCase):
                 [("2024-12-31", "USD"), ("2025-03-31", "USD")],
             )
 
+    def test_reads_period_from_quarterly_worksheet_title(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Q1 2025"
+            for _ in range(7):
+                sheet.append([])
+            sheet.append(["USD million", None, None, None, None, None, "Consolidated"])
+            sheet.append(["Adjusted EBIT", None, None, None, None, None, 31.25])
+            sheet.append(["Adjusted net income", None, None, None, None, None, 26.75])
+            xlsx = directory / "supp.xlsx"
+            workbook.save(xlsx); workbook.close()
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "currency": "USD", "scale": "1000000",
+                "period_kinds": ["quarter"],
+                "sheet_periods": {
+                    "pattern": "Q[1-4] 20[0-9]{2}",
+                    "label_column": 1, "value_column": 7,
+                    "rows": {
+                        "Adjusted EBIT": ["adjusted_ebit", "flow"],
+                        "Adjusted net income": ["adjusted_net_income", "flow"],
+                    },
+                },
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2025-05-01",
+                period_kinds=("fy", "quarter"),
+            )
+            self.assertEqual(
+                [(fact["metric"], fact["period_end"], fact["currency"])
+                 for fact in manifest["facts"]],
+                [("adjusted_ebit", "2025-03-31", "USD"),
+                 ("adjusted_net_income", "2025-03-31", "USD")],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

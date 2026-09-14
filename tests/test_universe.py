@@ -438,6 +438,35 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(states[lease_job]["status"], "queued")
         self.assertEqual(states[unrelated_job]["status"], "dead")
 
+    def test_reconcile_does_not_retry_a_permanently_blocked_download_forever(self):
+        source = self.root / "retry-issuer.json"
+        source.write_text(json.dumps({"data": [{
+            "issuer_id": "retry-1", "symbol": "2999", "name": "Retry Co",
+            "market_segment": "Main Market",
+        }]}), encoding="utf-8")
+        sync_universe(self.db, "SA", self.root / "raw", input_path=source)
+        activate_universe(self.db, "SA", limit=1)
+        company_id = self.db.conn.execute(
+            "SELECT company_id FROM universe_activations LIMIT 1"
+        ).fetchone()["company_id"]
+        queue = DurableJobQueue(self.db)
+        job_id, _ = queue.enqueue(
+            "fetch_document", {"raw_dir": "data/raw"}, company_id,
+            idempotency_key="exhausted-browser-download", max_attempts=10,
+        )
+        with self.db.conn:
+            self.db.conn.execute(
+                "UPDATE jobs SET status='dead',attempts=10,last_error="
+                "'Request content was evicted from inspector cache' WHERE job_id=?",
+                (job_id,),
+            )
+        result = reconcile_onboarding_runtime_paths(self.db, self.root / "runtime-raw")
+        self.assertEqual(result["retried_download_failures"], 0)
+        row = self.db.conn.execute(
+            "SELECT status,attempts FROM jobs WHERE job_id=?", (job_id,)
+        ).fetchone()
+        self.assertEqual((row["status"], row["attempts"]), ("dead", 10))
+
     def test_enrichment_archives_and_profiles_sec_metadata(self):
         source = self.root / "sec.json"
         source.write_text(json.dumps({"fields": ["cik", "name", "ticker", "exchange"],

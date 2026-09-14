@@ -344,6 +344,23 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(_source_period(named, self.aramco), ("2026-06-30", 2026))
         self.assertIsNone(_source_period(unknown, self.aramco))
 
+    def test_interim_period_can_use_explicit_official_url_tokens(self):
+        q3 = {
+            "metadata_json": json.dumps({"title": "Q3 interim report"}),
+            "source_url": "https://issuer.example/reports/2024/q3/company-q3-2024.pdf",
+        }
+        h1 = {
+            "metadata_json": json.dumps({"title": "Interim report"}),
+            "source_url": "https://issuer.example/reports/2025/h1/company-h1-2025.pdf",
+        }
+        nine_months = {
+            "metadata_json": json.dumps({"title": "Financial results"}),
+            "source_url": "https://issuer.example/reports/2019/q3/company-9m-2019.pdf",
+        }
+        self.assertEqual(_source_period(q3, self.aramco), ("2024-09-30", 2024))
+        self.assertEqual(_source_period(h1, self.aramco), ("2025-06-30", 2025))
+        self.assertEqual(_source_period(nine_months, self.aramco), ("2019-09-30", 2019))
+
     def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):
         unmapped = Company("sa:9999", Market.SA, "9999", "Unmapped Co", "SAR")
         self.db.register_company(unmapped)

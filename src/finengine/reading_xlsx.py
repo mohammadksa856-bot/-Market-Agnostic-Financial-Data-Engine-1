@@ -194,6 +194,69 @@ class SupplementReader:
                         fact["period_start"] = f"{fiscal_year}-{(quarter - 1) * 3 + 1:02d}-01"
                     seen.add(key)
                     facts.append(fact)
+
+        # Some issuer workbooks put one period per worksheet instead of one
+        # period per column (for example Aramco's adjusted-earnings history).
+        # This reviewed layout keeps the same deterministic row mapping while
+        # deriving period semantics solely from the anchored worksheet name.
+        sheet_periods = self.mapping.get("sheet_periods") or {}
+        title_pattern = sheet_periods.get("pattern")
+        if title_pattern:
+            label_column = int(sheet_periods.get("label_column", 1)) - 1
+            value_column = int(sheet_periods.get("value_column", 2)) - 1
+            row_map = sheet_periods.get("rows", {})
+            phrases = sorted(((_norm(label), spec) for label, spec in row_map.items()),
+                             key=lambda item: -len(item[0]))
+            for sheet in workbook.worksheets:
+                if not re.fullmatch(str(title_pattern), sheet.title, re.I):
+                    continue
+                period = _column_period(sheet.title)
+                if not period or period[0] not in only:
+                    continue
+                kind, fiscal_year, period_end = period
+                scale = self._detect_scale(sheet, self.mapping.get("scale"))
+                for row in sheet.iter_rows(values_only=True):
+                    if max(label_column, value_column) >= len(row):
+                        continue
+                    raw_label = row[label_column]
+                    if not isinstance(raw_label, str) or not raw_label.strip():
+                        continue
+                    label = _norm(raw_label)
+                    spec = next((item for phrase, item in phrases
+                                 if phrase and phrase in label), None)
+                    if not spec:
+                        continue
+                    metric, want_kind = spec[0], spec[1]
+                    if want_kind not in {kind, "flow"}:
+                        continue
+                    value = _number(row[value_column])
+                    if value is None:
+                        continue
+                    negate = len(spec) > 2 and spec[2] == "negate"
+                    options = next((item for item in spec[2:] if isinstance(item, dict)), {})
+                    if negate:
+                        value = -value
+                    key = (metric, period_end, kind)
+                    if key in seen:
+                        continue
+                    fact = {
+                        "metric": metric, "source_label": raw_label.strip(),
+                        "value": str(value), "period_end": period_end,
+                        "period_kind": kind, "fiscal_year": fiscal_year,
+                        "scale": str(int(options.get("scale", scale))),
+                        "currency": str(options.get("currency", source_currency)),
+                        "unit": str(options.get("unit", options.get("currency", source_currency))),
+                    }
+                    if kind == "quarter":
+                        quarter = (int(period_end[5:7]) - 1) // 3 + 1
+                        fact["fiscal_quarter"] = quarter
+                        fact["period_start"] = (
+                            f"{fiscal_year}-{(quarter - 1) * 3 + 1:02d}-01"
+                        )
+                    elif kind == "fy":
+                        fact["period_start"] = f"{fiscal_year}-01-01"
+                    seen.add(key)
+                    facts.append(fact)
         workbook.close()
 
         return {

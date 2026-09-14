@@ -371,7 +371,7 @@ GROUPS = (
         "other_nonoperating_income other_nonoperating_expense revenue_ex_other_income other_operating_revenue "
         "income_before_income_taxes_and_zakat zakat_expense income_tax_expense income_taxes_and_zakat net_income "
         "net_income_parent net_income_noncontrolling continuing_operations_income discontinued_operations_income "
-        "comprehensive_income adjusted_ebitda ebitda ebit adjusted_net_income basic_eps eps_diluted weighted_average_shares_basic "
+        "comprehensive_income adjusted_ebitda adjusted_ebit ebitda ebit adjusted_net_income basic_eps eps_diluted weighted_average_shares_basic "
         "weighted_average_shares_diluted minority_interest_income"
     )),
     ("balance_sheet", "data_points", "balance_sheet", "instant", "currency", "last", "all", "*", _keys(

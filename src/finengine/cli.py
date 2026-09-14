@@ -255,12 +255,16 @@ def _company_profile(company) -> str:
 
 
 def _source_period(row: dict, company) -> tuple[str, int] | None:
-    """Derive an interim period only from explicit source metadata."""
+    """Derive a period only from explicit source metadata or URL tokens."""
     try:
         metadata = json.loads(row["metadata_json"] or "{}")
     except (KeyError, TypeError, json.JSONDecodeError):
         metadata = {}
     title = str(metadata.get("title") or "")
+    try:
+        source_url = str(row["source_url"] or "")
+    except (KeyError, TypeError, IndexError):
+        source_url = ""
     iso = re.search(r"\b(20\d{2})-(\d{1,2})-(\d{1,2})\b", title)
     if iso:
         year, month, day = (int(value) for value in iso.groups())
@@ -289,8 +293,22 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
             return date(int(year), month, int(day)).isoformat(), int(year)
         except ValueError:
             return None
-    quarter = re.search(r"\bQ([1-4])\b", title, re.I)
-    year_match = re.search(r"\b(20\d{2})\b", title)
+    # Official issuer filenames and directory paths are durable source
+    # metadata too.  Many report indexes label a document merely "Q1 interim
+    # report" while the URL carries the otherwise missing year.
+    period_text = f"{title} {source_url}"
+    quarter = re.search(r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])", period_text, re.I)
+    year_match = re.search(r"\b(20\d{2})\b", period_text)
+    if not quarter and year_match:
+        cumulative = re.search(
+            r"(?<![A-Za-z0-9])(H1|9M|FY)(?![A-Za-z0-9])", period_text, re.I,
+        )
+        if cumulative:
+            fiscal_year = int(year_match.group(1))
+            month_day = {"H1": (6, 30), "9M": (9, 30), "FY": (12, 31)}[
+                cumulative.group(1).upper()
+            ]
+            return date(fiscal_year, *month_day).isoformat(), fiscal_year
     if not quarter or not year_match:
         return None
     fiscal_year, fiscal_quarter = int(year_match.group(1)), int(quarter.group(1))
@@ -324,7 +342,14 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
         "currency": company.currency,
         "source_url": row["source_url"],
         "filed_at": row["filed_at"],
-        "filing_type": row["filing_type"],
+        # A few issuer indexes group FY statements under "quarterly reports".
+        # The explicit /fy/ path is stronger than that navigation label and
+        # prevents annual flows from being mis-stored as YTD.
+        "filing_type": (
+            "annual-report"
+            if re.search(r"(?:/|-)fy(?:/|-20\d{2})", str(row["source_url"]), re.I)
+            else row["filing_type"]
+        ),
         "profile": _company_profile(company),
         "fiscal_year_end": company.fiscal_year_end,
     }

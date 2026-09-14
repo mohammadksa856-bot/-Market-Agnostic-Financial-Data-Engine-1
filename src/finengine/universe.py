@@ -863,9 +863,16 @@ def reconcile_onboarding_runtime_paths(
                 job_updates += 1
             retry_path_error = (row["status"] == "dead" and
                                 "Read-only file system" in (row["last_error"] or ""))
-            retry_download_error = (row["status"] == "dead" and
-                                    "evicted from inspector cache" in
-                                    (row["last_error"] or "").lower())
+            # Browser cache eviction is sometimes transient, but repeatedly
+            # repairing the same permanently blocked issuer URL creates an
+            # infinite five-minute retry loop.  Ten audited attempts are more
+            # than enough to exercise the direct and browser fallbacks; after
+            # that the source stays dead for operator/alternate-source review.
+            retry_download_error = (
+                row["status"] == "dead"
+                and "evicted from inspector cache" in (row["last_error"] or "").lower()
+                and int(row["attempts"]) < 10
+            )
             retry_source_fallback = False
             if (row["status"] == "dead" and row["job_type"] == "monitor" and
                     (row["last_error"] or "").startswith("Page.goto:")):

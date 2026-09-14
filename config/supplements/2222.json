@@ -6,6 +6,15 @@
   "currency": "USD",
   "scale": "1000000",
   "period_kinds": ["quarter"],
+  "sheet_periods": {
+    "pattern": "Q[1-4] 20[0-9]{2}",
+    "label_column": 1,
+    "value_column": 7,
+    "rows": {
+      "Adjusted EBIT": ["adjusted_ebit", "flow"],
+      "Adjusted net income": ["adjusted_net_income", "flow"]
+    }
+  },
   "sheets": {
     "Summarized income statement": {
       "Revenue and other income related to sales": ["revenue_and_other_income_related_to_sales", "flow"],
