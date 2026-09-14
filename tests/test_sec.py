@@ -19,6 +19,23 @@ class SecTests(unittest.TestCase):
         self.assertFalse(errors)
         self.assertEqual(facts[0].fiscal_year,2024)
 
+    def test_malformed_instant_context_for_duration_metric_is_ignored(self):
+        payload={"facts":{"us-gaap":{
+            "RevenueFromContractWithCustomerExcludingAssessedTax":{"units":{"USD":[
+                {"end":"2022-09-22","val":182209,"fy":2022,"fp":"Q3",
+                 "form":"10-Q","filed":"2022-11-14","accn":"bad",
+                 "frame":"CY2022Q3I"},
+                {"start":"2022-07-01","end":"2022-09-30","val":200000,
+                 "fy":2022,"fp":"Q3","form":"10-Q","filed":"2022-11-14",
+                 "accn":"good","frame":"CY2022Q3"}]}}}}}
+        c=Company("us:TST",Market.US,"TST","Test","USD",cik="1")
+        d=SourceDocument(c.company_id,c.market,"fixture://sec","sec:bad-period",
+                         "companyfacts","2022-11-14",json.dumps(payload).encode())
+        facts,errors=JsonExtractor().extract(c,d)
+        self.assertFalse(errors)
+        self.assertEqual([(fact.metric,fact.period_kind,str(fact.value)) for fact in facts],
+                         [("revenue",PeriodKind.QUARTER,"200000")])
+
     def test_non_calendar_fiscal_year_is_derived_from_period_end(self):
         self.assertEqual(JsonExtractor._fiscal_year(
             Company("us:TST",Market.US,"TST","Test","USD",fiscal_year_end="06-30"),

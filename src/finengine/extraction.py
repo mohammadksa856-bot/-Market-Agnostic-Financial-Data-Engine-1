@@ -4,9 +4,16 @@ import json
 from datetime import date
 from decimal import Decimal
 
+from .catalog import iter_catalog_fields
 from .mapping import MappingEngine, canonicalize
 from .models import Company, ExtractedFact, PeriodKind, SourceDocument
 from .normalization import NormalizationEngine
+
+
+_ALLOWED_PERIOD_KINDS = {
+    item["field_key"]: set(item["allowed_period_kinds"])
+    for item in iter_catalog_fields()
+}
 
 
 class JsonExtractor:
@@ -26,11 +33,19 @@ class JsonExtractor:
         facts=[]; errors=[]
         for taxonomy, concepts in p.get("facts",{}).items():
             for tag, concept in concepts.items():
-                if not canonicalize(tag,"US"): continue
+                canonical = canonicalize(tag,"US")
+                if not canonical: continue
                 for unit, rows in concept.get("units",{}).items():
                     for r in rows:
                         if r.get("form") not in {"10-K","10-Q","20-F","40-F"} or "end" not in r: continue
                         kind,quarter=self._period(r)
+                        # SEC Company Facts occasionally contains malformed contexts
+                        # (for example, a revenue fact published with an instant frame).
+                        # Ignore only the incompatible observation so one bad row cannot
+                        # fail the company's entire historical ingestion.
+                        allowed = _ALLOWED_PERIOD_KINDS.get(canonical)
+                        if allowed is not None and kind.value not in allowed:
+                            continue
                         try: value=Decimal(str(r["val"]))
                         except Exception: errors.append({"code":"invalid_value","tag":tag,"row":r}); continue
                         source_url=d.source_url
