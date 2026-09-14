@@ -360,6 +360,10 @@ class UniverseTests(unittest.TestCase):
             "fetch_document", {"raw_dir": "data/raw", "candidate_id": 1},
             "sa:2010", idempotency_key="path-error", max_attempts=1,
         )
+        ingest_path_job, _ = queue.enqueue(
+            "ingest", {"raw_dir": "data/raw", "market": "SA", "symbol": "2010"},
+            "sa:2010", idempotency_key="ingest-path-error", max_attempts=1,
+        )
         unrelated_job, _ = queue.enqueue(
             "fetch_document", {"raw_dir": "data/raw"}, "sa:2010",
             idempotency_key="http-error", max_attempts=1,
@@ -394,6 +398,10 @@ class UniverseTests(unittest.TestCase):
                 "WHERE job_id=?", (path_job,),
             )
             self.db.conn.execute(
+                "UPDATE jobs SET status='dead',last_error='[Errno 30] Read-only file system' "
+                "WHERE job_id=?", (ingest_path_job,),
+            )
+            self.db.conn.execute(
                 "UPDATE jobs SET status='dead',last_error='HTTP 403' WHERE job_id=?",
                 (unrelated_job,),
             )
@@ -412,8 +420,8 @@ class UniverseTests(unittest.TestCase):
         runtime = self.root / "runtime-raw"
         result = reconcile_onboarding_runtime_paths(self.db, runtime)
         self.assertEqual(result["schedule_updates"], 1)
-        self.assertEqual(result["job_updates"], 5)
-        self.assertEqual(result["retried_path_failures"], 1)
+        self.assertEqual(result["job_updates"], 6)
+        self.assertEqual(result["retried_path_failures"], 2)
         self.assertEqual(result["retried_download_failures"], 1)
         self.assertEqual(result["retried_source_fallbacks"], 1)
         self.assertEqual(result["retried_expired_leases"], 1)
@@ -424,6 +432,7 @@ class UniverseTests(unittest.TestCase):
         self.assertEqual(states[path_job]["status"], "queued")
         self.assertEqual(states[path_job]["attempts"], 1)
         self.assertGreaterEqual(states[path_job]["max_attempts"], 6)
+        self.assertEqual(states[ingest_path_job]["status"], "queued")
         self.assertEqual(states[evicted_job]["status"], "queued")
         self.assertEqual(states[fallback_job]["status"], "queued")
         self.assertEqual(states[lease_job]["status"], "queued")

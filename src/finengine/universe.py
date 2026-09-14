@@ -849,7 +849,7 @@ def reconcile_onboarding_runtime_paths(
         jobs = db.conn.execute(
             f"""SELECT job_id,job_type,company_id,status,last_error,payload_json,attempts,max_attempts
             FROM jobs
-            WHERE job_type IN ('monitor','fetch_document','extract_document')
+            WHERE job_type IN ('monitor','fetch_document','extract_document','ingest')
             AND company_id IN ({activation_companies}) AND status IN {statuses}"""
         ).fetchall()
         for row in jobs:
