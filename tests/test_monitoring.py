@@ -414,6 +414,10 @@ class MonitoringTests(unittest.TestCase):
         archived = DocumentArchiver(
             self.db, Path(self.temp.name) / "raw", opener=opener_for(stream.getvalue()),
         ).fetch(candidate_id)
+        self.db.exception(
+            bank.company_id, archived["source_key"], "validation",
+            "period_rollforward_mismatch", "obsolete failure from an earlier reader",
+        )
         registry = Path(__file__).resolve().parents[1] / "config" / "companies.json"
         job = type("Job", (), {
             "payload": {
@@ -426,6 +430,10 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["status"], "published", result)
         self.assertEqual(result["source_key"], archived["source_key"])
         self.assertEqual(self.db.source_status(archived["source_key"]), "published")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT status FROM exceptions WHERE source_key=?",
+            (archived["source_key"],),
+        ).fetchone()["status"], "resolved")
         kinds = {row["period_kind"] for row in self.db.conn.execute(
             "SELECT period_kind FROM data_points "
             "WHERE company_id='sa:1120' AND is_current=1"

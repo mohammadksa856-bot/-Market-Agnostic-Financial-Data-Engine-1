@@ -458,10 +458,14 @@ def _extract_document_job_handler(db: Database):
                 manifest_path.write_text(
                     json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8",
                 )
-                prior_extraction_exceptions = [
+                # A successful end-to-end reprocess supersedes every exception
+                # that belonged to the previous attempt, including validation
+                # failures. Capture their ids before the new pipeline run so
+                # any fresh warning created by this run remains open.
+                prior_source_exceptions = [
                     record["id"] for record in db.conn.execute(
                         """SELECT id FROM exceptions
-                           WHERE source_key=? AND stage='extraction' AND status='open'""",
+                           WHERE source_key=? AND status='open'""",
                         (source_key,),
                     )
                 ]
@@ -476,10 +480,10 @@ def _extract_document_job_handler(db: Database):
                     ),job.job_id,
                 )
                 if result["status"] == "published":
-                    for exception_id in prior_extraction_exceptions:
+                    for exception_id in prior_source_exceptions:
                         db.resolve_exception(
                             exception_id,
-                            "Document reprocessed and published successfully.",
+                            "Document reprocessed through extraction, validation, and publication successfully.",
                             "pipeline",
                         )
                     db.complete_backlog_item(f"extraction:{source_key}")
