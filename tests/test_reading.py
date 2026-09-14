@@ -30,6 +30,13 @@ class OcrGeometryTests(unittest.TestCase):
             "All amounts in # thousands unless otherwise stated"
         ), 1000)
 
+    def test_reported_amount_does_not_override_declared_millions_scale(self):
+        from finengine.reading import StatementReader
+
+        self.assertEqual(StatementReader._scale(
+            "All amounts in millions of Saudi Riyals. Cash was 210,000."
+        ), 1_000_000)
+
     def test_dual_currency_headers_keep_quarter_and_ytd_semantics(self):
         from finengine.reading import StatementReader
 
