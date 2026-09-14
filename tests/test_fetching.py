@@ -4,7 +4,7 @@ from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
     _direct_document_bytes, _is_report_page, _published_at_from_url,
     _request_document_bytes,
-    _saudi_financial_announcement_links, _slug,
+    _saudi_financial_announcement_links, _slug, SourceAccessBlocked,
     _validate_document_bytes,
 )
 from finengine.models import Company, Market
@@ -193,6 +193,9 @@ class FetchAgentUnitTests(unittest.TestCase):
             _direct_document_bytes(
                 "https://issuer.example/report.pdf", opener=opener, max_bytes=4
             )
+
+    def test_access_block_has_a_distinct_error_type(self):
+        self.assertTrue(issubclass(SourceAccessBlocked, RuntimeError))
 
 
 if __name__ == "__main__":

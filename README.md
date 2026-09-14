@@ -339,6 +339,12 @@ A source cannot be reopened while it still has open exceptions. This prevents a 
 
 Saudi issuer pages can be discovered and fetched through Chromium when ordinary HTTP is blocked by a CDN. For activated Saudi Exchange companies, the monitor follows official financial-result announcement cards, records each announcement as the PDF's referer provenance, and uses that browser session to archive referer-protected attachments. Docker runs Chromium inside an isolated virtual display by default, so no desktop window is shown. The downloaded document is content-addressed and archived before extraction:
 
+If an official CDN returns HTTP 403 to both the browser request context and the
+bounded direct fallback, the job completes as `source_access_blocked` and a
+warning exception preserves the candidate URL and provenance for an
+alternate-network fetcher. This source limitation remains visible without being
+misreported as a crashed worker or a successful archive.
+
 Source authority is explicit. Audited statements and official financial filings
 from Saudi Exchange or the issuer site may enter numeric staging. Official news,
 press releases, and general disclosures can be archived for company context, but

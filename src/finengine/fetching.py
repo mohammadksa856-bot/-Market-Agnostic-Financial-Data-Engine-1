@@ -43,6 +43,15 @@ _REPORT_PAGE_TERMS = (
 )
 
 
+class SourceAccessBlocked(RuntimeError):
+    """The official document exists but its host denies this worker access.
+
+    This is a source-access exception, not a pipeline crash.  Keeping it as a
+    distinct type lets the durable worker finish the job truthfully while the
+    candidate remains queued for an alternate-network fetcher or manual review.
+    """
+
+
 def _slug(url: str) -> str:
     name = Path(unquote(urlparse(url).path)).name
     return re.sub(r"[^A-Za-z0-9._-]", "_", name) or "document.pdf"
@@ -419,7 +428,12 @@ class BrowserFetcher:
                         except Exception as direct_error:
                             detail = (f"; browser page fetch: {page_error}"
                                       if page_error is not None else "")
-                            raise RuntimeError(
+                            error_type = (
+                                SourceAccessBlocked
+                                if "403" in str(request_error) and "403" in str(direct_error)
+                                else RuntimeError
+                            )
+                            raise error_type(
                                 f"all document download paths failed for {url}{detail}; "
                                 f"request context: {request_error}; direct: {direct_error}"
                             ) from direct_error

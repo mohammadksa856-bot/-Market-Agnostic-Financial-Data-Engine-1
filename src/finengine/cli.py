@@ -205,8 +205,41 @@ def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
                 result["extraction_job_id"]=extraction_job
                 result["extraction_job_created"]=created
             return result
-        except Exception:
+        except Exception as error:
             db.set_source_candidate_status(candidate_id, "error")
+            # An official CDN denying the AWS/datacenter address is an external
+            # access constraint.  Preserve it in the review queue without
+            # poisoning operational health or retrying the same denied request
+            # forever.  An alternate-network fetcher can later retry this exact
+            # candidate with all provenance intact.
+            from .fetching import SourceAccessBlocked
+            if isinstance(error, SourceAccessBlocked):
+                candidate = db.get_source_candidate(candidate_id)
+                source_key = f"candidate:{candidate_id}"
+                existing = db.conn.execute(
+                    """SELECT 1 FROM exceptions WHERE source_key=? AND code=?
+                    AND status='open' LIMIT 1""",
+                    (source_key, "source_access_blocked"),
+                ).fetchone()
+                if not existing:
+                    db.exception(
+                        job.company_id, source_key, "fetch",
+                        "source_access_blocked", str(error),
+                        {
+                            "candidate_id": candidate_id,
+                            "source_url": candidate["source_url"],
+                            "connector": candidate["connector"],
+                            "resolution": "retry_from_alternate_network",
+                        },
+                        severity="warning",
+                    )
+                return {
+                    "status": "source_access_blocked",
+                    "candidate_id": candidate_id,
+                    "source_url": candidate["source_url"],
+                    "exception_code": "source_access_blocked",
+                    "retry_strategy": "alternate_network",
+                }
             raise
     return handle
 

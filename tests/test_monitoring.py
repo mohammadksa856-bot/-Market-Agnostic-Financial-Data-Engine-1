@@ -6,7 +6,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
-from finengine.cli import _extract_document_job_handler, _monitor_once, _source_period
+from finengine.cli import (
+    _extract_document_job_handler, _fetch_document_job_handler,
+    _monitor_once, _source_period,
+)
+from finengine.fetching import SourceAccessBlocked
 from finengine.database import Database
 from finengine.jobs import DurableJobQueue
 from finengine.models import Company, DiscoveryResult, Market, SourceCandidate
@@ -206,6 +210,37 @@ class MonitoringTests(unittest.TestCase):
         backlog=self.db.conn.execute("SELECT status,item_type FROM backlog_items").fetchone()
         self.assertEqual((backlog["status"],backlog["item_type"]),("ready","document_extraction"))
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM data_points").fetchone()[0],0)
+
+    def test_access_denied_document_becomes_managed_exception_not_failed_job(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "blocked-report",
+            "https://issuer.example/annual-report.pdf", "Annual report",
+            "annual-report", "2026-03-10", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        queue = DurableJobQueue(self.db)
+        job_id, _ = queue.enqueue(
+            "fetch_document", {"candidate_id": candidate_id, "browser": True},
+            self.aramco.company_id, idempotency_key="blocked-report",
+        )
+        job = queue.claim("fetcher", ("fetch_document",))
+        with patch("finengine.cli.DocumentArchiver.fetch",
+                   side_effect=SourceAccessBlocked("HTTP 403")):
+            result = _fetch_document_job_handler(self.db, queue)(job)
+        queue.complete(job, result)
+
+        self.assertEqual(result["status"], "source_access_blocked")
+        self.assertEqual(self.db.get_source_candidate(candidate_id)["status"], "error")
+        exception = self.db.conn.execute(
+            "SELECT code,severity,source_key FROM exceptions"
+        ).fetchone()
+        self.assertEqual(tuple(exception), (
+            "source_access_blocked", "warning", f"candidate:{candidate_id}",
+        ))
+        self.assertEqual(
+            self.db.conn.execute("SELECT status FROM jobs WHERE job_id=?", (job_id,)).fetchone()[0],
+            "succeeded",
+        )
 
     def test_candidate_fetcher_receives_referer_provenance(self):
         referer = "https://www.saudiexchange.sa/announcements/details/?anId=1"
