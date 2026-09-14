@@ -100,6 +100,33 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual((row["status"], row["attempts"]), ("succeeded", 1))
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM job_attempts").fetchone()[0], 1)
 
+    def test_claim_recovers_from_a_stale_attempt_counter(self):
+        queue = DurableJobQueue(self.db)
+        job_id, _ = queue.enqueue(
+            "ingest", {"market": "SA"}, "sa:TST",
+            idempotency_key="ingest:stale-attempt",
+        )
+        with self.db.conn:
+            self.db.conn.execute(
+                """INSERT INTO job_attempts(
+                job_id,attempt_number,worker_id,started_at,finished_at,status
+                ) VALUES(?,1,'old-worker',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'failed')""",
+                (job_id,),
+            )
+            self.db.conn.execute(
+                "UPDATE jobs SET attempts=0,status='queued' WHERE job_id=?", (job_id,),
+            )
+
+        job = queue.claim("new-worker")
+        self.assertEqual(job.attempts, 2)
+        self.assertGreaterEqual(job.max_attempts, 2)
+        self.assertEqual(
+            self.db.conn.execute(
+                "SELECT attempts FROM jobs WHERE job_id=?", (job_id,),
+            ).fetchone()[0],
+            2,
+        )
+
     def test_scheduler_materializes_only_one_due_job(self):
         queue = DurableJobQueue(self.db); scheduler = DurableScheduler(self.db, queue)
         due = datetime(2026, 1, 1, tzinfo=timezone.utc)

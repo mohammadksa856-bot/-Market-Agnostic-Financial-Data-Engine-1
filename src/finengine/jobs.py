@@ -96,11 +96,20 @@ class DurableJobQueue:
             ).fetchone()
             if not row:
                 conn.commit(); return None
-            attempt = row["attempts"] + 1
+            # The attempt ledger is the durable audit trail and therefore the
+            # authority if an operator or an older repair script leaves the
+            # denormalized jobs.attempts counter behind.  Never crash the whole
+            # worker on a duplicate (job_id, attempt_number).
+            recorded_attempt = conn.execute(
+                "SELECT COALESCE(MAX(attempt_number),0) FROM job_attempts WHERE job_id=?",
+                (row["job_id"],),
+            ).fetchone()[0]
+            attempt = max(row["attempts"], recorded_attempt) + 1
+            max_attempts = max(row["max_attempts"], attempt)
             conn.execute(
-                """UPDATE jobs SET status='running',attempts=?,leased_by=?,lease_until=?,updated_at=?
+                """UPDATE jobs SET status='running',attempts=?,max_attempts=?,leased_by=?,lease_until=?,updated_at=?
                 WHERE job_id=? AND status='queued'""",
-                (attempt, worker_id, lease_until, now, row["job_id"]),
+                (attempt, max_attempts, worker_id, lease_until, now, row["job_id"]),
             )
             conn.execute(
                 "INSERT INTO job_attempts(job_id,attempt_number,worker_id,started_at,status) VALUES(?,?,?,?,?)",
@@ -111,7 +120,7 @@ class DurableJobQueue:
             conn.rollback(); raise
         return ClaimedJob(
             row["job_id"], row["job_type"], row["company_id"], row["source_key"],
-            json.loads(row["payload_json"]), attempt, row["max_attempts"], worker_id,
+            json.loads(row["payload_json"]), attempt, max_attempts, worker_id,
         )
 
     def complete(self, job: ClaimedJob, result: dict | None = None) -> None:
