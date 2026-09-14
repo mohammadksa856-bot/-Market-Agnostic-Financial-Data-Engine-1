@@ -30,6 +30,30 @@ class OcrGeometryTests(unittest.TestCase):
             "All amounts in # thousands unless otherwise stated"
         ), 1000)
 
+    def test_dual_currency_headers_keep_quarter_and_ytd_semantics(self):
+        from finengine.reading import StatementReader
+
+        def word(text, center, y):
+            return (center - 5, y, center + 5, y + 8, text, 0, 0, 0)
+
+        columns = [255.6, 298.2, 340.7, 383.3, 431.4, 474.0, 516.4, 559.0]
+        words = []
+        for text, center in [
+            ("2nd", 235.0), ("quarter", 251.7),
+            ("2nd", 277.9), ("quarter", 294.3),
+            ("Six", 320.1), ("months", 336.7),
+            ("Six", 362.9), ("months", 379.4),
+            ("2nd", 410.8), ("quarter", 427.4),
+            ("Six", 495.9), ("months", 512.5),
+        ]:
+            words.append(word(text, center, 84))
+        for year, center in zip(["2026", "2025"] * 4, columns):
+            words.append(word(year, center, 94))
+        groups = StatementReader._period_column_groups(
+            words, "income_statement", columns, "ytd"
+        )
+        self.assertEqual([kind for _, kind in groups], ["quarter", "ytd"])
+
 
 def _statement_pdf(path: Path) -> None:
     doc = pymupdf.open()
@@ -163,7 +187,7 @@ def _interim_pdf(path: Path) -> None:
     doc = pymupdf.open()
     page = doc.new_page(width=850, height=567)
     page.insert_text((45, 60), "Condensed Consolidated Interim Statement of Income", fontsize=12)
-    page.insert_text((300, 90), "For the three-month period ended 30 June", fontsize=8)
+    page.insert_text((330, 90), "2nd quarter", fontsize=8)
     page.insert_text((540, 90), "For the six-month period ended 30 June", fontsize=8)
     for x, year in ((360, "2026"), (460, "2025"), (600, "2026"), (700, "2025")):
         page.insert_text((x, 110), year, fontsize=9)

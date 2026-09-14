@@ -716,7 +716,9 @@ class StatementReader:
             for x in block:
                 if not columns or x - columns[-1] > 25:
                     columns.append(x)
-            result.append(columns[:4])
+            # Keep enough columns for dual-currency interim statements:
+            # quarter/current-prior + YTD/current-prior in both SAR and USD.
+            result.append(columns[:8])
         # Glossy two-page spreads often repeat the report year in navigation
         # and heading text. Keep the two year clusters that actually align
         # with the most label/value rows, then restore visual left-to-right order.
@@ -782,15 +784,23 @@ class StatementReader:
             return [(columns[:2], "instant")]
         pairs = [columns[index:index + 2] for index in range(0, len(columns), 2)]
         groups: list[tuple[list[float], str]] = []
-        for pair in pairs:
+        for pair_index, pair in enumerate(pairs):
             if not pair:
                 continue
-            left, right = min(pair) - 45, max(pair) + 45
+            start = pair_index * 2
+            left = ((columns[start - 1] + columns[start]) / 2
+                    if start else min(pair) - 45)
+            right = ((columns[start + 1] + columns[start + 2]) / 2
+                     if start + 2 < len(columns) else max(pair) + 45)
             header = " ".join(
                 word[4].lower() for word in words
                 if left <= (word[0] + word[2]) / 2 <= right and word[1] < 155
             ).replace("–", "-").replace("—", "-")
-            if re.search(r"three[ -]months?", header):
+            if re.search(
+                r"three[ -]months?|(?:1st|2nd|3rd|4th|first|second|third|fourth)"
+                r"[ -]quarters?",
+                header,
+            ):
                 kind = "quarter"
             elif re.search(r"(six|nine)[ -]months?", header):
                 kind = "ytd"
