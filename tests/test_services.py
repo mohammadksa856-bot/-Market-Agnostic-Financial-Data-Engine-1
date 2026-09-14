@@ -168,6 +168,26 @@ class ServiceTests(unittest.TestCase):
             manifest=json.loads(archive.read("manifest.json"))
         self.assertEqual(len(manifest["files"][0]["original_paths"]),2)
 
+    def test_portable_bundle_ignores_superseded_artifact_path(self):
+        stale = Path(self.temp.name) / "stale.json"
+        stale.write_text("current bytes", encoding="utf-8")
+        db = Database(self.dbpath)
+        try:
+            db.save_source_artifact(
+                "artifact:stale", "sa:TST", "https://example.test/stale",
+                "0" * 64, str(stale), "application/json", stale.stat().st_size,
+            )
+            db.conn.execute(
+                "UPDATE source_artifacts SET status='superseded' WHERE artifact_key='artifact:stale'"
+            )
+            db.conn.commit()
+        finally:
+            db.close()
+        result = create_portable_bundle(
+            self.dbpath, Path(self.temp.name) / "bundles", self.temp.name, keep=1
+        )
+        self.assertEqual(result["status"], "ready")
+
     def test_production_schedule_configuration_is_idempotent(self):
         registry=Path(self.temp.name)/"companies.json"
         registry.write_text(json.dumps([{

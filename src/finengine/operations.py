@@ -88,10 +88,14 @@ def create_portable_bundle(
     conn.row_factory = sqlite3.Row
     try:
         for table, identity, local_path, content_hash in tables:
-            for row in conn.execute(
+            where = " WHERE status='archived'" if table == "source_artifacts" else ""
+            predicate = " AND" if where else " WHERE"
+            query = (
                 f"SELECT {identity} AS identity,{local_path} AS local_path,"
-                f"{content_hash} AS content_hash FROM {table} WHERE {local_path} IS NOT NULL"
-            ):
+                f"{content_hash} AS content_hash FROM {table}{where}"
+                f"{predicate} {local_path} IS NOT NULL"
+            )
+            for row in conn.execute(query):
                 path = Path(row["local_path"])
                 absolute = path if path.is_absolute() else root / path
                 absolute = absolute.resolve()

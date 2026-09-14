@@ -34,7 +34,12 @@ class Pipeline:
         if previous_status: self.db.reset_unfinished_source(doc.source_key)
         digest=hashlib.sha256(doc.content).hexdigest()
         extension={"application/json":".json","application/pdf":".pdf","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":".xlsx","text/html":".html","application/xhtml+xml":".html","application/xml":".xml","text/xml":".xml"}.get(doc.content_type,".bin")
-        target=self.raw_dir/company.market.value/company.symbol/(doc.source_key.replace(":","_")+extension)
+        # Pipeline manifests are immutable evidence. A corrected reader may
+        # reprocess the same source_key into different bytes, so include the
+        # content digest instead of overwriting the prior artifact path.
+        target=self.raw_dir/company.market.value/company.symbol/(
+            f"{doc.source_key.replace(':','_')}_{digest}{extension}"
+        )
         target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(doc.content)
         if not previous_status: self.db.save_source(doc,digest,str(target))
         self.db.save_source_artifact(
