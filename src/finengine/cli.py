@@ -479,7 +479,7 @@ def _extract_document_job_handler(db: Database):
                         manifest_path,row["source_url"],source_key=source_key
                     ),job.job_id,
                 )
-                if result["status"] == "published":
+                if result["status"] in {"published", "duplicate"}:
                     for exception_id in prior_source_exceptions:
                         db.resolve_exception(
                             exception_id,

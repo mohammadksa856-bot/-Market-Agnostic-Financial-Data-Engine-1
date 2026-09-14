@@ -434,6 +434,16 @@ class MonitoringTests(unittest.TestCase):
             "SELECT status FROM exceptions WHERE source_key=?",
             (archived["source_key"],),
         ).fetchone()["status"], "resolved")
+        self.db.exception(
+            bank.company_id, archived["source_key"], "validation",
+            "period_rollforward_mismatch", "stale failure after publication",
+        )
+        duplicate = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(duplicate["status"], "duplicate")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM exceptions WHERE source_key=? AND status='open'",
+            (archived["source_key"],),
+        ).fetchone()[0], 0)
         kinds = {row["period_kind"] for row in self.db.conn.execute(
             "SELECT period_kind FROM data_points "
             "WHERE company_id='sa:1120' AND is_current=1"
