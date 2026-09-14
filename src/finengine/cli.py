@@ -254,6 +254,32 @@ def _company_profile(company) -> str:
     return "corporate"
 
 
+def _published_language_equivalent(db: Database, row: dict) -> str | None:
+    """Return the published English twin of an official Arabic filing.
+
+    Issuers commonly publish byte-distinct Arabic and English renderings of
+    the same signed financial statements. Both files remain archived, but the
+    numeric pipeline must publish one language only or it creates duplicate
+    facts and duplicate review failures.
+    """
+    url = str(row["source_url"] or "")
+    alternatives = {
+        re.sub(r"-arabic(?=\.pdf(?:\?|$))", "-english", url, flags=re.I),
+        re.sub(r"-ar(?=\.pdf(?:\?|$))", "-en", url, flags=re.I),
+    }
+    alternatives.discard(url)
+    for alternative in alternatives:
+        record = db.conn.execute(
+            """SELECT source_key FROM source_documents
+               WHERE company_id=? AND lower(source_url)=lower(?) AND status='published'
+               LIMIT 1""",
+            (row["company_id"], alternative),
+        ).fetchone()
+        if record:
+            return record["source_key"]
+    return None
+
+
 def _source_period(row: dict, company) -> tuple[str, int] | None:
     """Derive a period only from explicit source metadata or URL tokens."""
     try:
@@ -425,6 +451,20 @@ def _extract_document_job_handler(db: Database):
                     reader_source="xlsx-supplement"; read_error=None
                     code="xlsx_extraction_failed"
         elif row["content_type"] == "application/pdf":
+            equivalent_source = _published_language_equivalent(db, row)
+            if equivalent_source:
+                db.set_source_status(source_key, "context_only")
+                db.resolve_source_exceptions(
+                    source_key,
+                    f"Archived as the Arabic-language twin of published source {equivalent_source}; numeric facts use the verified English rendering.",
+                    "pipeline",
+                )
+                db.complete_backlog_item(f"extraction:{source_key}")
+                return {
+                    "status": "context_only", "source_key": source_key,
+                    "equivalent_source_key": equivalent_source, "published": 0,
+                    "reader": "language-equivalence",
+                }
             interim_period_missing = (
                 row["filing_type"] == "interim-report" and
                 _source_period(row, company) is None

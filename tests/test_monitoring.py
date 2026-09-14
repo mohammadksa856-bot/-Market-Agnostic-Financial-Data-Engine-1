@@ -320,6 +320,43 @@ class MonitoringTests(unittest.TestCase):
         result = _extract_document_job_handler(self.db)(job)
         self.assertEqual(result["code"], "pdf_extraction_failed")
 
+    def test_arabic_filing_is_archived_without_duplicate_numeric_publication(self):
+        english = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "english-twin",
+            "https://issuer.example/q1/company-q1-2026-interim-report-english.pdf",
+            "Q1 interim report", "interim-report", "2026-05-01", "application/pdf",
+        )
+        english_id, _ = self.db.save_source_candidate(english)
+        english_doc = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-english"),
+        ).fetch(english_id)
+        self.db.set_source_status(english_doc["source_key"], "published")
+        arabic = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "arabic-twin",
+            "https://issuer.example/q1/company-q1-2026-interim-report-arabic.pdf",
+            "تقرير الربع الأول", "interim-report", "2026-05-01", "application/pdf",
+        )
+        arabic_id, _ = self.db.save_source_candidate(arabic)
+        arabic_doc = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-arabic"),
+        ).fetch(arabic_id)
+        self.db.exception(
+            self.aramco.company_id, arabic_doc["source_key"], "extraction",
+            "interim_period_semantics_required", "old review item",
+        )
+        job = type("Job", (), {
+            "payload": {"source_key": arabic_doc["source_key"]},
+            "job_id": "arabic-equivalence-test",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["status"], "context_only")
+        self.assertEqual(result["equivalent_source_key"], english_doc["source_key"])
+        self.assertEqual(self.db.source_status(arabic_doc["source_key"]), "context_only")
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM exceptions WHERE source_key=? AND status='open'",
+            (arabic_doc["source_key"],),
+        ).fetchone()[0], 0)
+
     def test_interim_period_is_derived_only_from_explicit_source_title(self):
         explicit = {"metadata_json": json.dumps({
             "title": "Interim Financial Results Period Ending on 30-06-2026"
