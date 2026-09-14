@@ -720,11 +720,17 @@ class StatementReader:
         # Glossy two-page spreads often repeat the report year in navigation
         # and heading text. Keep the two year clusters that actually align
         # with the most label/value rows, then restore visual left-to-right order.
-        ranked = sorted(
-            result,
-            key=lambda block: StatementReader._aligned_rows(words, block),
-            reverse=True,
-        )[:2]
+        scored = sorted(
+            ((StatementReader._aligned_rows(words, block), block) for block in result),
+            key=lambda item: item[0], reverse=True,
+        )
+        # A page header often prints the report year far to the left of the
+        # actual four-column statement (SAR current/prior + USD current/prior).
+        # It forms a geometrical "block" but aligns with almost no financial
+        # rows.  Keep only tabular blocks when at least one is available;
+        # genuine two-panel balance sheets retain both sides.
+        credible = [block for score, block in scored if score >= 6]
+        ranked = (credible or [block for _, block in scored])[:2]
         return sorted(ranked, key=lambda block: block[0])
 
     @staticmethod

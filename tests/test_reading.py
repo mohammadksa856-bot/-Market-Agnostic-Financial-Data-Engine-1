@@ -41,6 +41,8 @@ def _statement_pdf(path: Path) -> None:
         page.insert_text((460, y), prior, fontsize=9)
 
     page.insert_text((60, 60), "Consolidated Statement of Financial Position", fontsize=13)
+    # A report-header year unrelated to the statement's period columns.
+    page.insert_text((200, 35), "2025", fontsize=9)
     page.insert_text((360, 90), "2025", fontsize=9)
     page.insert_text((460, 90), "2024", fontsize=9)
     page.insert_text((360, 102), "SAR '000", fontsize=8)
