@@ -345,10 +345,12 @@ class MonitoringTests(unittest.TestCase):
         self.assertIsNone(_source_period(unknown, self.aramco))
 
     def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):
+        unmapped = Company("sa:9999", Market.SA, "9999", "Unmapped Co", "SAR")
+        self.db.register_company(unmapped)
         content = b"PK\x03\x04-test-workbook"
         candidate = SourceCandidate(
-            self.aramco.company_id, "browser-issuer-reports", "xlsx-no-map",
-            "https://www.aramco.com/data.xlsx", "Q2 Data Supplement",
+            unmapped.company_id, "browser-issuer-reports", "xlsx-no-map",
+            "https://issuer.example/data.xlsx", "Q2 Data Supplement",
             "data-supplement", "2026-08-01",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )

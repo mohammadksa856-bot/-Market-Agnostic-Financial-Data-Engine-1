@@ -25,7 +25,7 @@ from pathlib import Path
 
 _PERIOD = re.compile(r"^\s*(FY|1Q|2Q|3Q|4Q|1H|9M|H1|Q1|Q2|Q3|Q4)[\s\-]*(20\d{2})\s*$", re.I)
 _QUARTER_END = {"1Q": "03-31", "2Q": "06-30", "3Q": "09-30", "4Q": "12-31",
-                "q1": "03-31", "q2": "06-30", "q3": "09-30", "q4": "12-31"}
+                "Q1": "03-31", "Q2": "06-30", "Q3": "09-30", "Q4": "12-31"}
 _CUMULATIVE_END = {"1h": "06-30", "h1": "06-30", "9m": "09-30"}
 _SCALE_WORDS = ((re.compile(r"\bmn\b|\bmillion", re.I), 1_000_000),
                 (re.compile(r"'?000|\bthousand", re.I), 1000),
@@ -48,7 +48,11 @@ def _number(cell) -> Decimal | None:
 
 def _column_period(text: str):
     """(period_kind, fiscal_year, period_end) for a header like 'FY 2023', or None."""
-    match = _PERIOD.match(text or "")
+    # Issuer data books commonly footnote back-calculated discrete Q4 columns
+    # with a trailing asterisk.  The footnote changes assurance, not period
+    # identity, so accept it without weakening the anchored period parser.
+    cleaned = re.sub(r"[\s*¹²³⁴]+$", "", text or "")
+    match = _PERIOD.match(cleaned)
     if not match:
         return None
     tag, year = match.group(1).upper(), int(match.group(2))
@@ -100,7 +104,10 @@ class SupplementReader:
 
         # A balance-sheet line is an instant fact taken from the year-end (FY)
         # column; a flow line matches its own period kind.
-        only = set(period_kinds) | {"fy"}
+        requested = set(period_kinds)
+        configured = set(self.mapping.get("period_kinds", requested))
+        only = requested & configured
+        source_currency = str(self.mapping.get("currency") or currency)
         workbook = openpyxl.load_workbook(self.xlsx_path, data_only=True)
         facts: list[dict] = []
         excluded_facts: list[dict] = []
@@ -133,7 +140,8 @@ class SupplementReader:
                 negate = len(spec) > 2 and spec[2] == "negate"
                 options = next((item for item in spec[2:] if isinstance(item, dict)), {})
                 fact_scale = int(options.get("scale", scale))
-                fact_unit = str(options.get("unit", currency))
+                fact_currency = str(options.get("currency", source_currency))
+                fact_unit = str(options.get("unit", fact_currency))
                 excluded_periods = set(options.get("exclude_period_ends", []))
                 for index, (kind, fiscal_year, column_end) in columns.items():
                     if index >= len(row):
@@ -158,7 +166,7 @@ class SupplementReader:
                             "metric": metric, "source_label": str(raw_label).strip(),
                             "value": str(value), "period_end": period_end,
                             "period_kind": emit_kind, "fiscal_year": fiscal_year,
-                            "scale": str(fact_scale), "currency": currency,
+                            "scale": str(fact_scale), "currency": fact_currency,
                             "unit": fact_unit,
                             "reason": options.get(
                                 "exclude_reason",
@@ -173,7 +181,7 @@ class SupplementReader:
                         "metric": metric, "source_label": str(raw_label).strip(),
                         "value": str(value), "period_end": period_end,
                         "period_kind": emit_kind, "fiscal_year": fiscal_year,
-                        "scale": str(fact_scale), "currency": currency, "unit": fact_unit,
+                        "scale": str(fact_scale), "currency": fact_currency, "unit": fact_unit,
                     }
                     if emit_kind == "fy":
                         fact["period_start"] = f"{fiscal_year}-01-01"

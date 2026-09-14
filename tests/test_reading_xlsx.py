@@ -203,6 +203,35 @@ class SupplementReaderTests(unittest.TestCase):
             self.assertEqual(manifest["excluded_facts"][0]["reason"],
                              "audited filing takes precedence")
 
+    def test_mapping_can_limit_ingestion_to_quarters_and_set_source_currency(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Income Statement"
+            sheet.append(["USD mn", "Q4 2024*", "Q1 2025", "FY 2025"])
+            sheet.append(["Revenue", 100, 110, 430])
+            xlsx = directory / "supp.xlsx"
+            workbook.save(xlsx); workbook.close()
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "currency": "USD",
+                "scale": "1000000",
+                "period_kinds": ["quarter"],
+                "sheets": {"Income Statement": {
+                    "Revenue": ["revenue", "flow"],
+                }},
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2026-02-04",
+                period_kinds=("fy", "quarter", "ytd"),
+            )
+            self.assertEqual(
+                [(fact["period_end"], fact["currency"]) for fact in manifest["facts"]],
+                [("2024-12-31", "USD"), ("2025-03-31", "USD")],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

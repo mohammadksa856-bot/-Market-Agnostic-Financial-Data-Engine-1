@@ -1,0 +1,41 @@
+{
+  "company_id": "sa:2222",
+  "issuer": "Saudi Aramco",
+  "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/databook/2026/aramco-data-book-2q26.xlsx",
+  "notes": "Saudi Aramco Q2 2026 Data Book. Import only discrete quarterly reported lines in USD millions. Annual columns are deliberately excluded because audited annual statements in SAR remain the higher-authority annual source. Issuer-computed ratios are not mapped.",
+  "currency": "USD",
+  "scale": "1000000",
+  "period_kinds": ["quarter"],
+  "sheets": {
+    "Summarized income statement": {
+      "Revenue and other income related to sales": ["revenue_and_other_income_related_to_sales", "flow"],
+      "Other income related to sales": ["other_income_related_to_sales", "flow"],
+      "Revenue": ["revenue", "flow"],
+      "Operating costs": ["operating_costs", "flow"],
+      "Operating income": ["operating_income", "flow"],
+      "Income before income taxes and zakat": ["income_before_income_taxes_and_zakat", "flow"],
+      "Income taxes and zakat": ["income_taxes_and_zakat", "flow"],
+      "Shareholders' equity": ["net_income_parent", "flow"],
+      "Non-controlling interests": ["net_income_noncontrolling", "flow"],
+      "Net income": ["net_income", "flow"]
+    },
+    "Summarized balance sheet": {
+      "Total non current assets": ["noncurrent_assets", "instant"],
+      "Total current assets": ["current_assets", "instant"],
+      "Total assets": ["total_assets", "instant"],
+      "Total non-current liabilities": ["noncurrent_liabilities", "instant"],
+      "Total current liabilities": ["current_liabilities", "instant"],
+      "Total liabilities": ["total_liabilities", "instant"],
+      "Total shareholders' equity": ["total_equity", "instant"],
+      "Total equity and liabilities": ["total_liabilities_equity", "instant"]
+    },
+    "Summarized cash flows statement": {
+      "Net cash provided by operating activities": ["operating_cash_flow", "flow"],
+      "Net cash (used in) provided by investing activities": ["investing_cash_flow", "flow"],
+      "Net cash used in financing activities": ["financing_cash_flow", "flow"],
+      "Net (decrease) increase in cash and cash equivalents": ["cash_change", "flow"],
+      "Cash and cash equivalents at beginning of the period": ["cash_beginning", "flow"],
+      "Cash and cash equivalents at end of the period": ["cash_end", "flow"]
+    }
+  }
+}
