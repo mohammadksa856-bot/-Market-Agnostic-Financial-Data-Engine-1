@@ -850,7 +850,9 @@ def reconcile_onboarding_runtime_paths(
             f"""SELECT job_id,job_type,company_id,status,last_error,payload_json,attempts,max_attempts
             FROM jobs
             WHERE job_type IN ('monitor','fetch_document','extract_document','ingest')
-            AND company_id IN ({activation_companies}) AND status IN {statuses}"""
+            AND status IN {statuses}
+            AND (company_id IN ({activation_companies})
+                 OR (status='dead' AND last_error LIKE '%Read-only file system%'))"""
         ).fetchall()
         for row in jobs:
             payload = json.loads(row["payload_json"])
