@@ -37,6 +37,15 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("'as_of', 'daily', 'event'", migration)
         self.assertIn("supabase-publisher", compose)
 
+    def test_supabase_publisher_supports_wal_reads_and_reports_real_health(self):
+        compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        worker = (ROOT / "deploy" / "sync-supabase.sh").read_text(encoding="utf-8")
+        self.assertIn("FINENGINE_SUPABASE_STATUS_FILE", compose)
+        self.assertIn("supabase-sync-status.json", compose)
+        self.assertIn(":/app/state:rw", compose)
+        self.assertIn('write_status "ready"', worker)
+        self.assertIn('write_status "failed"', worker)
+
     def test_release_deploys_only_after_successful_main_tests(self):
         workflow = (ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
         self.assertIn("workflow_run.conclusion == 'success'", workflow)
