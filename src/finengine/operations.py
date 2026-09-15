@@ -103,7 +103,31 @@ def create_portable_bundle(
                     raise FileNotFoundError(f"bundle source missing: {row['identity']}: {path}")
                 digest = hashlib.sha256(absolute.read_bytes()).hexdigest()
                 if digest != row["content_hash"]:
-                    raise ValueError(f"bundle source hash mismatch: {row['identity']}")
+                    # A reviewed seed manifest can evolve while the immutable
+                    # pipeline artifact remains the evidence for the published
+                    # source version.  Resolve that content-addressed artifact
+                    # rather than either backing up changed bytes or failing a
+                    # valid production backup forever.
+                    archived = conn.execute(
+                        """SELECT local_path FROM source_artifacts
+                        WHERE content_hash=? AND status='archived' AND local_path IS NOT NULL
+                        ORDER BY archived_at DESC""", (row["content_hash"],),
+                    ).fetchall()
+                    for candidate in archived:
+                        candidate_path = Path(candidate["local_path"])
+                        candidate_absolute = (
+                            candidate_path if candidate_path.is_absolute()
+                            else root / candidate_path
+                        ).resolve()
+                        if candidate_absolute.is_file() and hashlib.sha256(
+                            candidate_absolute.read_bytes()
+                        ).hexdigest() == row["content_hash"]:
+                            path,absolute,digest=(
+                                candidate_path,candidate_absolute,row["content_hash"]
+                            )
+                            break
+                    else:
+                        raise ValueError(f"bundle source hash mismatch: {row['identity']}")
                 bundle_path = f"files/{digest}{absolute.suffix.lower()}"
                 entry = files.setdefault(bundle_path, {
                     "content_hash": digest, "bytes": absolute.stat().st_size,
