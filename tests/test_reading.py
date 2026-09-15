@@ -138,7 +138,7 @@ def _two_panel_balance_sheet_pdf(path: Path) -> None:
     doc.close()
 
 
-def _bank_pdf(path: Path) -> None:
+def _bank_pdf(path: Path, *, unsigned_expenses: bool = False) -> None:
     """A Saudi bank's two primary statements: special-commission (interest)
     income, fee income, no current/non-current split on the balance sheet."""
     doc = pymupdf.open()
@@ -157,15 +157,23 @@ def _bank_pdf(path: Path) -> None:
 
     statement("Consolidated Statement of Income", [
         ("Special commission income", "30,000,000", "27,000,000"),
-        ("Special commission expense", "(12,000,000)", "(10,000,000)"),
+        ("Special commission expense",
+         "12,000,000" if unsigned_expenses else "(12,000,000)",
+         "10,000,000" if unsigned_expenses else "(10,000,000)"),
         ("Net special commission income", "18,000,000", "17,000,000"),
         ("Fee and commission income", "5,000,000", "4,600,000"),
-        ("Fee and commission expense", "(1,200,000)", "(1,100,000)"),
+        ("Fee and commission expense",
+         "1,200,000" if unsigned_expenses else "(1,200,000)",
+         "1,100,000" if unsigned_expenses else "(1,100,000)"),
         ("Exchange income", "900,000", "850,000"),
         ("Total operating income", "22,700,000", "21,350,000"),
-        ("Impairment charge for expected credit losses", "(2,100,000)", "(2,400,000)"),
+        ("Impairment charge for expected credit losses",
+         "2,100,000" if unsigned_expenses else "(2,100,000)",
+         "2,400,000" if unsigned_expenses else "(2,400,000)"),
         ("Salaries and employee-related expenses", "(4,300,000)", "(4,100,000)"),
-        ("Total operating expenses", "(9,500,000)", "(9,600,000)"),
+        ("Total operating expenses",
+         "9,500,000" if unsigned_expenses else "(9,500,000)",
+         "9,600,000" if unsigned_expenses else "(9,600,000)"),
         ("Income before zakat and income tax", "13,200,000", "11,750,000"),
         ("Zakat and income tax", "(1,500,000)", "(1,300,000)"),
         ("Net income for the year", "11,700,000", "10,450,000"),
@@ -297,6 +305,29 @@ class BankStatementTests(unittest.TestCase):
             passed = {c["check"] for c in report["detail"] if c["status"] == "pass"}
             self.assertIn("balance_sheet: assets = liabilities + equity", passed)
             self.assertIn("banking: net financing income = income - expense", passed)
+
+    def test_unsigned_bank_expenses_are_normalized_to_natural_sign(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "bank-2025.pdf"
+            _bank_pdf(pdf, unsigned_expenses=True)
+            manifest = StatementReader(pdf).read(
+                market="SA", symbol="1080", currency="SAR",
+                source_url="https://bank.example/fs-2025.pdf", filed_at="2026-02-20",
+                period_end="2025-12-31", fiscal_year=2025, profile="bank")
+            metrics = {f["metric"]: f["value"] for f in manifest["facts"]}
+            self.assertEqual(metrics["financing_expense"], "-12000000")
+            self.assertEqual(metrics["fee_expense"], "-1200000")
+            self.assertEqual(metrics["provision_expense"], "-2100000")
+            self.assertEqual(metrics["total_operating_expenses"], "-9500000")
+
+            imports = Path(name) / "imports"
+            imports.mkdir()
+            (imports / "anb-2025-fy.json").write_text(
+                json.dumps(manifest), encoding="utf-8")
+            report = ManifestVerifier(imports).verify()
+            self.assertTrue(report["ok"], report["detail"])
 
     def test_corporate_profile_ignores_bank_lines(self):
         from finengine.reading import StatementReader

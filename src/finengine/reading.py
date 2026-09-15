@@ -150,6 +150,19 @@ LINE_MAP = {
     "net foreign exchange difference": ("foreign_exchange_effect", "fy"),
 }
 
+# Banks often present expense lines as unsigned positive magnitudes and rely on
+# the statement layout/subtotals to communicate subtraction.  Canonical facts
+# use the natural accounting sign so deterministic identities and downstream
+# calculations behave consistently across issuers that do or do not print
+# parentheses around these rows.
+_BANK_NATURAL_NEGATIVE_METRICS = {
+    "financing_expense",
+    "fee_expense",
+    "provision_expense",
+    "operating_expense_banking",
+    "total_operating_expenses",
+}
+
 # Banking sector map. Saudi banks report "special commission income" (interest),
 # fee and commission income, and a balance sheet with no current/non-current
 # split. Shared lines (net income, total assets/liabilities/equity, share
@@ -578,6 +591,13 @@ class StatementReader:
                     metric = _resolve_line(label, statement, line_map)
                     if metric is None:
                         continue
+                    if (
+                        profile == "bank"
+                        and statement == "income_statement"
+                        and metric in _BANK_NATURAL_NEGATIVE_METRICS
+                        and value > 0
+                    ):
+                        value = -value
                     monetary = metric != "eps_diluted"
                     key = (metric, kind)
                     if key in seen:
