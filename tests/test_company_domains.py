@@ -77,6 +77,37 @@ class CompanyDomainTests(unittest.TestCase):
         self.assertEqual(query.market_prices("SA", "TST")[0]["close"], "30.5")
         query.close()
 
+    def test_point_in_time_valuation_publishes_the_full_explainable_set(self):
+        def instant(metric, value):
+            return Fact(
+                "sa:TST", metric, Decimal(value), "SAR", "SAR", None, "2025-12-31",
+                PeriodKind.INSTANT, 2025, None, self.source.source_key,
+                self.source.source_url, self.source.filed_at,
+            )
+
+        self.db.publish_batch([
+            instant("shares_outstanding", "10"), self.fact("net_income", "20"),
+            self.fact("revenue", "100"), instant("total_equity", "80"),
+            self.fact("operating_cash_flow", "30"), self.fact("free_cash_flow", "25"),
+            self.fact("ebit", "22"), self.fact("ebitda", "28"),
+            instant("invested_capital", "90"),
+        ])
+        self.store.publish_market_price(
+            "sa:TST", "2026-03-02", "30", "SAR", self.source.source_key,
+            open="29", high="31", low="28", volume="1000",
+        )
+        result = self.store.refresh_market_valuations("sa:TST")
+        self.assertEqual(result["status"], "published")
+        metrics = {row[0] for row in self.db.conn.execute(
+            """SELECT metric_key FROM data_points WHERE company_id='sa:TST'
+            AND period_kind='as_of' AND is_current=1"""
+        )}
+        self.assertTrue({
+            "cfo_yield", "enterprise_value_to_fcf",
+            "enterprise_value_to_invested_capital", "market_cap_to_equity",
+            "market_cap_to_net_income",
+        }.issubset(metrics))
+
     def test_ownership_and_corporate_actions_are_structured(self):
         self.assertEqual(self.store.publish_ownership_position(
             "sa:TST", "holder:government", "Government", "beneficial", "2025-12-31",

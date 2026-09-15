@@ -201,9 +201,18 @@ class CompanyDomainStore:
         ratio("enterprise_value_to_revenue", enterprise_value, "revenue", "enterprise_value / latest_filed_fy(revenue)")
         ratio("enterprise_value_to_ebit", enterprise_value, "ebit", "enterprise_value / latest_filed_fy(ebit)")
         ratio("enterprise_value_to_ebitda", enterprise_value, "ebitda", "enterprise_value / latest_filed_fy(ebitda)")
+        ratio("enterprise_value_to_fcf", enterprise_value, "free_cash_flow",
+              "enterprise_value / latest_filed_fy(free_cash_flow)")
+        ratio("enterprise_value_to_invested_capital", enterprise_value, "invested_capital",
+              "enterprise_value / latest_filed(invested_capital)")
+        ratio("market_cap_to_equity", market_cap, "total_equity",
+              "market_cap / latest_filed(total_equity)")
+        ratio("market_cap_to_net_income", market_cap, "net_income",
+              "market_cap / latest_filed_fy(net_income)")
         for metric, key, formula in (
             ("earnings_yield", "net_income", "latest_filed_fy(net_income) / market_cap"),
             ("fcf_yield", "free_cash_flow", "latest_filed_fy(free_cash_flow) / market_cap"),
+            ("cfo_yield", "operating_cash_flow", "latest_filed_fy(operating_cash_flow) / market_cap"),
             ("dividend_yield", "dividends_paid", "abs(latest_filed_fy(dividends_paid)) / market_cap"),
         ):
             if key in values and market_cap:
