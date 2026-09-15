@@ -376,6 +376,13 @@ The telecom acceptance uses STC's official H1 2026 Saudi Exchange attachment. It
 
 Install `.[reader]` for PDF reading, `.[browser]` for browser fetching, `.[xlsx]` for supplement spreadsheets, or `.[agents]` for everything plus the optional LLM fallback. The LLM reader runs only when explicitly enabled and its output must pass the same deterministic verification and publication gate.
 
+Annual-report PDFs can also enqueue a separate qualitative profile pass. Two
+independent extractions must agree and both supporting quotes must be found on
+the cited page before an attribute is published. The API returns every retained
+quote/page evidence record with its immutable source. If `ANTHROPIC_API_KEY` is
+absent, the worker records a blocked backlog item and publishes no inferred
+profile facts.
+
 Poll official sources once:
 
     finengine --db data/financial.sqlite3 monitor SA 2222 --source-limit 12

@@ -233,15 +233,16 @@ class ServiceTests(unittest.TestCase):
         runtime_raw=Path(self.temp.name)/"runtime"/"raw"
         first=configure_production_schedules(self.dbpath,registry,3600,25,True,runtime_raw)
         second=configure_production_schedules(self.dbpath,registry,3600,25,True,runtime_raw)
-        self.assertEqual(first["count"],1)
-        self.assertEqual(second["configured"],["monitor:SA:TST"])
+        self.assertEqual(first["count"],2)
+        self.assertEqual(second["configured"],["monitor:SA:TST","profile-scan"])
         db=Database(self.dbpath)
         try:
-            rows=db.conn.execute("SELECT payload_json FROM schedules WHERE enabled=1").fetchall()
+            rows=db.conn.execute("SELECT schedule_id,payload_json FROM schedules WHERE enabled=1").fetchall()
         finally:
             db.close()
-        self.assertEqual(len(rows),1)
-        payload=json.loads(rows[0]["payload_json"])
+        self.assertEqual(len(rows),2)
+        monitor=next(row for row in rows if row["schedule_id"]=="monitor:SA:TST")
+        payload=json.loads(monitor["payload_json"])
         self.assertTrue(payload["browser"])
         self.assertTrue(payload["llm"])
         self.assertEqual(payload["source_limit"],25)

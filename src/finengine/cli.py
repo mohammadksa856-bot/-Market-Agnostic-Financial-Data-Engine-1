@@ -351,6 +351,18 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     return date(year, month, day).isoformat(), fiscal_year
 
 
+def _is_annual_pdf(row: dict) -> bool:
+    """Conservatively recognize annual reports eligible for profile extraction."""
+    if row["content_type"] != "application/pdf":
+        return False
+    text = f"{row['filing_type']} {row['source_url']}".lower()
+    if "interim" in text or re.search(r"(?:^|[-_/])q[1-4](?:[-_/]|$)", text):
+        return False
+    return any(token in text for token in (
+        "annual", "integrated-report", "integrated_report", "/fy/", "-fy-",
+    )) or bool(re.search(r"(?:^|[-_/])ara[-_/]?20\d{2}(?:[-_/]|\.)", text))
+
+
 def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tuple[dict, dict, str]:
     """Read deterministically; use the LLM only when explicitly enabled."""
     import tempfile
@@ -420,7 +432,148 @@ def _read_xlsx_manifest(xlsx_path: Path, company, row: dict,
     return manifest, report
 
 
-def _extract_document_job_handler(db: Database):
+def _queue_profile_extraction(db: Database, queue: DurableJobQueue, job, row: dict) -> dict:
+    if not job.payload.get("llm") or not _is_annual_pdf(row):
+        return {"profile_job_created": False}
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        key = f"profile-agent:{row['source_key']}"
+        db.upsert_backlog_item(
+            key, "agent_configuration", "company_profile",
+            f"Enable grounded profile extraction for {row['company_id']}",
+            description=("The archived annual report is ready, but the dual-pass qualitative "
+                         "reader requires ANTHROPIC_API_KEY. No profile fact was inferred."),
+            company_id=row["company_id"], source_url=row["source_url"], priority=30,
+            payload={"source_key": row["source_key"], "required_secret": "ANTHROPIC_API_KEY",
+                     "origin": "profile_agent"},
+        )
+        with db.conn:
+            db.conn.execute(
+                "UPDATE backlog_items SET status='blocked',updated_at=CURRENT_TIMESTAMP "
+                "WHERE idempotency_key=?", (key,),
+            )
+        return {"profile_job_created": False, "profile_blocked": "ANTHROPIC_API_KEY_required"}
+    payload = {
+        "source_key": row["source_key"],
+        "registry": job.payload.get("registry", "config/companies.json"),
+        "raw_dir": job.payload.get("raw_dir", "data/raw"),
+        "model": job.payload.get("profile_model", "claude-opus-5"),
+        "max_pages": int(job.payload.get("profile_max_pages", 40)),
+    }
+    profile_job, created = queue.enqueue(
+        "extract_profile", payload, row["company_id"], row["source_key"],
+        idempotency_key=f"profile:{row['source_key']}:{payload['model']}", priority=25,
+        max_attempts=3,
+    )
+    return {"profile_job_id": profile_job, "profile_job_created": created}
+
+
+def _profile_document_job_handler(db: Database):
+    def handle(job):
+        from .bootstrap import _publish_manifest_domains
+        from .populate_profile import build_profile_manifest
+
+        row = db.stored_source(job.payload["source_key"])
+        if not _is_annual_pdf(row):
+            raise ValueError("profile extraction requires an archived annual-report PDF")
+        registry = CompanyRegistry.combined(
+            db.conn, job.payload.get("registry", "config/companies.json"))
+        company = registry.get(row["company_id"])
+        path = Path(row["local_path"] or "")
+        if not path.is_file():
+            raise FileNotFoundError(f"archived source is missing: {path}")
+        source_period = _source_period(row, company)
+        result = build_profile_manifest(
+            path, market=company.market.value, symbol=company.symbol,
+            company_id=company.company_id, source_url=row["source_url"],
+            filed_at=row["filed_at"],
+            period_end=source_period[0] if source_period else None,
+            max_pages=int(job.payload.get("max_pages", 40)),
+            model=job.payload.get("model", "claude-opus-5"),
+        )
+        output_dir = Path(job.payload.get("raw_dir", "data/raw")) / company.market.value / company.symbol / "profiles"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = output_dir / f"{path.stem}.profile.json"
+        review_output = output_dir / f"{path.stem}.profile.review.json"
+        output.write_text(json.dumps(result["manifest"], ensure_ascii=False, indent=2), encoding="utf-8")
+        review_output.write_text(json.dumps(result["review_queue"], ensure_ascii=False, indent=2), encoding="utf-8")
+        domains = _publish_manifest_domains(db, company, result["manifest"], row["source_key"])
+        backlog_key = f"profile-review:{row['source_key']}"
+        if result["review_queue"]:
+            db.upsert_backlog_item(
+                backlog_key, "qualitative_review", "company_profile",
+                f"Review qualitative findings for {company.name}",
+                description="Only findings that failed dual-pass grounding are queued; none were published.",
+                company_id=company.company_id, source_url=row["source_url"], priority=35,
+                payload={"source_key": row["source_key"], "review_path": str(review_output),
+                         "items": len(result["review_queue"]), "origin": "profile_agent"},
+            )
+            with db.conn:
+                db.conn.execute(
+                    "UPDATE backlog_items SET status='ready',updated_at=CURRENT_TIMESTAMP "
+                    "WHERE idempotency_key=?", (backlog_key,),
+                )
+        else:
+            db.complete_backlog_item(backlog_key)
+        CompanyDomainStore(db).refresh_catalog_completeness(company.company_id)
+        from .understanding import refresh_company_understanding
+        readiness = refresh_company_understanding(db.conn, company.company_id)
+        return {
+            "status": "published", "source_key": row["source_key"], "domains": domains,
+            "accepted": len(result["manifest"]["company_attributes"]) + len(result["manifest"]["disclosures"]),
+            "review_queue": len(result["review_queue"]), "manifest_path": str(output),
+            "review_path": str(review_output), "model_usage": result["model_usage"],
+            "understanding_score": readiness["total_score"],
+        }
+    return handle
+
+
+def _profile_scan_job_handler(db: Database, queue: DurableJobQueue):
+    """Queue the newest archived annual report per company for grounded reading."""
+    def handle(job):
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            return {"status": "blocked", "reason": "ANTHROPIC_API_KEY_required", "queued": 0}
+        limit = min(max(int(job.payload.get("limit", 10)), 1), 100)
+        rows = db.conn.execute(
+            """WITH annual AS (
+                SELECT s.*,ROW_NUMBER() OVER (
+                    PARTITION BY s.company_id ORDER BY s.filed_at DESC,s.created_at DESC
+                ) AS latest_rank
+                FROM source_documents s JOIN companies c USING(company_id)
+                WHERE c.enabled=1 AND s.status IN ('published','context_only')
+                  AND s.content_type='application/pdf' AND s.local_path IS NOT NULL
+                  AND (lower(s.filing_type) LIKE '%annual%'
+                       OR lower(s.source_url) LIKE '%annual%'
+                       OR lower(s.source_url) LIKE '%/fy/%'
+                       OR lower(s.source_url) LIKE '%-fy-%'
+                       OR lower(s.source_url) GLOB '*ara-20[0-9][0-9]*')
+                  AND lower(s.filing_type) NOT LIKE '%interim%'
+            ) SELECT * FROM annual a WHERE latest_rank=1
+              AND NOT EXISTS (
+                  SELECT 1 FROM jobs j WHERE j.idempotency_key LIKE 'profile:' || a.source_key || ':%'
+              ) ORDER BY filed_at DESC,company_id LIMIT ?""", (limit,),
+        ).fetchall()
+        queued = []
+        for row in rows:
+            payload = {
+                "source_key": row["source_key"],
+                "registry": job.payload.get("registry", "config/companies.json"),
+                "raw_dir": job.payload.get("raw_dir", "data/raw"),
+                "model": job.payload.get("model", "claude-opus-5"),
+                "max_pages": int(job.payload.get("max_pages", 40)),
+            }
+            job_id, created = queue.enqueue(
+                "extract_profile", payload, row["company_id"], row["source_key"],
+                idempotency_key=f"profile:{row['source_key']}:{payload['model']}",
+                priority=25, max_attempts=3,
+            )
+            if created:
+                queued.append(job_id)
+        return {"status": "ready", "candidates": len(rows), "queued": len(queued),
+                "job_ids": queued}
+    return handle
+
+
+def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = None):
     def handle(job):
         source_key=job.payload["source_key"]; row=db.stored_source(source_key)
         registry=CompanyRegistry.combined(db.conn,job.payload.get("registry","config/companies.json"))
@@ -529,6 +682,8 @@ def _extract_document_job_handler(db: Database):
                     db.complete_backlog_item(f"extraction:{source_key}")
                 result["reader"]=reader_source
                 result["manifest_path"]=str(manifest_path)
+                if queue:
+                    result.update(_queue_profile_extraction(db, queue, job, row))
                 return result
             if row["content_type"] == "application/pdf":
                 if interim_period_missing:
@@ -891,7 +1046,9 @@ def main():
         worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
         handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
                   "fetch_document":_fetch_document_job_handler(db,queue),
-                  "extract_document":_extract_document_job_handler(db)}
+                  "extract_document":_extract_document_job_handler(db,queue),
+                  "extract_profile":_profile_document_job_handler(db),
+                  "profile_scan":_profile_scan_job_handler(db,queue)}
         runner=Worker(queue,worker_id,handlers)
         if a.once:
             created=scheduler.tick(); worked=runner.run_once(); print(json.dumps({"scheduled_jobs":len(created),"worked":worked,"worker_id":worker_id})); db.close(); return

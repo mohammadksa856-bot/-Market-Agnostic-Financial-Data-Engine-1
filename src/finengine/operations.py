@@ -209,6 +209,13 @@ def configure_production_schedules(
                 interval_seconds, payload, company.company_id,
             )
             configured.append(schedule_id)
+        scheduler.upsert(
+            "profile-scan", "Scan archived annual reports for grounded company profiles",
+            "profile_scan", interval_seconds,
+            {"registry": str(registry_path), "raw_dir": str(raw_dir),
+             "limit": 10, "max_pages": 40, "model": "claude-opus-5"},
+        )
+        configured.append("profile-scan")
     finally:
         db.close()
     return {"status": "ready", "configured": configured, "count": len(configured)}

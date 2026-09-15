@@ -8,7 +8,9 @@ from unittest.mock import patch
 from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
 from finengine.cli import (
     _extract_document_job_handler, _fetch_document_job_handler,
-    _monitor_once, _source_period,
+    _monitor_once, _profile_document_job_handler, _profile_scan_job_handler,
+    _queue_profile_extraction,
+    _source_period,
 )
 from finengine.fetching import SourceAccessBlocked
 from finengine.database import Database
@@ -301,6 +303,84 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["code"], "interim_period_semantics_required")
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM data_points").fetchone()[0], 0)
+
+    def test_annual_profile_agent_stays_blocked_without_required_secret(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "annual-profile",
+            "https://www.aramco.com/reports/annual-report-2025.pdf",
+            "Annual report 2025", "annual-report", "2026-03-01", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-profile"),
+        ).fetch(candidate_id)
+        row = self.db.stored_source(archived["source_key"])
+        queue = DurableJobQueue(self.db)
+        job = type("Job", (), {"payload": {"llm": True}, "job_id": "profile-secret"})()
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": ""}, clear=False):
+            result = _queue_profile_extraction(self.db, queue, job, row)
+        self.assertEqual(result["profile_blocked"], "ANTHROPIC_API_KEY_required")
+        backlog = self.db.conn.execute(
+            "SELECT status,payload_json FROM backlog_items WHERE idempotency_key=?",
+            (f"profile-agent:{archived['source_key']}",),
+        ).fetchone()
+        self.assertEqual(backlog["status"], "blocked")
+        self.assertEqual(json.loads(backlog["payload_json"])["required_secret"],
+                         "ANTHROPIC_API_KEY")
+
+    def test_profile_agent_publishes_only_grounded_manifest_with_page_evidence(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "annual-grounded",
+            "https://www.aramco.com/reports/annual-report-2025.pdf",
+            "Annual report 2025", "annual-report", "2026-03-01", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-profile"),
+        ).fetch(candidate_id)
+        job = type("Job", (), {
+            "payload": {"source_key": archived["source_key"], "raw_dir": self.temp.name},
+            "job_id": "profile-grounded",
+        })()
+        generated = {
+            "manifest": {"company_id": "sa:2222", "filed_at": "2026-03-01",
+                         "period_end": "2025-12-31",
+                         "company_attributes": [{
+                             "attribute_key": "business_model", "value": "Integrated energy",
+                             "category": "business_model", "metadata": {
+                                 "source_page": 10, "quote": "Integrated energy",
+                                 "method": "dual_pass_grounded_agreement", "confidence": "high",
+                             }}], "disclosures": []},
+            "review_queue": [], "model_usage": {"input_tokens": 10, "output_tokens": 2},
+        }
+        with patch("finengine.populate_profile.build_profile_manifest", return_value=generated):
+            result = _profile_document_job_handler(self.db)(job)
+        self.assertEqual(result["accepted"], 1)
+        evidence = self.db.conn.execute(
+            "SELECT metadata_json FROM company_attribute_evidence").fetchone()
+        self.assertEqual(json.loads(evidence["metadata_json"])["source_page"], 10)
+
+    def test_profile_scan_queues_latest_archived_annual_report(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "annual-scan",
+            "https://www.aramco.com/reports/annual-report-2025.pdf",
+            "Annual report 2025", "annual-report", "2026-03-01", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-profile"),
+        ).fetch(candidate_id)
+        self.db.set_source_status(archived["source_key"], "published")
+        queue = DurableJobQueue(self.db)
+        job = type("Job", (), {"payload": {"limit": 10}, "job_id": "profile-scan"})()
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "configured"}, clear=False):
+            result = _profile_scan_job_handler(self.db, queue)(job)
+        self.assertEqual((result["candidates"], result["queued"]), (1, 1))
+        queued = self.db.conn.execute(
+            "SELECT job_type,source_key FROM jobs WHERE job_id=?", (result["job_ids"][0],),
+        ).fetchone()
+        self.assertEqual((queued["job_type"], queued["source_key"]),
+                         ("extract_profile", archived["source_key"]))
 
     def test_unreadable_interim_with_known_period_reports_extraction_failure(self):
         candidate = SourceCandidate(
