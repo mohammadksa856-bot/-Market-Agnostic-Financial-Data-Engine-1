@@ -285,6 +285,11 @@ _SCALE_PATTERNS = (
     (re.compile(r"\bmillions?\b|بالملايين|مليون", re.I), Decimal(1_000_000)),
     (re.compile(r"\bbillions?\b|بالمليارات", re.I), Decimal(1_000_000_000)),
 )
+_SCALE_DECLARATION = re.compile(
+    r"\b(?:all\s+)?amounts?\s+(?:are\s+)?(?:presented\s+)?in\b|"
+    r"['‘’]000['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات",
+    re.I,
+)
 _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
@@ -533,6 +538,14 @@ class StatementReader:
             period_end = f"{fiscal_year}-12-31"
 
         doc = pymupdf.open(self.pdf_path)
+        # Image-only statement pages may lose their small unit heading during
+        # OCR even though a later text-backed note page repeats it.  Derive a
+        # document fallback only from an explicit "Amounts in ..." declaration;
+        # narrative phrases such as "amounting to SAR 45.3 million" are not a
+        # unit declaration and must never rescale the statements.
+        document_scale = self._document_scale(
+            doc[index].get_text() for index in range(doc.page_count)
+        )
         facts: list[dict] = []
         seen: set[tuple[str, str]] = set()
         carry: str | None = None
@@ -577,7 +590,7 @@ class StatementReader:
                 continue
             if len(panels) == 1:
                 carry, carry_page = panels[0][0], page_index
-            scale = self._scale(page_text.lower())
+            scale = self._declared_scale(page_text) or document_scale
             # A statement can present a continuing-operations subtotal and then
             # the consolidated total using the same short attribution labels.
             # Within one page the later row is the final reported total.  Keep
@@ -669,6 +682,23 @@ class StatementReader:
         for pattern, value in _SCALE_PATTERNS:
             if pattern.search(page_text):
                 return value
+        return Decimal(1)
+
+    @classmethod
+    def _declared_scale(cls, page_text: str) -> Decimal | None:
+        for line in page_text.splitlines():
+            if _SCALE_DECLARATION.search(line):
+                scale = cls._scale(line.lower())
+                if scale != 1:
+                    return scale
+        return None
+
+    @classmethod
+    def _document_scale(cls, page_texts) -> Decimal:
+        for page_text in page_texts:
+            scale = cls._declared_scale(page_text)
+            if scale is not None:
+                return scale
         return Decimal(1)
 
     _NEGATIVE = ("highlights", "at a glance", "key figures", "financial review",

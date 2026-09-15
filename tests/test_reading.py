@@ -37,6 +37,21 @@ class OcrGeometryTests(unittest.TestCase):
             "Amounts in SAR ‘000 (Unaudited)"
         ), 1000)
 
+    def test_document_scale_can_come_from_later_text_backed_page(self):
+        from finengine.reading import StatementReader
+
+        self.assertEqual(StatementReader._document_scale([
+            "INTERIM CONSOLIDATED STATEMENT OF INCOME",
+            "Notes to the statements\nAmounts in SAR ‘000",
+        ]), 1000)
+
+    def test_narrative_amount_does_not_declare_document_scale(self):
+        from finengine.reading import StatementReader
+
+        self.assertEqual(StatementReader._document_scale([
+            "The facility amounted to SAR 45.3 million during the period."
+        ]), 1)
+
     def test_reported_amount_does_not_override_declared_millions_scale(self):
         from finengine.reading import StatementReader
 
