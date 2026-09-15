@@ -4,6 +4,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
+from urllib.parse import urlparse
 
 
 CATEGORIES = (
@@ -98,6 +99,13 @@ def _source_authorities(conn, company_id: str) -> set[str]:
     rewriting or pretending that a secondary source was primary.
     """
     result: set[str] = set()
+    issuer_hosts = {
+        (urlparse(row["url"]).hostname or "").lower()
+        for row in conn.execute(
+            "SELECT url FROM company_sources WHERE company_id=? AND enabled=1", (company_id,)
+        )
+    }
+    issuer_hosts.discard("")
     for row in conn.execute(
         "SELECT source_url,filing_type,metadata_json FROM source_documents WHERE company_id=?",
         (company_id,),
@@ -115,7 +123,7 @@ def _source_authorities(conn, company_id: str) -> set[str]:
             result.add("sec_edgar")
         elif "saudiexchange.sa/" in url or "tadawul.com.sa/" in url:
             result.add("tadawul")
-        elif url.startswith("https://"):
+        elif ((urlparse(url).hostname or "").lower() in issuer_hosts):
             result.add("issuer_ir")
         if any(token in filing for token in (
             "audited", "financial statement", "annual financial", "10-k", "20-f",
