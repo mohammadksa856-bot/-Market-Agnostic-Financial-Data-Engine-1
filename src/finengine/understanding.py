@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -58,6 +59,142 @@ RULES = {
     "esg": (("issuer_ir", "record"), ("rating_agency", "opinion")),
     "news": (("tadawul", "record"), ("issuer_ir", "record"), ("attributed_press", "supporting")),
 }
+
+READINESS_TARGET = Decimal("95")
+CATEGORY_TARGET = Decimal("0.95")
+SOURCE_MAP_VERSION = "18-categories-v1"
+
+# This is the executable acquisition plan behind the 18-category model.  It is
+# deliberately phrased as work the factory can perform, rather than a prose
+# description of an ideal database.  Every incomplete category is mirrored to
+# the durable backlog with this action and the governed sources from RULES.
+CATEGORY_ACQUISITION = {
+    "identity": "Extract legal identity and reporting basis from audited statements; verify the listing against the exchange or SEC.",
+    "business": "Read the operating-segment note and issuer annual report for products, geography, subsidiaries and business economics.",
+    "governance": "Extract board, committees, remuneration and related parties from the board report; monitor official appointment disclosures.",
+    "ownership": "Capture major holders, foreign ownership and free float from the official exchange company profile and version every observation.",
+    "financials": "Backfill audited annual statements and interim periods, preserving restatements, quarter/YTD/TTM semantics and page provenance.",
+    "earnings_quality": "Extract audit opinion, key audit matters, going-concern language, one-offs and impairments; calculate cash conversion.",
+    "ratios": "Calculate the applicable corporate, bank, insurer or loss-making-company ratio pack from primary facts with declared formulas.",
+    "operations": "Extract sector-specific operating KPIs from annual reports, presentations and data supplements with units and dimensions.",
+    "dividends_actions": "Backfill official dividend and corporate-action disclosures, then calculate payout, yield and continuity metrics.",
+    "industry": "Ingest official regulator/statistics series and retain issuer management commentary as supporting context only.",
+    "competitors": "Build peer sets from reviewed classifications and calculate period-safe comparisons from the engine's own sourced facts.",
+    "trading": "Archive official daily prices, volume and turnover; calculate 52-week ranges, returns, volatility and beta internally.",
+    "forecasts": "Extract issuer guidance from official presentations/disclosures and keep external estimates explicitly attributed.",
+    "analysts": "Ingest only licensed or publicly attributable recommendations, targets and consensus with provider and as-of date.",
+    "valuation": "Calculate relative valuation from current market data and TTM/FY facts; publish intrinsic values only with explicit assumptions.",
+    "risks": "Extract disclosed risk factors, debt maturities, concentration, contingencies and rating opinions with source attribution.",
+    "esg": "Extract issuer-reported environmental and social KPIs; keep third-party ESG ratings attributed and rights-controlled.",
+    "news": "Continuously archive official disclosures and IR materials; attach named press coverage as secondary context.",
+}
+
+
+def _source_authorities(conn, company_id: str) -> set[str]:
+    """Return only authorities supported by archived company evidence.
+
+    Older manifests predate the explicit source_authority metadata field, so a
+    conservative URL/filing classifier keeps their provenance usable without
+    rewriting or pretending that a secondary source was primary.
+    """
+    result: set[str] = set()
+    for row in conn.execute(
+        "SELECT source_url,filing_type,metadata_json FROM source_documents WHERE company_id=?",
+        (company_id,),
+    ):
+        try:
+            metadata = json.loads(row["metadata_json"] or "{}")
+        except (TypeError, ValueError):
+            metadata = {}
+        explicit = metadata.get("source_authority")
+        if explicit in {item[0] for item in SOURCES}:
+            result.add(explicit)
+        url = (row["source_url"] or "").lower()
+        filing = (row["filing_type"] or "").lower()
+        if "sec.gov/" in url:
+            result.add("sec_edgar")
+        elif "saudiexchange.sa/" in url or "tadawul.com.sa/" in url:
+            result.add("tadawul")
+        elif url.startswith("https://"):
+            result.add("issuer_ir")
+        if any(token in filing for token in (
+            "audited", "financial statement", "annual financial", "10-k", "20-f",
+        )):
+            result.add("audited_statements")
+        if metadata.get("outlet") or metadata.get("source_tier") == "secondary":
+            result.add("attributed_press")
+    calculated = conn.execute(
+        "SELECT 1 FROM data_points WHERE company_id=? AND is_current=1 AND is_calculated=1 LIMIT 1",
+        (company_id,),
+    ).fetchone()
+    if calculated:
+        result.add("internal_calculation")
+    estimates = conn.execute(
+        "SELECT 1 FROM consensus_estimates WHERE company_id=? AND is_current=1 LIMIT 1",
+        (company_id,),
+    ).fetchone()
+    if estimates:
+        result.add("analyst_research")
+    return result
+
+
+def _source_plan(category_key: str, available: set[str]) -> list[dict]:
+    authorities = {item[0]: item for item in SOURCES}
+    plan = []
+    for priority, (source_code, role) in enumerate(RULES[category_key], 1):
+        source = authorities[source_code]
+        plan.append({
+            "priority": priority,
+            "source_code": source_code,
+            "source_name": source[1],
+            "source_class": source[2],
+            "source_role": role,
+            "available": source_code in available,
+            "rights_status": source[8],
+        })
+    return plan
+
+
+def _sync_understanding_backlog(
+    conn, company_id: str, category_key: str, score: Decimal,
+    gaps: list[str], evidence: dict,
+) -> None:
+    key = f"understanding:{company_id}:{category_key}"
+    if score >= CATEGORY_TARGET:
+        conn.execute(
+            """UPDATE backlog_items SET status='completed',completed_at=CURRENT_TIMESTAMP,
+            updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?
+            AND status NOT IN ('completed','cancelled')""", (key,),
+        )
+        return
+    payload = json.dumps({
+        "origin": "18_category_understanding_orchestrator",
+        "source_map_version": SOURCE_MAP_VERSION,
+        "category_key": category_key,
+        "target_score": str(CATEGORY_TARGET),
+        "current_score": str(score),
+        "gaps": gaps,
+        "acquisition_action": CATEGORY_ACQUISITION[category_key],
+        "source_plan": evidence["source_plan"],
+    }, ensure_ascii=False, separators=(",", ":"))
+    backlog_id = "backlog:" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:24]
+    title = f"Reach 95% coverage for {category_key}"
+    description = CATEGORY_ACQUISITION[category_key]
+    priority = 15 if category_key in {"identity", "business", "financials", "risks"} else 40
+    conn.execute(
+        """INSERT INTO backlog_items(backlog_id,company_id,item_type,domain,title,description,
+        priority,payload_json,idempotency_key) VALUES(?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(idempotency_key) DO UPDATE SET item_type=excluded.item_type,
+        domain=excluded.domain,title=excluded.title,description=excluded.description,
+        priority=excluded.priority,payload_json=excluded.payload_json,
+        status=CASE WHEN backlog_items.status IN ('completed','cancelled') THEN 'open'
+                    ELSE backlog_items.status END,
+        completed_at=CASE WHEN backlog_items.status IN ('completed','cancelled') THEN NULL
+                          ELSE backlog_items.completed_at END,
+        updated_at=CURRENT_TIMESTAMP""",
+        (backlog_id, company_id, "understanding_gap", category_key, title,
+         description, priority, payload, key),
+    )
 
 
 def seed_understanding_governance(conn) -> None:
@@ -146,6 +283,7 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         JOIN metric_definitions m ON m.metric_key=d.metric_key WHERE d.company_id=?
         AND d.is_current=1 AND m.category IN ('ratio','calculated')
         AND d.period_kind IN ('ttm','fy')""", (company_id,))
+    available_authorities = _source_authorities(conn, company_id)
 
     scores = {
         "identity": _ratio(Decimal(identity_base + min(attrs, 8)) / Decimal(18)),
@@ -176,7 +314,14 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         status = "complete" if score >= Decimal("0.95") else "partial" if score > 0 else "missing"
         weighted = score * Decimal(weight)
         total += weighted
-        evidence = {"attributes": attrs, "sources": sources, "disclosures": disclosures}
+        source_plan = _source_plan(key, available_authorities)
+        evidence = {
+            "attributes": attrs, "sources": sources, "disclosures": disclosures,
+            "source_map_version": SOURCE_MAP_VERSION,
+            "available_source_authorities": sorted(available_authorities),
+            "source_plan": source_plan,
+            "acquisition_action": CATEGORY_ACQUISITION[key],
+        }
         if key == "industry":
             evidence.update({"classification_fields": classification_fields,
                              "industry_context_items": industry_context})
@@ -184,7 +329,15 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
             evidence.update({"inferred_peers_with_ratio_data": peer_count,
                              "comparable_metrics": peer_metrics,
                              "methodology": "internal_calculation"})
-        gaps = [] if status == "complete" else ["category coverage is below 95%"]
+        gaps = []
+        if status != "complete":
+            gaps.append("category_coverage_below_95_percent")
+            preferred = [item["source_code"] for item in source_plan
+                         if item["source_role"] in {"record", "calculated", "opinion"}]
+            if preferred and not any(source in available_authorities for source in preferred):
+                gaps.append("missing_governed_source_evidence:" + ",".join(preferred))
+            if key == "analysts" and estimates == 0:
+                gaps.append("licensed_or_publicly_attributed_analyst_source_required")
         conn.execute(
             """INSERT INTO company_understanding_scores(company_id,category_key,score,weighted_score,status,
             evidence_json,gaps_json,checked_at) VALUES(?,?,?,?,?,?,?,?)
@@ -193,6 +346,7 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
             gaps_json=excluded.gaps_json,checked_at=excluded.checked_at""",
             (company_id, key, str(score), str(weighted), status, json.dumps(evidence), json.dumps(gaps), now),
         )
+        _sync_understanding_backlog(conn, company_id, key, score, gaps, evidence)
         categories.append({"category_key": key, "ordinal": ordinal, "name_en": name_en,
                            "name_ar": name_ar, "weight": weight, "score": str(score),
                            "weighted_score": str(weighted), "status": status,
@@ -206,6 +360,11 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     synthetic = count("""SELECT count(*) FROM source_documents WHERE company_id=? AND
         (lower(metadata_json) LIKE '%synthetic%' OR lower(metadata_json) LIKE '%fixture%' OR lower(metadata_json) LIKE '%demo%')""", (company_id,))
     gates = {
+        "weighted_coverage_95": {
+            "passed": total >= READINESS_TARGET,
+            "actual": str(total),
+            "required": str(READINESS_TARGET),
+        },
         "five_annual_periods": {"passed": annual_years >= 5, "actual": annual_years, "required": 5},
         "twelve_quarters_when_available": {"passed": quarter_periods >= 12, "actual": quarter_periods, "required": 12},
         "required_core_fields": {"passed": required[0] > 0 and required[0] == required[1], "actual": required[1], "required": required[0]},
@@ -214,7 +373,7 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         "source_provenance": {"passed": sources > 0, "actual": sources, "required": 1},
     }
     blockers = [key for key, value in gates.items() if not value["passed"]]
-    state = "ready" if total >= Decimal(95) and not blockers else "awaiting_data" if not sources else "not_ready"
+    state = "ready" if total >= READINESS_TARGET and not blockers else "awaiting_data" if not sources else "not_ready"
     conn.execute(
         """INSERT INTO company_readiness(company_id,total_score,readiness_state,hard_gates_json,
         blocking_reasons_json,checked_at) VALUES(?,?,?,?,?,?) ON CONFLICT(company_id) DO UPDATE SET
@@ -224,7 +383,9 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         (company_id, str(total), state, json.dumps(gates), json.dumps(blockers), now),
     )
     conn.commit()
-    return {"company_id": company_id, "total_score": str(total), "readiness_state": state,
+    return {"company_id": company_id, "target_score": str(READINESS_TARGET),
+            "source_map_version": SOURCE_MAP_VERSION,
+            "total_score": str(total), "readiness_state": state,
             "hard_gates": gates, "blocking_reasons": blockers, "categories": categories}
 
 

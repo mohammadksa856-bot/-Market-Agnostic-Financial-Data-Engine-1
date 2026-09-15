@@ -573,6 +573,25 @@ def _profile_scan_job_handler(db: Database, queue: DurableJobQueue):
     return handle
 
 
+def _understanding_refresh_job_handler(db: Database):
+    """Re-score every enabled company and materialize sourced 95% gap work."""
+    def handle(job):
+        from .understanding import refresh_all_understanding
+
+        market = job.payload.get("market")
+        result = refresh_all_understanding(db.conn, market)
+        gaps = db.conn.execute(
+            """SELECT domain,count(*) AS count FROM backlog_items
+            WHERE item_type='understanding_gap' AND status IN ('open','ready','in_progress','blocked')
+            GROUP BY domain ORDER BY count DESC,domain"""
+        ).fetchall()
+        result["open_category_gaps"] = {row["domain"]: row["count"] for row in gaps}
+        result["target_score"] = "95"
+        result["source_map_version"] = "18-categories-v1"
+        return result
+    return handle
+
+
 def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = None):
     def handle(job):
         source_key=job.payload["source_key"]; row=db.stored_source(source_key)
@@ -1048,7 +1067,8 @@ def main():
                   "fetch_document":_fetch_document_job_handler(db,queue),
                   "extract_document":_extract_document_job_handler(db,queue),
                   "extract_profile":_profile_document_job_handler(db),
-                  "profile_scan":_profile_scan_job_handler(db,queue)}
+                  "profile_scan":_profile_scan_job_handler(db,queue),
+                  "understanding_refresh":_understanding_refresh_job_handler(db)}
         runner=Worker(queue,worker_id,handlers)
         if a.once:
             created=scheduler.tick(); worked=runner.run_once(); print(json.dumps({"scheduled_jobs":len(created),"worked":worked,"worker_id":worker_id})); db.close(); return
@@ -1068,7 +1088,10 @@ def main():
         worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
         handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
                   "fetch_document":_fetch_document_job_handler(db,queue),
-                  "extract_document":_extract_document_job_handler(db)}
+                  "extract_document":_extract_document_job_handler(db,queue),
+                  "extract_profile":_profile_document_job_handler(db),
+                  "profile_scan":_profile_scan_job_handler(db,queue),
+                  "understanding_refresh":_understanding_refresh_job_handler(db)}
         runner=Worker(queue,worker_id,handlers)
         server=create_api_server(a.db,a.host,a.port,os.environ.get(a.api_key_env) or None)
         api_thread=threading.Thread(target=server.serve_forever,name="finengine-api",daemon=True); api_thread.start()

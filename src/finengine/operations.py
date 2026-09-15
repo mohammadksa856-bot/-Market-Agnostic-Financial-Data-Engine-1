@@ -216,6 +216,13 @@ def configure_production_schedules(
              "limit": 10, "max_pages": 40, "model": "claude-opus-5"},
         )
         configured.append("profile-scan")
+        scheduler.upsert(
+            "understanding-refresh", "Re-score the 18-category 95% coverage contract",
+            "understanding_refresh", interval_seconds,
+            {"source_map_version": "18-categories-v1", "target_score": "95"},
+            priority=80,
+        )
+        configured.append("understanding-refresh")
     finally:
         db.close()
     return {"status": "ready", "configured": configured, "count": len(configured)}

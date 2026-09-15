@@ -873,6 +873,8 @@ class FinancialQueryService:
                 "categories":categories}
 
     def understanding(self, market: str, symbol: str) -> dict:
+        from .understanding import READINESS_TARGET, SOURCE_MAP_VERSION
+
         company = self.conn.execute(
             "SELECT company_id FROM companies WHERE market=? AND symbol=?",
             (market.upper(), symbol.upper()),
@@ -898,9 +900,12 @@ class FinancialQueryService:
             categories.append(item)
         if not readiness:
             return {"company_id": company_id, "readiness_state": "not_assessed",
-                    "total_score": None, "hard_gates": {},
+                    "total_score": None, "target_score": str(READINESS_TARGET),
+                    "source_map_version": SOURCE_MAP_VERSION, "hard_gates": {},
                     "blocking_reasons": ["run_understanding_refresh"], "categories": categories}
         result = dict(readiness)
+        result["target_score"] = str(READINESS_TARGET)
+        result["source_map_version"] = SOURCE_MAP_VERSION
         result["hard_gates"] = json.loads(result.pop("hard_gates_json"))
         result["blocking_reasons"] = json.loads(result.pop("blocking_reasons_json"))
         result["categories"] = categories

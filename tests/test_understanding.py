@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from finengine.database import Database
@@ -42,13 +43,27 @@ class UnderstandingModelTests(unittest.TestCase):
     def test_refresh_is_honest_about_missing_data_and_queryable(self):
         result = refresh_company_understanding(self.db.conn, "sa:TST")
         self.assertEqual(len(result["categories"]), 18)
+        self.assertEqual(result["target_score"], "95")
+        self.assertEqual(result["source_map_version"], "18-categories-v1")
         self.assertEqual(result["readiness_state"], "not_ready")
         self.assertIn("five_annual_periods", result["blocking_reasons"])
+        self.assertIn("weighted_coverage_95", result["blocking_reasons"])
+        backlog = self.db.conn.execute(
+            """SELECT domain,payload_json FROM backlog_items
+            WHERE company_id='sa:TST' AND item_type='understanding_gap'"""
+        ).fetchall()
+        self.assertEqual(len(backlog), 18)
+        financials = next(row for row in backlog if row["domain"] == "financials")
+        payload = json.loads(financials["payload_json"])
+        self.assertEqual(payload["target_score"], "0.95")
+        self.assertEqual(payload["source_map_version"], "18-categories-v1")
+        self.assertEqual(payload["source_plan"][0]["source_code"], "audited_statements")
         self.db.close()
         query = FinancialQueryService(self.path)
         try:
             payload = query.understanding("SA", "TST")
             self.assertEqual(len(payload["categories"]), 18)
+            self.assertEqual(payload["target_score"], "95")
             self.assertFalse(payload["hard_gates"]["five_annual_periods"]["passed"])
             governance = query.source_governance()
             self.assertEqual(len(governance["sources"]), 9)

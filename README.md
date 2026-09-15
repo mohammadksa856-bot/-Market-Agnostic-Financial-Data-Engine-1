@@ -7,6 +7,13 @@ company categories. Each category is weighted, mapped to governed sources, and
 scored independently. A company is never labelled ready merely because it exists
 in the universe: five annual periods, twelve available quarters, complete core
 facts, source provenance, and zero critical exceptions are hard gates.
+The 95% target is now an executable contract rather than a reporting-only score:
+every incomplete category creates one idempotent `understanding_gap` work item
+containing its governed source priority, rights status, current score, concrete
+acquisition action, and target. A recurring `understanding-refresh` worker
+re-scores all enabled companies every six hours and closes each work item only
+when that category actually reaches 95%. This uses source map
+`18-categories-v1`; it never awards completeness merely because a job ran.
 
 ```bash
 finengine --db data/financial.sqlite3 understanding SA 2222 --refresh
