@@ -133,27 +133,43 @@ def fetch_saudi_market_history(
                 "$('#perfSummary').DataTable().ajax.json() != null", timeout=timeout_ms)
             settings = page.evaluate("""() => {
                 const table=$('#perfSummary').DataTable();
-                const ajax=table.settings()[0].ajax;
-                return {url:new URL(ajax.url, location.href).href,
-                        total:table.ajax.json().recordsTotal || table.ajax.json().recordsFiltered || 0};
+                const json=table.ajax.json() || {};
+                return {total:json.recordsTotal || json.recordsFiltered || 0,
+                        firstRows:json.data || []};
             }""")
-            all_rows = []
+            # Pagination must also run through DataTables inside the rendered
+            # page.  A separate Playwright request context can share cookies,
+            # but the Exchange still rejects it because it lacks the exact
+            # browser/XHR execution context (HTTP 403 on cloud hosts).
+            all_rows = list(settings["firstRows"])
             page_size = 500
             total = max(int(settings["total"]), 1)
             for start in range(0, total, page_size):
-                params = {
-                    "draw": start // page_size + 1, "start": start, "length": page_size,
-                    "selectedMarket": market_value, "selectedSector": found_sector,
-                    "selectedEntity": symbol,
-                    "startDate": date.fromisoformat(start_date).strftime("%d-%m-%Y"),
-                    "endDate": date.fromisoformat(end_date).strftime("%d-%m-%Y"),
-                    "tableTabId": "0", "startIndex": start, "endIndex": start + page_size,
-                }
-                response = context.request.get(settings["url"], params=params, timeout=timeout_ms)
-                if not response.ok:
-                    raise RuntimeError(f"Saudi Exchange history request failed: HTTP {response.status}")
-                payload = response.json()
-                batch = payload.get("data") or []
+                page_number = start // page_size
+                result = page.evaluate("""({pageNumber,pageSize,timeoutMs}) =>
+                    new Promise((resolve,reject) => {
+                        const table=$('#perfSummary').DataTable();
+                        const timer=setTimeout(
+                            () => reject(new Error('Saudi Exchange DataTables request timed out')),
+                            timeoutMs);
+                        $('#perfSummary').one('xhr.dt', (_event,_settings,json,xhr) => {
+                            clearTimeout(timer);
+                            resolve({status:xhr ? xhr.status : 200,
+                                     rows:(json && json.data) || []});
+                        });
+                        table.page.len(pageSize);
+                        table.page(pageNumber).draw('page');
+                    })
+                """, {"pageNumber": page_number, "pageSize": page_size,
+                       "timeoutMs": timeout_ms})
+                if int(result["status"]) >= 400:
+                    raise RuntimeError(
+                        f"Saudi Exchange history request failed: HTTP {result['status']}")
+                batch = result["rows"]
+                # The first response was normally ten rows.  Replace it with
+                # the requested full first page, then append later pages.
+                if page_number == 0:
+                    all_rows = []
                 all_rows.extend(batch)
                 if not batch or len(all_rows) >= total:
                     break
