@@ -1,16 +1,15 @@
 # Saudi banks — Riyad Bank (1010) and SAIB (1030), batch 1
 
-Branch `claude/banks-riyad-saib-enrichment`, cut from `origin/main` at `2f87ba0`.
+Branch `claude/banks-riyad-saib-enrichment`, rebased on `origin/main` at `575afa7`
+(after the SAB/SNB merge).
 Scope is limited to Riyad Bank (`sa:1010`) and The Saudi Investment Bank
 (`sa:1030`). No database, deployment, service or worker was changed. Every fact
 below was produced by an engine reader from an archived official document and
 verified before it was written; nothing was transcribed by hand and nothing was
 estimated.
 
-**Merge order.** This branch carries a cherry-pick of `12eea9d` (the generic
-Pillar 3 KM1 reader, vintage reconciliation and StatementReader fixes) from
-`claude/banks-sab-snb-enrichment`. Merge that branch first; the cherry-pick then
-applies as an empty change.
+It builds on the generic Pillar 3 KM1 reader and vintage reconciliation merged
+from `claude/banks-sab-snb-enrichment`; no commit from that branch is repeated here.
 
 ## What changed for the two banks
 
@@ -22,8 +21,9 @@ applies as an empty change.
 | SAIB regulatory capital | none | 33 quarter ends: Jun-2017 → Dec-2019 and Mar-2021 → Jun-2026 (2020 missing) |
 | New manifests | — | 90 — Riyad 66 (37 statements, 29 Pillar 3), SAIB 24 (19 Pillar 3, 5 Data Supplements); 132 candidate documents reviewed |
 
-Whole-directory verification (`finengine verify --imports data/imports`) after
-the write: 856 checks passed, 14 warnings, 0 failures. The only new warning is the
+Whole-directory verification (`finengine verify --imports data/imports`) on the
+rebased branch, including the merged SAB/SNB manifests: 966 checks passed,
+14 warnings, 0 failures. The only new warning is the
 SAIB Q4-2022 zakat reversal documented below.
 
 ## Source priority applied
