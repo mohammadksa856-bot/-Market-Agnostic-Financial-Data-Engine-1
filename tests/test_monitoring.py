@@ -1,5 +1,6 @@
 import json
 import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -99,6 +100,20 @@ class MonitoringTests(unittest.TestCase):
         self.assertTrue(Path(source["local_path"]).is_file())
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM market_prices WHERE is_current=1").fetchone()[0], 2)
+
+    @patch("finengine.saudi_market.fetch_saudi_market_history")
+    def test_market_history_job_uses_runtime_archive_environment(self, fetch):
+        fetch.return_value = json.dumps({"market_prices": []}, sort_keys=True).encode()
+        runtime_raw = Path(self.temp.name) / "state" / "raw"
+        job = SimpleNamespace(payload={
+            "symbol": "2222", "start_date": "2026-09-01",
+            "end_date": "2026-09-15",
+        })
+        with patch.dict(os.environ, {"FINENGINE_RAW_DIR": str(runtime_raw)}):
+            result = _market_history_job_handler(self.db)(job)
+        source = self.db.stored_source(result["source_key"])
+        self.assertTrue(Path(source["local_path"]).is_relative_to(runtime_raw))
+        self.assertTrue(Path(source["local_path"]).is_file())
 
     def test_issuer_monitor_uses_list_item_context_for_icon_only_downloads(self):
         html = b"""
