@@ -343,6 +343,37 @@ class ServiceTests(unittest.TestCase):
         self.assertIsNotNone(schedule)
         self.assertEqual(json.loads(schedule["payload_json"])["sector"],"Materials")
 
+    def test_production_schedules_keep_blocked_market_history_disabled(self):
+        registry=Path(self.temp.name)/"companies.json"
+        registry.write_text(json.dumps([{
+            "company_id":"sa:TST","market":"SA","symbol":"TST",
+            "name":"Test Company","currency":"SAR","sector":"Energy",
+            "sources":["https://issuer.example/reports"]
+        }]),encoding="utf-8")
+        configure_production_schedules(self.dbpath,registry,3600,25,False)
+        db=Database(self.dbpath)
+        try:
+            db.exception(
+                "sa:TST", "market-history:sa:TST", "fetch",
+                "source_access_blocked", "The official history source blocks this host.",
+                {"resume_via":"authorized_network"}, severity="warning",
+            )
+        finally:
+            db.close()
+
+        result=configure_production_schedules(
+            self.dbpath,registry,3600,25,False,
+        )
+        self.assertNotIn("market-history:SA:TST",result["configured"])
+        db=Database(self.dbpath)
+        try:
+            schedule=db.conn.execute(
+                "SELECT enabled FROM schedules WHERE schedule_id='market-history:SA:TST'"
+            ).fetchone()
+        finally:
+            db.close()
+        self.assertEqual(schedule["enabled"],0)
+
     def test_official_source_artifact_is_archived_and_indexed(self):
         root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()
         manifest=imports/"aramco-2025.json"

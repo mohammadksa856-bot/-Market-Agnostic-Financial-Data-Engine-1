@@ -242,6 +242,26 @@ def configure_production_schedules(
             configured.append(schedule_id)
             if company.market.value == "SA":
                 market_schedule_id = f"market-history:SA:{company.symbol}"
+                source_key = f"market-history:{company.company_id}"
+                access_blocked = db.conn.execute(
+                    """SELECT 1 FROM exceptions
+                    WHERE company_id=? AND source_key=?
+                    AND code='source_access_blocked' AND status='open'
+                    LIMIT 1""",
+                    (company.company_id, source_key),
+                ).fetchone()
+                if access_blocked:
+                    # Do not recreate hundreds of jobs known to be impossible
+                    # from this host. The archived exception/backlog remains the
+                    # durable resume signal; resolving it re-enables scheduling
+                    # on the next configuration pass.
+                    with db.conn:
+                        db.conn.execute(
+                            "UPDATE schedules SET enabled=0,updated_at=CURRENT_TIMESTAMP "
+                            "WHERE schedule_id=?",
+                            (market_schedule_id,),
+                        )
+                    continue
                 scheduler.upsert(
                     market_schedule_id,
                     f"Archive Saudi Exchange prices SA:{company.symbol}",
