@@ -30,6 +30,13 @@ class OcrGeometryTests(unittest.TestCase):
             "All amounts in # thousands unless otherwise stated"
         ), 1000)
 
+    def test_left_curly_apostrophe_declares_thousands_scale(self):
+        from finengine.reading import StatementReader
+
+        self.assertEqual(StatementReader._scale(
+            "Amounts in SAR ‘000 (Unaudited)"
+        ), 1000)
+
     def test_reported_amount_does_not_override_declared_millions_scale(self):
         from finengine.reading import StatementReader
 
