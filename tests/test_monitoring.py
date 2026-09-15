@@ -3,6 +3,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
@@ -10,6 +11,7 @@ from finengine.cli import (
     _extract_document_job_handler, _fetch_document_job_handler,
     _monitor_once, _profile_document_job_handler, _profile_scan_job_handler,
     _queue_profile_extraction, _understanding_refresh_job_handler,
+    _market_history_job_handler,
     _source_period,
 )
 from finengine.fetching import SourceAccessBlocked
@@ -74,6 +76,29 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(first.candidates[1].content_type,
                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         self.assertEqual(monitor.discover(self.aramco, first.cursor).candidates, ())
+
+    @patch("finengine.saudi_market.fetch_saudi_market_history")
+    def test_market_history_job_archives_before_publishing(self, fetch):
+        fetch.return_value = json.dumps({"market_prices": [
+            {"observed_at": "2026-09-13", "interval": "1d", "open": "25.8",
+             "high": "26", "low": "25.5", "close": "25.7", "volume": "100",
+             "turnover": "2570", "currency": "SAR"},
+            {"observed_at": "2026-09-14", "interval": "1d", "open": "25.7",
+             "high": "25.9", "low": "25.4", "close": "25.6", "volume": "120",
+             "turnover": "3072", "currency": "SAR"},
+        ]}, sort_keys=True).encode()
+        job = SimpleNamespace(payload={
+            "symbol": "2222", "start_date": "2026-09-01", "end_date": "2026-09-15",
+            "raw_dir": str(Path(self.temp.name) / "raw"),
+        })
+        result = _market_history_job_handler(self.db)(job)
+        self.assertEqual((result["status"], result["observations"], result["inserted"]),
+                         ("published", 2, 2))
+        source = self.db.stored_source(result["source_key"])
+        self.assertEqual(source["status"], "published")
+        self.assertTrue(Path(source["local_path"]).is_file())
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM market_prices WHERE is_current=1").fetchone()[0], 2)
 
     def test_issuer_monitor_uses_list_item_context_for_icon_only_downloads(self):
         html = b"""

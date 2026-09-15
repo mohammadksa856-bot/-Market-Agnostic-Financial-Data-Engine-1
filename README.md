@@ -71,7 +71,12 @@ The bundled portable snapshot is rebuilt from 69 reviewed manifests and currentl
   without relabeling the source fact.
 - All 655 directly sourced Aramco facts resolve to an extraction row and archived official artifact. This includes the seven-component breakdown of other reserves for both 2024 and 2025; it is not mislabeled as accumulated OCI because one component includes share-based compensation. Read-only fact responses expose source URL/key, report page/table, extraction label/value, mapping confidence/method, archive path and SHA-256. Calculated facts expose their deterministic formula and dependencies.
 - Every unresolved catalog field is classified in the durable backlog as pending official extraction, not disclosed in archived filings, qualitative-only, event-driven with no event observed, not applicable to the market, dependent on missing calculation inputs/history, or requiring a licensed/authoritative source. Each field now carries a plain-language reason, a concrete resolution, and a machine-readable solution code so background agents can close the gap without inventing data.
-- Database schema version 17, catalog version 11, and 160 unit/integration/release tests (one dependency-availability test is skipped when the browser extra is installed).
+- The Saudi market-history connector archives the official browser-session JSON
+  before publishing OHLC, volume, and turnover. Derived 20/50/200-session averages,
+  30-day annualized volatility, 52-week range, and 1M/3M/6M/YTD/1Y/3Y/5Y returns
+  are emitted only when the stored history honestly covers each requested window.
+- The current suite has 238 passing unit/integration/release tests; one optional
+  dependency-availability test is skipped when the browser extra is installed.
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
 
@@ -115,6 +120,11 @@ setting a declared operator identity:
 
     finengine --db data/financial.sqlite3 universe-sync US
     finengine --db data/financial.sqlite3 universe-status
+
+Fetch and archive one official Saudi price history (the production scheduler
+creates this task for each enabled Saudi seed company):
+
+    finengine --db data/financial.sqlite3 market-history 2222 --start 2019-12-11 --end 2026-09-15 --sector Energy
 
 Create a reviewable batch without launching network jobs:
 

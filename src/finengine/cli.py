@@ -1,5 +1,5 @@
-import argparse, calendar, json, os, re, socket, sqlite3, threading, time
-from datetime import date
+import argparse, calendar, hashlib, json, os, re, socket, sqlite3, threading, time
+from datetime import date, timedelta
 from pathlib import Path
 from .connectors import (
     IssuerReportsMonitor, LocalFileConnector, SecCompanyFactsConnector,
@@ -620,6 +620,72 @@ def _understanding_refresh_job_handler(db: Database):
     return handle
 
 
+def _market_history_job_handler(db: Database):
+    """Archive and publish one official Saudi Exchange price-history snapshot."""
+    def handle(job):
+        from .saudi_market import SAUDI_HISTORICAL_REPORTS_URL, fetch_saudi_market_history
+        from .understanding import refresh_company_understanding
+
+        payload = job.payload
+        registry = CompanyRegistry.combined(
+            db.conn, payload.get("registry", "config/companies.json"))
+        company = registry.resolve("SA", payload["symbol"])
+        raw_dir = Path(payload.get("raw_dir", "data/raw"))
+        end_date = date.fromisoformat(payload.get("end_date") or date.today().isoformat())
+        existing = db.conn.execute(
+            """SELECT min(p.observed_at),max(p.observed_at),count(*) FROM market_prices p
+            JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'""",
+            (company.company_id,),
+        ).fetchone()
+        if payload.get("start_date"):
+            start_date = date.fromisoformat(payload["start_date"])
+        elif existing[2] >= 1200:
+            start_date = end_date - timedelta(days=10)
+        else:
+            start_date = end_date - timedelta(days=365 * 6 + 2)
+        content = fetch_saudi_market_history(
+            company.symbol, start_date.isoformat(), end_date.isoformat(),
+            sector=payload.get("sector") or company.sector,
+            market_segment=payload.get("market_segment") or company.exchange or "Main Market",
+            headless=_browser_headless(),
+        )
+        digest = hashlib.sha256(content).hexdigest()
+        source_key = f"sa-market:{digest}"
+        target = raw_dir / "SA" / company.symbol / "market" / f"{digest}.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            temporary = target.with_suffix(".json.part")
+            temporary.write_bytes(content)
+            temporary.replace(target)
+        document = SourceDocument(
+            company.company_id, company.market, SAUDI_HISTORICAL_REPORTS_URL,
+            source_key, "Saudi Exchange historical price snapshot",
+            end_date.isoformat(), content, "application/json",
+            {"requested_start": start_date.isoformat(), "requested_end": end_date.isoformat()},
+        )
+        db.save_source(document, digest, str(target))
+        store = CompanyDomainStore(db)
+        prices = json.loads(content).get("market_prices", [])
+        states = [store.publish_market_price(
+            company.company_id, source_key=source_key, **item) for item in prices]
+        db.set_source_status(source_key, "published")
+        db.publication_batch(source_key, company.company_id, "published", 0, len(states))
+        statistics_result = store.refresh_market_statistics(company.company_id)
+        valuation_result = store.refresh_market_valuations(company.company_id)
+        store.refresh_catalog_completeness(company.company_id)
+        understanding = refresh_company_understanding(db.conn, company.company_id)
+        return {
+            "status": "published", "company_id": company.company_id,
+            "source_key": source_key, "observations": len(prices),
+            "inserted": states.count("inserted"), "restated": states.count("restated"),
+            "duplicates": states.count("duplicate"),
+            "market_statistics": statistics_result, "valuation": valuation_result,
+            "understanding_score": understanding["total_score"],
+        }
+    return handle
+
+
 def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = None):
     def handle(job):
         source_key=job.payload["source_key"]; row=db.stored_source(source_key)
@@ -807,6 +873,7 @@ def main():
     coverage=sub.add_parser("coverage"); coverage.add_argument("market"); coverage.add_argument("symbol"); coverage.add_argument("--refresh",action="store_true")
     backlog=sub.add_parser("backlog"); backlog.add_argument("market",nargs="?"); backlog.add_argument("symbol",nargs="?"); backlog.add_argument("--refresh",action="store_true"); backlog.add_argument("--status",default="active",choices=["active","open","ready","in_progress","blocked","completed","cancelled","all"]); backlog.add_argument("--limit",type=int,default=500)
     prices=sub.add_parser("prices"); prices.add_argument("market"); prices.add_argument("symbol"); prices.add_argument("--interval",default="1d"); prices.add_argument("--limit",type=int,default=100)
+    market_history=sub.add_parser("market-history"); market_history.add_argument("symbol"); market_history.add_argument("--start"); market_history.add_argument("--end"); market_history.add_argument("--sector"); market_history.add_argument("--market-segment"); market_history.add_argument("--registry",default="config/companies.json"); market_history.add_argument("--raw-dir",default="data/raw"); market_history.add_argument("--show",action="store_true")
     actions=sub.add_parser("actions"); actions.add_argument("market"); actions.add_argument("symbol"); actions.add_argument("--type"); actions.add_argument("--limit",type=int,default=100)
     ownership=sub.add_parser("ownership"); ownership.add_argument("market"); ownership.add_argument("symbol"); ownership.add_argument("--as-of"); ownership.add_argument("--limit",type=int,default=100)
     catalog=sub.add_parser("catalog"); catalog.add_argument("--category"); catalog.add_argument("--domain"); catalog.add_argument("--limit",type=int,default=1000)
@@ -1096,6 +1163,7 @@ def main():
                   "extract_document":_extract_document_job_handler(db,queue),
                   "extract_profile":_profile_document_job_handler(db),
                   "profile_scan":_profile_scan_job_handler(db,queue),
+                  "market_history":_market_history_job_handler(db),
                   "understanding_refresh":_understanding_refresh_job_handler(db)}
         runner=Worker(queue,worker_id,handlers)
         if a.once:
@@ -1119,6 +1187,7 @@ def main():
                   "extract_document":_extract_document_job_handler(db,queue),
                   "extract_profile":_profile_document_job_handler(db),
                   "profile_scan":_profile_scan_job_handler(db,queue),
+                  "market_history":_market_history_job_handler(db),
                   "understanding_refresh":_understanding_refresh_job_handler(db)}
         runner=Worker(queue,worker_id,handlers)
         server=create_api_server(a.db,a.host,a.port,os.environ.get(a.api_key_env) or None)
@@ -1256,6 +1325,22 @@ def main():
         q=FinancialQueryService(a.db); print(json.dumps(q.backlog(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
     if a.cmd=="prices":
         q=FinancialQueryService(a.db); print(json.dumps(q.market_prices(a.market,a.symbol,a.interval,a.limit),indent=2)); q.close(); return
+    if a.cmd=="market-history":
+        db=Database(a.db)
+        payload={"symbol":a.symbol,"start_date":a.start,"end_date":a.end,
+                 "sector":a.sector,"market_segment":a.market_segment,
+                 "registry":a.registry,"raw_dir":a.raw_dir}
+        previous=os.environ.get("FINENGINE_BROWSER_HEADLESS")
+        if a.show: os.environ["FINENGINE_BROWSER_HEADLESS"]="false"
+        try:
+            job=type("MarketHistoryJob",(),{"payload":payload})()
+            print(json.dumps(_market_history_job_handler(db)(job),indent=2))
+        finally:
+            if a.show:
+                if previous is None: os.environ.pop("FINENGINE_BROWSER_HEADLESS",None)
+                else: os.environ["FINENGINE_BROWSER_HEADLESS"]=previous
+            db.close()
+        return
     if a.cmd=="actions":
         q=FinancialQueryService(a.db); print(json.dumps(q.corporate_actions(a.market,a.symbol,a.type,a.limit),indent=2)); q.close(); return
     if a.cmd=="ownership":

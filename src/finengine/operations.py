@@ -209,6 +209,18 @@ def configure_production_schedules(
                 interval_seconds, payload, company.company_id,
             )
             configured.append(schedule_id)
+            if company.market.value == "SA":
+                market_schedule_id = f"market-history:SA:{company.symbol}"
+                scheduler.upsert(
+                    market_schedule_id,
+                    f"Archive Saudi Exchange prices SA:{company.symbol}",
+                    "market_history", interval_seconds,
+                    {"symbol": company.symbol, "registry": str(registry_path),
+                     "raw_dir": str(raw_dir), "sector": company.sector,
+                     "market_segment": company.exchange},
+                    company.company_id, priority=60,
+                )
+                configured.append(market_schedule_id)
         scheduler.upsert(
             "profile-scan", "Scan archived annual reports for grounded company profiles",
             "profile_scan", interval_seconds,
