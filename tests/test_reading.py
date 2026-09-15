@@ -177,6 +177,9 @@ def _bank_pdf(path: Path, *, unsigned_expenses: bool = False) -> None:
         ("Income before zakat and income tax", "13,200,000", "11,750,000"),
         ("Zakat and income tax", "(1,500,000)", "(1,300,000)"),
         ("Net income for the year", "11,700,000", "10,450,000"),
+        # Note-table spillover: the embedded value belongs to another column,
+        # so this must not overwrite the clean primary-statement tax row.
+        ("Zakat and income tax 447,520", "513,232", "400,000"),
     ])
     statement("Consolidated Statement of Financial Position", [
         ("Cash and balances with SAMA", "40,000,000", "38,000,000"),
@@ -292,6 +295,15 @@ class BankStatementTests(unittest.TestCase):
             self.assertEqual(metrics["net_loans"], "300000000")
             self.assertEqual(metrics["total_assets"], "445000000")
             self.assertEqual(metrics["net_income"], "11700000")
+            self.assertEqual(metrics["income_taxes_and_zakat"], "-1500000")
+
+    def test_reordered_net_commission_label_is_not_gross_income(self):
+        from finengine.reading import BANK_LINE_MAP, _resolve_line
+
+        self.assertEqual(
+            _resolve_line("Special commission income, net", "income_statement", BANK_LINE_MAP),
+            "net_financing_income",
+        )
 
     def test_bank_manifest_passes_verify(self):
         with tempfile.TemporaryDirectory() as name:

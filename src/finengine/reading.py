@@ -170,6 +170,7 @@ _BANK_NATURAL_NEGATIVE_METRICS = {
 # to LINE_MAP, so this only holds the labels that differ.
 BANK_LINE_MAP = {
     # income statement
+    "special commission income, net": ("net_financing_income", "fy"),
     "special commission income": ("financing_income", "fy"),
     "income from investments and financing": ("financing_income", "fy"),
     "gross financing and investment income": ("financing_income", "fy"),
@@ -889,6 +890,11 @@ class StatementReader:
                     else:
                         text_tokens.append(token)
                 if not text_tokens or not number_tokens:
+                    continue
+                # In wide note tables, values outside the two detected primary
+                # columns can otherwise leak into the label and make a note row
+                # overwrite the source-faithful primary-statement fact.
+                if any(_NUMBER.match(token) for token in text_tokens):
                     continue
                 label = " ".join(text_tokens).strip(" :.-")
                 words_in_label = label.split()
