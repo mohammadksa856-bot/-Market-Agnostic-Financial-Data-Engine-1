@@ -1,0 +1,49 @@
+{
+  "company_id": "sa:1180",
+  "issuer": "The Saudi National Bank",
+  "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/snb-2q-2026-data-supplement.xlsx",
+  "notes": "SNB quarterly Financial Data Supplement (.xlsx, SAR mn). Raw reported lines only; the supplement's own ratios (NPL, coverage, CASA, Tier 1, CAR, LCR, NSFR, LDR, RoTE, NIM, cost-to-income, cost of risk) are not mapped - regulatory capital comes from the Pillar 3 KM1 reader and every other ratio is recomputed by the engine. Values are rounded to the issuer's reported precision (thousands of SAR = 3 decimals in SAR mn; EPS to 2 decimals) because formula cells carry binary float noise. 'Depreciation and amortization' is deliberately not mapped: the supplement line includes amortisation of intangible assets (FY2024 SAR 2,608.054 mn) while the audited statement's depreciation_amortization excludes it (FY2024 SAR 1,787,774 thousand), so it is a different definition, not a restatement. 'Earnings per share' maps to eps_diluted because SNB's reviewed statements print identical basic and diluted EPS. The non-controlling-interest income row is printed as a deduction (sign inverted relative to the statements) and is negated.",
+  "scale": "1000000",
+  "precision": 3,
+  "period_kinds": ["fy", "quarter", "ytd"],
+  "sheets": {
+    "Balance Sheet": {
+      "Cash and balances with SAMA": ["cash_and_balances_with_central_bank", "instant"],
+      "Due from banks and financial Institutions, net": ["due_from_banks", "instant"],
+      "Investments, net": ["bank_investments", "instant"],
+      "Financing and advances, net": ["net_loans", "instant"],
+      "Total assets": ["total_assets", "instant"],
+      "Due to banks and other financial institutions": ["due_to_banks", "instant"],
+      "Customers' deposits": ["customer_deposits", "instant"],
+      "Debt securities & term loans": ["debt_securities_issued", "instant"],
+      "Total liabilities": ["total_liabilities", "instant"],
+      "Share capital": ["share_capital", "instant"],
+      "Statutory reserve": ["statutory_reserve", "instant"],
+      "Other reserves (cumulative changes in fair values)": ["other_reserves", "instant"],
+      "Retained earnings": ["retained_earnings", "instant"],
+      "Equity attributable to equity holders of the bank": ["equity_parent", "instant"],
+      "Non-controlling interests": ["noncontrolling_interests", "instant"],
+      "Total equity": ["total_equity", "instant"]
+    },
+    "Income Statement": {
+      "Special commission income": ["financing_income", "flow"],
+      "Special commission expense": ["financing_expense", "flow"],
+      "Net special commission income": ["net_financing_income", "flow"],
+      "Fee income from banking services, net": ["net_fee_income", "flow"],
+      "Exchange income, net": ["exchange_income", "flow"],
+      "Other operating income (expenses), net": ["other_income", "flow"],
+      "Total operating income": ["total_operating_income", "flow"],
+      "Salaries and employee-related expenses": ["salaries_and_employee_expenses", "flow"],
+      "Other general and administrative expenses": ["general_and_administrative_expense", "flow"],
+      "Operating expenses": ["operating_expense_banking", "flow"],
+      "Net impairment charge for expected credit losses": ["provision_expense", "flow"],
+      "Total operating expenses, net": ["total_operating_expenses", "flow"],
+      "Net income for the period before Zakat and income tax": ["income_before_income_taxes_and_zakat", "flow"],
+      "Zakat and income tax expense": ["income_taxes_and_zakat", "flow"],
+      "Net Income for the period after Zakat and income tax": ["net_income", "flow"],
+      "Net income attributed to non-controlling interests": ["net_income_noncontrolling", "flow", "negate"],
+      "Net income attributed to equity holders": ["net_income_parent", "flow"],
+      "Earnings per share": ["eps_diluted", "flow", {"scale": 1, "unit": "SAR/share", "precision": 2}]
+    }
+  }
+}

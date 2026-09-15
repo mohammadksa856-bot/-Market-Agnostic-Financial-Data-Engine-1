@@ -326,7 +326,9 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     # Official issuer filenames and directory paths are durable source
     # metadata too.  Many report indexes label a document merely "Q1 interim
     # report" while the URL carries the otherwise missing year.
-    period_text = f"{title} {source_url}"
+    from urllib.parse import unquote
+
+    period_text = f"{title} {unquote(source_url)}"
     quarter = re.search(
         r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])|"
         r"(?<![A-Za-z0-9])([1-4])Q(?![A-Za-z0-9])",
@@ -343,6 +345,33 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
         quarter_number = int(quarter.group(1) or quarter.group(2))
     else:
         quarter_number = None
+    try:
+        document_type = str(row["filing_type"] or "").lower()
+    except (KeyError, TypeError, IndexError):
+        document_type = ""
+    if quarter_number is None and document_type in {"interim-report", "regulatory-disclosure"}:
+        # Interim statements and regulatory disclosures are often named by
+        # their quarter-end month alone ("...-march-2026", "Dec-2025",
+        # "Dec_20", "30 June 2025"). Annual reports are excluded: their titles
+        # can carry a publication month rather than the reporting period.
+        day_named = re.search(
+            r"(?<![A-Za-z0-9])(\d{1,2})\s+(March|June|September|December)\s+(20\d{2})(?!\d)",
+            period_text, re.I,
+        )
+        month_named = re.search(
+            r"(?<![A-Za-z])(Mar|Jun|Sep|Dec)[a-z]*"
+            r"(?:[\s_]+(20\d{2})|[-’'‘_](20\d{2}|\d{2}))(?![0-9A-Za-z])",
+            period_text, re.I,
+        )
+        if day_named or month_named:
+            month_text = day_named.group(2) if day_named else month_named.group(1)
+            year_text = (day_named.group(3) if day_named
+                         else month_named.group(2) or month_named.group(3))
+            month = {"mar": 3, "jun": 6, "sep": 9, "dec": 12}[month_text[:3].lower()]
+            year = int(year_text) + (2000 if len(year_text) == 2 else 0)
+            last_day = calendar.monthrange(year, month)[1]
+            if not day_named or int(day_named.group(1)) == last_day:
+                return date(year, month, last_day).isoformat(), year
     year_match = re.search(r"(?<!\d)(20\d{2})(?!\d)", period_text)
     if not year_match:
         compact = re.search(
@@ -477,6 +506,22 @@ def _read_xlsx_manifest(xlsx_path: Path, company, row: dict,
         )
         report = ManifestVerifier(directory).verify()
     return manifest, report
+
+
+def _read_pillar3_manifest(pdf_path: Path, company, row: dict) -> tuple[dict, dict, str]:
+    """Read a Basel III Pillar 3 KM1 table and verify before publication."""
+    import tempfile
+    from .reading_pillar3 import Pillar3KeyMetricsReader
+    from .verification import ManifestVerifier
+
+    manifest = Pillar3KeyMetricsReader(pdf_path).read(
+        market=company.market.value, symbol=company.symbol, currency=company.currency,
+        source_url=row["source_url"], filed_at=row["filed_at"],
+    )
+    with tempfile.TemporaryDirectory() as directory:
+        Path(directory, "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        report = ManifestVerifier(directory).verify()
+    return manifest, report, "pillar3-km1"
 
 
 def _queue_profile_extraction(db: Database, queue: DurableJobQueue, job, row: dict) -> dict:
@@ -875,11 +920,21 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                     "equivalent_source_key": equivalent_source, "published": 0,
                     "reader": "language-equivalence",
                 }
+            regulatory_disclosure = row["filing_type"] == "regulatory-disclosure"
             interim_period_missing = (
                 row["filing_type"] == "interim-report" and
                 _source_period(row, company) is None
             )
-            if interim_period_missing:
+            if regulatory_disclosure:
+                # Pillar 3 KM1 tables carry their own period headers, which the
+                # reader proves as a quarterly sequence before any fact is kept.
+                try:
+                    manifest,report,reader_source=_read_pillar3_manifest(path,company,row)
+                except Exception as error:
+                    manifest=None; report=None; reader_source="pillar3-km1"; read_error=str(error)
+                else:
+                    read_error=None
+            elif interim_period_missing:
                 manifest=None; report=None; reader_source=None
                 read_error=(
                     "automatic interim extraction is held for review because one PDF can "

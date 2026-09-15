@@ -616,5 +616,199 @@ class StatementReaderTests(unittest.TestCase):
             self.assertEqual(metrics["total_equity"], "750000")   # 2025, not 680,000
 
 
+_INTERIM_X = (360, 420, 500, 560)
+
+
+def _bank_interim_pdf(path: Path) -> None:
+    """A Saudi bank's condensed interim statements in the layout SNB files.
+
+    Expenses are printed unsigned, a reversal of credit impairment appears in
+    parentheses, and rule lines sit a few points above each subtotal - close
+    enough to share a text row with the subtotal's figures but not its caption.
+    """
+    doc = pymupdf.open()
+
+    def put_values(page, y, values):
+        for x, value in zip(_INTERIM_X, values):
+            page.insert_text((x, y), value, fontsize=9)
+
+    income = doc.new_page(width=640, height=842)
+    income.insert_text((40, 50), "Condensed Interim Consolidated Statement of Income", fontsize=12)
+    income.insert_text((345, 80), "For the three-month period ended", fontsize=7)
+    income.insert_text((485, 80), "For the six-month period ended", fontsize=7)
+    for x, year in zip(_INTERIM_X, ("2026", "2025", "2026", "2025")):
+        income.insert_text((x + 12, 100), year, fontsize=9)
+    rows = [
+        ("Special commission income", ("15,403,976", "15,158,013", "30,164,208", "29,478,376")),
+        ("Special commission expense",
+         ("(7,509,937)", "(8,073,927)", "(14,773,847)", "(15,143,237)")),
+        ("RULE", ()),
+        ("Net special commission income", ("7,894,039", "7,084,086", "15,390,361", "14,335,139")),
+        ("Fee income from banking services", ("1,840,082", "1,855,664", "3,804,787", "3,676,706")),
+        ("Fee expense from banking services", ("(597,475)", "(612,209)", "(1,251,992)", "(1,196,097)")),
+        ("RULE", ()),
+        ("Fee income from banking services, net",
+         ("1,242,607", "1,243,455", "2,552,795", "2,480,609")),
+        ("Other operating expenses, net", ("(454,872)", "(371,720)", "(997,432)", "(690,646)")),
+        ("RULE", ()),
+        ("Total operating income", ("10,582,649", "9,510,390", "20,233,004", "19,121,905")),
+        ("Salaries and employee-related expenses",
+         ("1,270,116", "1,227,368", "2,590,836", "2,476,571")),
+        ("Total operating expenses before expected credit losses",
+         ("2,790,036", "2,764,875", "5,591,366", "5,491,470")),
+        ("Impairment charge/(reversal) for expected credit losses, net",
+         ("257,760", "(169,849)", "(320,109)", "(138,555)")),
+        ("RULE", ()),
+        ("Total operating expenses", ("3,047,796", "2,595,026", "5,271,257", "5,352,915")),
+        ("Other non-operating income/(expense), net",
+         ("(110,744)", "(50,555)", "(249,051)", "(185,018)")),
+        ("RULE", ()),
+        ("Income for the period before zakat and income tax",
+         ("7,424,109", "6,864,809", "14,712,696", "13,583,972")),
+        ("Zakat and income tax expense", ("(809,261)", "(737,743)", "(1,670,464)", "(1,472,539)")),
+        ("RULE", ()),
+        ("Net income for the period", ("6,614,848", "6,127,066", "13,042,232", "12,111,433")),
+        ("EPS", ("1.07", "0.99", "2.11", "1.95")),
+    ]
+    y = 130
+    for label, values in rows:
+        if label == "RULE":
+            # The rule's words start 5.5pt above the figures, which start 1.5pt
+            # above their caption: within six points of each, as in the filing.
+            for x in _INTERIM_X:
+                income.insert_text((x, y - 1), "--------", fontsize=9)
+            y += 6.5
+            continue
+        if label == "EPS":
+            income.insert_text((40, y + 1.5), "Diluted earnings per share (expressed in SAR per share)",
+                               fontsize=9)
+            income.insert_text((318, y + 1.5), "16", fontsize=9)
+        else:
+            income.insert_text((40, y + 1.5), label, fontsize=9)
+        put_values(income, y, values)
+        y += 16
+
+    position = doc.new_page(width=640, height=842)
+    position.insert_text((40, 50), "Condensed Interim Consolidated Statement of Financial Position",
+                         fontsize=12)
+    for x, year in zip(_INTERIM_X[:2], ("2026", "2025")):
+        position.insert_text((x + 12, 100), year, fontsize=9)
+    balance_rows = [
+        ("Cash and balances with central banks", None, ("62,968,568", "44,923,237")),
+        ("Financing and advances, net", "6", ("739,562,568", "729,310,906")),
+        ("Total assets", None, ("1,244,688,218", "1,210,031,553")),
+        ("Customers' deposits", "10, 22", ("698,169,934", "636,094,377")),
+        ("Total liabilities", None, ("1,029,827,867", "1,006,204,305")),
+        ("Total equity", None, ("214,860,351", "203,827,248")),
+        ("Total liabilities and equity", None, ("1,244,688,218", "1,210,031,553")),
+    ]
+    for index, (label, note, values) in enumerate(balance_rows):
+        row_y = 130 + index * 18
+        position.insert_text((40, row_y), label, fontsize=9)
+        if note:
+            position.insert_text((300, row_y), note, fontsize=9)
+        put_values(position, row_y, values)
+    doc.save(path)
+    doc.close()
+
+
+@unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
+class BankInterimStatementTests(unittest.TestCase):
+    def _read(self, directory: Path):
+        from finengine.reading import StatementReader
+
+        pdf = directory / "bank-q2-2026.pdf"
+        _bank_interim_pdf(pdf)
+        return StatementReader(pdf, enable_ocr=False).read(
+            market="SA", symbol="1180", currency="SAR",
+            source_url="https://bank.example/fs-2q-2026.pdf", filed_at="2026-07-30",
+            period_end="2026-06-30", fiscal_year=2026, filing_type="interim-report",
+            profile="bank")
+
+    def _by_kind(self, manifest):
+        return {(f["metric"], f["period_kind"]): f for f in manifest["facts"]}
+
+    def test_rule_lines_do_not_shift_subtotal_figures_between_rows(self):
+        with tempfile.TemporaryDirectory() as name:
+            facts = self._by_kind(self._read(Path(name)))
+        self.assertEqual(facts[("net_financing_income", "quarter")]["value"], "7894039")
+        self.assertEqual(facts[("net_financing_income", "ytd")]["value"], "15390361")
+        self.assertEqual(facts[("total_operating_income", "quarter")]["value"], "10582649")
+        self.assertEqual(facts[("income_before_income_taxes_and_zakat", "ytd")]["value"],
+                         "14712696")
+        self.assertEqual(facts[("net_income", "quarter")]["value"], "6614848")
+
+    def test_gross_and_net_fee_lines_keep_distinct_metrics(self):
+        with tempfile.TemporaryDirectory() as name:
+            facts = self._by_kind(self._read(Path(name)))
+        self.assertEqual(facts[("fee_income", "quarter")]["value"], "1840082")
+        self.assertEqual(facts[("fee_expense", "quarter")]["value"], "-597475")
+        self.assertEqual(facts[("net_fee_income", "quarter")]["value"], "1242607")
+        self.assertEqual(facts[("other_income", "quarter")]["value"], "-454872")
+
+    def test_unsigned_statement_keeps_impairment_reversals_as_income(self):
+        with tempfile.TemporaryDirectory() as name:
+            facts = self._by_kind(self._read(Path(name)))
+        self.assertEqual(facts[("salaries_and_employee_expenses", "quarter")]["value"], "-1270116")
+        self.assertEqual(facts[("operating_expense_banking", "quarter")]["value"], "-2790036")
+        self.assertEqual(facts[("total_operating_expenses", "quarter")]["value"], "-3047796")
+        self.assertEqual(facts[("provision_expense", "quarter")]["value"], "-257760")  # charge
+        self.assertEqual(facts[("provision_expense", "ytd")]["value"], "320109")       # reversal
+
+    def test_non_operating_line_is_not_operating_income(self):
+        with tempfile.TemporaryDirectory() as name:
+            facts = self._by_kind(self._read(Path(name)))
+        self.assertNotIn(("operating_income", "quarter"), facts)
+        self.assertNotIn(("operating_income", "ytd"), facts)
+
+    def test_per_share_figures_survive_the_magnitude_filter_with_a_share_unit(self):
+        with tempfile.TemporaryDirectory() as name:
+            facts = self._by_kind(self._read(Path(name)))
+        eps = facts[("eps_diluted", "quarter")]
+        self.assertEqual((eps["value"], eps["unit"], eps["scale"]), ("1.07", "SAR/share", "1"))
+        self.assertEqual(facts[("eps_diluted", "ytd")]["value"], "2.11")
+
+    def test_financing_line_and_multi_note_deposit_row_are_read(self):
+        with tempfile.TemporaryDirectory() as name:
+            facts = self._by_kind(self._read(Path(name)))
+        self.assertEqual(facts[("net_loans", "instant")]["value"], "739562568")
+        self.assertEqual(facts[("customer_deposits", "instant")]["value"], "698169934")
+
+    def test_interim_bank_manifest_passes_verify(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            manifest = self._read(directory)
+            imports = directory / "imports"
+            imports.mkdir()
+            (imports / "snb-2026-q2.json").write_text(json.dumps(manifest), encoding="utf-8")
+            report = ManifestVerifier(imports).verify()
+        self.assertTrue(report["ok"], report["detail"])
+        passed = {(c["check"], c["period"]) for c in report["detail"] if c["status"] == "pass"}
+        self.assertIn(("banking: net financing income = income - expense", "2026-06-30 quarter"),
+                      passed)
+        self.assertIn(("income_statement: pre-tax income - tax = net income", "2026-06-30 ytd"),
+                      passed)
+
+    def test_typographic_apostrophe_and_word_start_matching(self):
+        from finengine.reading import BANK_LINE_MAP, LINE_MAP, _resolve_line
+
+        bank = {**LINE_MAP, **BANK_LINE_MAP}
+        self.assertEqual(_resolve_line("Customers’ deposits", "balance_sheet", bank),
+                         "customer_deposits")
+        self.assertIsNone(_resolve_line("Other non-operating income/(expense), net",
+                                        "income_statement", LINE_MAP))
+        self.assertEqual(_resolve_line("Total non-current assets", "balance_sheet", LINE_MAP),
+                         "noncurrent_assets")
+
+    def test_box_drawing_rules_are_not_caption_text(self):
+        from finengine.reading import _is_rule_token
+
+        self.assertTrue(_is_rule_token("────────"))
+        self.assertTrue(_is_rule_token("════════"))
+        self.assertTrue(_is_rule_token("--------"))
+        self.assertFalse(_is_rule_token("-"))
+        self.assertFalse(_is_rule_token("(454,872)"))
+
+
 if __name__ == "__main__":
     unittest.main()

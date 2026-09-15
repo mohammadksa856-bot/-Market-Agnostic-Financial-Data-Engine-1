@@ -73,6 +73,8 @@ LINE_MAP = {
     "attributable to equity holders": ("net_income_parent", "fy"),
     "attributable to owners": ("net_income_parent", "fy"),
     "equity holders of the parent": ("net_income_parent", "fy"),
+    "diluted earnings per share": ("eps_diluted", "fy"),
+    "basic and diluted earnings per share": ("eps_diluted", "fy"),
     # balance sheet
     "total assets": ("total_assets", "instant"),
     "non-current assets": ("noncurrent_assets", "instant"),
@@ -155,13 +157,23 @@ LINE_MAP = {
 # use the natural accounting sign so deterministic identities and downstream
 # calculations behave consistently across issuers that do or do not print
 # parentheses around these rows.
+#
+# These lines can never be income, so a positive printed value is always an
+# unsigned expense.
 _BANK_NATURAL_NEGATIVE_METRICS = {
     "financing_expense",
     "fee_expense",
-    "provision_expense",
     "operating_expense_banking",
     "total_operating_expenses",
+    "salaries_and_employee_expenses",
+    "general_and_administrative_expense",
+    "depreciation_amortization",
 }
+# The credit-impairment line is reversible: a net release is income. Its sign
+# follows the statement's own convention, proven by the never-income rows on
+# the same page. On an unsigned-expense statement a parenthesised impairment
+# amount is a reversal, so the printed sign is inverted rather than forced.
+_BANK_REVERSIBLE_EXPENSE_METRICS = {"provision_expense"}
 
 # Banking sector map. Saudi banks report "special commission income" (interest),
 # fee and commission income, and a balance sheet with no current/non-current
@@ -185,31 +197,57 @@ BANK_LINE_MAP = {
     "fee and commission expense": ("fee_expense", "fy"),
     "fees and commission expense": ("fee_expense", "fy"),
     "fee from banking services, expenses": ("fee_expense", "fy"),
+    "fee income from banking services": ("fee_income", "fy"),
+    "fee expense from banking services": ("fee_expense", "fy"),
+    # The net subtotal sits directly below the gross lines with the same words;
+    # the longer phrase keeps it from overwriting gross fee income.
+    "fee income from banking services, net": ("net_fee_income", "fy"),
+    "net fee and commission income": ("net_fee_income", "fy"),
     "exchange income": ("exchange_income", "fy"),
     "foreign exchange income": ("exchange_income", "fy"),
     "income from fx": ("exchange_income", "fy"),
     "trading income": ("trading_income", "fy"),
     "net trading income": ("trading_income", "fy"),
     "dividend income": ("dividend_income", "fy"),
+    # Bank statements print one net line for other operating items; it keeps
+    # the same canonical metric whether captioned as income or as expenses.
+    "other operating expenses, net": ("other_income", "fy"),
+    "other operating income (expenses), net": ("other_income", "fy"),
+    "other operating income/(expenses), net": ("other_income", "fy"),
+    "net other operating income / (expenses)": ("other_income", "fy"),
     "total operating income": ("total_operating_income", "fy"),
     "impairment charge for expected credit losses": ("provision_expense", "fy"),
+    "impairment charge/(reversal) for expected credit losses": ("provision_expense", "fy"),
     "impairment charge for credit losses": ("provision_expense", "fy"),
     "provision for credit losses": ("provision_expense", "fy"),
+    "provision for expected credit losses": ("provision_expense", "fy"),
     "net impairment charge for expected credit losses": ("provision_expense", "fy"),
     "salaries and employee-related expenses": ("salaries_and_employee_expenses", "fy"),
+    "salaries and employee related expenses": ("salaries_and_employee_expenses", "fy"),
     "salaries and employee related benefits": ("salaries_and_employee_expenses", "fy"),
+    "depreciation and amortization": ("depreciation_amortization", "fy"),
+    # Issuers that split amortisation of acquired intangibles onto its own line
+    # report property/equipment/right-of-use depreciation here; the separate
+    # intangible line is not folded in.
+    "depreciation/amortisation of property, equipment, software, and right of use assets":
+        ("depreciation_amortization", "fy"),
     "total operating expenses before credit impairment charge": ("operating_expense_banking", "fy"),
+    "total operating expenses before expected credit losses": ("operating_expense_banking", "fy"),
     "total operating expenses": ("total_operating_expenses", "fy"),
     "net income for the year": ("net_income", "fy"),
     "net income for the period": ("net_income", "fy"),
     "profit for the year": ("net_income", "fy"),
     "income before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
     "income before zakat and tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income for the period before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income for the year before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
     "zakat and income tax": ("income_taxes_and_zakat", "fy"),
     "zakat and income tax charge for the year": ("income_taxes_and_zakat", "fy"),
     "net income attributable to equity holders of the bank": ("net_income_parent", "fy"),
     "attributable to equity holders of the bank": ("net_income_parent", "fy"),
     "attributable to equity holders": ("net_income_parent", "fy"),
+    # Row printed beneath a "Net income for the period attributable to:" caption.
+    "equity holders of the bank": ("net_income_parent", "fy"),
     # balance sheet
     "cash and balances with sama": ("cash_and_balances_with_central_bank", "instant"),
     "cash and balances with central banks": ("cash_and_balances_with_central_bank", "instant"),
@@ -222,6 +260,7 @@ BANK_LINE_MAP = {
     "loans and advances, net": ("net_loans", "instant"),
     "loans and advances to customers, net": ("net_loans", "instant"),
     "financing, net": ("net_loans", "instant"),
+    "financing and advances, net": ("net_loans", "instant"),
     "net financing and investments": ("net_loans", "instant"),
     "total assets": ("total_assets", "instant"),
     "due to banks and other financial institutions": ("due_to_banks", "instant"),
@@ -297,6 +336,13 @@ _NON_PRIMARY_STATEMENT = re.compile(
 _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
+_RULE = re.compile(r"^[\u2500-\u257f_=\-–—]{3,}$")
+_NOTE_REFERENCE = re.compile(r"^(?:\d{1,3},?|\([a-z]\))$")
+
+
+def _is_rule_token(token: str) -> bool:
+    """A rule line drawn with box-drawing, dash, underscore or equals glyphs."""
+    return bool(_RULE.match(token))
 
 
 def _parse_number(token: str) -> Decimal | None:
@@ -327,6 +373,20 @@ def _rows(words, y_tol: float = 3.0):
     return rows
 
 
+def _contains_phrase(text: str, phrase: str) -> bool:
+    """``phrase`` occurs in ``text`` starting at a word boundary.
+
+    A match inside a longer word or hyphenated compound is a different line:
+    "other non-operating income" is not "operating income".
+    """
+    start = text.find(phrase)
+    while start != -1:
+        if start == 0 or not (text[start - 1].isalnum() or text[start - 1] == "-"):
+            return True
+        start = text.find(phrase, start + 1)
+    return False
+
+
 def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> str | None:
     # A stock line ("property, plant and equipment") also appears inside a
     # cash-flow note ("purchase of property, plant and equipment") or an
@@ -334,7 +394,8 @@ def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> s
     # kind actually belongs to, or a balance-sheet line reads as a bogus
     # extra fact wherever else that phrase happens to occur.
     wants_instant = statement == "balance_sheet"
-    norm = " ".join(label.lower().split())
+    # Typographic apostrophes ("Customers’ deposits") are the same caption.
+    norm = " ".join(label.lower().replace("’", "'").replace("‘", "'").split())
     best = None
     for phrase, (metric, kind) in (line_map or LINE_MAP).items():
         compatible = (kind == "instant") == wants_instant
@@ -342,7 +403,7 @@ def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> s
             compatible = True  # e.g. "non-controlling interest" reread as a P&L split
         if not compatible:
             continue
-        if phrase in norm and (best is None or len(phrase) > len(best[0])):
+        if (best is None or len(phrase) > len(best[0])) and _contains_phrase(norm, phrase):
             best = (phrase, metric)
     if best is None:
         return None
@@ -605,6 +666,7 @@ class StatementReader:
             page_facts: dict[tuple[str, str], dict] = {}
             default_flow_kind = "ytd" if "interim" in filing_type.lower() else "fy"
             for statement, panel_words, panel_blocks in panels:
+                resolved = []
                 for label, kind, value in self._statement_facts(
                         page, panel_words, statement, panel_blocks, default_flow_kind):
                     metric = _resolve_line(label, statement, line_map)
@@ -612,12 +674,16 @@ class StatementReader:
                         continue
                     if self._is_comprehensive_attribution(page_text, label, metric):
                         continue
-                    if (
-                        profile == "bank"
-                        and statement == "income_statement"
-                        and metric in _BANK_NATURAL_NEGATIVE_METRICS
-                        and value > 0
-                    ):
+                    resolved.append((label, kind, value, metric))
+                bank_income = profile == "bank" and statement == "income_statement"
+                unsigned_expenses = bank_income and any(
+                    metric in _BANK_NATURAL_NEGATIVE_METRICS and value > 0
+                    for _, _, value, metric in resolved
+                )
+                for label, kind, value, metric in resolved:
+                    if bank_income and metric in _BANK_NATURAL_NEGATIVE_METRICS and value > 0:
+                        value = -value
+                    elif unsigned_expenses and metric in _BANK_REVERSIBLE_EXPENSE_METRICS:
                         value = -value
                     monetary = metric != "eps_diluted"
                     key = (metric, kind)
@@ -638,6 +704,8 @@ class StatementReader:
                         )
                     if monetary:
                         fact.update(scale=str(scale), currency=currency, unit=currency)
+                    else:
+                        fact.update(scale="1", currency=currency, unit=f"{currency}/share")
                     page_facts[key] = fact
             # The page is already a confirmed statement (leading-heading regex or a
             # continuation of one); a single new mapped line is enough to keep it,
@@ -864,7 +932,7 @@ class StatementReader:
         # Some investor-release tables place the label baseline a few points
         # below the value baseline. Six points joins that visual row without
         # joining the next line (normal statement rows are much farther apart).
-        for row in _rows(words, y_tol=6.0):
+        for row in _rows([w for w in words if not _is_rule_token(w[4])], y_tol=6.0):
             has_label = any(not _NUMBER.match(w[4]) and len(w[4]) > 2 for w in row)
             has_value = any(
                 _NUMBER.match(w[4]) and any(abs((w[0] + w[2]) / 2 - c) < 45 for c in columns)
@@ -916,6 +984,10 @@ class StatementReader:
 
     def _statement_facts(self, page, words, statement: str,
                          blocks: list[list[float]], default_flow_kind: str = "fy"):
+        # Rule lines drawn as text ("────────") sit a few points above each
+        # subtotal. Left in, they become the row anchor that captures the
+        # subtotal's figures while its caption falls into the next row.
+        words = [word for word in words if not _is_rule_token(word[4])]
         boundary = self._block_boundary(words, blocks) if len(blocks) > 1 else None
         magnitudes = []
         parsed_rows = []
@@ -938,8 +1010,8 @@ class StatementReader:
                             number_tokens.append((center, value))
                     elif _PERCENT.match(token) and center > max(columns) + 25:
                         continue  # comparison/change column, not part of the row label
-                    elif token.isdigit() and len(token) <= 3 and note_zone[0] < center < note_zone[1]:
-                        continue  # a note-reference number, not part of the label
+                    elif _NOTE_REFERENCE.match(token) and note_zone[0] < center < note_zone[1]:
+                        continue  # a note reference ("6", "10,", "(a)"), not part of the label
                     else:
                         text_tokens.append(token)
                 if not text_tokens or not number_tokens:
@@ -956,13 +1028,15 @@ class StatementReader:
                 for group, kind in self._period_column_groups(
                         words, statement, columns, default_flow_kind):
                     current = group[0]
-                    value = min(number_tokens, key=lambda t: abs(t[0] - current))[1]
+                    center, value = min(number_tokens, key=lambda t: abs(t[0] - current))
+                    if abs(center - current) >= 45:
+                        continue  # this period's cell is blank; never borrow a neighbour's figure
                     magnitudes.append(abs(value))
                     parsed_rows.append((label, kind, value))
         if not magnitudes:
             return
         floor = sorted(magnitudes)[len(magnitudes) // 2] / Decimal(1000)  # 0.1% of median
         for label, kind, value in parsed_rows:
-            if abs(value) < floor:
+            if abs(value) < floor and "per share" not in label.lower():
                 continue  # a stray percentage or ratio among monetary rows
             yield label, kind, value
