@@ -68,11 +68,25 @@ class Pipeline:
         facts,validation=self.validator.validate(facts,history_for_validation)
         self.db.save_validation(doc.source_key,company.company_id,validation)
         for e in validation: self.db.exception(company.company_id,doc.source_key,"validation",e["code"],e["code"],e)
-        fatal={"required_field","invalid_period","invalid_fiscal_quarter","missing_period_start",
-               "balance_sheet_unbalanced","period_rollforward_mismatch"}
+        quarantined_ids=[]
+        # SEC Company Facts is a long-lived feed, not a single filing.  One
+        # inconsistent historical period must not suppress thousands of valid
+        # observations.  Keep the anomaly in staging/the exception queue and
+        # publish only the facts outside the failing reconciliation group.
+        if doc.source_key.startswith("sec:"):
+            facts,normalized_ids,quarantined_ids=self._quarantine_reconciliation_anomalies(
+                facts,normalized_ids,validation,
+            )
+            self.db.set_normalized_status(quarantined_ids,"rejected")
+        fatal={"required_field","invalid_period","invalid_fiscal_quarter","missing_period_start"}
+        if not doc.source_key.startswith("sec:"):
+            fatal.update({"balance_sheet_unbalanced","period_rollforward_mismatch"})
         if any(e["code"] in fatal for e in validation):
-            self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts),0)
+            self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts)+len(quarantined_ids),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation),"stage":"validation"}
+        if not facts:
+            self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(quarantined_ids),0)
+            return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation) or 1,"stage":"validation"}
         self.db.set_normalized_status(normalized_ids,"validated")
         source_conflicts = self.db.higher_trust_conflicts(facts)
         publishable_ids = list(normalized_ids)
@@ -131,7 +145,7 @@ class Pipeline:
             except Exception as error: self.db.exception(company.company_id,doc.source_key,"coverage","coverage_refresh_failed",str(error),severity="warning")
         suppressed = states.count("suppressed") + len(source_conflicts)
         published_count = len(states) - states.count("suppressed")
-        self.db.set_normalized_status(publishable_ids,"published"); self.db.set_source_status(doc.source_key,"published"); self.db.publication_batch(doc.source_key,company.company_id,"published",len(facts)+len(source_conflicts),published_count)
+        self.db.set_normalized_status(publishable_ids,"published"); self.db.set_source_status(doc.source_key,"published"); self.db.publication_batch(doc.source_key,company.company_id,"published",len(facts)+len(source_conflicts)+len(quarantined_ids),published_count)
         try:
             self.domains.refresh_company_backlog(company.company_id)
             from .understanding import refresh_company_understanding
@@ -139,7 +153,41 @@ class Pipeline:
         except Exception as error:
             self.db.exception(company.company_id,doc.source_key,"understanding",
                               "understanding_refresh_failed",str(error),severity="warning")
-        return {"status":"published","source_key":doc.source_key,"published":published_count,"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"suppressed":suppressed,"exceptions":len(validation)+len(source_conflicts),"coverage":coverage,"canonical_projections":len(projected),"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"suppressed":len(source_conflicts),"minimum_confidence":"0.95"}}
+        return {"status":"published","source_key":doc.source_key,"published":published_count,"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"suppressed":suppressed,"quarantined":len(quarantined_ids),"exceptions":len(validation)+len(source_conflicts),"coverage":coverage,"canonical_projections":len(projected),"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"suppressed":len(source_conflicts),"quarantined":len(quarantined_ids),"minimum_confidence":"0.95"}}
+
+    @staticmethod
+    def _quarantine_reconciliation_anomalies(
+        facts: list, normalized_ids: list[int], validation: list[dict],
+    ) -> tuple[list,list[int],list[int]]:
+        """Remove only SEC facts belonging to a failed reconciliation group."""
+        balance_groups={
+            (error.get("period"),error.get("scope","consolidated"),
+             tuple(sorted(error.get("dimensions",{}).items())))
+            for error in validation if error.get("code")=="balance_sheet_unbalanced"
+        }
+        rollforwards={
+            (error.get("metric"),error.get("period_end"),error.get("period_kind"))
+            for error in validation if error.get("code")=="period_rollforward_mismatch"
+        }
+        kept=[]; quarantined=[]
+        for fact,normalized_id in zip(facts,normalized_ids):
+            balance_key=(fact.period_end,fact.scope,tuple(sorted(fact.dimensions.items())))
+            is_bad_balance=(
+                fact.period_kind.value=="instant"
+                and fact.metric in {"total_assets","total_liabilities","total_equity"}
+                and balance_key in balance_groups
+            )
+            is_bad_rollforward=(
+                fact.metric,fact.period_end,fact.period_kind.value
+            ) in rollforwards
+            (quarantined if is_bad_balance or is_bad_rollforward else kept).append(
+                (fact,normalized_id)
+            )
+        return (
+            [item[0] for item in kept],
+            [item[1] for item in kept],
+            [item[1] for item in quarantined],
+        )
 
     def backfill_staging(self, company: Company, doc) -> dict:
         """Build the audit trail for legacy documents without republishing observations."""

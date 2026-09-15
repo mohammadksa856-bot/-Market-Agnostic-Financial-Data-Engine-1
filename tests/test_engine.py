@@ -68,6 +68,24 @@ class EngineTests(unittest.TestCase):
     def test_validation_blocks_unbalanced(self):
         payload=sa_payload(); payload["facts"][4]["value"]=1000
         r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload)); self.assertEqual(r["status"],"exception"); self.assertEqual(self.db.conn.execute("SELECT count(*) FROM exceptions").fetchone()[0],1)
+    def test_sec_feed_quarantines_bad_balance_group_and_publishes_valid_history(self):
+        payload=sa_payload(); payload["facts"][4]["value"]=1000
+        payload["facts"].append({"metric":"revenue","value":900,"period_start":"2023-01-01",
+            "period_end":"2023-12-31","period_kind":"fy","fiscal_year":2023})
+        result=Pipeline(self.db,Path(self.t.name)/"raw").run(
+            self.c,FakeConnector(payload,"sec:companyfacts-test"))
+        self.assertEqual(result["status"],"published")
+        self.assertEqual(result["quarantined"],3)
+        rows=self.db.conn.execute(
+            "SELECT metric,period_end FROM observations WHERE is_current=1 ORDER BY metric,period_end"
+        ).fetchall()
+        self.assertIn(("revenue","2023-12-31"),[(row["metric"],row["period_end"]) for row in rows])
+        self.assertFalse({"total_assets","total_liabilities","total_equity"} & {
+            row["metric"] for row in rows if row["period_end"]=="2024-12-31"
+        })
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM normalized_facts WHERE status='rejected'"
+        ).fetchone()[0],3)
     def test_staging_audit_trail_precedes_production(self):
         r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(sa_payload()))
         self.assertEqual(r["staging"]["extracted"],7)
