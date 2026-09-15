@@ -232,6 +232,33 @@ class SupplementReaderTests(unittest.TestCase):
                 [("2024-12-31", "USD"), ("2025-03-31", "USD")],
             )
 
+    def test_row_options_can_normalize_inconsistent_expense_signs(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Income Statement"
+            sheet.append(["SAR mn", "FY 2023", "FY 2024"])
+            sheet.append(["Funding expense", 25, -30])
+            xlsx = directory / "supp.xlsx"
+            workbook.save(xlsx); workbook.close()
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "scale": "1000000",
+                "sheets": {"Income Statement": {
+                    "Funding expense": ["financing_expense", "flow", "negate", {
+                        "absolute": True,
+                    }],
+                }},
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2025-02-01"
+            )
+            self.assertEqual(
+                [fact["value"] for fact in manifest["facts"]], ["-25", "-30"]
+            )
+
     def test_reads_period_from_quarterly_worksheet_title(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)

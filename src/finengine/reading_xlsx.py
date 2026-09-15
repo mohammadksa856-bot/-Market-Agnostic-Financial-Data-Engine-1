@@ -139,6 +139,7 @@ class SupplementReader:
                 metric, want_kind = spec[0], spec[1]
                 negate = len(spec) > 2 and spec[2] == "negate"
                 options = next((item for item in spec[2:] if isinstance(item, dict)), {})
+                absolute = bool(options.get("absolute"))
                 fact_scale = int(options.get("scale", scale))
                 fact_currency = str(options.get("currency", source_currency))
                 fact_unit = str(options.get("unit", fact_currency))
@@ -159,6 +160,8 @@ class SupplementReader:
                     value = _number(row[index])
                     if value is None:
                         continue
+                    if absolute:
+                        value = abs(value)
                     if negate:
                         value = -value
                     if period_end in excluded_periods:
@@ -234,6 +237,9 @@ class SupplementReader:
                         continue
                     negate = len(spec) > 2 and spec[2] == "negate"
                     options = next((item for item in spec[2:] if isinstance(item, dict)), {})
+                    absolute = bool(options.get("absolute"))
+                    if absolute:
+                        value = abs(value)
                     if negate:
                         value = -value
                     key = (metric, period_end, kind)
