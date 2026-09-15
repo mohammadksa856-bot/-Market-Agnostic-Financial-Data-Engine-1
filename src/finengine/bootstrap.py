@@ -176,6 +176,8 @@ def rebuild_snapshot(
             db, Path(raw_dir) / "archive-index.json", Path.cwd(),
         )
         domain_store = CompanyDomainStore(db)
+        market_statistics = [domain_store.refresh_market_statistics(company.company_id)
+                             for company in registry.all()]
         market_valuations = [domain_store.refresh_market_valuations(company.company_id)
                              for company in registry.all()]
         domain_store.refresh_all_backlog()

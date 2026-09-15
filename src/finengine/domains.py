@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import math
+import statistics
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from .database import Database, _json
 from .models import Fact, PeriodKind
@@ -165,21 +167,6 @@ class CompanyDomainStore:
             "market_cap": (market_cap, "price_close * shares_outstanding", price["company_currency"], price["company_currency"]),
             "enterprise_value": (enterprise_value, "market_cap + net_debt", price["company_currency"], price["company_currency"]),
         }
-        price_history = self.db.conn.execute(
-            """SELECT p.close,p.volume,p.turnover,p.observed_at FROM market_prices p
-            JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
-            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
-            ORDER BY p.observed_at DESC LIMIT 20""", (company_id,),
-        ).fetchall()
-        if len(price_history) == 20:
-            sma_20 = sum((Decimal(row["close"]) for row in price_history), Decimal(0)) / Decimal(20)
-            calculations["simple_moving_average_20d"] = (
-                sma_20, "average(latest_20_archived_daily_closes)",
-                price["company_currency"], f"{price['company_currency']}/share",
-            )
-            calculations["price_to_sma_20d"] = (
-                close / sma_20, "latest_archived_close / simple_moving_average_20d", "", "ratio",
-            )
         if price["turnover"] is not None and price["volume"] is not None and Decimal(price["volume"]):
             calculations["vwap"] = (
                 Decimal(price["turnover"]) / Decimal(price["volume"]),
@@ -233,6 +220,134 @@ class CompanyDomainStore:
             fiscal_year, None, price["source_key"], price["source_url"], price["filed_at"],
             is_calculated=True, calculation=formula,
         ) for metric, (value, formula, currency, unit) in calculations.items()]
+        states = self.db.publish_batch(facts)
+        return {"company_id": company_id, "status": "published", "published": len(states),
+                "inserted": states.count("inserted"), "restated": states.count("restated"),
+                "duplicates": states.count("duplicate")}
+
+    def refresh_market_statistics(self, company_id: str) -> dict:
+        """Publish reproducible price statistics from archived daily observations.
+
+        Calendar returns are emitted only when the archive reaches the requested
+        lookback date.  This prevents a short partial window from being labelled
+        as a one-, three-, or five-year return.
+        """
+        rows = self.db.conn.execute(
+            """SELECT p.*,d.source_url,d.filed_at,c.currency company_currency
+            FROM market_prices p JOIN listings l USING(listing_id)
+            JOIN securities s USING(security_id) JOIN companies c ON c.company_id=s.company_id
+            JOIN source_documents d ON d.source_key=p.source_key
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
+            ORDER BY p.observed_at""", (company_id,),
+        ).fetchall()
+        if len(rows) < 2:
+            return {"company_id": company_id, "status": "skipped",
+                    "reason": "insufficient_market_history", "published": 0}
+
+        latest = rows[-1]
+        latest_date = date.fromisoformat(latest["observed_at"][:10])
+        latest_close = Decimal(latest["close"])
+        currency = latest["company_currency"]
+        calculations: dict[str, tuple[Decimal, str, str, str]] = {
+            "previous_close": (
+                Decimal(rows[-2]["close"]), "previous_archived_trading_session_close",
+                currency, f"{currency}/share",
+            ),
+        }
+
+        for sessions in (20, 50, 200):
+            if len(rows) < sessions:
+                continue
+            average = sum(
+                (Decimal(row["close"]) for row in rows[-sessions:]), Decimal(0)
+            ) / Decimal(sessions)
+            calculations[f"simple_moving_average_{sessions}d"] = (
+                average, f"average(latest_{sessions}_archived_daily_closes)",
+                currency, f"{currency}/share",
+            )
+            calculations[f"price_to_sma_{sessions}d"] = (
+                latest_close / average,
+                f"latest_archived_close / simple_moving_average_{sessions}d",
+                "", "ratio",
+            )
+
+        volumes = [Decimal(row["volume"]) for row in rows[-30:]
+                   if row["volume"] is not None]
+        if len(rows) >= 30 and len(volumes) == 30:
+            calculations["average_volume_30d"] = (
+                sum(volumes, Decimal(0)) / Decimal(30),
+                "average(latest_30_archived_daily_volumes)", "", "shares",
+            )
+
+        if len(rows) >= 31:
+            closes = [float(Decimal(row["close"])) for row in rows[-31:]]
+            log_returns = [math.log(closes[index] / closes[index - 1])
+                           for index in range(1, len(closes))
+                           if closes[index] > 0 and closes[index - 1] > 0]
+            if len(log_returns) == 30:
+                calculations["volatility_30d"] = (
+                    Decimal(str(statistics.stdev(log_returns) * math.sqrt(252))),
+                    "sample_stddev(latest_30_daily_log_returns) * sqrt(252)",
+                    "", "ratio",
+                )
+
+        one_year_start = latest_date - timedelta(days=365)
+        year_rows = [row for row in rows
+                     if date.fromisoformat(row["observed_at"][:10]) >= one_year_start]
+        if date.fromisoformat(rows[0]["observed_at"][:10]) <= one_year_start and year_rows:
+            year_high = max(Decimal(row["high"] or row["close"]) for row in year_rows)
+            year_low = min(Decimal(row["low"] or row["close"]) for row in year_rows)
+            calculations.update({
+                "fifty_two_week_high": (
+                    year_high, "max(archived_daily_highs_in_latest_365_calendar_days)",
+                    currency, f"{currency}/share",
+                ),
+                "fifty_two_week_low": (
+                    year_low, "min(archived_daily_lows_in_latest_365_calendar_days)",
+                    currency, f"{currency}/share",
+                ),
+                "percent_from_52w_high": (
+                    latest_close / year_high - Decimal(1),
+                    "latest_archived_close / fifty_two_week_high - 1", "", "ratio",
+                ),
+                "percent_from_52w_low": (
+                    latest_close / year_low - Decimal(1),
+                    "latest_archived_close / fifty_two_week_low - 1", "", "ratio",
+                ),
+            })
+
+        dated_rows = [(date.fromisoformat(row["observed_at"][:10]), row) for row in rows]
+
+        def calendar_return(metric: str, target: date, formula: str) -> None:
+            if dated_rows[0][0] > target:
+                return
+            baseline = next((row for observed, row in reversed(dated_rows)
+                             if observed <= target), None)
+            if baseline is not None and Decimal(baseline["close"]):
+                calculations[metric] = (
+                    latest_close / Decimal(baseline["close"]) - Decimal(1),
+                    formula, "", "ratio",
+                )
+
+        for metric, days in (("market_return_1m", 30), ("market_return_3m", 91),
+                             ("market_return_6m", 182), ("market_return_1y", 365),
+                             ("market_return_3y", 1095), ("market_return_5y", 1826)):
+            calendar_return(
+                metric, latest_date - timedelta(days=days),
+                f"latest_archived_close / last_archived_close_on_or_before_{days}_calendar_days_ago - 1",
+            )
+        calendar_return(
+            "market_return_ytd", date(latest_date.year, 1, 1) - timedelta(days=1),
+            "latest_archived_close / last_archived_close_on_or_before_prior_year_end - 1",
+        )
+
+        fiscal_year = latest_date.year
+        facts = [Fact(
+            company_id, metric, value, fact_currency, unit, None,
+            latest_date.isoformat(), PeriodKind.AS_OF, fiscal_year, None,
+            latest["source_key"], latest["source_url"], latest["filed_at"],
+            is_calculated=True, calculation=formula,
+        ) for metric, (value, formula, fact_currency, unit) in calculations.items()]
         states = self.db.publish_batch(facts)
         return {"company_id": company_id, "status": "published", "published": len(states),
                 "inserted": states.count("inserted"), "restated": states.count("restated"),

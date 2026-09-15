@@ -590,7 +590,12 @@ def _understanding_refresh_job_handler(db: Database):
         domains = CompanyDomainStore(db)
         states: dict[str, int] = {}
         valuations = {"published": 0, "skipped": 0}
+        market_statistics = {"published": 0, "skipped": 0}
         for company_id in company_ids:
+            statistics_result = domains.refresh_market_statistics(company_id)
+            market_statistics[statistics_result["status"]] = (
+                market_statistics.get(statistics_result["status"], 0) + 1
+            )
             valuation = domains.refresh_market_valuations(company_id)
             valuations[valuation["status"]] = valuations.get(valuation["status"], 0) + 1
             domains.refresh_catalog_completeness(company_id)
@@ -601,6 +606,7 @@ def _understanding_refresh_job_handler(db: Database):
             "companies": len(company_ids), "states": states,
             "market": market.upper() if market else None,
             "valuation_refresh": valuations,
+            "market_statistics_refresh": market_statistics,
         }
         gaps = db.conn.execute(
             """SELECT domain,count(*) AS count FROM backlog_items

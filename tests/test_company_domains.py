@@ -1,6 +1,6 @@
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -107,6 +107,34 @@ class CompanyDomainTests(unittest.TestCase):
             "enterprise_value_to_invested_capital", "market_cap_to_equity",
             "market_cap_to_net_income",
         }.issubset(metrics))
+
+    def test_market_statistics_require_honest_windows_and_publish_derived_history(self):
+        start = date(2024, 12, 25)
+        for offset in range(402):
+            observed = start + timedelta(days=offset)
+            close = Decimal("20") + Decimal(offset) / Decimal("100")
+            self.store.publish_market_price(
+                "sa:TST", observed.isoformat(), close, "SAR", self.source.source_key,
+                open=close - Decimal("0.1"), high=close + Decimal("0.2"),
+                low=close - Decimal("0.2"), volume=1000 + offset,
+            )
+
+        result = self.store.refresh_market_statistics("sa:TST")
+        self.assertEqual(result["status"], "published")
+        metrics = {row[0] for row in self.db.conn.execute(
+            """SELECT metric_key FROM data_points WHERE company_id='sa:TST'
+            AND period_kind='as_of' AND is_current=1"""
+        )}
+        self.assertTrue({
+            "previous_close", "simple_moving_average_20d",
+            "simple_moving_average_50d", "simple_moving_average_200d",
+            "average_volume_30d", "volatility_30d", "fifty_two_week_high",
+            "fifty_two_week_low", "percent_from_52w_high", "percent_from_52w_low",
+            "market_return_1m", "market_return_3m", "market_return_6m",
+            "market_return_1y", "market_return_ytd",
+        }.issubset(metrics))
+        self.assertNotIn("market_return_3y", metrics)
+        self.assertNotIn("market_return_5y", metrics)
 
     def test_ownership_and_corporate_actions_are_structured(self):
         self.assertEqual(self.store.publish_ownership_position(

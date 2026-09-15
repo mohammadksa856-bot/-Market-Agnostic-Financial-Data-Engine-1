@@ -389,6 +389,7 @@ class MonitoringTests(unittest.TestCase):
         result = _understanding_refresh_job_handler(self.db)(job)
         self.assertEqual(result["companies"], 1)
         self.assertEqual(result["valuation_refresh"]["skipped"], 1)
+        self.assertEqual(result["market_statistics_refresh"]["skipped"], 1)
         self.assertEqual(result["target_score"], "95")
         self.assertEqual(result["source_map_version"], "18-categories-v1")
         self.assertGreater(result["open_category_gaps"]["financials"], 0)
