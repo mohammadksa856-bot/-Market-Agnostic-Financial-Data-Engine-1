@@ -576,10 +576,32 @@ def _profile_scan_job_handler(db: Database, queue: DurableJobQueue):
 def _understanding_refresh_job_handler(db: Database):
     """Re-score every enabled company and materialize sourced 95% gap work."""
     def handle(job):
-        from .understanding import refresh_all_understanding
+        from .understanding import refresh_company_understanding
 
         market = job.payload.get("market")
-        result = refresh_all_understanding(db.conn, market)
+        where = "WHERE enabled=1"
+        args = ()
+        if market:
+            where += " AND market=?"
+            args = (market.upper(),)
+        company_ids = [row[0] for row in db.conn.execute(
+            f"SELECT company_id FROM companies {where} ORDER BY market,symbol", args
+        )]
+        domains = CompanyDomainStore(db)
+        states: dict[str, int] = {}
+        valuations = {"published": 0, "skipped": 0}
+        for company_id in company_ids:
+            valuation = domains.refresh_market_valuations(company_id)
+            valuations[valuation["status"]] = valuations.get(valuation["status"], 0) + 1
+            domains.refresh_catalog_completeness(company_id)
+            assessed = refresh_company_understanding(db.conn, company_id)
+            state = assessed["readiness_state"]
+            states[state] = states.get(state, 0) + 1
+        result = {
+            "companies": len(company_ids), "states": states,
+            "market": market.upper() if market else None,
+            "valuation_refresh": valuations,
+        }
         gaps = db.conn.execute(
             """SELECT domain,count(*) AS count FROM backlog_items
             WHERE item_type='understanding_gap' AND status IN ('open','ready','in_progress','blocked')

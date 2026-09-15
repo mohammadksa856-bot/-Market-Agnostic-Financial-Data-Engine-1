@@ -9,7 +9,7 @@ from finengine.connectors import IssuerReportsMonitor, SecFilingsMonitor
 from finengine.cli import (
     _extract_document_job_handler, _fetch_document_job_handler,
     _monitor_once, _profile_document_job_handler, _profile_scan_job_handler,
-    _queue_profile_extraction,
+    _queue_profile_extraction, _understanding_refresh_job_handler,
     _source_period,
 )
 from finengine.fetching import SourceAccessBlocked
@@ -381,6 +381,17 @@ class MonitoringTests(unittest.TestCase):
         ).fetchone()
         self.assertEqual((queued["job_type"], queued["source_key"]),
                          ("extract_profile", archived["source_key"]))
+
+    def test_understanding_refresh_recalculates_every_enabled_company(self):
+        job = type("Job", (), {
+            "payload": {"market": "SA"}, "job_id": "understanding-refresh",
+        })()
+        result = _understanding_refresh_job_handler(self.db)(job)
+        self.assertEqual(result["companies"], 1)
+        self.assertEqual(result["valuation_refresh"]["skipped"], 1)
+        self.assertEqual(result["target_score"], "95")
+        self.assertEqual(result["source_map_version"], "18-categories-v1")
+        self.assertGreater(result["open_category_gaps"]["financials"], 0)
 
     def test_unreadable_interim_with_known_period_reports_extraction_failure(self):
         candidate = SourceCandidate(
