@@ -989,14 +989,28 @@ class FinancialQueryService:
 
     def attributes(self, market: str, symbol: str) -> dict:
         rows = self.conn.execute(
-            """SELECT a.attribute_key,a.value_json,a.category,a.language,a.effective_at,a.version,a.source_key
+            """SELECT a.id,a.attribute_key,a.value_json,a.category,a.language,a.effective_at,a.version,a.source_key
             FROM company_attributes a JOIN companies c USING(company_id)
             WHERE c.market=? AND c.symbol=? AND a.is_current=1 ORDER BY a.category,a.attribute_key""",
             (market.upper(), symbol.upper()),
         ).fetchall()
-        return {row["attribute_key"]: self._attach_source({"value": json.loads(row["value_json"]),
-                "category": row["category"], "language": row["language"], "source_key": row["source_key"],
-                "effective_at": row["effective_at"], "version": row["version"]}) for row in rows}
+        result = {}
+        for row in rows:
+            item = self._attach_source({"value": json.loads(row["value_json"]),
+                "category": row["category"], "language": row["language"],
+                "source_key": row["source_key"], "effective_at": row["effective_at"],
+                "version": row["version"]})
+            evidence = []
+            for record in self.conn.execute(
+                """SELECT source_key,metadata_json,created_at FROM company_attribute_evidence
+                WHERE attribute_id=? ORDER BY created_at,source_key""", (row["id"],),
+            ):
+                evidence.append({"metadata": json.loads(record["metadata_json"]),
+                                 "source": self._source_trace(record["source_key"]),
+                                 "created_at": record["created_at"]})
+            item["evidence"] = evidence
+            result[row["attribute_key"]] = item
+        return result
 
     def health(self) -> dict:
         tables = {

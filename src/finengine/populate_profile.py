@@ -93,7 +93,8 @@ def build_profile_manifest(
             continue
         company_attributes.append({
             "attribute_key": key, "value": finding["value"], "category": _category_for(key),
-            "metadata": {"source_page": finding["source_page"], "method": finding["method"]},
+            "metadata": {"source_page": finding["source_page"], "quote": finding["quote"],
+                         "method": finding["method"], "confidence": finding["confidence"]},
         })
 
     manifest = {

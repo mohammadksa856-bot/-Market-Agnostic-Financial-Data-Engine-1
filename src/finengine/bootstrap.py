@@ -68,6 +68,7 @@ def _publish_manifest_domains(
             company.company_id, item["attribute_key"], item["value"],
             item.get("effective_at", effective_at), source_key,
             item.get("category", "general"), item.get("language", "en"),
+            item.get("metadata"),
         )
         record("company_attributes", state)
     for item in payload.get("disclosures", []):

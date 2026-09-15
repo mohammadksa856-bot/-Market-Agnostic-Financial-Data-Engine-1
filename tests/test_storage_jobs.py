@@ -88,6 +88,31 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM company_attributes WHERE is_current=1").fetchone()[0], 1)
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM disclosures WHERE is_current=1").fetchone()[0], 1)
 
+    def test_company_attribute_preserves_multiple_source_evidence_records(self):
+        first_source = self.source("source:a")
+        second_source = self.source("source:b")
+        first = self.db.publish_company_attribute(
+            "sa:TST", "business_model", "Integrated producer", "2025-12-31",
+            first_source.source_key, "business_model", "en",
+            {"source_page": 10, "quote": "Integrated producer"},
+        )
+        second = self.db.publish_company_attribute(
+            "sa:TST", "business_model", "Integrated producer", "2025-12-31",
+            second_source.source_key, "business_model", "en",
+            {"source_page": 12, "quote": "Integrated producer"},
+        )
+        self.assertEqual((first, second), ("inserted", "duplicate"))
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM company_attribute_evidence").fetchone()[0], 2)
+        query = FinancialQueryService(self.path)
+        try:
+            attribute = query.attributes("SA", "TST")["business_model"]
+        finally:
+            query.close()
+        self.assertEqual([item["metadata"]["source_page"]
+                          for item in attribute["evidence"]], [10, 12])
+        self.assertTrue(all(item["source"] for item in attribute["evidence"]))
+
     def test_job_queue_is_idempotent_and_audited(self):
         queue = DurableJobQueue(self.db)
         first, created = queue.enqueue("ingest", {"market": "SA"}, "sa:TST", idempotency_key="ingest:1")

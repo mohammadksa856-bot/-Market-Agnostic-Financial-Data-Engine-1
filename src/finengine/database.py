@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 18
+SCHEMA_VERSION = 19
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -188,6 +188,14 @@ CREATE TABLE IF NOT EXISTS company_attributes(
  version INTEGER NOT NULL, is_current INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  UNIQUE(company_id,attribute_key,language,effective_at,version));
 CREATE INDEX IF NOT EXISTS idx_company_attribute_current ON company_attributes(company_id,attribute_key,is_current);
+CREATE TABLE IF NOT EXISTS company_attribute_evidence(
+ id INTEGER PRIMARY KEY, attribute_id INTEGER NOT NULL REFERENCES company_attributes(id),
+ source_key TEXT NOT NULL REFERENCES source_documents(source_key),
+ evidence_hash TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}',
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE(attribute_id,source_key,evidence_hash));
+CREATE INDEX IF NOT EXISTS idx_company_attribute_evidence
+ ON company_attribute_evidence(attribute_id,source_key);
 CREATE TABLE IF NOT EXISTS disclosures(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
  disclosure_type TEXT NOT NULL, title TEXT NOT NULL, body_text TEXT NOT NULL,
@@ -1377,22 +1385,33 @@ class Database:
 
     def publish_company_attribute(self, company_id: str, attribute_key: str, value, effective_at: str,
                                   source_key: str | None = None, category: str = "general",
-                                  language: str = "en") -> str:
+                                  language: str = "en", metadata: dict | None = None) -> str:
         encoded = _json(value)
         old = self.conn.execute(
             "SELECT id,value_json,version FROM company_attributes WHERE company_id=? AND attribute_key=? AND language=? AND is_current=1",
             (company_id, attribute_key, language)).fetchone()
-        if old and old["value_json"] == encoded:
-            return "duplicate"
-        version = old["version"] + 1 if old else 1
+        duplicate = bool(old and old["value_json"] == encoded)
+        version = old["version"] + 1 if old and not duplicate else 1
         with self.conn:
-            if old:
+            if old and not duplicate:
                 self.conn.execute("UPDATE company_attributes SET is_current=0 WHERE id=?", (old["id"],))
-            self.conn.execute(
-                """INSERT INTO company_attributes(company_id,attribute_key,category,value_json,language,
-                effective_at,source_key,version) VALUES(?,?,?,?,?,?,?,?)""",
-                (company_id, attribute_key, category, encoded, language, effective_at, source_key, version))
-        return "restated" if old else "inserted"
+            if duplicate:
+                attribute_id = old["id"]
+            else:
+                cursor = self.conn.execute(
+                    """INSERT INTO company_attributes(company_id,attribute_key,category,value_json,language,
+                    effective_at,source_key,version) VALUES(?,?,?,?,?,?,?,?)""",
+                    (company_id, attribute_key, category, encoded, language, effective_at, source_key, version))
+                attribute_id = cursor.lastrowid
+            if source_key and metadata:
+                evidence_json = _json(metadata)
+                evidence_hash = hashlib.sha256(evidence_json.encode("utf-8")).hexdigest()
+                self.conn.execute(
+                    """INSERT OR IGNORE INTO company_attribute_evidence(
+                    attribute_id,source_key,evidence_hash,metadata_json) VALUES(?,?,?,?)""",
+                    (attribute_id, source_key, evidence_hash, evidence_json),
+                )
+        return "duplicate" if duplicate else "restated" if old else "inserted"
 
     def publish_disclosure(self, company_id: str, disclosure_type: str, title: str, body_text: str,
                            published_at: str, source_key: str | None = None, period_end: str | None = None,
