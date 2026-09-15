@@ -123,8 +123,26 @@ def fetch_saudi_market_history(
             if not found_sector:
                 raise KeyError(f"symbol not present in Saudi Exchange historical selector: {symbol}")
             page.select_option("#entity", symbol, force=True)
-            page.locator("#startTimePeriod").fill(date.fromisoformat(start_date).strftime("%d-%m-%Y"))
-            page.locator("#endTimePeriod").fill(date.fromisoformat(end_date).strftime("%d-%m-%Y"))
+            # These inputs are deliberately readonly because the public page
+            # uses a date picker.  Set the value through the DOM and emit the
+            # same events the picker would emit; Locator.fill cannot edit a
+            # readonly control on the production page.
+            page.evaluate("""({startDate,endDate}) => {
+                const setDate=(selector,value) => {
+                    const input=document.querySelector(selector);
+                    if (!input) throw new Error(`missing date input: ${selector}`);
+                    const setter=Object.getOwnPropertyDescriptor(
+                        HTMLInputElement.prototype,'value').set;
+                    setter.call(input,value);
+                    input.dispatchEvent(new Event('input',{bubbles:true}));
+                    input.dispatchEvent(new Event('change',{bubbles:true}));
+                };
+                setDate('#startTimePeriod',startDate);
+                setDate('#endTimePeriod',endDate);
+            }""", {
+                "startDate": date.fromisoformat(start_date).strftime("%d-%m-%Y"),
+                "endDate": date.fromisoformat(end_date).strftime("%d-%m-%Y"),
+            })
             with page.expect_response(lambda response: "populateCompanyDetails" in response.url,
                                       timeout=timeout_ms):
                 page.evaluate("populateCompanyDetails(false)")
