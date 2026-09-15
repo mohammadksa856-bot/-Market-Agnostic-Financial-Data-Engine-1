@@ -94,10 +94,14 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
     source_indexes = []
     for url in (
         [payload.get("source_index")] +
+        # Prefer the reviewed registry endpoints. Dynamically learned database
+        # sources remain useful fallbacks, but stale generic IR landing pages
+        # must not delay a dedicated annual/quarterly filing library.
+        list(company.sources) +
         [row["url"] for row in db.conn.execute(
             "SELECT url FROM company_sources WHERE company_id=? AND enabled=1 "
             "ORDER BY priority,id", (company.company_id,),
-        )] + list(company.sources)
+        )]
     ):
         if url and url not in source_indexes:
             source_indexes.append(url)
