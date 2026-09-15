@@ -1,10 +1,17 @@
 import json
 import unittest
 
-from finengine.saudi_market import normalize_saudi_market_rows
+from finengine.saudi_market import _access_blocked, normalize_saudi_market_rows
 
 
 class SaudiMarketHistoryTests(unittest.TestCase):
+    def test_detects_exchange_cdn_denial_before_waiting_for_missing_selectors(self):
+        self.assertTrue(_access_blocked(
+            "Access Denied",
+            "You don't have permission to access this URL. errors.edgesuite.net",
+        ))
+        self.assertFalse(_access_blocked("Historical Reports", "Market and sector filters"))
+
     def test_normalizes_visible_close_and_numeric_fields(self):
         rows = [{
             "transactionDateStr": "2026/09/14", "todaysOpen": "25.70",

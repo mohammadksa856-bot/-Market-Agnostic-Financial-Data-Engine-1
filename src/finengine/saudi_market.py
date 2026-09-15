@@ -36,6 +36,14 @@ SECTOR_CODES = {
 }
 
 
+def _access_blocked(title: str, body_text: str) -> bool:
+    """Recognize CDN denial pages before waiting for controls that do not exist."""
+    evidence = f"{title}\n{body_text}".lower()
+    return any(marker in evidence for marker in (
+        "access denied", "permission to access", "errors.edgesuite.net",
+    ))
+
+
 def _number(value) -> str | None:
     text = str(value or "").strip().replace(",", "")
     if text in {"", "-", "--", "null", "None"}:
@@ -99,6 +107,13 @@ def fetch_saudi_market_history(
             page = context.new_page()
             page.goto(SAUDI_HISTORICAL_REPORTS_URL, timeout=timeout_ms,
                       wait_until="domcontentloaded")
+            title = page.title()
+            body_text = page.locator("body").inner_text(timeout=min(timeout_ms, 10000))
+            if _access_blocked(title, body_text):
+                raise RuntimeError(
+                    "Saudi Exchange historical reports access denied by the source CDN; "
+                    "use an authorized network or licensed market-history feed"
+                )
             page.wait_for_selector("#marketOrIndices", timeout=timeout_ms)
             page.select_option("#marketOrIndices", market_value, force=True)
             page.wait_for_function(
@@ -114,7 +129,16 @@ def fetch_saudi_market_history(
             found_sector = None
             for sector_value in candidates:
                 page.select_option("#sectors", sector_value, force=True)
-                page.wait_for_timeout(250)
+                try:
+                    page.wait_for_function(
+                        "document.querySelector('#entity') && "
+                        "document.querySelector('#entity').options.length > 1",
+                        timeout=min(timeout_ms, 10000),
+                    )
+                except Exception:
+                    # Some sectors legitimately return no issuers. Continue to
+                    # the next selector instead of failing the entire scan.
+                    continue
                 values = page.locator("#entity option").evaluate_all(
                     "els => els.map(e => e.value)")
                 if symbol in values:

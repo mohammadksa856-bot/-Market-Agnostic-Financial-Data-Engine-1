@@ -44,7 +44,10 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("supabase-sync-status.json", compose)
         self.assertIn(":/app/state:rw", compose)
         self.assertIn('write_status "ready"', worker)
+        self.assertIn('write_status "running"', worker)
         self.assertIn('write_status "failed"', worker)
+        self.assertIn('timeout "$export_timeout"', worker)
+        self.assertIn('(ready|running)', compose)
 
     def test_release_deploys_only_after_successful_main_tests(self):
         workflow = (ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")

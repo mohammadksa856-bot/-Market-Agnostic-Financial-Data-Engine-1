@@ -185,6 +185,7 @@ services:
       SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
       FINENGINE_SUPABASE_SYNC_SECONDS: ${FINENGINE_SUPABASE_SYNC_SECONDS:-300}
+      FINENGINE_SUPABASE_EXPORT_TIMEOUT_SECONDS: ${FINENGINE_SUPABASE_EXPORT_TIMEOUT_SECONDS:-1800}
       FINENGINE_SUPABASE_STATUS_FILE: /tmp/supabase-sync-status.json
       FINENGINE_DB: /app/state/financial.sqlite3
       FINENGINE_REGISTRY: /app/config/companies.json
@@ -197,7 +198,7 @@ services:
       engine:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "test -s /tmp/supabase-sync-status.json && grep -q '\"state\": \"ready\"' /tmp/supabase-sync-status.json"]
+      test: ["CMD-SHELL", "test -s /tmp/supabase-sync-status.json && grep -Eq '\"state\": \"(ready|running)\"' /tmp/supabase-sync-status.json"]
       interval: 30s
       timeout: 5s
       start_period: 180s
