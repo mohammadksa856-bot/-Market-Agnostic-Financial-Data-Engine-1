@@ -628,6 +628,42 @@ class MonitoringTests(unittest.TestCase):
             _source_period(annual_statement, self.aramco), ("2019-12-31", 2019),
         )
 
+    def test_quarter_end_month_names_date_regulatory_and_interim_filings(self):
+        def row(url, filing_type, title="View"):
+            return {"metadata_json": json.dumps({"title": title}), "source_url": url,
+                    "filing_type": filing_type}
+
+        base = "https://bank.example/reports/"
+        self.assertEqual(_source_period(row(
+            base + "sab-pillar-3-disclosures-march-2026.pdf", "regulatory-disclosure"),
+            self.aramco), ("2026-03-31", 2026))
+        self.assertEqual(_source_period(row(
+            base + "SNB-Pillar-3-Disclosures-Dec-2025-HR.pdf", "regulatory-disclosure"),
+            self.aramco), ("2025-12-31", 2025))
+        self.assertEqual(_source_period(row(
+            base + "Basel_III_Pillar_3_Disclosures_Dec_20_EN.pdf", "regulatory-disclosure"),
+            self.aramco), ("2020-12-31", 2020))
+        # Encoded spaces are real separators in official filenames.
+        self.assertEqual(_source_period(row(
+            base + "SAB%20-%20PILLAR%203%20Disclosures%20-%20Jun%202025.pdf",
+            "regulatory-disclosure"), self.aramco), ("2025-06-30", 2025))
+        self.assertEqual(_source_period(row(
+            base + "SAB%20Financial%20Statements%20%2030%20June%202025%20English.pdf",
+            "interim-report", "Financial statements"), self.aramco), ("2025-06-30", 2025))
+        # A publication month in an annual report title is not its period.
+        self.assertEqual(_source_period(row(
+            base + "annual-report.pdf", "annual-report", "Annual Report 2025 - March 2026"),
+            self.aramco), ("2025-12-31", 2025))
+
+    def test_issuer_connector_types_pillar_3_before_quarter_tokens(self):
+        self.assertEqual(
+            IssuerReportsMonitor._document_type("Pillar 3 Disclosures Q2 2025", "pdf"),
+            "regulatory-disclosure",
+        )
+        self.assertEqual(
+            IssuerReportsMonitor._document_type("Q2 interim report", "pdf"), "interim-report",
+        )
+
     def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):
         unmapped = Company("sa:9999", Market.SA, "9999", "Unmapped Co", "SAR")
         self.db.register_company(unmapped)
