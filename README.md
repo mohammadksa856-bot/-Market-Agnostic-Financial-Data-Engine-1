@@ -75,7 +75,7 @@ The bundled portable snapshot is rebuilt from 73 reviewed manifests and currentl
   before publishing OHLC, volume, and turnover. Derived 20/50/200-session averages,
   30-day annualized volatility, 52-week range, and 1M/3M/6M/YTD/1Y/3Y/5Y returns
   are emitted only when the stored history honestly covers each requested window.
-- The current suite has 261 passing unit/integration/release tests; one optional
+- The current suite has 262 passing unit/integration/release tests; one optional
   dependency-availability test is skipped when the browser extra is installed.
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
