@@ -44,6 +44,7 @@ class ReviewedManifestSyncTests(unittest.TestCase):
         registry = CompanyRegistry([
             Company("sa:2222", Market.SA, "2222", "Saudi Arabian Oil Company (Aramco)", "SAR"),
             Company("sa:2019", Market.SA, "2019", "Example Industrial Company", "SAR"),
+            Company("sa:2223", Market.SA, "2223", "Saudi Aramco Base Oil Company - Luberef", "SAR"),
         ])
         company = _manifest_company(
             Path("aramco-2019-fy-historical.json"), {"facts": []}, registry,

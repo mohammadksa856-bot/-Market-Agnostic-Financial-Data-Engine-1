@@ -38,6 +38,21 @@ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
         if len(matches) == 1:
             return matches[0]
     stem_tokens = set(re.findall(r"[a-z0-9]+", path.stem.lower()))
+    # A registered short name in parentheses is the strongest legacy filename
+    # identity (for example ``(Aramco)``). This disambiguates a parent issuer
+    # from subsidiaries whose legal names also contain the parent's brand.
+    alias_matches = []
+    for company in registry.all():
+        aliases = {
+            token
+            for group in re.findall(r"\(([^)]+)\)", company.name.lower())
+            for token in re.findall(r"[a-z0-9]+", group)
+            if len(token) >= 4
+        }
+        if aliases & stem_tokens:
+            alias_matches.append(company)
+    if len(alias_matches) == 1:
+        return alias_matches[0]
     generic_name_tokens = {
         "arabian", "bank", "company", "corporation", "financial", "group",
         "holding", "holdings", "international", "limited", "national", "saudi",
