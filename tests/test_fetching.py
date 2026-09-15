@@ -32,6 +32,20 @@ class FetchAgentUnitTests(unittest.TestCase):
             "Download file",
         ))
 
+    def test_quarter_only_official_links_are_filing_keywords(self):
+        self.assertTrue(_matches_filing_keywords(
+            "https://bank.example/documents/ANB-FS-Q1-2025.pdf", "Q1 2025"
+        ))
+        self.assertTrue(_matches_filing_keywords(
+            "https://bank.example/downloads/BAB-FS.pdf", "For 2025 the second quarter"
+        ))
+        self.assertTrue(_matches_filing_keywords(
+            "https://bank.example/downloads/BAB-FS.pdf", "الربع الثالث 2025"
+        ))
+        self.assertFalse(_matches_filing_keywords(
+            "https://bank.example/downloads/governance.pdf", "Governance policies"
+        ))
+
     def test_query_driven_and_labelled_downloads_are_classified(self):
         self.assertEqual(
             _document_content_type(

@@ -197,7 +197,18 @@ def _matches_filing_keywords(url: str, label: str,
         r"[-_/]+", " ",
         unquote(f"{label} {parsed.path} {parsed.query}").lower(),
     )
-    return any(keyword in searchable for keyword in keywords)
+    if any(keyword in searchable for keyword in keywords):
+        return True
+    # Some official filing libraries label interim statements only as ``Q1``
+    # or ``First Quarter`` while the PDF filename is abbreviated to ``FS``.
+    # Those are authoritative filing links, not navigation pages (the caller
+    # has already required a document content type), so keep the quarter token
+    # as a valid discovery signal.
+    return bool(
+        re.search(r"(?:^|[^a-z0-9])(?:q[1-4]|[1-4]q)(?:[^a-z0-9]|$)", searchable)
+        or re.search(r"\b(?:first|second|third|fourth)\s+quarter\b", searchable)
+        or re.search(r"الربع\s+(?:الأول|الاول|الثاني|الثالث|الرابع)", searchable)
+    )
 
 
 def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
