@@ -22,6 +22,12 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn('if [ ! -s "$database" ]', startup)
         self.assertIn('--raw-dir "$raw_dir"', startup)
 
+    def test_startup_syncs_reviewed_manifests_into_persistent_state(self):
+        startup = (ROOT / "deploy" / "start-production.sh").read_text(encoding="utf-8")
+        self.assertIn('finengine --db "$database" sync-manifests', startup)
+        self.assertIn('--archive-index "$seed_raw/archive-index.json"', startup)
+        self.assertIn('--backup-dir "$state_dir/pre-manifest-backups"', startup)
+
     def test_supabase_projection_is_read_only_for_clients(self):
         migration = (ROOT / "supabase" / "migrations" / "0001_financial_facts.sql").read_text(encoding="utf-8")
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")

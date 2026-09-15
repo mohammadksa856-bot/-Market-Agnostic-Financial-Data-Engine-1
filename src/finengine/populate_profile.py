@@ -39,6 +39,13 @@ _CATEGORY_BY_KEY = {
     "headquarters_address": "identity",
     "ceo_name": "governance", "chairman_name": "governance",
     "executive_management_team": "governance", "board_of_directors": "governance",
+    "board_size": "governance", "independent_directors": "governance",
+    "board_committees": "governance", "audit_committee": "governance",
+    "sustainability_risk_hse_committee": "governance",
+    "nomination_committee": "governance", "compensation_committee": "governance",
+    "corporate_secretary": "governance", "board_meetings_held": "governance",
+    "board_term_end": "governance", "compensation_policy": "governance",
+    "internal_control_assessment": "governance", "governance_framework": "governance",
     "auditor": "governance", "credit_rating": "governance",
     "reporting_standard": "governance", "reporting_languages": "governance",
     "employees": "workforce",
@@ -46,6 +53,9 @@ _CATEGORY_BY_KEY = {
     "products_services": "business_model", "geographic_presence": "business_model",
     "subsidiaries_count": "business_model", "investor_contact_email": "business_model",
     "fiscal_year_end": "identity", "index_memberships": "identity",
+    "industry_overview": "industry", "industry_drivers": "industry",
+    "regulatory_environment": "industry", "competitive_environment": "industry",
+    "industry_size": "industry", "industry_growth": "industry",
 }
 
 

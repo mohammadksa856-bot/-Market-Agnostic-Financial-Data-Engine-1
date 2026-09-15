@@ -3,6 +3,7 @@ import hashlib
 from decimal import Decimal
 from pathlib import Path
 from .calculations import Calculator
+from .canonicalization import CanonicalProjector, load_projection_facts, projection_period_key
 from .database import Database
 from .domains import CompanyDomainStore
 from .extraction import JsonExtractor
@@ -74,7 +75,17 @@ class Pipeline:
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation),"stage":"validation"}
         self.db.set_normalized_status(normalized_ids,"validated")
         history=self.db.calculation_history(company.company_id,self.calculator.HISTORY_METRICS)
-        calculated=self.calculator.calculate(facts,history); states=self.db.publish_batch(facts+calculated)
+        calculated=self.calculator.calculate(facts,history)
+        # Canonical projections can depend on a detailed note in this batch and
+        # a reported total ingested from another document. Read only the small
+        # governed projection context, then publish exact aliases atomically
+        # with the current source facts.
+        projection_context=load_projection_facts(self.db,company.company_id)
+        projection_periods={projection_period_key(fact) for fact in facts+calculated}
+        projected=CanonicalProjector().project(
+            [*projection_context,*facts,*calculated],projection_periods,
+        )
+        states=self.db.publish_batch(facts+calculated+projected)
         coverage=[]
         for period_end,period_kind in sorted({(f.period_end,f.period_kind.value) for f in facts}):
             try: coverage.append(self.domains.refresh_coverage(company.company_id,period_end,period_kind))
@@ -87,7 +98,7 @@ class Pipeline:
         except Exception as error:
             self.db.exception(company.company_id,doc.source_key,"understanding",
                               "understanding_refresh_failed",str(error),severity="warning")
-        return {"status":"published","source_key":doc.source_key,"published":len(states),"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"exceptions":len(validation),"coverage":coverage,"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"minimum_confidence":"0.95"}}
+        return {"status":"published","source_key":doc.source_key,"published":len(states),"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"exceptions":len(validation),"coverage":coverage,"canonical_projections":len(projected),"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"minimum_confidence":"0.95"}}
 
     def backfill_staging(self, company: Company, doc) -> dict:
         """Build the audit trail for legacy documents without republishing observations."""

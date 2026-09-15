@@ -264,7 +264,14 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     estimates = count("SELECT count(*) FROM consensus_estimates WHERE company_id=? AND is_current=1", (company_id,))
     disclosures = count("SELECT count(*) FROM disclosures WHERE company_id=? AND is_current=1", (company_id,))
     sources = count("SELECT count(*) FROM source_documents WHERE company_id=?", (company_id,))
-    guidance = count("SELECT count(*) FROM disclosures WHERE company_id=? AND is_current=1 AND disclosure_type='guidance'", (company_id,))
+    # A label alone is not enough to earn forward-looking coverage. Historical
+    # manifests may contain dividend declarations or completed events under the
+    # broad ``guidance`` label. Only explicitly reviewed forward-looking issuer
+    # records contribute; analyst forecasts remain in consensus_estimates.
+    guidance = count("""SELECT count(*) FROM disclosures WHERE company_id=?
+        AND is_current=1 AND disclosure_type='guidance'
+        AND json_extract(metadata_json,'$.forward_looking')=1
+        AND COALESCE(json_extract(metadata_json,'$.analyst_forecast'),0)=0""", (company_id,))
     risk_items = count("""SELECT count(*) FROM disclosures WHERE company_id=? AND is_current=1
                         AND disclosure_type IN ('risk_factor','liquidity_risk','contingency','customer_concentration','restatement')""", (company_id,))
     op_points = count("""SELECT count(*) FROM data_points p JOIN metric_definitions m ON m.metric_key=p.metric_key
@@ -277,16 +284,32 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     identity_base = sum(bool(company[k]) for k in ("name", "symbol", "market", "currency", "fiscal_year_end", "exchange", "country", "sector", "industry", "isin"))
     industry_context = count("""SELECT count(*) FROM company_attributes WHERE company_id=?
         AND is_current=1 AND attribute_key IN ('industry_overview','industry_drivers',
-        'regulatory_environment','industry_size','industry_growth')""", (company_id,))
+        'regulatory_environment','competitive_environment','industry_size','industry_growth')""", (company_id,))
     classification_fields = int(bool(company["sector"])) + int(bool(company["industry"]))
-    peer_count = count("""SELECT count(DISTINCT c.company_id) FROM companies c
-        WHERE c.company_id<>? AND c.enabled=1
-          AND ((?<>'' AND c.industry=?) OR (?='' AND c.sector=?))
-          AND EXISTS (SELECT 1 FROM data_points d JOIN metric_definitions m
-                      ON m.metric_key=d.metric_key WHERE d.company_id=c.company_id
-                      AND d.is_current=1 AND m.category IN ('ratio','calculated'))""",
-        (company_id, company["industry"] or "", company["industry"] or "",
-         company["industry"] or "", company["sector"] or ""))
+    def classified_peer_count(scope_field: str, scope_value: str) -> int:
+        if not scope_value:
+            return 0
+        return count(f"""SELECT count(DISTINCT c.company_id) FROM companies c
+            WHERE c.company_id<>? AND c.enabled=1 AND c.{scope_field}=?
+              AND EXISTS (SELECT 1 FROM data_points d JOIN metric_definitions m
+                          ON m.metric_key=d.metric_key WHERE d.company_id=c.company_id
+                          AND d.is_current=1 AND m.category IN ('ratio','calculated')
+                          AND d.period_kind IN ('ttm','fy') AND d.scope='consolidated'
+                          AND d.dimensions_json='{{}}' AND d.value_type='decimal'
+                          AND d.value_decimal IS NOT NULL)""", (company_id, scope_value))
+
+    peer_scope_field = "industry" if company["industry"] else "sector"
+    peer_scope_value = company[peer_scope_field] or ""
+    peer_count = classified_peer_count(peer_scope_field, peer_scope_value)
+    peer_scope_fallback = None
+    if peer_scope_field == "industry" and peer_count == 0 and company["sector"]:
+        peer_scope_fallback = {
+            "field": "industry", "value": peer_scope_value,
+            "reason": "no_other_peer_with_comparable_facts",
+        }
+        peer_scope_field = "sector"
+        peer_scope_value = company["sector"]
+        peer_count = classified_peer_count(peer_scope_field, peer_scope_value)
     peer_metrics = count("""SELECT count(DISTINCT d.metric_key) FROM data_points d
         JOIN metric_definitions m ON m.metric_key=d.metric_key WHERE d.company_id=?
         AND d.is_current=1 AND m.category IN ('ratio','calculated')
@@ -336,7 +359,16 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         elif key == "competitors":
             evidence.update({"inferred_peers_with_ratio_data": peer_count,
                              "comparable_metrics": peer_metrics,
-                             "methodology": "internal_calculation"})
+                             "methodology": "internal_calculation",
+                             "classification_basis":
+                                 "inferred_peer_not_issuer_declared_competitor",
+                             "peer_scope": {
+                                 "field": peer_scope_field,
+                                 "value": peer_scope_value,
+                                 "classification_source": "reviewed_company_registry",
+                                 **({"fallback_from": peer_scope_fallback}
+                                    if peer_scope_fallback else {}),
+                             }})
         gaps = []
         if status != "complete":
             gaps.append("category_coverage_below_95_percent")

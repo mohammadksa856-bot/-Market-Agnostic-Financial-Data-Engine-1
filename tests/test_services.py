@@ -155,6 +155,44 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(target["metrics"]["net_margin"]["ascending_rank"],1)
         self.assertTrue(target["metrics"]["net_margin"]["provenance"]["source"])
 
+    def test_peer_comparison_falls_back_from_empty_industry_to_reviewed_sector(self):
+        db=Database(self.dbpath)
+        db.conn.execute(
+            "UPDATE companies SET sector='Materials',industry='Chemicals' WHERE company_id='sa:TST'"
+        )
+        peer=Company("sa:SECTOR",Market.SA,"SECTOR","Sector Peer","SAR",
+                     sector="Materials",industry="Fertilizers")
+        db.register_company(peer)
+        document=SourceDocument(peer.company_id,peer.market,"https://example.test/sector-peer",
+                                "source:sector-peer","annual","2026-01-02",b"peer")
+        raw=Path(self.temp.name)/"sector-peer.json"; raw.write_bytes(b"peer")
+        db.save_source(document,hashlib.sha256(b"peer").hexdigest(),str(raw))
+        db.set_source_status(document.source_key,"published")
+        for company_id,source_key,source_url,value in (
+            ("sa:TST","source:test","https://example.test/report","0.10"),
+            ("sa:SECTOR","source:sector-peer","https://example.test/sector-peer","0.20"),
+        ):
+            db.publish(Fact(company_id,"net_margin",Decimal(value),"ratio","ratio",
+                            "2025-01-01","2025-12-31",PeriodKind.FY,2025,None,
+                            source_key,source_url,"2026-01-02"))
+        db.close()
+        query=FinancialQueryService(self.dbpath)
+        try: peers=query.peer_comparison("SA","TST",("net_margin",))
+        finally: query.close()
+        self.assertEqual(peers["status"],"available")
+        self.assertEqual(peers["peer_count"],1)
+        self.assertEqual(peers["scope"]["field"],"sector")
+        self.assertEqual(peers["scope"]["value"],"Materials")
+        self.assertEqual(peers["scope"]["classification_source"],
+                         "reviewed_company_registry")
+        self.assertEqual(peers["scope"]["fallback_from"],{
+            "field":"industry", "value":"Chemicals",
+            "reason":"no_other_peer_with_comparable_facts",
+        })
+        self.assertEqual(peers["classification_basis"],
+                         "inferred_peer_not_issuer_declared_competitor")
+        self.assertIn("SECTOR",{row["symbol"] for row in peers["companies"]})
+
     def test_release_audit_checks_source_hashes(self):
         result=audit_release(self.dbpath)
         self.assertTrue(result["ready"])
@@ -250,6 +288,36 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(payload["llm"])
         self.assertEqual(payload["source_limit"],25)
         self.assertEqual(payload["raw_dir"],str(runtime_raw))
+
+    def test_production_schedules_include_enabled_database_only_companies(self):
+        registry=Path(self.temp.name)/"companies.json"
+        registry.write_text(json.dumps([{
+            "company_id":"sa:SEED","market":"SA","symbol":"SEED",
+            "name":"Seed Company","currency":"SAR","sector":"Energy",
+            "sources":["https://seed.example/reports"]
+        }]),encoding="utf-8")
+        db=Database(self.dbpath)
+        try:
+            db.register_company(Company(
+                "sa:DBX",Market.SA,"DBX","Activated Database Company","SAR",
+                sources=("https://db.example/reports",), sector="Materials",
+            ))
+        finally:
+            db.close()
+        result=configure_production_schedules(
+            self.dbpath,registry,3600,25,False,Path(self.temp.name)/"runtime"/"raw"
+        )
+        self.assertIn("monitor:SA:DBX",result["configured"])
+        self.assertIn("market-history:SA:DBX",result["configured"])
+        db=Database(self.dbpath)
+        try:
+            schedule=db.conn.execute(
+                "SELECT payload_json FROM schedules WHERE schedule_id='market-history:SA:DBX'"
+            ).fetchone()
+        finally:
+            db.close()
+        self.assertIsNotNone(schedule)
+        self.assertEqual(json.loads(schedule["payload_json"])["sector"],"Materials")
 
     def test_official_source_artifact_is_archived_and_indexed(self):
         root=Path(self.temp.name); imports=root/"imports"; imports.mkdir()

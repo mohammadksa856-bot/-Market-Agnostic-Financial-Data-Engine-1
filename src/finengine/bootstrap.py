@@ -3,9 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sqlite3
 import shutil
+import tempfile
 import uuid
+from contextlib import closing
 from pathlib import Path
+from typing import Iterable
 
 from .connectors import LocalFileConnector
 from .archive import load_archive_index
@@ -15,6 +19,12 @@ from .jobs import DurableScheduler
 from .pipeline import Pipeline
 from .registry import CompanyRegistry
 from .report import export_readable_report
+
+
+MANIFEST_DOMAIN_KEYS = (
+    "company_attributes", "disclosures", "ownership_positions",
+    "corporate_actions", "market_prices", "consensus_estimates",
+)
 
 
 def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
@@ -110,6 +120,315 @@ def _has_extractable_facts(payload: dict) -> bool:
     """
     facts = payload.get("facts")
     return bool(facts) if isinstance(facts, (list, dict)) else False
+
+
+def _manifest_row_count(payload: dict) -> int:
+    facts = payload.get("facts")
+    if isinstance(facts, list):
+        count = len(facts)
+    elif isinstance(facts, dict):
+        # SEC Company Facts is nested, so a non-empty object is sufficient for
+        # this structural gate. The normal extractor performs the exact count.
+        count = int(bool(facts))
+    else:
+        count = 0
+    return count + sum(len(payload.get(key) or []) for key in MANIFEST_DOMAIN_KEYS)
+
+
+def _portable_manifest_path(path: Path, project_root: str | Path) -> str:
+    try:
+        return os.path.relpath(path.resolve(), Path(project_root).resolve())
+    except ValueError:
+        return str(path.resolve())
+
+
+def _validate_manifest_identity(path: Path, payload: dict, company) -> None:
+    if not isinstance(payload, dict):
+        raise TypeError(f"manifest must contain a JSON object: {path}")
+    if not _manifest_row_count(payload):
+        raise ValueError(f"manifest contains no publishable facts or domains: {path}")
+    if payload.get("company_id") and payload["company_id"] != company.company_id:
+        raise ValueError(f"manifest company_id does not match registry: {path}")
+    if payload.get("market") and str(payload["market"]).upper() != company.market.value:
+        raise ValueError(f"manifest market does not match registry: {path}")
+    if payload.get("symbol") and str(payload["symbol"]).upper() != company.symbol.upper():
+        raise ValueError(f"manifest symbol does not match registry: {path}")
+
+
+def _domain_state_totals(domains: dict[str, dict[str, int]]) -> dict[str, int]:
+    return {
+        state: sum(bucket.get(state, 0) for bucket in domains.values())
+        for state in ("inserted", "restated", "duplicate")
+    }
+
+
+def _apply_reviewed_manifest(
+    db: Database,
+    registry: CompanyRegistry,
+    manifest: Path,
+    raw_dir: str | Path,
+    project_root: str | Path,
+) -> dict:
+    """Apply one immutable reviewed manifest without replacing the database.
+
+    Every production table already has version-aware/idempotent publishers. A
+    content-addressed source that is already published skips the numeric
+    pipeline entirely, avoiding a new pipeline run/publication batch on every
+    deployment, while domain rows are replayed to recover safely from a prior
+    partial domain publication.
+    """
+    content = manifest.read_bytes()
+    payload = json.loads(content)
+    if not isinstance(payload, dict):
+        raise TypeError(f"manifest must contain a JSON object: {manifest}")
+    company = _manifest_company(manifest, payload, registry)
+    _validate_manifest_identity(manifest, payload, company)
+    db.register_company(company)
+
+    digest = hashlib.sha256(content).hexdigest()
+    source_key = f"file:{digest}"
+    previous_status = db.source_status(source_key)
+    portable_path = _portable_manifest_path(manifest, project_root)
+    has_facts = _has_extractable_facts(payload)
+
+    if has_facts and previous_status != "published":
+        numeric = Pipeline(db, raw_dir).run(company, LocalFileConnector(manifest))
+        if numeric["status"] not in {"published", "duplicate"}:
+            raise RuntimeError(f"manifest did not publish: {manifest.name}: {numeric}")
+    elif has_facts:
+        numeric = {
+            "status": "duplicate", "source_key": source_key, "published": 0,
+            "inserted": 0, "restated": 0, "duplicates": 0,
+        }
+    else:
+        document = LocalFileConnector(manifest).fetch(company)
+        db.save_source(document, digest, portable_path)
+        numeric = {
+            "status": "duplicate" if previous_status == "published" else "published",
+            "source_key": source_key, "published": 0, "inserted": 0,
+            "restated": 0, "duplicates": 0,
+        }
+
+    # Keep the reviewed repository path as the portable source identity. The
+    # pipeline's separate source_artifact row retains its immutable raw copy.
+    db.conn.execute(
+        "UPDATE source_documents SET local_path=? WHERE source_key=? AND content_hash=?",
+        (portable_path, source_key, digest),
+    )
+    db.conn.commit()
+
+    domains = _publish_manifest_domains(db, company, payload, source_key)
+    domain_totals = _domain_state_totals(domains)
+    domain_changes = domain_totals["inserted"] + domain_totals["restated"]
+    source_registered = previous_status is None
+    if not has_facts:
+        db.set_source_status(source_key, "published")
+    # The numeric pipeline already records its own batch. Record an additional
+    # domain-only batch only when this replay actually changed durable state.
+    if domain_changes or (not has_facts and source_registered):
+        db.publication_batch(
+            source_key, company.company_id, "published", 0, domain_changes,
+        )
+
+    numeric_changes = int(numeric.get("inserted", 0)) + int(numeric.get("restated", 0))
+    changed = source_registered or numeric_changes > 0 or domain_changes > 0
+    return {
+        "manifest": manifest.name,
+        "manifest_path": str(manifest),
+        "company_id": company.company_id,
+        "source_key": source_key,
+        "status": "published" if changed else "duplicate",
+        "source_registered": source_registered,
+        "numeric": numeric,
+        "domains": domains,
+        "counts": {
+            "inserted": int(numeric.get("inserted", 0)) + domain_totals["inserted"],
+            "restated": int(numeric.get("restated", 0)) + domain_totals["restated"],
+            "duplicate": int(numeric.get("duplicates", 0)) + domain_totals["duplicate"],
+        },
+    }
+
+
+def _selected_manifests(
+    imports_dir: str | Path, manifest_paths: Iterable[str | Path] | None,
+) -> list[Path]:
+    imports = Path(imports_dir)
+    if manifest_paths:
+        selected = []
+        for value in manifest_paths:
+            path = Path(value)
+            if not path.is_file():
+                path = imports / path
+            if not path.is_file():
+                raise FileNotFoundError(path)
+            selected.append(path)
+    else:
+        selected = sorted(imports.glob("*.json"))
+    if not selected:
+        raise FileNotFoundError(f"no JSON manifests found in {imports}")
+    return selected
+
+
+def _verify_selected_manifests(manifests: list[Path]) -> dict:
+    """Run deterministic manifest checks before opening the live DB writable."""
+    from .verification import ManifestVerifier
+
+    with tempfile.TemporaryDirectory() as directory:
+        staging = Path(directory)
+        names = [manifest.name for manifest in manifests]
+        if len(names) != len(set(names)):
+            raise ValueError("selected manifests must have unique filenames")
+        for manifest in manifests:
+            # Preserve legacy filename prefixes because they are part of the
+            # issuer identity for manifests created before company_id headers.
+            shutil.copy2(manifest, staging / manifest.name)
+        report = ManifestVerifier(staging).verify()
+    if report["failures"] or report["unmapped_labels"]:
+        raise ValueError(
+            "reviewed manifest verification failed before publication: "
+            f"failures={report['failures']} unmapped={len(report['unmapped_labels'])}"
+        )
+    return report
+
+
+def _clone_database(source: Path, destination: Path) -> None:
+    source_uri = f"file:{source.resolve().as_posix()}?mode=ro"
+    with closing(sqlite3.connect(source_uri, uri=True)) as source_db:
+        with closing(sqlite3.connect(destination)) as destination_db:
+            source_db.backup(destination_db)
+            destination_db.commit()
+
+
+def _sync_manifests_to_database(
+    db: Database,
+    manifests: list[Path],
+    registry_path: str | Path,
+    raw_dir: str | Path,
+    archive_index: str | Path | None,
+    project_root: str | Path,
+) -> dict:
+    registry = CompanyRegistry.combined(db.conn, registry_path)
+    results = [
+        _apply_reviewed_manifest(db, registry, manifest, raw_dir, project_root)
+        for manifest in manifests
+    ]
+    archived_artifacts = (
+        load_archive_index(db, archive_index, project_root) if archive_index else 0
+    )
+    impacted = sorted({row["company_id"] for row in results})
+    store = CompanyDomainStore(db)
+    company_results = []
+    from .understanding import refresh_company_understanding
+
+    for company_id in impacted:
+        changed_payloads = [
+            json.loads(manifest.read_text(encoding="utf-8"))
+            for manifest, row in zip(manifests, results)
+            if row["company_id"] == company_id and row["status"] == "published"
+        ]
+        market_statistics = None
+        market_valuation = None
+        if any(payload.get("market_prices") for payload in changed_payloads):
+            market_statistics = store.refresh_market_statistics(company_id)
+            market_valuation = store.refresh_market_valuations(company_id)
+        backlog = store.refresh_company_backlog(company_id)
+        understanding = refresh_company_understanding(db.conn, company_id)
+        company_results.append({
+            "company_id": company_id,
+            "catalog_score": backlog["catalog_score"],
+            "backlog_open": backlog["open"],
+            "understanding_score": understanding["total_score"],
+            "market_statistics": market_statistics,
+            "market_valuation": market_valuation,
+        })
+    integrity = db.conn.execute("PRAGMA integrity_check").fetchone()[0]
+    if integrity != "ok":
+        raise RuntimeError(f"database failed integrity check after manifest sync: {integrity}")
+    totals = {
+        state: sum(row["counts"][state] for row in results)
+        for state in ("inserted", "restated", "duplicate")
+    }
+    return {
+        "status": "ready",
+        "manifests": len(results),
+        "published_manifests": sum(row["status"] == "published" for row in results),
+        "duplicate_manifests": sum(row["status"] == "duplicate" for row in results),
+        "counts": totals,
+        "archived_artifacts_loaded": archived_artifacts,
+        "companies": company_results,
+        "integrity": integrity,
+        "results": results,
+    }
+
+
+def sync_reviewed_manifests(
+    database: str | Path,
+    imports_dir: str | Path = "data/imports",
+    registry_path: str | Path = "config/companies.json",
+    raw_dir: str | Path = "data/raw",
+    manifest_paths: Iterable[str | Path] | None = None,
+    archive_index: str | Path | None = "data/raw/archive-index.json",
+    project_root: str | Path = ".",
+    backup_dir: str | Path | None = None,
+    backup_keep: int = 3,
+) -> dict:
+    """Safely sync reviewed manifests into an existing persistent database.
+
+    The complete selected set is first verified and applied to an online SQLite
+    clone. Only after that succeeds is the live database opened for writes. A
+    retry is safe: content-addressed sources and version-aware domain publishers
+    leave production rows and their versions unchanged for duplicate inputs.
+    """
+    target = Path(database)
+    if not target.is_file():
+        raise FileNotFoundError(
+            f"manifest sync requires an existing database (refusing to create {target})"
+        )
+    manifests = _selected_manifests(imports_dir, manifest_paths)
+    verification = _verify_selected_manifests(manifests)
+
+    with tempfile.TemporaryDirectory() as directory:
+        temporary_root = Path(directory)
+        clone = temporary_root / "preflight.sqlite3"
+        _clone_database(target, clone)
+        preview_db = Database(clone)
+        try:
+            preview = _sync_manifests_to_database(
+                preview_db, manifests, registry_path, temporary_root / "raw",
+                archive_index, project_root,
+            )
+        finally:
+            preview_db.close()
+
+    backup = None
+    if backup_dir and preview["published_manifests"]:
+        from .operations import backup_database
+        backup = backup_database(target, backup_dir, backup_keep)
+
+    live_db = Database(target)
+    try:
+        result = _sync_manifests_to_database(
+            live_db, manifests, registry_path, raw_dir, archive_index, project_root,
+        )
+    finally:
+        live_db.close()
+    result.update({
+        "database": str(target),
+        "verification": {
+            "checks": verification["checks"],
+            "passed": verification["passed"],
+            "warnings": verification["warnings"],
+            "failures": verification["failures"],
+            "unmapped_labels": len(verification["unmapped_labels"]),
+        },
+        "preflight": {
+            "status": preview["status"],
+            "published_manifests": preview["published_manifests"],
+            "integrity": preview["integrity"],
+        },
+        "backup": backup,
+    })
+    return result
 
 
 def rebuild_snapshot(

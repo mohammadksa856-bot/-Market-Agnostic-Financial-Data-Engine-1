@@ -183,10 +183,17 @@ def configure_production_schedules(
     raw_dir: str | Path = "data/raw",
 ) -> dict:
     """Idempotently configure monitoring for every enabled registry company."""
-    registry = CompanyRegistry.from_json(registry_path)
     db = Database(database)
     configured = []
     try:
+        # The production database is the durable authority after a complete
+        # universe activation.  Seed JSON remains authoritative for its own
+        # companies, while DB-only activated issuers must not be omitted from
+        # recurring monitoring and Saudi market-history collection.
+        seed_registry = CompanyRegistry.from_json(registry_path)
+        for company in seed_registry.all():
+            db.register_company(company)
+        registry = CompanyRegistry.combined(db.conn, registry_path)
         scheduler = DurableScheduler(db)
         for company in registry.all():
             if not company.enabled:

@@ -31,6 +31,15 @@ if [ ! -s "$database" ]; then
         --imports "$imports" --registry "$registry" --raw-dir "$seed_raw" --replace
 fi
 
+# A deployment may contain newly reviewed manifests even when the persistent
+# database already exists. Preflight the complete set against an online clone,
+# then apply only idempotent inserts/restatements and link the archived official
+# source files. Duplicate deploys do not create new fact versions or run rows.
+finengine --db "$database" sync-manifests \
+    --imports "$imports" --registry "$registry" --raw-dir "$raw_dir" \
+    --archive-index "$seed_raw/archive-index.json" --project-root /app \
+    --backup-dir "$state_dir/pre-manifest-backups" --backup-keep 3
+
 # Idempotent upserts: restarting the container never duplicates schedules and
 # preserves each schedule's next-run cursor.
 finengine --db "$database" configure-production --registry "$registry" \

@@ -8,7 +8,7 @@ from .connectors import (
 from .api import create_api_server, serve_api
 from .audit import audit_release
 from .archive import archive_manifest_sources
-from .bootstrap import rebuild_snapshot
+from .bootstrap import rebuild_snapshot, sync_reviewed_manifests
 from .database import Database
 from .pipeline import Pipeline
 from .query import FinancialQueryService
@@ -645,37 +645,131 @@ def _market_history_job_handler(db: Database):
             start_date = end_date - timedelta(days=10)
         else:
             start_date = end_date - timedelta(days=365 * 6 + 2)
-        content = fetch_saudi_market_history(
-            company.symbol, start_date.isoformat(), end_date.isoformat(),
-            sector=payload.get("sector") or company.sector,
-            market_segment=payload.get("market_segment") or company.exchange or "Main Market",
-            headless=_browser_headless(),
-        )
-        digest = hashlib.sha256(content).hexdigest()
-        source_key = f"sa-market:{digest}"
-        target = raw_dir / "SA" / company.symbol / "market" / f"{digest}.json"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if not target.exists():
-            temporary = target.with_suffix(".json.part")
-            temporary.write_bytes(content)
-            temporary.replace(target)
-        document = SourceDocument(
-            company.company_id, company.market, SAUDI_HISTORICAL_REPORTS_URL,
-            source_key, "Saudi Exchange historical price snapshot",
-            end_date.isoformat(), content, "application/json",
-            {"requested_start": start_date.isoformat(), "requested_end": end_date.isoformat()},
-        )
-        db.save_source(document, digest, str(target))
-        store = CompanyDomainStore(db)
-        prices = json.loads(content).get("market_prices", [])
-        states = [store.publish_market_price(
-            company.company_id, source_key=source_key, **item) for item in prices]
-        db.set_source_status(source_key, "published")
-        db.publication_batch(source_key, company.company_id, "published", 0, len(states))
-        statistics_result = store.refresh_market_statistics(company.company_id)
-        valuation_result = store.refresh_market_valuations(company.company_id)
-        store.refresh_catalog_completeness(company.company_id)
-        understanding = refresh_company_understanding(db.conn, company.company_id)
+        failure_key = f"market-history-source:{company.company_id}"
+        failure_source_key = f"market-history:{company.company_id}"
+        stage = "fetch"
+        try:
+            content = fetch_saudi_market_history(
+                company.symbol, start_date.isoformat(), end_date.isoformat(),
+                sector=payload.get("sector") or company.sector,
+                market_segment=payload.get("market_segment") or company.exchange or "Main Market",
+                headless=_browser_headless(),
+            )
+            stage = "archive"
+            digest = hashlib.sha256(content).hexdigest()
+            source_key = f"sa-market:{digest}"
+            target = raw_dir / "SA" / company.symbol / "market" / f"{digest}.json"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.exists():
+                temporary = target.with_suffix(".json.part")
+                temporary.write_bytes(content)
+                temporary.replace(target)
+            document = SourceDocument(
+                company.company_id, company.market, SAUDI_HISTORICAL_REPORTS_URL,
+                source_key, "Saudi Exchange historical price snapshot",
+                end_date.isoformat(), content, "application/json",
+                {"requested_start": start_date.isoformat(), "requested_end": end_date.isoformat()},
+            )
+            db.save_source(document, digest, str(target))
+            stage = "publish"
+            store = CompanyDomainStore(db)
+            prices = json.loads(content).get("market_prices", [])
+            states = [store.publish_market_price(
+                company.company_id, source_key=source_key, **item) for item in prices]
+            db.set_source_status(source_key, "published")
+            db.publication_batch(source_key, company.company_id, "published", 0, len(states))
+            stage = "refresh"
+            statistics_result = store.refresh_market_statistics(company.company_id)
+            valuation_result = store.refresh_market_valuations(company.company_id)
+            store.refresh_catalog_completeness(company.company_id)
+            understanding = refresh_company_understanding(db.conn, company.company_id)
+        except Exception as error:
+            message = str(error)[:4000]
+            lowered = message.lower()
+            access_failure = stage == "fetch" and (
+                error.__class__.__name__.lower().endswith("timeouterror") or
+                any(marker in lowered for marker in (
+                    "timeout", "timed out", "http 403", "http 429", "access denied",
+                    "forbidden", "net::err", "browser extra",
+                ))
+            )
+            code = (
+                "source_access_blocked" if access_failure else
+                f"market_history_{stage}_failed"
+            )
+            attempts = int(getattr(job, "attempts", 0) or 0)
+            max_attempts = int(getattr(job, "max_attempts", 0) or 0)
+            will_retry = bool(attempts and attempts < max_attempts)
+            failure_payload = {
+                "symbol": company.symbol,
+                "source_url": SAUDI_HISTORICAL_REPORTS_URL,
+                "requested_start": start_date.isoformat(),
+                "requested_end": end_date.isoformat(),
+                "stage": stage,
+                "attempt": attempts or None,
+                "max_attempts": max_attempts or None,
+                "will_retry": will_retry,
+                "retry_strategy": (
+                    "automatic_then_authorized_network_or_licensed_feed"
+                    if access_failure else "automatic_then_operator_review"
+                ),
+                "last_error": message,
+            }
+            existing_failure = db.conn.execute(
+                """SELECT id FROM exceptions WHERE company_id=? AND source_key=?
+                AND code=? AND status='open' LIMIT 1""",
+                (company.company_id, failure_source_key, code),
+            ).fetchone()
+            if existing_failure:
+                with db.conn:
+                    db.conn.execute(
+                        """UPDATE exceptions SET message=?,payload_json=?,severity=?,
+                        retry_count=retry_count+1,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                        (message, json.dumps(failure_payload, sort_keys=True),
+                         "warning" if access_failure else "error", existing_failure["id"]),
+                    )
+            else:
+                db.exception(
+                    company.company_id, failure_source_key, stage, code, message,
+                    failure_payload, severity="warning" if access_failure else "error",
+                )
+                with db.conn:
+                    db.conn.execute(
+                        """UPDATE exceptions SET retry_count=1
+                        WHERE company_id=? AND source_key=? AND code=? AND status='open'""",
+                        (company.company_id, failure_source_key, code),
+                    )
+            db.upsert_backlog_item(
+                failure_key, "market_history_ingestion", "market_data",
+                f"Restore official Saudi price history for {company.symbol}",
+                company_id=company.company_id,
+                description=(
+                    "The scheduled Saudi Exchange history connector failed. Automatic retries "
+                    "remain enabled; if access stays blocked, run it from an authorized network "
+                    "or configure a licensed market-history feed."
+                ),
+                source_url=SAUDI_HISTORICAL_REPORTS_URL, priority=10,
+                payload=failure_payload,
+            )
+            with db.conn:
+                db.conn.execute(
+                    """UPDATE backlog_items SET status=?,updated_at=CURRENT_TIMESTAMP
+                    WHERE idempotency_key=?""",
+                    ("ready" if will_retry else "blocked", failure_key),
+                )
+            raise
+        with db.conn:
+            resolved = db.conn.execute(
+                """UPDATE exceptions SET status='resolved',
+                resolution='A later scheduled run archived and published official market history',
+                assigned_to=COALESCE(assigned_to,'pipeline'),updated_at=CURRENT_TIMESTAMP
+                WHERE company_id=? AND source_key=? AND status='open'
+                AND code IN ('source_access_blocked','market_history_fetch_failed',
+                             'market_history_archive_failed','market_history_publish_failed',
+                             'market_history_refresh_failed')""",
+                (company.company_id, failure_source_key),
+            ).rowcount
+        backlog_completed = db.complete_backlog_item(failure_key)
         return {
             "status": "published", "company_id": company.company_id,
             "source_key": source_key, "observations": len(prices),
@@ -683,6 +777,8 @@ def _market_history_job_handler(db: Database):
             "duplicates": states.count("duplicate"),
             "market_statistics": statistics_result, "valuation": valuation_result,
             "understanding_score": understanding["total_score"],
+            "resolved_failures": resolved,
+            "completed_failure_backlog": backlog_completed,
         }
     return handle
 
@@ -836,6 +932,7 @@ def main():
     p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
     init=sub.add_parser("init"); init.add_argument("--registry",default="config/companies.json")
     bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
+    sync_manifests=sub.add_parser("sync-manifests"); sync_manifests.add_argument("--imports",default="data/imports"); sync_manifests.add_argument("--manifest",action="append",default=[],help="one reviewed JSON manifest (repeatable); omit to sync the complete imports directory"); sync_manifests.add_argument("--registry",default="config/companies.json"); sync_manifests.add_argument("--raw-dir",default="data/raw"); sync_manifests.add_argument("--archive-index",default="data/raw/archive-index.json"); sync_manifests.add_argument("--project-root",default="."); sync_manifests.add_argument("--backup-dir"); sync_manifests.add_argument("--backup-keep",type=int,default=3)
     backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
     bundle=sub.add_parser("backup-bundle"); bundle.add_argument("--output-dir",default="backups/bundles"); bundle.add_argument("--project-root",default="."); bundle.add_argument("--keep",type=int,default=7)
     production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--raw-dir",default="data/raw"); production.add_argument("--no-llm",action="store_true")
@@ -902,6 +999,12 @@ def main():
     if a.cmd=="bootstrap":
         result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every)
         print(json.dumps(result,indent=2)); return
+    if a.cmd=="sync-manifests":
+        result=sync_reviewed_manifests(
+            a.db,a.imports,a.registry,a.raw_dir,a.manifest or None,
+            a.archive_index,a.project_root,a.backup_dir,a.backup_keep,
+        )
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="backup":
         from .operations import backup_database
         print(json.dumps(backup_database(a.db,a.output_dir,a.keep),indent=2)); return

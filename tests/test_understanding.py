@@ -1,10 +1,11 @@
 import tempfile
 import unittest
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from finengine.database import Database
-from finengine.models import Company, Market, SourceDocument
+from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
 from finengine.query import FinancialQueryService
 from finengine.understanding import refresh_all_understanding, refresh_company_understanding
 
@@ -82,6 +83,56 @@ class UnderstandingModelTests(unittest.TestCase):
                         if item["category_key"] == "industry")
         self.assertEqual(industry["score"], "0.4")
         self.assertEqual(industry["evidence"]["classification_fields"], 2)
+
+    def test_competitor_coverage_uses_reviewed_sector_when_exact_industry_has_no_peers(self):
+        peer = Company(
+            "sa:PEER", Market.SA, "PEER", "Fertilizer Peer", "SAR",
+            sector="Materials", industry="Fertilizers",
+        )
+        self.db.register_company(peer)
+        peer_source = SourceDocument(
+            peer.company_id, peer.market, "https://example.test/peer.pdf", "src:peer",
+            "annual-report", "2026-03-01", b"peer report",
+            "application/pdf", {"source_authority": "issuer_ir"},
+        )
+        self.db.save_source(peer_source, "peer", None)
+        for company_id, source_key, source_url, value in (
+            ("sa:TST", "src:annual", "https://example.test/annual.pdf", "0.10"),
+            ("sa:PEER", "src:peer", "https://example.test/peer.pdf", "0.20"),
+        ):
+            self.db.publish(Fact(
+                company_id, "net_margin", Decimal(value), "ratio", "ratio",
+                "2025-01-01", "2025-12-31", PeriodKind.FY, 2025, None,
+                source_key, source_url, "2026-03-01",
+            ))
+
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        competitors = next(item for item in result["categories"]
+                           if item["category_key"] == "competitors")
+        evidence = competitors["evidence"]
+        self.assertEqual(evidence["inferred_peers_with_ratio_data"], 1)
+        self.assertEqual(evidence["peer_scope"]["field"], "sector")
+        self.assertEqual(evidence["peer_scope"]["value"], "Materials")
+        self.assertEqual(evidence["peer_scope"]["fallback_from"]["field"], "industry")
+        self.assertEqual(evidence["classification_basis"],
+                         "inferred_peer_not_issuer_declared_competitor")
+        self.assertGreater(Decimal(competitors["score"]), Decimal(0))
+
+    def test_forecast_score_counts_only_reviewed_forward_looking_guidance(self):
+        self.db.publish_disclosure(
+            "sa:TST", "guidance", "Declared dividend", "The board declared a dividend.",
+            "2026-03-01", "src:annual", "2025-12-31", metadata={},
+        )
+        self.db.publish_disclosure(
+            "sa:TST", "guidance", "Capacity target", "Capacity is targeted for 2030.",
+            "2026-03-01", "src:annual", "2025-12-31",
+            metadata={"forward_looking": True, "analyst_forecast": False,
+                      "issuer_reported": True},
+        )
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        forecasts = next(item for item in result["categories"]
+                         if item["category_key"] == "forecasts")
+        self.assertEqual(forecasts["score"], "0.1")
 
 
 if __name__ == "__main__":

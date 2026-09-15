@@ -411,12 +411,14 @@ class FinancialQueryService:
     def peer_comparison(
         self, market: str, symbol: str, metrics: tuple[str, ...] = (), limit: int = 10,
     ) -> dict:
-        """Compare dimensionless metrics across a declared industry peer universe.
+        """Compare dimensionless metrics across a reviewed classification universe.
 
-        Peers are inferred deterministically from the reviewed company classification.
-        Values remain tied to their own filing period and source; currencies are never
-        compared here. This makes the result safe for the website/API without implying
-        that an inferred peer is an issuer-declared competitor.
+        The narrowest available industry is preferred. If it contains no other company
+        with comparable facts, the universe falls back deterministically to the reviewed
+        sector classification. Values remain tied to their own filing period and source;
+        currencies are never compared here. This makes the result safe for the
+        website/API without implying that an inferred peer is an issuer-declared
+        competitor.
         """
         company = self.conn.execute(
             """SELECT company_id,market,symbol,name,sector,industry FROM companies
@@ -424,9 +426,7 @@ class FinancialQueryService:
         ).fetchone()
         if not company:
             raise KeyError(f"unknown company {market}:{symbol}")
-        scope_field = "industry" if company["industry"] else "sector"
-        scope_value = company[scope_field]
-        if not scope_value:
+        if not company["industry"] and not company["sector"]:
             return {"status": "unavailable", "reason": "company_classification_required",
                     "methodology": None, "scope": None, "peer_count": 0,
                     "metric_count": 0, "companies": []}
@@ -441,8 +441,10 @@ class FinancialQueryService:
             raise ValueError("at least one peer metric is required")
         limit = min(max(limit, 2), 25)
         slots = ",".join("?" for _ in metrics)
-        rows = self.conn.execute(
-            f"""WITH candidates AS (
+
+        def comparable_rows(scope_field: str, scope_value: str) -> list[sqlite3.Row]:
+            return self.conn.execute(
+                f"""WITH candidates AS (
                 SELECT d.id AS data_point_id,d.company_id,c.market,c.symbol,c.name,
                        d.metric_key,d.value_decimal,d.unit,d.period_end,d.period_kind,
                        d.source_key,d.source_url,d.is_calculated,d.calculation,d.quality_score,
@@ -458,11 +460,31 @@ class FinancialQueryService:
                   AND d.value_type='decimal' AND d.value_decimal IS NOT NULL
             ) SELECT * FROM candidates WHERE recency_rank=1
             ORDER BY market,symbol,metric_key""", (scope_value, *metrics),
-        ).fetchall()
+            ).fetchall()
+
+        scope_field = "industry" if company["industry"] else "sector"
+        scope_value = company[scope_field]
+        rows = comparable_rows(scope_field, scope_value)
+        fallback_from = None
+        has_usable_peer = any(row["company_id"] != company["company_id"] for row in rows)
+        if (scope_field == "industry" and not has_usable_peer and company["sector"]):
+            fallback_from = {
+                "field": "industry", "value": scope_value,
+                "reason": "no_other_peer_with_comparable_facts",
+            }
+            scope_field = "sector"
+            scope_value = company["sector"]
+            rows = comparable_rows(scope_field, scope_value)
+
+        scope = {
+            "field": scope_field, "value": scope_value,
+            "classification_source": "reviewed_company_registry",
+        }
+        if fallback_from:
+            scope["fallback_from"] = fallback_from
         if not rows:
             return {"status": "unavailable", "reason": "no_comparable_peer_facts",
-                    "methodology": "internal_calculation", "scope": {
-                        "field": scope_field, "value": scope_value}, "peer_count": 0,
+                    "methodology": "internal_calculation", "scope": scope, "peer_count": 0,
                     "metric_count": 0, "companies": []}
 
         values_by_metric: dict[str, list[tuple[Decimal, str]]] = {}
@@ -505,7 +527,7 @@ class FinancialQueryService:
             "reason": None if peer_count else "no_other_peer_with_comparable_facts",
             "methodology": "internal_calculation",
             "classification_basis": "inferred_peer_not_issuer_declared_competitor",
-            "scope": {"field": scope_field, "value": scope_value},
+            "scope": scope,
             "peer_count": peer_count, "metric_count": len(values_by_metric),
             "companies": ordered_companies,
         }

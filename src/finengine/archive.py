@@ -5,7 +5,7 @@ import json
 import mimetypes
 import os
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
@@ -62,6 +62,17 @@ def _read_limited(response, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+def _index_local_path(value: str | Path) -> Path:
+    """Resolve portable archive paths written by either Windows or POSIX.
+
+    The tracked archive index is shared across both environments. A Windows
+    backslash is an ordinary filename character on Linux, so normalize to the
+    index's canonical POSIX representation before constructing a host Path.
+    """
+    portable = PurePosixPath(str(value).replace("\\", "/"))
+    return Path(*portable.parts)
+
+
 def load_archive_index(
     db: Database, index_path: str | Path, project_root: str | Path = ".",
 ) -> int:
@@ -73,7 +84,7 @@ def load_archive_index(
     payload = json.loads(path.read_text(encoding="utf-8"))
     count = 0
     for item in payload.get("artifacts", []):
-        local = Path(item["local_path"])
+        local = _index_local_path(item["local_path"])
         absolute = local if local.is_absolute() else root / local
         if not absolute.is_file():
             continue
@@ -82,7 +93,7 @@ def load_archive_index(
             raise ValueError(f"raw archive hash mismatch: {local}")
         db.save_source_artifact(
             item["artifact_key"], item["company_id"], item["source_url"], digest,
-            item["local_path"], item["content_type"], absolute.stat().st_size,
+            local.as_posix(), item["content_type"], absolute.stat().st_size,
             item.get("metadata"),
         )
         count += 1
@@ -141,9 +152,10 @@ def archive_manifest_sources(
         for key, item in sorted(selected.items()):
             previous = existing.get(key)
             if previous:
-                local = Path(previous["local_path"])
+                local = _index_local_path(previous["local_path"])
                 absolute = local if local.is_absolute() else root / local
                 if absolute.is_file() and hashlib.sha256(absolute.read_bytes()).hexdigest() == previous["content_hash"]:
+                    previous["local_path"] = local.as_posix()
                     previous["metadata"] = {
                         **previous.get("metadata", {}),
                         "manifests": sorted(set(item["manifests"])), "immutable": True,
@@ -174,7 +186,7 @@ def archive_manifest_sources(
                 partial.write_bytes(content)
                 partial.replace(target)
             try:
-                portable = os.path.relpath(target.resolve(), root)
+                portable = Path(os.path.relpath(target.resolve(), root)).as_posix()
             except ValueError:
                 portable = str(target.resolve())
             artifact = {

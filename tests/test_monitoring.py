@@ -17,7 +17,7 @@ from finengine.cli import (
 )
 from finengine.fetching import SourceAccessBlocked
 from finengine.database import Database
-from finengine.jobs import DurableJobQueue
+from finengine.jobs import DurableJobQueue, Worker
 from finengine.models import Company, DiscoveryResult, Market, SourceCandidate
 from finengine.monitoring import DocumentArchiver, MonitorService
 
@@ -114,6 +114,78 @@ class MonitoringTests(unittest.TestCase):
         source = self.db.stored_source(result["source_key"])
         self.assertTrue(Path(source["local_path"]).is_relative_to(runtime_raw))
         self.assertTrue(Path(source["local_path"]).is_file())
+
+    @patch("finengine.saudi_market.fetch_saudi_market_history")
+    def test_market_history_source_failure_is_actionable_and_retryable(self, fetch):
+        fetch.side_effect = RuntimeError("Timeout 90000ms exceeded while loading portal")
+        queue = DurableJobQueue(self.db)
+        job_id, _ = queue.enqueue(
+            "market_history", {
+                "symbol": "2222", "start_date": "2026-09-01",
+                "end_date": "2026-09-15", "raw_dir": str(Path(self.temp.name) / "raw"),
+            }, self.aramco.company_id, idempotency_key="market-history-failure",
+            max_attempts=1,
+        )
+        worker = Worker(
+            queue, "market-worker", {"market_history": _market_history_job_handler(self.db)},
+        )
+        self.assertTrue(worker.run_once())
+
+        failed_job = self.db.conn.execute(
+            "SELECT status,last_error FROM jobs WHERE job_id=?", (job_id,),
+        ).fetchone()
+        self.assertEqual(failed_job["status"], "dead")
+        self.assertIn("Timeout", failed_job["last_error"])
+        exception = self.db.conn.execute(
+            """SELECT code,severity,retry_count,payload_json FROM exceptions
+            WHERE source_key='market-history:sa:2222'"""
+        ).fetchone()
+        self.assertEqual(
+            (exception["code"], exception["severity"], exception["retry_count"]),
+            ("source_access_blocked", "warning", 1),
+        )
+        self.assertEqual(json.loads(exception["payload_json"])["retry_strategy"],
+                         "automatic_then_authorized_network_or_licensed_feed")
+        backlog = self.db.conn.execute(
+            """SELECT status,payload_json FROM backlog_items
+            WHERE idempotency_key='market-history-source:sa:2222'"""
+        ).fetchone()
+        self.assertEqual(backlog["status"], "blocked")
+        self.assertFalse(json.loads(backlog["payload_json"])["will_retry"])
+
+    @patch("finengine.saudi_market.fetch_saudi_market_history")
+    def test_market_history_success_resolves_prior_failure_work(self, fetch):
+        failed = type("Job", (), {
+            "payload": {"symbol": "2222", "start_date": "2026-09-01",
+                        "end_date": "2026-09-15",
+                        "raw_dir": str(Path(self.temp.name) / "raw")},
+            "job_id": "failure", "attempts": 1, "max_attempts": 2,
+        })()
+        fetch.side_effect = RuntimeError("HTTP 403 forbidden")
+        with self.assertRaisesRegex(RuntimeError, "403"):
+            _market_history_job_handler(self.db)(failed)
+        self.assertEqual(self.db.conn.execute(
+            """SELECT status FROM backlog_items
+            WHERE idempotency_key='market-history-source:sa:2222'"""
+        ).fetchone()[0], "ready")
+
+        fetch.side_effect = None
+        fetch.return_value = json.dumps({"market_prices": [
+            {"observed_at": "2026-09-14", "interval": "1d", "open": "25.7",
+             "high": "25.9", "low": "25.4", "close": "25.6", "volume": "120",
+             "turnover": "3072", "currency": "SAR"},
+        ]}, sort_keys=True).encode()
+        succeeded = type("Job", (), {"payload": failed.payload})()
+        result = _market_history_job_handler(self.db)(succeeded)
+        self.assertEqual(result["resolved_failures"], 1)
+        self.assertTrue(result["completed_failure_backlog"])
+        self.assertEqual(self.db.conn.execute(
+            "SELECT status FROM exceptions WHERE source_key='market-history:sa:2222'"
+        ).fetchone()[0], "resolved")
+        self.assertEqual(self.db.conn.execute(
+            """SELECT status FROM backlog_items
+            WHERE idempotency_key='market-history-source:sa:2222'"""
+        ).fetchone()[0], "completed")
 
     def test_issuer_monitor_uses_list_item_context_for_icon_only_downloads(self):
         html = b"""

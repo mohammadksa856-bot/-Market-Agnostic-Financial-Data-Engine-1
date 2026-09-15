@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 11
+CATALOG_SCHEMA_VERSION = 12
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -303,6 +303,7 @@ DIMENSIONS_BY_CATEGORY = {
     "income_statement": tuple(DIMENSION_DEFINITIONS),
     "balance_sheet": tuple(DIMENSION_DEFINITIONS),
     "cash_flow": tuple(DIMENSION_DEFINITIONS), "company_model": (),
+    "governance_profile": (), "industry_context": (),
     "market_data": (), "ownership": (), "corporate_actions": (), "disclosures": (),
     "per_share": ("segment", "geography", "product"),
     "profitability": ("segment", "geography", "product"),
@@ -360,6 +361,16 @@ GROUPS = (
         "investor_relations_url incorporation_date founding_date legal_form employees auditor credit_rating sharia_status "
         "reporting_standard reporting_languages ceo_name chairman_name products_services geographic_presence "
         "subsidiaries_count investor_contact_email business_model"
+    )),
+    ("governance_profile", "company_profile", "governance_profile", "as_of", "json", "none", "all", "*", _keys(
+        "board_of_directors board_size independent_directors board_committees audit_committee "
+        "sustainability_risk_hse_committee nomination_committee compensation_committee corporate_secretary "
+        "executive_management_team board_meetings_held board_term_end compensation_policy "
+        "internal_control_assessment governance_framework"
+    )),
+    ("industry_context", "company_profile", "industry_context", "as_of", "json", "none", "all", "*", _keys(
+        "industry_overview industry_drivers regulatory_environment competitive_environment "
+        "industry_size industry_growth"
     )),
     ("income_statement", "data_points", "income_statement", "flow", "currency", "sum", "all", "*", _keys(
         "revenue other_income_related_to_sales revenue_and_other_income_related_to_sales cost_of_revenue gross_profit "

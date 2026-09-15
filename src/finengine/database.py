@@ -860,6 +860,11 @@ class Database:
                  "capital_adequacy_ratio", "return_on_equity", "loans_to_deposits_ratio"),
             ),
         }
+        # Exact dimensional aliases and reconciled roll-ups are deterministic
+        # calculations too, so their lineage is visible through the same
+        # read-only calculation-definition API as ratios and TTM values.
+        from .canonicalization import PROJECTION_DEFINITIONS
+        definitions.update(PROJECTION_DEFINITIONS)
         growth_sources = {
             "revenue_growth": "revenue", "gross_profit_growth": "gross_profit",
             "operating_income_growth": "operating_income", "net_income_growth": "net_income",

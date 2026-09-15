@@ -231,6 +231,8 @@ class CompanyDomainTests(unittest.TestCase):
         result=self.store.refresh_catalog_completeness("sa:TST")
         categories={row["category"] for row in result["categories"]}
         self.assertIn("company_model",categories)
+        self.assertIn("governance_profile",categories)
+        self.assertIn("industry_context",categories)
         self.assertIn("oil_gas_operations",categories)
         self.assertIn("financial_notes",categories)
         self.assertIn("consensus",categories)
@@ -275,13 +277,21 @@ class CompanyDomainTests(unittest.TestCase):
         self.assertNotIn("chemical_operations", telecom_categories)
         self.assertNotIn("utilities", telecom_categories)
 
-        wanted = {"market_cap", "price_close", "dividend_yield_ttm", "production_capacity"}
+        wanted = {
+            "market_cap", "price_close", "dividend_yield_ttm", "production_capacity",
+            "board_of_directors", "executive_management_team", "competitive_environment",
+        }
         definitions = {item["field_key"]: item for item in iter_catalog_fields()
                        if item["field_key"] in wanted}
         self.assertEqual(definitions["market_cap"]["unit_family"], "monetary")
         self.assertEqual(definitions["price_close"]["unit_family"], "per_share")
         self.assertEqual(definitions["dividend_yield_ttm"]["unit_family"], "ratio")
         self.assertEqual(definitions["production_capacity"]["default_unit"], "million_tonnes/year")
+        self.assertEqual(definitions["board_of_directors"]["category"], "governance_profile")
+        self.assertEqual(definitions["executive_management_team"]["storage_domain"],
+                         "company_profile")
+        self.assertEqual(definitions["competitive_environment"]["category"],
+                         "industry_context")
 
     def test_catalog_definitions_are_versioned_and_dimensions_are_queryable(self):
         query = FinancialQueryService(self.path)

@@ -525,6 +525,12 @@ class CompanyDomainStore:
 
     def refresh_catalog_completeness(self, company_id: str) -> dict:
         """Measure the commercial data model without pretending missing fields are facts."""
+        # Persistent databases can contain the exact dimensional source facts
+        # for projection rules introduced after those facts were ingested.
+        # Completeness refresh is already a write operation; bring those
+        # deterministic canonical aliases forward idempotently before counting.
+        from .canonicalization import refresh_canonical_projections
+        refresh_canonical_projections(self.db, company_id)
         company = self.db.conn.execute("SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
         if not company:
             raise KeyError(company_id)

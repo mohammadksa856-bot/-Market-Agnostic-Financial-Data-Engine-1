@@ -30,7 +30,7 @@ AI or probabilistic extractors never write to production. PDF/XLSX output enters
 
 ## Release status
 
-The bundled portable snapshot is rebuilt from 69 reviewed manifests and currently contains:
+The bundled portable snapshot is rebuilt from 73 reviewed manifests and currently contains:
 
 - 29 enabled companies in the bundled snapshot: Saudi Aramco, SABIC, ACWA Power,
   stc, Tawuniya, nine reviewed cement issuers, Elm, Solutions by stc, all ten
@@ -45,15 +45,15 @@ The bundled portable snapshot is rebuilt from 69 reviewed manifests and currentl
   securities and 124 Nomu securities: 376 operating-company records and 20
   fund/REIT records. The connector keeps the two markets separate, records ISIN
   and profile provenance, and excludes funds from normal company activation.
-- 6,672 current facts and 6,822 total fact versions in the clean rebuilt snapshot.
-- 1,020 current Aramco data points, plus 37 profile attributes, four ownership positions, disclosures, corporate actions, 23 official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
+- 7,257 versioned fact rows in the clean rebuilt snapshot.
+- More than 1,000 current Aramco data points, plus profile attributes, ownership positions, disclosures, corporate actions, official daily market-price rows, and point-in-time market and valuation metrics. Coverage includes detailed financial, segment, operational, ESG, commercial, commitment, tax, credit-risk, lease, geographic revenue, PPE movements, and annual history for 2019–2025, plus discrete Q1/H1 2026 semantics. Ten page-grounded issuer guidance targets cover capital allocation, gas growth, Jafurah, Fadhili, liquids-to-chemicals, 2026 operating priorities, localization and the 2050 Scope 1/2 ambition. The 2025 production table is stored at reported precision and drives a deterministic 52.54-year reserve-life calculation with full formula lineage.
 - 207 Apple facts, plus audited FY 2026 baselines for Microsoft and NVIDIA. A local
   `FLWS` acceptance run also completed the live SEC monitor/fetch/validate/publish
   path with 1,780 facts; that operational snapshot is kept outside the code release.
-- 69 published source documents and 34 independently hashed raw archive entries in the
+- 73 published source documents and 36 independently hashed raw archive entries in the
   bundled snapshot, with zero open publication exceptions and zero dead jobs.
-- Master Schema catalog version 11 contains 1,047 governed fields and 917 metric contracts: 545 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. In addition to oil and gas, the 64-field chemicals pack now includes resource intensity, emissions, waste, process safety, innovation, workforce, and supplier KPIs. The 44-field banking pack powers sector-aware bank ratios and scores. Insurance, telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management are also covered. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
-- Aramco currently populates 395 of 662 applicable catalog fields (59.7% raw target coverage), with all 28 core required fields present. The lower percentage reflects a large target model, not lost data.
+- Master Schema catalog version 12 contains 1,069 governed fields and 918 metric contracts: 567 universal fields, 20 dividend fields, 28 announcement fields, and 15 sector packs. The universal model now has explicit governance and industry-context packs, including directors, executive management, committees, independence, compensation, internal controls, regulatory context and competitive environment. In addition to oil and gas, the 64-field chemicals pack includes resource intensity, emissions, waste, process safety, innovation, workforce, and supplier KPIs. The 44-field banking pack powers sector-aware bank ratios and scores. Insurance, telecommunications, utilities, mining, real estate/REITs, retail, health care, transportation/logistics, industrials/construction, technology, food/agriculture, and asset management are also covered. The schema includes 61 governed dimensions and keeps sector packs applicable only to matching canonical industries. See [the Master Schema specification](docs/MASTER_SCHEMA.md).
+- The reproducible Aramco snapshot populates 439 of 684 applicable catalog fields (64.2% raw target coverage), with all 28 core required fields present. Its governance, industry-context, forecasts/guidance and risk packs are complete. A deterministic canonical projection layer safely derives reconciled PPE classes, debt instruments and segment aliases while refusing to fabricate subtotals that are not supported by the source. Every newly reviewed qualitative claim is tied to the archived official annual report page. The production server additionally retains the longer live Saudi Exchange market history. The lower overall percentage reflects the intentionally broad target model and unavailable/not-disclosed fields, not fabricated substitutes.
 - SABIC is the first Saudi generalization acceptance pilot: its official 2025 integrated report is archived by SHA-256. The snapshot publishes 528 sourced facts plus 240 deterministic calculated facts. It covers audited annual history for 2021–2025, the full 2025 statements and restated 2024 comparative, detailed PPE classes and disposals, cash and receivables, debt instruments and maturities, leases, employee benefits, provisions, related parties, tax components, commitments, production and sales volumes, segment and geographic revenue, dividends and year-end market history, company profile, ownership, corporate actions, disclosures, resource intensity, emissions, process safety, innovation, workforce, and suppliers. SABIC populates 377 of 657 applicable catalog fields and all 28 core required fields. Every sourced fact retains its report page and table reference; deterministic calculations retain their formula lineage.
 - ACWA Power is the live utilities acceptance case. The official Q2/H1 2026
   consolidated statements are image-only after the auditor pages, so the worker now
@@ -75,7 +75,7 @@ The bundled portable snapshot is rebuilt from 69 reviewed manifests and currentl
   before publishing OHLC, volume, and turnover. Derived 20/50/200-session averages,
   30-day annualized volatility, 52-week range, and 1M/3M/6M/YTD/1Y/3Y/5Y returns
   are emitted only when the stored history honestly covers each requested window.
-- The current suite has 238 passing unit/integration/release tests; one optional
+- The current suite has 261 passing unit/integration/release tests; one optional
   dependency-availability test is skipped when the browser extra is installed.
 
 The catalog is the target model, not fabricated data. Per-company completeness scores and a durable catalog backlog make every missing field explicit. The release audit checks SQLite integrity, foreign keys, current-fact uniqueness, source-file hashes, open exceptions, dead jobs, mapping review, balance-sheet equations, company coverage, and catalog readiness.
@@ -183,6 +183,19 @@ To build a separate verification copy, omit `--replace` and choose another datab
 
     finengine --db data/verification.sqlite3 bootstrap
 
+To add newly reviewed manifests to an existing persistent database without
+replacing its live history, run the guarded incremental sync:
+
+    finengine --db data/financial.sqlite3 sync-manifests --imports data/imports --registry config/companies.json --raw-dir runtime/raw --archive-index data/raw/archive-index.json --project-root . --backup-dir runtime/pre-manifest-backups
+
+Use `--manifest data/imports/example.json` to select one file (the option is
+repeatable). The command first verifies the complete selection and applies it to
+an online SQLite clone. Only a successful preflight can reach the live database;
+changed deployments receive a verified backup first. Replaying identical files
+does not add fact versions, publication batches, or pipeline runs. Production
+startup runs the complete sync automatically on every deployment, including the
+official archive-index links.
+
 ## Archive official sources for offline use
 
 Download every distinct official source used by the reviewed manifests, verify its content, store it under a content-addressed local path, and update the portable archive index:
@@ -279,9 +292,12 @@ and completeness score.
 `/page` is the stable website/Telegram contract. It separates FY, quarter, YTD,
 TTM and instant snapshots, includes provenance, reports section capability and
 missing-source reasons, and explicitly forbids demonstration-value fallbacks.
-Its peer section is computed from reviewed industry classifications and sourced,
-dimensionless company metrics. It labels inferred peers explicitly and never
-presents them as issuer-declared competitors.
+Its peer section is computed from reviewed classifications and sourced,
+dimensionless company metrics. It prefers an exact-industry universe and falls
+back deterministically to the broader sector only when that industry has no
+other company with comparable facts. The response exposes the selected scope
+and fallback reason, labels inferred peers explicitly, and never presents them
+as issuer-declared competitors.
 
 When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
 
