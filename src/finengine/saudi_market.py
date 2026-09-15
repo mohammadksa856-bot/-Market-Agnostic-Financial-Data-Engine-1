@@ -160,7 +160,9 @@ def fetch_saudi_market_history(
             # but the Exchange still rejects it because it lacks the exact
             # browser/XHR execution context (HTTP 403 on cloud hosts).
             all_rows = list(settings["firstRows"])
-            page_size = 500
+            # The portal's server-side table accepts its normal UI page sizes;
+            # oversized values can return HTTP 200 with an empty data array.
+            page_size = 100
             total = max(int(settings["total"]), 1)
             for start in range(0, total, page_size):
                 page_number = start // page_size
@@ -195,6 +197,9 @@ def fetch_saudi_market_history(
             browser.close()
 
     prices = normalize_saudi_market_rows(all_rows)
+    if total and not prices:
+        raise RuntimeError(
+            "Saudi Exchange returned an empty price payload for a non-empty result set")
     return json.dumps({
         "schema_version": 1, "source_url": SAUDI_HISTORICAL_REPORTS_URL,
         "symbol": symbol, "market_segment": market_segment,
