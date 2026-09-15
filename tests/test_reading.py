@@ -52,6 +52,21 @@ class OcrGeometryTests(unittest.TestCase):
             "The facility amounted to SAR 45.3 million during the period."
         ]), 1)
 
+    def test_comprehensive_attribution_is_not_net_income_attribution(self):
+        from finengine.reading import StatementReader
+
+        heading = "INTERIM CONSOLIDATED STATEMENT OF COMPREHENSIVE INCOME"
+        self.assertTrue(StatementReader._is_comprehensive_attribution(
+            heading, "Attributable to equity holders of the Bank", "net_income_parent"
+        ))
+        self.assertFalse(StatementReader._is_comprehensive_attribution(
+            "INTERIM CONSOLIDATED STATEMENT OF INCOME",
+            "Attributable to equity holders of the Bank", "net_income_parent"
+        ))
+        self.assertFalse(StatementReader._is_comprehensive_attribution(
+            heading, "Net income attributable to equity holders", "net_income_parent"
+        ))
+
     def test_reported_amount_does_not_override_declared_millions_scale(self):
         from finengine.reading import StatementReader
 

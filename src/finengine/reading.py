@@ -605,6 +605,8 @@ class StatementReader:
                     metric = _resolve_line(label, statement, line_map)
                     if metric is None:
                         continue
+                    if self._is_comprehensive_attribution(page_text, label, metric):
+                        continue
                     if (
                         profile == "bank"
                         and statement == "income_statement"
@@ -700,6 +702,22 @@ class StatementReader:
             if scale is not None:
                 return scale
         return Decimal(1)
+
+    @staticmethod
+    def _is_comprehensive_attribution(
+            page_text: str, label: str, metric: str) -> bool:
+        """Keep comprehensive-income attribution out of net-income identities.
+
+        Some banks use the same short ``Attributable to ...`` captions below
+        both net income and total comprehensive income.  On the comprehensive
+        statement that caption is not net income attributable to the parent or
+        NCI.  A label that explicitly says net income/profit remains eligible.
+        """
+        return (
+            "statement of comprehensive income" in page_text.lower()
+            and metric in {"net_income_parent", "net_income_noncontrolling"}
+            and not re.search(r"\b(?:net\s+income|net\s+profit|profit\s+for)\b", label, re.I)
+        )
 
     _NEGATIVE = ("highlights", "at a glance", "key figures", "financial review",
                  "five year", "5-year", "five-year", "summary", "summarised",
