@@ -61,6 +61,13 @@ class UnderstandingModelTests(unittest.TestCase):
         self.assertEqual(result["companies"], 1)
         self.assertEqual(result["states"], {"not_ready": 1})
 
+    def test_industry_score_counts_reviewed_classification_without_claiming_full_context(self):
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        industry = next(item for item in result["categories"]
+                        if item["category_key"] == "industry")
+        self.assertEqual(industry["score"], "0.4")
+        self.assertEqual(industry["evidence"]["classification_fields"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

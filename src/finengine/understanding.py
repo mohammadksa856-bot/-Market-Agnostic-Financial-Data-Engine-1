@@ -130,6 +130,22 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         (metric_key LIKE '%emission%' OR metric_key LIKE '%water%' OR metric_key LIKE '%saudization%'
          OR metric_key LIKE '%injury%' OR metric_key LIKE '%sustainab%')""", (company_id,))
     identity_base = sum(bool(company[k]) for k in ("name", "symbol", "market", "currency", "fiscal_year_end", "exchange", "country", "sector", "industry", "isin"))
+    industry_context = count("""SELECT count(*) FROM company_attributes WHERE company_id=?
+        AND is_current=1 AND attribute_key IN ('industry_overview','industry_drivers',
+        'regulatory_environment','industry_size','industry_growth')""", (company_id,))
+    classification_fields = int(bool(company["sector"])) + int(bool(company["industry"]))
+    peer_count = count("""SELECT count(DISTINCT c.company_id) FROM companies c
+        WHERE c.company_id<>? AND c.enabled=1
+          AND ((?<>'' AND c.industry=?) OR (?='' AND c.sector=?))
+          AND EXISTS (SELECT 1 FROM data_points d JOIN metric_definitions m
+                      ON m.metric_key=d.metric_key WHERE d.company_id=c.company_id
+                      AND d.is_current=1 AND m.category IN ('ratio','calculated'))""",
+        (company_id, company["industry"] or "", company["industry"] or "",
+         company["industry"] or "", company["sector"] or ""))
+    peer_metrics = count("""SELECT count(DISTINCT d.metric_key) FROM data_points d
+        JOIN metric_definitions m ON m.metric_key=d.metric_key WHERE d.company_id=?
+        AND d.is_current=1 AND m.category IN ('ratio','calculated')
+        AND d.period_kind IN ('ttm','fy')""", (company_id,))
 
     scores = {
         "identity": _ratio(Decimal(identity_base + min(attrs, 8)) / Decimal(18)),
@@ -141,8 +157,9 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         "ratios": max(avg("profitability", "efficiency", "liquidity_solvency", "growth"), _ratio(Decimal(ratio_points) / Decimal(30))),
         "operations": max(avg("oil_gas_operations", "chemical_operations", "banking"), _ratio(Decimal(op_points) / Decimal(20))),
         "dividends_actions": max(avg("dividends", "corporate_actions"), _ratio(Decimal(actions) / Decimal(5))),
-        "industry": _ratio(Decimal(count("SELECT count(*) FROM company_attributes WHERE company_id=? AND is_current=1 AND category IN ('industry','sector')", (company_id,))) / Decimal(5)),
-        "competitors": _ratio(Decimal(count("SELECT count(*) FROM company_attributes WHERE company_id=? AND is_current=1 AND attribute_key IN ('peer_group','competitors','market_share','relative_positioning')", (company_id,))) / Decimal(4)),
+        "industry": _ratio(Decimal(classification_fields + industry_context) / Decimal(5)),
+        "competitors": min(_ratio(Decimal(peer_count) / Decimal(5)),
+                           _ratio(Decimal(peer_metrics) / Decimal(8))),
         "trading": max(avg("market_data"), _ratio(Decimal(prices) / Decimal(252))),
         "forecasts": max(avg("consensus") * Decimal("0.5"), _ratio(Decimal(guidance + estimates) / Decimal(10))),
         "analysts": _ratio(Decimal(estimates) / Decimal(12)),
@@ -160,6 +177,13 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         weighted = score * Decimal(weight)
         total += weighted
         evidence = {"attributes": attrs, "sources": sources, "disclosures": disclosures}
+        if key == "industry":
+            evidence.update({"classification_fields": classification_fields,
+                             "industry_context_items": industry_context})
+        elif key == "competitors":
+            evidence.update({"inferred_peers_with_ratio_data": peer_count,
+                             "comparable_metrics": peer_metrics,
+                             "methodology": "internal_calculation"})
         gaps = [] if status == "complete" else ["category coverage is below 95%"]
         conn.execute(
             """INSERT INTO company_understanding_scores(company_id,category_key,score,weighted_score,status,

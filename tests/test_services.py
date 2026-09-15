@@ -62,6 +62,11 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(page["sections"]["financials"]["annual"]["metrics"]["revenue"][0]["value"],"100")
             self.assertEqual(page["sections"]["financials"]["quarter"]["status"],"unavailable")
             self.assertEqual(page["capabilities"]["consensus"]["reason"],"licensed_consensus_feed_required")
+            request=Request(f"http://127.0.0.1:{port}/v1/companies/SA/TST/peers",
+                            headers={"X-API-Key":"secret"})
+            peers=json.loads(urlopen(request).read())
+            self.assertEqual(peers["status"],"unavailable")
+            self.assertEqual(peers["reason"],"company_classification_required")
             request=Request(f"http://127.0.0.1:{port}/v1/catalog?limit=500",
                             headers={"X-API-Key":"secret"})
             catalog=json.loads(urlopen(request).read())
@@ -112,13 +117,43 @@ class ServiceTests(unittest.TestCase):
         finally: query.close()
         self.assertEqual(page["sections"]["financials"]["quarter"]["metrics"]["revenue"][0]["value"],"30")
         self.assertEqual(page["sections"]["financials"]["ytd"]["metrics"]["revenue"][0]["value"],"55")
-        self.assertEqual(page["contract_version"],3)
+        self.assertEqual(page["contract_version"],4)
         self.assertIn("understanding", page["data_quality"])
         quarter_history=page["sections"]["financials"]["history"]["quarter"]
         self.assertEqual(quarter_history["period_kind"],"quarter")
         self.assertEqual(quarter_history["periods"][0]["metrics"]["revenue"][0]["value"],"30")
         self.assertNotIn("55", [item["value"] for period in quarter_history["periods"]
                                 for item in period["metrics"].get("revenue",[])])
+
+    def test_peer_comparison_is_period_safe_and_source_traced(self):
+        db=Database(self.dbpath)
+        db.conn.execute("UPDATE companies SET sector='Materials',industry='Chemicals' WHERE company_id='sa:TST'")
+        peer=Company("sa:PEER",Market.SA,"PEER","Peer Company","SAR",
+                     sector="Materials",industry="Chemicals")
+        db.register_company(peer)
+        document=SourceDocument(peer.company_id,peer.market,"https://example.test/peer",
+                                "source:peer","annual","2026-01-02",b"peer")
+        raw=Path(self.temp.name)/"peer.json"; raw.write_bytes(b"peer")
+        db.save_source(document,hashlib.sha256(b"peer").hexdigest(),str(raw))
+        db.set_source_status(document.source_key,"published")
+        for company_id,source_key,source_url,value in (
+            ("sa:TST","source:test","https://example.test/report","0.10"),
+            ("sa:PEER","source:peer","https://example.test/peer","0.20"),
+        ):
+            db.publish(Fact(company_id,"net_margin",Decimal(value),"ratio","ratio",
+                            "2025-01-01","2025-12-31",PeriodKind.FY,2025,None,
+                            source_key,source_url,"2026-01-02"))
+        db.close()
+        query=FinancialQueryService(self.dbpath)
+        try: peers=query.peer_comparison("SA","TST",("net_margin",))
+        finally: query.close()
+        self.assertEqual(peers["status"],"available")
+        self.assertEqual(peers["peer_count"],1)
+        self.assertEqual(peers["classification_basis"],
+                         "inferred_peer_not_issuer_declared_competitor")
+        target=next(row for row in peers["companies"] if row["is_target"])
+        self.assertEqual(target["metrics"]["net_margin"]["ascending_rank"],1)
+        self.assertTrue(target["metrics"]["net_margin"]["provenance"]["source"])
 
     def test_release_audit_checks_source_hashes(self):
         result=audit_release(self.dbpath)

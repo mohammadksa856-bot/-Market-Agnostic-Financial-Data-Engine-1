@@ -193,6 +193,7 @@ class FinancialQueryService:
             "ownership": self.ownership(market, symbol, limit=1000),
             "corporate_actions": self.corporate_actions(market, symbol, limit=1000),
             "consensus_estimates": self.consensus_estimates(market, symbol, limit=1000),
+            "peer_comparison": self.peer_comparison(market, symbol),
             "disclosures": self.disclosures(market, symbol, limit=200),
             "latest_snapshot": self.snapshot(market, symbol),
             "facts_by_category": categories,
@@ -333,6 +334,7 @@ class FinancialQueryService:
         estimates = self.consensus_estimates(market, symbol, limit=100)
         completeness = self.completeness(market, symbol)
         understanding = self.understanding(market, symbol)
+        peers = self.peer_comparison(market, symbol)
         annual_history = self.period_history(market, symbol, "fy", (
             "revenue", "gross_profit", "operating_income", "ebit", "ebitda",
             "net_income", "net_income_parent", "operating_cash_flow",
@@ -367,6 +369,10 @@ class FinancialQueryService:
             "corporate_actions": self._availability(actions, "no_sourced_corporate_actions"),
             "disclosures": self._availability(disclosures, "announcement_feed_not_connected"),
             "consensus": self._availability(estimates, "licensed_consensus_feed_required"),
+            "peer_comparison": {
+                "status": peers["status"], "count": peers["peer_count"],
+                "reason": peers["reason"],
+            },
             "news": {"status": "unavailable", "count": 0,
                      "reason": "authorized_news_feed_required"},
             "five_year_history": {
@@ -378,7 +384,7 @@ class FinancialQueryService:
             "official_sources": self._availability(sources, "no_archived_official_sources"),
         }
         return {
-            "contract_version": 3,
+            "contract_version": 4,
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "placeholder_policy": "never_substitute_demo_values",
             "company": overview,
@@ -394,11 +400,114 @@ class FinancialQueryService:
                 "corporate_actions": actions,
                 "disclosures": disclosures,
                 "consensus": estimates,
+                "peer_comparison": peers,
                 "official_sources": sources,
             },
             "capabilities": capabilities,
             "data_quality": {"completeness": completeness, "understanding": understanding,
                              "open_backlog": len(self.backlog(market, symbol, "active", 5000))},
+        }
+
+    def peer_comparison(
+        self, market: str, symbol: str, metrics: tuple[str, ...] = (), limit: int = 10,
+    ) -> dict:
+        """Compare dimensionless metrics across a declared industry peer universe.
+
+        Peers are inferred deterministically from the reviewed company classification.
+        Values remain tied to their own filing period and source; currencies are never
+        compared here. This makes the result safe for the website/API without implying
+        that an inferred peer is an issuer-declared competitor.
+        """
+        company = self.conn.execute(
+            """SELECT company_id,market,symbol,name,sector,industry FROM companies
+            WHERE market=? AND symbol=?""", (market.upper(), symbol.upper()),
+        ).fetchone()
+        if not company:
+            raise KeyError(f"unknown company {market}:{symbol}")
+        scope_field = "industry" if company["industry"] else "sector"
+        scope_value = company[scope_field]
+        if not scope_value:
+            return {"status": "unavailable", "reason": "company_classification_required",
+                    "methodology": None, "scope": None, "peer_count": 0,
+                    "metric_count": 0, "companies": []}
+        if not metrics:
+            metrics = (
+                "revenue_growth", "net_margin", "return_on_assets", "return_on_equity",
+                "return_on_invested_capital", "debt_to_equity", "current_ratio",
+                "price_to_earnings",
+            )
+        metrics = tuple(dict.fromkeys(metric.strip() for metric in metrics if metric.strip()))[:20]
+        if not metrics:
+            raise ValueError("at least one peer metric is required")
+        limit = min(max(limit, 2), 25)
+        slots = ",".join("?" for _ in metrics)
+        rows = self.conn.execute(
+            f"""WITH candidates AS (
+                SELECT d.id AS data_point_id,d.company_id,c.market,c.symbol,c.name,
+                       d.metric_key,d.value_decimal,d.unit,d.period_end,d.period_kind,
+                       d.source_key,d.source_url,d.is_calculated,d.calculation,d.quality_score,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY d.company_id,d.metric_key
+                           ORDER BY CASE d.period_kind WHEN 'ttm' THEN 0 ELSE 1 END,
+                                    d.period_end DESC,d.version DESC,d.id DESC
+                       ) AS recency_rank
+                FROM data_points d JOIN companies c USING(company_id)
+                WHERE c.enabled=1 AND c.{scope_field}=? AND d.is_current=1
+                  AND d.metric_key IN ({slots}) AND d.period_kind IN ('ttm','fy')
+                  AND d.scope='consolidated' AND d.dimensions_json='{{}}'
+                  AND d.value_type='decimal' AND d.value_decimal IS NOT NULL
+            ) SELECT * FROM candidates WHERE recency_rank=1
+            ORDER BY market,symbol,metric_key""", (scope_value, *metrics),
+        ).fetchall()
+        if not rows:
+            return {"status": "unavailable", "reason": "no_comparable_peer_facts",
+                    "methodology": "internal_calculation", "scope": {
+                        "field": scope_field, "value": scope_value}, "peer_count": 0,
+                    "metric_count": 0, "companies": []}
+
+        values_by_metric: dict[str, list[tuple[Decimal, str]]] = {}
+        companies: dict[str, dict] = {}
+        for row in rows:
+            value = Decimal(row["value_decimal"])
+            values_by_metric.setdefault(row["metric_key"], []).append((value, row["company_id"]))
+            peer = companies.setdefault(row["company_id"], {
+                "company_id": row["company_id"], "market": row["market"],
+                "symbol": row["symbol"], "name": row["name"],
+                "is_target": row["company_id"] == company["company_id"], "metrics": {},
+            })
+            point = {
+                "value": row["value_decimal"], "unit": row["unit"],
+                "period_end": row["period_end"], "period_kind": row["period_kind"],
+                "quality_score": row["quality_score"],
+                "provenance": self._fact_trace(row["data_point_id"]),
+            }
+            peer["metrics"][row["metric_key"]] = point
+
+        for metric, observations in values_by_metric.items():
+            ordered = sorted(observations, key=lambda item: (item[0], item[1]))
+            size = len(ordered)
+            for ascending_rank, (_, company_id) in enumerate(ordered, 1):
+                point = companies[company_id]["metrics"][metric]
+                point["ascending_rank"] = ascending_rank
+                point["universe_size"] = size
+                point["percentile_from_low"] = (
+                    "1" if size == 1 else str((Decimal(ascending_rank - 1) / Decimal(size - 1)).quantize(Decimal("0.0001")))
+                )
+
+        ordered_companies = sorted(
+            companies.values(),
+            key=lambda item: (not item["is_target"], item["market"] != company["market"],
+                              -len(item["metrics"]), item["name"]),
+        )[:limit]
+        peer_count = sum(not item["is_target"] for item in ordered_companies)
+        return {
+            "status": "available" if peer_count else "partial",
+            "reason": None if peer_count else "no_other_peer_with_comparable_facts",
+            "methodology": "internal_calculation",
+            "classification_basis": "inferred_peer_not_issuer_declared_competitor",
+            "scope": {"field": scope_field, "value": scope_value},
+            "peer_count": peer_count, "metric_count": len(values_by_metric),
+            "companies": ordered_companies,
         }
 
     def listings(self, market: str, symbol: str) -> list[dict]:

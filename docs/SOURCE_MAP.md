@@ -65,7 +65,7 @@ can be kept inside the primary-source rule.
 | --- | --- | --- | --- | --- |
 | 10 Industry | banking aggregates, insurance GWP, sector loan growth | **P** | SAMA statistics, GASTAT, Insurance Authority | ❌ — but this is ~20 sector datasets, not 439 company ones |
 | 10 Industry | sector dynamics, regulation, moat | **P** | Regulator publications + the issuer's own MD&A | ❌ |
-| 11 Competitors | peer comparison table | **C** | Computed from our own data across the sector — no external source needed | ❌ query not built |
+| 11 Competitors | peer comparison table | **C** | Computed from our own sourced ratios across the reviewed industry classification | ✅ `/peers`; inferred peers are explicitly distinguished from issuer-declared competitors |
 | 11 Competitors | market share | **P** | Issuer disclosure, cross-checked against sector aggregates | ❌ |
 | 12 Trading | price, volume, turnover, 52-week range | **P** | Saudi Exchange | ✅ price store |
 | 12 Trading | **beta, volatility** | **C** | **Computed from our own price series against TASI.** Five vendors returned five values; none is adoptable | ❌ |

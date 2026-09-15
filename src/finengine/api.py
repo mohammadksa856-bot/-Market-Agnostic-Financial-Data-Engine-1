@@ -72,6 +72,10 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     elif tail==["prices"]: result=query.market_prices(market,symbol,params.get("interval",["1d"])[0],self._int(params,"limit",100))
                     elif tail==["ownership"]: result=query.ownership(market,symbol,params.get("as_of",[None])[0],self._int(params,"limit",100))
                     elif tail==["estimates"]: result=query.consensus_estimates(market,symbol,params.get("metric",[None])[0],params.get("period_end",[None])[0],self._int(params,"limit",100))
+                    elif tail==["peers"]:
+                        metrics=tuple(value.strip() for value in
+                                      params.get("metrics",[""])[0].split(",") if value.strip())
+                        result=query.peer_comparison(market,symbol,metrics,self._int(params,"limit",10))
                     elif tail==["actions"]: result=query.corporate_actions(market,symbol,params.get("type",[None])[0],self._int(params,"limit",100))
                     else: raise KeyError("unknown endpoint")
                 elif parts == ["v1","exceptions"]:

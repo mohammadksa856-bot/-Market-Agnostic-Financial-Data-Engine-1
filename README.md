@@ -243,6 +243,7 @@ Examples:
     GET /v1/companies/SA/2222/prices
     GET /v1/companies/SA/2222/ownership
     GET /v1/companies/SA/2222/estimates?metric=revenue_estimate&period_end=2027-12-31
+    GET /v1/companies/SA/2222/peers?metrics=net_margin,return_on_equity&limit=10
     GET /v1/companies/SA/2222/actions
     GET /v1/catalog?category=oil_gas_operations&limit=500
     GET /v1/catalog/history/crude_oil_production
@@ -261,6 +262,9 @@ and completeness score.
 `/page` is the stable website/Telegram contract. It separates FY, quarter, YTD,
 TTM and instant snapshots, includes provenance, reports section capability and
 missing-source reasons, and explicitly forbids demonstration-value fallbacks.
+Its peer section is computed from reviewed industry classifications and sourced,
+dimensionless company metrics. It labels inferred peers explicitly and never
+presents them as issuer-declared competitors.
 
 When `FINENGINE_API_KEY` is set, send it as `X-API-Key` or `Authorization: Bearer ...`. Keep the server on localhost unless it is placed behind TLS, authentication, rate limiting, and normal production observability.
 
