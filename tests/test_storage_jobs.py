@@ -37,6 +37,20 @@ class StorageAndJobsTests(unittest.TestCase):
                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
                     source.filed_at, dimensions=dimensions or {})
 
+    def test_identical_source_can_repair_its_archive_location(self):
+        document = SourceDocument(
+            self.company.company_id, self.company.market,
+            "https://example.test/report", "source:repair",
+            "financial-results", "2026-01-01", b"{}",
+        )
+        first = Path(self.temp.name) / "ephemeral" / "source.json"
+        repaired = Path(self.temp.name) / "persistent" / "source.json"
+        self.db.save_source(document, "same-hash", str(first))
+        self.db.save_source(document, "same-hash", str(repaired))
+        self.assertEqual(
+            self.db.stored_source(document.source_key)["local_path"], str(repaired),
+        )
+
     def test_dimensions_allow_multiple_segments_for_same_metric(self):
         source = self.source()
         states = self.db.publish_batch([

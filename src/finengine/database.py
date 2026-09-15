@@ -1144,8 +1144,11 @@ class Database:
 
     def save_source(self, d: SourceDocument, content_hash: str, local_path: str | None):
         self.conn.execute(
-            """INSERT OR IGNORE INTO source_documents(source_key,company_id,source_url,filing_type,filed_at,
-            content_hash,local_path,content_type,metadata_json) VALUES(?,?,?,?,?,?,?,?,?)""",
+            """INSERT INTO source_documents(source_key,company_id,source_url,filing_type,filed_at,
+            content_hash,local_path,content_type,metadata_json) VALUES(?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(source_key) DO UPDATE SET local_path=excluded.local_path
+            WHERE source_documents.content_hash=excluded.content_hash
+              AND excluded.local_path IS NOT NULL""",
             (d.source_key, d.company_id, d.source_url, d.filing_type, d.filed_at, content_hash,
              local_path, d.content_type, _json(d.metadata)))
         self.conn.commit()
