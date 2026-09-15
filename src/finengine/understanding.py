@@ -240,6 +240,61 @@ def _ratio(value) -> Decimal:
         return Decimal(0)
 
 
+def _evidence_adjusted_catalog_scores(conn, company_id: str, raw_scores: dict[str, Decimal]) -> tuple[dict[str, Decimal], dict[str, dict]]:
+    """Use reviewed negative evidence without pretending a missing fact exists.
+
+    The durable catalog audit is accepted only when its raw counters still
+    match the current completeness row and every excluded field carries a
+    recognized, explained availability state.  Stale or hand-edited payloads
+    therefore cannot inflate readiness.
+    """
+    non_actionable = {
+        "event_driven_no_event_observed", "not_applicable_market_identifier",
+        "not_applicable_company_business_model",
+        "not_disclosed_in_archived_annual_report",
+        "not_disclosed_in_archived_filings", "qualitative_disclosure_only",
+    }
+    adjusted = dict(raw_scores)
+    evidence: dict[str, dict] = {}
+    rows = conn.execute(
+        """SELECT b.domain,b.payload_json,c.expected_fields,c.populated_fields
+        FROM backlog_items b JOIN company_completeness c
+          ON c.company_id=b.company_id AND c.category=b.domain
+        WHERE b.company_id=? AND b.item_type='catalog_backfill'
+          AND b.status IN ('open','ready','in_progress','blocked')""",
+        (company_id,),
+    ).fetchall()
+    for row in rows:
+        try:
+            payload = json.loads(row["payload_json"] or "{}")
+            coverage = payload["coverage_interpretation"]
+            assessments = payload["field_assessments"]
+            verified = [item for item in assessments if item.get("availability") in non_actionable]
+            valid = (
+                int(coverage["raw_expected"]) == int(row["expected_fields"])
+                and int(coverage["raw_populated"]) == int(row["populated_fields"])
+                and int(coverage["verified_unavailable"]) == len(verified)
+                and all(item.get("field_key") and item.get("reason") and item.get("resolution")
+                        for item in verified)
+            )
+            if not valid:
+                continue
+            score = _ratio(coverage["actionable_score"])
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            continue
+        adjusted[row["domain"]] = max(adjusted.get(row["domain"], Decimal(0)), score)
+        evidence[row["domain"]] = {
+            "raw_score": str(raw_scores.get(row["domain"], Decimal(0))),
+            "actionable_score": str(score),
+            "raw_expected": int(coverage["raw_expected"]),
+            "raw_populated": int(coverage["raw_populated"]),
+            "verified_unavailable": len(verified),
+            "actionable_expected": int(coverage["actionable_expected"]),
+            "methodology": "reviewed_field_level_applicability_and_negative_evidence",
+        }
+    return adjusted, evidence
+
+
 def refresh_company_understanding(conn, company_id: str) -> dict:
     company = conn.execute("SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
     if not company:
@@ -247,6 +302,9 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     completeness = {r["category"]: _ratio(r["completeness_score"]) for r in conn.execute(
         "SELECT category,completeness_score FROM company_completeness WHERE company_id=?", (company_id,)
     )}
+    completeness, catalog_evidence = _evidence_adjusted_catalog_scores(
+        conn, company_id, completeness,
+    )
 
     def avg(*keys):
         values = [completeness[k] for k in keys if k in completeness]
@@ -258,6 +316,26 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     attrs = count("SELECT count(*) FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))
     governance_attrs = count("SELECT count(*) FROM company_attributes WHERE company_id=? AND is_current=1 AND category='governance'", (company_id,))
     ownership = count("SELECT count(*) FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,))
+    ownership_latest = conn.execute(
+        "SELECT max(as_of_date) FROM ownership_positions WHERE company_id=? AND is_current=1",
+        (company_id,),
+    ).fetchone()[0]
+    ownership_total = Decimal(0)
+    ownership_types: set[str] = set()
+    if ownership_latest:
+        for row in conn.execute(
+            """SELECT ownership_pct,holder_type,ownership_type FROM ownership_positions
+            WHERE company_id=? AND as_of_date=? AND is_current=1""",
+            (company_id, ownership_latest),
+        ):
+            if row["ownership_pct"] is not None:
+                ownership_total += Decimal(row["ownership_pct"])
+            ownership_types.update(filter(None, (row["holder_type"], row["ownership_type"])))
+    ownership_reconciled = (
+        ownership_latest is not None and abs(ownership_total - Decimal(1)) <= Decimal("0.001")
+        and bool(ownership_types & {"government", "sovereign_and_strategic", "strategic"})
+        and bool(ownership_types & {"public", "free_float"})
+    )
     actions = count("SELECT count(*) FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,))
     prices = count("""SELECT count(*) FROM market_prices p JOIN listings l USING(listing_id)
                     JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1""", (company_id,))
@@ -302,10 +380,13 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     peer_scope_value = company[peer_scope_field] or ""
     peer_count = classified_peer_count(peer_scope_field, peer_scope_value)
     peer_scope_fallback = None
-    if peer_scope_field == "industry" and peer_count == 0 and company["sector"]:
+    if peer_scope_field == "industry" and peer_count < 5 and company["sector"]:
         peer_scope_fallback = {
             "field": "industry", "value": peer_scope_value,
-            "reason": "no_other_peer_with_comparable_facts",
+            "reason": (
+                "no_other_peer_with_comparable_facts" if peer_count == 0
+                else "fewer_than_five_peers_with_comparable_facts"
+            ),
         }
         peer_scope_field = "sector"
         peer_scope_value = company["sector"]
@@ -320,7 +401,8 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         "identity": _ratio(Decimal(identity_base + min(attrs, 8)) / Decimal(18)),
         "business": avg("company_model", "segments"),
         "governance": _ratio(Decimal(governance_attrs) / Decimal(10)),
-        "ownership": max(avg("ownership"), _ratio(Decimal(ownership) / Decimal(5))),
+        "ownership": Decimal(1) if ownership_reconciled else max(
+            avg("ownership"), _ratio(Decimal(ownership) / Decimal(5))),
         "financials": avg("income_statement", "balance_sheet", "cash_flow"),
         "earnings_quality": avg("financial_notes") if not risk_items else max(avg("financial_notes"), Decimal("0.5")),
         "ratios": max(avg("profitability", "efficiency", "liquidity_solvency", "growth"), _ratio(Decimal(ratio_points) / Decimal(30))),
@@ -353,6 +435,24 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
             "source_plan": source_plan,
             "acquisition_action": CATEGORY_ACQUISITION[key],
         }
+        relevant_catalog = {
+            "business": ("company_model", "segments"),
+            "financials": ("income_statement", "balance_sheet", "cash_flow"),
+            "earnings_quality": ("financial_notes",),
+            "valuation": ("valuation",),
+        }.get(key, ())
+        if relevant_catalog:
+            evidence["catalog_coverage"] = {
+                category: catalog_evidence[category]
+                for category in relevant_catalog if category in catalog_evidence
+            }
+        if key == "ownership":
+            evidence.update({
+                "latest_snapshot_date": ownership_latest,
+                "latest_snapshot_total": str(ownership_total),
+                "latest_snapshot_reconciled": ownership_reconciled,
+                "position_count": ownership,
+            })
         if key == "industry":
             evidence.update({"classification_fields": classification_fields,
                              "industry_context_items": industry_context})

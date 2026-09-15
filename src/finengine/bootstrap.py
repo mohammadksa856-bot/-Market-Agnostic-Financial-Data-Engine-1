@@ -243,6 +243,18 @@ def _apply_reviewed_manifest(
         "UPDATE source_documents SET local_path=? WHERE source_key=? AND content_hash=?",
         (portable_path, source_key, digest),
     )
+    source_row = db.conn.execute(
+        "SELECT metadata_json FROM source_documents WHERE source_key=?", (source_key,)
+    ).fetchone()
+    source_metadata = json.loads(source_row["metadata_json"] or "{}") if source_row else {}
+    source_metadata.update({
+        "reviewed_manifest": True,
+        "reviewed_manifest_path": portable_path,
+    })
+    db.conn.execute(
+        "UPDATE source_documents SET metadata_json=? WHERE source_key=?",
+        (json.dumps(source_metadata, ensure_ascii=False, sort_keys=True), source_key),
+    )
     db.conn.commit()
 
     domains = _publish_manifest_domains(db, company, payload, source_key)
@@ -501,8 +513,10 @@ def rebuild_snapshot(
                 if result["status"] not in {"published", "duplicate"}:
                     raise RuntimeError(f"manifest did not publish: {manifest.name}: {result}")
                 db.conn.execute(
-                    "UPDATE source_documents SET local_path=? WHERE source_key=?",
-                    (portable_path, source_key),
+                    """UPDATE source_documents SET local_path=?,metadata_json=json_set(
+                    metadata_json,'$.reviewed_manifest',json('true'),
+                    '$.reviewed_manifest_path',?) WHERE source_key=?""",
+                    (portable_path, portable_path, source_key),
                 )
                 db.conn.commit()
             else:
@@ -528,6 +542,8 @@ def rebuild_snapshot(
         market_valuations = [domain_store.refresh_market_valuations(company.company_id)
                              for company in registry.all()]
         domain_store.refresh_all_backlog()
+        from .understanding import refresh_all_understanding
+        refresh_all_understanding(db.conn)
         scheduled_count = 0
         if schedule_every is not None:
             scheduler=DurableScheduler(db)

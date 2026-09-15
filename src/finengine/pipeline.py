@@ -74,6 +74,45 @@ class Pipeline:
             self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation),"stage":"validation"}
         self.db.set_normalized_status(normalized_ids,"validated")
+        source_conflicts = self.db.higher_trust_conflicts(facts)
+        publishable_ids = list(normalized_ids)
+        if source_conflicts:
+            self.db.save_validation(doc.source_key, company.company_id, source_conflicts)
+            for conflict in source_conflicts:
+                self.db.exception(
+                    company.company_id, doc.source_key, "validation", conflict["code"],
+                    conflict["message"], conflict, severity="warning",
+                )
+            conflict_keys = {
+                (
+                    item["metric"], item["period_end"], item["period_kind"],
+                    item["fiscal_year"], item["fiscal_quarter"], item["currency"],
+                    item["unit"], item["scope"],
+                    tuple(sorted(item["dimensions"].items())),
+                )
+                for item in source_conflicts
+            }
+            publishable = [
+                (fact, normalized_id) for fact, normalized_id in zip(facts, normalized_ids)
+                if (
+                    fact.metric, fact.period_end, fact.period_kind.value,
+                    fact.fiscal_year, fact.fiscal_quarter or 0, fact.currency,
+                    fact.unit, fact.scope, tuple(sorted(fact.dimensions.items())),
+                ) not in conflict_keys
+            ]
+            rejected_ids = [
+                normalized_id for fact, normalized_id in zip(facts, normalized_ids)
+                if (
+                    fact.metric, fact.period_end, fact.period_kind.value,
+                    fact.fiscal_year, fact.fiscal_quarter or 0, fact.currency,
+                    fact.unit, fact.scope, tuple(sorted(fact.dimensions.items())),
+                ) in conflict_keys
+            ]
+            facts = [item[0] for item in publishable]
+            publishable_ids = [item[1] for item in publishable]
+            # A lower-trust value is retained in the audit trail and exception
+            # queue, but it must never be labelled as a production publication.
+            self.db.set_normalized_status(rejected_ids, "rejected")
         history=self.db.calculation_history(company.company_id,self.calculator.HISTORY_METRICS)
         calculated=self.calculator.calculate(facts,history)
         # Canonical projections can depend on a detailed note in this batch and
@@ -90,15 +129,17 @@ class Pipeline:
         for period_end,period_kind in sorted({(f.period_end,f.period_kind.value) for f in facts}):
             try: coverage.append(self.domains.refresh_coverage(company.company_id,period_end,period_kind))
             except Exception as error: self.db.exception(company.company_id,doc.source_key,"coverage","coverage_refresh_failed",str(error),severity="warning")
-        self.db.set_normalized_status(normalized_ids,"published"); self.db.set_source_status(doc.source_key,"published"); self.db.publication_batch(doc.source_key,company.company_id,"published",len(facts),len(states))
+        suppressed = states.count("suppressed") + len(source_conflicts)
+        published_count = len(states) - states.count("suppressed")
+        self.db.set_normalized_status(publishable_ids,"published"); self.db.set_source_status(doc.source_key,"published"); self.db.publication_batch(doc.source_key,company.company_id,"published",len(facts)+len(source_conflicts),published_count)
         try:
-            self.domains.refresh_catalog_completeness(company.company_id)
+            self.domains.refresh_company_backlog(company.company_id)
             from .understanding import refresh_company_understanding
             refresh_company_understanding(self.db.conn, company.company_id)
         except Exception as error:
             self.db.exception(company.company_id,doc.source_key,"understanding",
                               "understanding_refresh_failed",str(error),severity="warning")
-        return {"status":"published","source_key":doc.source_key,"published":len(states),"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"exceptions":len(validation),"coverage":coverage,"canonical_projections":len(projected),"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"minimum_confidence":"0.95"}}
+        return {"status":"published","source_key":doc.source_key,"published":published_count,"inserted":states.count("inserted"),"restated":states.count("restated"),"duplicates":states.count("duplicate"),"suppressed":suppressed,"exceptions":len(validation)+len(source_conflicts),"coverage":coverage,"canonical_projections":len(projected),"staging":{"extracted":len(extracted),"mapped":len(mapped),"normalized":len(facts),"suppressed":len(source_conflicts),"minimum_confidence":"0.95"}}
 
     def backfill_staging(self, company: Company, doc) -> dict:
         """Build the audit trail for legacy documents without republishing observations."""

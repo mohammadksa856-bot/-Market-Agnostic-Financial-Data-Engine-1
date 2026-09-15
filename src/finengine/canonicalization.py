@@ -67,6 +67,9 @@ FIXED_SOURCE_METRICS = frozenset({
     "revenue",
     "other_income_related_to_sales",
     "revenue_and_other_income_related_to_sales",
+    "operating_costs",
+    "long_term_investments",
+    "shares_repurchased",
     "expected_credit_losses",
     "related_party_receivables",
     "related_party_payables",
@@ -80,6 +83,9 @@ CANONICAL_TARGET_METRICS = frozenset({
     "depreciation_expense",
     "amortization_expense",
     "revenue_ex_other_income",
+    "other_operating_revenue",
+    "operating_expenses",
+    "treasury_share_purchases",
     "allowance_doubtful_accounts",
     "due_from_related_parties",
     "due_to_related_parties",
@@ -139,6 +145,21 @@ PROJECTION_DEFINITIONS = {
         "revenue when revenue + other_income_related_to_sales reconciles to reported combined income",
         "same_period_reconciliation",
         ("revenue", "other_income_related_to_sales", "revenue_and_other_income_related_to_sales"),
+    ),
+    "other_operating_revenue": (
+        "other_income_related_to_sales",
+        "same_period_exact_presentation_alias",
+        ("other_income_related_to_sales",),
+    ),
+    "operating_expenses": (
+        "operating_costs",
+        "same_period_exact_presentation_alias",
+        ("operating_costs",),
+    ),
+    "treasury_share_purchases": (
+        "shares_repurchased",
+        "same_period_exact_cash_flow_alias",
+        ("shares_repurchased",),
     ),
     "allowance_doubtful_accounts": (
         "expected_credit_losses[asset_class=Trade receivables,measure=Loss allowance]",
@@ -424,7 +445,25 @@ class CanonicalProjector:
         for fact in facts:
             if not eligible(fact):
                 continue
-            if fact.metric == "expected_credit_losses" and {
+            if fact.metric == "operating_costs" and not fact.dimensions:
+                add(_new_fact(
+                    "operating_expenses", fact.value, fact,
+                    "exact issuer-presented operating-costs alias",
+                    dimensions={},
+                ))
+            elif fact.metric == "other_income_related_to_sales" and not fact.dimensions:
+                add(_new_fact(
+                    "other_operating_revenue", fact.value, fact,
+                    "exact issuer-presented sales-related other operating income alias",
+                    dimensions={},
+                ))
+            elif fact.metric == "shares_repurchased" and not fact.dimensions:
+                add(_new_fact(
+                    "treasury_share_purchases", fact.value, fact,
+                    "exact cash-flow alias of issuer-reported shares repurchased",
+                    dimensions={},
+                ))
+            elif fact.metric == "expected_credit_losses" and {
                 key: value.casefold() for key, value in fact.dimensions.items()
             } == {"asset_class": "trade receivables", "measure": "loss allowance"}:
                 add(_new_fact(

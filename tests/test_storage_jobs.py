@@ -60,6 +60,37 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(states, ["inserted", "inserted"])
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM data_points").fetchone()[0], 2)
 
+    def test_automated_reader_cannot_replace_reviewed_manifest_fact(self):
+        reviewed = SourceDocument(
+            self.company.company_id, self.company.market,
+            "https://issuer.test/annual.pdf", "file:" + "a" * 64,
+            "reviewed annual manifest", "2026-03-01", b"{}",
+            "application/json", {"reviewed_manifest": True},
+        )
+        automated = SourceDocument(
+            self.company.company_id, self.company.market,
+            "https://issuer.test/annual.pdf", "document:" + "b" * 64,
+            "annual-report", "2026-09-01", b"pdf",
+            "application/pdf", {
+                "authority_tier": "issuer_official",
+                "numeric_authority": True,
+                "source_role": "official_filing",
+            },
+        )
+        self.db.save_source(reviewed, "a" * 64, None)
+        self.db.save_source(automated, "b" * 64, None)
+        self.assertEqual(self.db.publish(self.fact(reviewed, "1000000")), "inserted")
+        weak_fact = self.fact(automated, "1000")
+        conflicts = self.db.higher_trust_conflicts([weak_fact])
+        self.assertEqual(conflicts[0]["code"], "lower_trust_current_conflict")
+        self.assertEqual(self.db.publish(weak_fact), "suppressed")
+        current = self.db.conn.execute(
+            "SELECT value_decimal,source_key FROM data_points WHERE company_id=? "
+            "AND metric_key='revenue' AND is_current=1", (self.company.company_id,),
+        ).fetchall()
+        self.assertEqual([(row["value_decimal"], row["source_key"]) for row in current],
+                         [("1000000", reviewed.source_key)])
+
     def test_dimensions_are_governed_by_the_master_schema(self):
         source = self.source()
         note_fact = self.fact(source, "60", dimensions={"geography": "Saudi Arabia"})

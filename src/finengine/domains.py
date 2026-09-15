@@ -66,6 +66,11 @@ GAP_RESOLUTION_PLAYBOOK = {
         "resolution": "Exclude it from actionable company coverage while retaining it in the market-agnostic master catalog for issuers where it applies.",
         "solution_code": "exclude_from_company_applicability",
     },
+    "not_meaningful_for_current_financial_state": {
+        "reason": "The formula is not economically meaningful for the company's current financial state.",
+        "resolution": "Keep the metric unavailable with its reason and recalculate when the required positive denominator or growth rate becomes meaningful.",
+        "solution_code": "recalculate_when_economically_meaningful",
+    },
 }
 
 
@@ -138,9 +143,10 @@ class CompanyDomainStore:
         rows = self.db.conn.execute(
             """SELECT * FROM data_points WHERE company_id=? AND is_current=1
             AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
+            AND (currency='' OR currency=?)
             AND period_end<=? AND period_kind IN ('fy','instant')
             ORDER BY period_end DESC,version DESC""",
-            (company_id, price["observed_at"], price["observed_at"]),
+            (company_id, price["observed_at"], price["company_currency"], price["observed_at"]),
         ).fetchall()
         values = {}
         for row in rows:
@@ -205,6 +211,79 @@ class CompanyDomainStore:
             if key in values and market_cap:
                 numerator = abs(values[key]) if metric == "dividend_yield" else values[key]
                 calculations[metric] = (numerator / market_cap, formula, "", "ratio")
+        dividends = abs(values.get("dividends_paid", Decimal(0)))
+        buybacks = abs(values.get("shares_repurchased", Decimal(0)))
+        issuance = abs(values.get("shares_issued", Decimal(0)))
+        if market_cap and (dividends or buybacks or issuance):
+            calculations["shareholder_yield"] = (
+                (dividends + buybacks - issuance) / market_cap,
+                "(abs(dividends_paid) + abs(shares_repurchased) - abs(shares_issued)) / market_cap",
+                "", "ratio",
+            )
+
+        # Historical multiple percentiles are derived entirely from archived
+        # prices and facts that were filed by each price date.  This avoids
+        # look-ahead bias and produces a reproducible valuation context.
+        history_prices = self.db.conn.execute(
+            """SELECT p.observed_at,p.close FROM market_prices p
+            JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
+              AND p.observed_at<=? AND p.currency=? ORDER BY p.observed_at""",
+            (company_id, price["observed_at"], price["company_currency"]),
+        ).fetchall()
+        fundamental_rows = self.db.conn.execute(
+            """SELECT metric_key,value_decimal,period_end,filed_at,period_kind FROM data_points
+            WHERE company_id=? AND is_current=1 AND scope='consolidated'
+              AND dimensions_json='{}' AND value_type='decimal'
+              AND value_decimal IS NOT NULL AND (currency='' OR currency=?)
+              AND ((metric_key IN ('shares_outstanding','weighted_average_shares_diluted',
+                                   'total_equity') AND period_kind='instant')
+                   OR (metric_key='net_income' AND period_kind='fy'))
+            ORDER BY filed_at,period_end""",
+            (company_id, price["company_currency"]),
+        ).fetchall()
+
+        def latest_available(metric: str, as_of: str) -> Decimal | None:
+            candidates = [row for row in fundamental_rows
+                          if row["metric_key"] == metric and row["filed_at"] <= as_of
+                          and row["period_end"] <= as_of]
+            if not candidates:
+                return None
+            row = max(candidates, key=lambda item: (item["period_end"], item["filed_at"]))
+            return Decimal(row["value_decimal"])
+
+        pe_history: list[Decimal] = []
+        pb_history: list[Decimal] = []
+        for observation in history_prices:
+            historical_shares = (
+                latest_available("shares_outstanding", observation["observed_at"])
+                or latest_available("weighted_average_shares_diluted", observation["observed_at"])
+            )
+            if not historical_shares:
+                continue
+            historical_cap = Decimal(observation["close"]) * historical_shares
+            earnings = latest_available("net_income", observation["observed_at"])
+            equity = latest_available("total_equity", observation["observed_at"])
+            if earnings and earnings > 0:
+                pe_history.append(historical_cap / earnings)
+            if equity and equity > 0:
+                pb_history.append(historical_cap / equity)
+
+        def add_percentile(metric: str, current_metric: str, history: list[Decimal]) -> None:
+            current = calculations.get(current_metric)
+            # Sixty archived trading observations is the minimum defensible
+            # sample; the exact sample and point-in-time methodology remain in
+            # formula lineage.  Coverage grows naturally as daily history grows.
+            if current and len(history) >= 60:
+                percentile = Decimal(sum(value <= current[0] for value in history)) / Decimal(len(history))
+                calculations[metric] = (
+                    percentile,
+                    f"empirical percentile of point-in-time {current_metric} over archived daily history",
+                    "", "ratio",
+                )
+
+        add_percentile("historical_pe_percentile", "price_to_earnings", pe_history)
+        add_percentile("historical_pb_percentile", "price_to_book", pb_history)
         eps = values.get("eps_diluted") or values.get("basic_eps")
         bvps = values.get("book_value_per_share")
         if eps and bvps and eps > 0 and bvps > 0:
@@ -842,6 +921,39 @@ class CompanyDomainStore:
                     "refinery_throughput", "refinery_utilization", "reserve_replacement_ratio",
                     "spare_capacity",
                 }
+                # Reviewed negative evidence from Saudi Aramco's FY2025 annual
+                # report/data book.  These keys remain in the market-agnostic
+                # catalog, but the issuer either uses a combined/by-nature
+                # presentation or does not disclose the requested split.  A
+                # missing value is therefore not converted to zero or invented.
+                aramco_not_separately_disclosed = {
+                    "adjusted_ebitda", "continuing_operations_income",
+                    "cost_of_revenue", "discontinued_operations_income",
+                    "general_and_administrative_expense", "gross_profit",
+                    "interest_expense", "other_expense", "other_income",
+                    "other_nonoperating_expense", "other_nonoperating_income",
+                    "selling_and_distribution_expense",
+                    "accumulated_other_comprehensive_income", "cash_equivalents",
+                    "cash_restricted", "current_portion_long_term_debt",
+                    "current_tax_assets", "employee_benefits_current",
+                    "investments_joint_ventures", "marketable_securities",
+                    "other_receivables", "prepayments", "zakat_payable",
+                    "capital_increase_proceeds", "foreign_exchange_effect",
+                    "intangible_asset_purchases", "joint_venture_investments",
+                    "loans_to_affiliates",
+                    "net_income_cash_flow", "other_financing_cash_flow",
+                    "ppe_purchases", "proceeds_investments", "purchases_investments",
+                    "securities_purchases", "securities_sales", "zakat_paid",
+                    "benefit_obligation_by_geography", "borrowings_by_currency",
+                    "contract_assets", "contract_liabilities",
+                    "remaining_performance_obligations", "revenue_by_customer_type",
+                    "unsecured_borrowings", "variable_lease_expense",
+                    "weighted_average_borrowing_rate",
+                    "chemicals_revenue", "downstream_operating_income", "lng_revenue",
+                    "refined_products_revenue", "segment_assets",
+                    "segment_investments_associates", "segment_liabilities",
+                    "upstream_operating_income",
+                }
                 sabic_not_disclosed = {
                     "average_selling_price", "capacity_utilization", "circular_feedstock_volume",
                     "domestic_sales_volume", "ethylene_production", "export_sales_volume",
@@ -864,6 +976,14 @@ class CompanyDomainStore:
                     "specialties_ebit", "specialties_ebitda", "specialties_assets",
                     "specialties_capex",
                 }
+                eps_growth_row = self.db.conn.execute(
+                    """SELECT value_decimal FROM data_points WHERE company_id=?
+                    AND metric_key='eps_growth' AND is_current=1 AND value_decimal IS NOT NULL
+                    ORDER BY period_end DESC,version DESC LIMIT 1""", (company_id,),
+                ).fetchone()
+                eps_growth_positive = bool(
+                    eps_growth_row and Decimal(eps_growth_row["value_decimal"]) > 0
+                )
                 for field in row["missing"]:
                     if row["category"] == "consensus":
                         availability = "licensed_source_required"
@@ -882,11 +1002,16 @@ class CompanyDomainStore:
                         availability = "authoritative_registry_source_required"
                     elif row["category"] in {"market_data", "investor_analytics"}:
                         availability = "calculation_requires_sufficient_market_history"
+                    elif (company_id == "sa:2222" and row["category"] == "valuation"
+                          and field == "peg_ratio" and not eps_growth_positive):
+                        availability = "not_meaningful_for_current_financial_state"
                     elif row["category"] in {"growth", "profitability", "efficiency", "liquidity_solvency", "valuation"}:
                         availability = "calculation_requires_missing_dependencies"
                     elif (company_id == "sa:2222" and
                           row["category"] in {"operational", "oil_gas_operations"} and
                           field in oil_gas_not_disclosed):
+                        availability = "not_disclosed_in_archived_annual_report"
+                    elif company_id == "sa:2222" and field in aramco_not_separately_disclosed:
                         availability = "not_disclosed_in_archived_annual_report"
                     elif company_id == "sa:2010" and field in sabic_not_applicable:
                         availability = "not_applicable_company_business_model"
@@ -907,6 +1032,7 @@ class CompanyDomainStore:
                     "not_applicable_company_business_model",
                     "not_disclosed_in_archived_annual_report", "not_disclosed_in_archived_filings",
                     "qualitative_disclosure_only",
+                    "not_meaningful_for_current_financial_state",
                 }
                 verified_unavailable = [
                     item for item in field_assessments

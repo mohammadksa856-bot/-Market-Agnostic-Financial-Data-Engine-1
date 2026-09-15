@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 19
+SCHEMA_VERSION = 20
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -513,6 +513,9 @@ class Database:
             self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
 
     def _migrate_legacy_schema(self) -> None:
+        source_precedence_migration = not self.conn.execute(
+            "SELECT 1 FROM schema_migrations WHERE version=20"
+        ).fetchone()
         for name, definition in {
             "exchange": "TEXT", "country": "TEXT", "sector": "TEXT", "industry": "TEXT",
             "timezone": "TEXT NOT NULL DEFAULT 'UTC'", "locale": "TEXT NOT NULL DEFAULT 'en'",
@@ -557,8 +560,115 @@ class Database:
             "UPDATE data_points SET currency='',unit='ratio' "
             "WHERE is_calculated=1 AND metric_key IN ('net_margin','liabilities_to_equity')"
         )
+        if source_precedence_migration:
+            self._repair_current_fact_versions()
+            self.conn.execute(
+                """CREATE UNIQUE INDEX IF NOT EXISTS uq_data_points_current_natural
+                ON data_points(company_id,metric_key,period_end,period_kind,fiscal_year,
+                fiscal_quarter,currency,unit,scope,dimensions_hash) WHERE is_current=1"""
+            )
+            self.conn.execute(
+                """CREATE UNIQUE INDEX IF NOT EXISTS uq_observations_current_natural
+                ON observations(company_id,metric,period_end,period_kind,fiscal_year,
+                COALESCE(fiscal_quarter,0),currency,unit) WHERE is_current=1"""
+            )
         self.conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES(?)", (SCHEMA_VERSION,))
         self.conn.commit()
+
+    def _source_priority(self, source_key: str) -> int:
+        """Rank provenance, not recency, when two sources claim one fact.
+
+        Repository manifests are reviewed publication artifacts. Automated
+        PDF/XLSX readers remain valuable staging sources, but they must not
+        silently replace a reviewed value merely because their ingestion date
+        is later. SEC/exchange structured sources sit between those tiers.
+        """
+        row = self.conn.execute(
+            "SELECT content_type,metadata_json FROM source_documents WHERE source_key=?",
+            (source_key,),
+        ).fetchone()
+        if not row:
+            return 40
+        try:
+            metadata = json.loads(row["metadata_json"] or "{}")
+        except (TypeError, json.JSONDecodeError):
+            metadata = {}
+        if metadata.get("reviewed_manifest") is True or (
+            source_key.startswith("file:") and row["content_type"] == "application/json"
+        ):
+            return 100
+        authority = str(metadata.get("source_authority") or "").casefold()
+        connector = str(metadata.get("connector") or "").casefold()
+        if authority in {"sec_edgar", "tadawul"} or connector in {"sec-edgar", "saudi-exchange"}:
+            return 90
+        if metadata.get("numeric_authority") is True or metadata.get("source_role") == "official_filing":
+            return 70
+        if str(metadata.get("authority_tier") or "").casefold() in {
+            "issuer_official", "exchange_official", "regulator_official"
+        }:
+            return 65
+        return 50
+
+    def _fact_row_precedence(self, row) -> tuple:
+        return (
+            self._source_priority(row["source_key"]),
+            row["filed_at"] or "",
+            Decimal(row["quality_score"] or "0"),
+            int(not row["is_calculated"]),
+            row["published_at"] or "",
+            int(row["id"]),
+        )
+
+    def _repair_current_fact_versions(self) -> None:
+        """Select one strongest current version for every versioned fact.
+
+        Version 19 databases could accumulate multiple current rows because
+        the publisher retired only one matching row. The repair also restores
+        a reviewed historical version if an automated lower-trust extraction
+        had replaced it.
+        """
+        data_key = (
+            "company_id,metric_key,period_end,period_kind,fiscal_year,fiscal_quarter,"
+            "currency,unit,scope,dimensions_hash"
+        )
+        groups = self.conn.execute(
+            f"SELECT {data_key} FROM data_points GROUP BY {data_key} HAVING count(*)>1"
+        ).fetchall()
+        where = " AND ".join(f"{column}=?" for column in data_key.split(","))
+        for group in groups:
+            args = tuple(group[column] for column in data_key.split(","))
+            rows = self.conn.execute(
+                "SELECT * FROM data_points WHERE " + where, args
+            ).fetchall()
+            winner = max(rows, key=self._fact_row_precedence)
+            self.conn.execute("UPDATE data_points SET is_current=0 WHERE " + where, args)
+            self.conn.execute("UPDATE data_points SET is_current=1 WHERE id=?", (winner["id"],))
+
+        observation_key = (
+            "company_id,metric,period_end,period_kind,fiscal_year,"
+            "COALESCE(fiscal_quarter,0),currency,unit"
+        )
+        groups = self.conn.execute(
+            f"SELECT {observation_key} FROM observations GROUP BY {observation_key} HAVING count(*)>1"
+        ).fetchall()
+        observation_columns = (
+            "company_id", "metric", "period_end", "period_kind", "fiscal_year",
+            "fiscal_quarter", "currency", "unit",
+        )
+        observation_where = (
+            "company_id=? AND metric=? AND period_end=? AND period_kind=? AND fiscal_year=? "
+            "AND COALESCE(fiscal_quarter,0)=? AND currency=? AND unit=?"
+        )
+        for group in groups:
+            args = tuple(group[index] for index in range(len(observation_columns)))
+            rows = self.conn.execute(
+                """SELECT o.*,COALESCE(o.calculation,'') calculation,
+                CASE WHEN o.is_calculated=1 THEN '0.9' ELSE '1' END quality_score
+                FROM observations o WHERE """ + observation_where, args
+            ).fetchall()
+            winner = max(rows, key=self._fact_row_precedence)
+            self.conn.execute("UPDATE observations SET is_current=0 WHERE " + observation_where, args)
+            self.conn.execute("UPDATE observations SET is_current=1 WHERE id=?", (winner["id"],))
 
     def _seed_metric_catalog(self) -> None:
         for key, (name, category, statement, aggregation, default_unit) in DEFAULT_METRICS.items():
@@ -1270,12 +1380,29 @@ class Database:
         AND fiscal_quarter=? AND currency=? AND unit=? AND scope=? AND dimensions_hash=? AND is_current=1"""
         args = (f.company_id, f.metric, f.period_end, f.period_kind.value, f.fiscal_year, quarter,
                 f.currency, f.unit, f.scope, dimensions_hash)
-        old = self.conn.execute("SELECT id,value_decimal,version,source_key FROM data_points WHERE " + where, args).fetchone()
+        current = self.conn.execute(
+            "SELECT * FROM data_points WHERE " + where, args
+        ).fetchall()
+        old = max(current, key=self._fact_row_precedence) if current else None
         if old and old["value_decimal"] == str(f.value) and old["source_key"] == f.source_key:
+            if len(current) > 1:
+                self.conn.execute("UPDATE data_points SET is_current=0 WHERE " + where, args)
+                self.conn.execute("UPDATE data_points SET is_current=1 WHERE id=?", (old["id"],))
             return "duplicate"
-        version = old["version"] + 1 if old else 1
-        if old:
-            self.conn.execute("UPDATE data_points SET is_current=0 WHERE id=?", (old["id"],))
+        incoming_precedence = (
+            self._source_priority(f.source_key), f.filed_at or "", f.quality_score,
+            int(not f.is_calculated), "", 0,
+        )
+        if old and incoming_precedence[:4] < self._fact_row_precedence(old)[:4]:
+            return "suppressed"
+        historical = self.conn.execute(
+            "SELECT COALESCE(max(version),0) FROM data_points WHERE " + where.replace(
+                " AND is_current=1", ""
+            ), args,
+        ).fetchone()[0]
+        version = int(historical) + 1
+        if current:
+            self.conn.execute("UPDATE data_points SET is_current=0 WHERE " + where, args)
         self.conn.execute(
             """INSERT INTO data_points(company_id,metric_key,value_decimal,value_type,currency,unit,period_start,
             period_end,period_kind,fiscal_year,fiscal_quarter,scope,dimensions_json,dimensions_hash,source_key,
@@ -1298,6 +1425,60 @@ class Database:
                  f.period_kind.value, f.fiscal_year, f.fiscal_quarter, f.source_key, f.source_url, f.filed_at,
                  f.accession, f.form, int(f.is_calculated), f.calculation, version))
         return "restated" if old else "inserted"
+
+    def higher_trust_conflicts(self, facts: Iterable[Fact]) -> list[dict]:
+        """Find incoming numeric facts that must remain in staging.
+
+        This check runs before calculations, preventing a weak PDF/XLSX parse
+        from both replacing a reviewed primary fact and generating derived
+        ratios from the rejected value.
+        """
+        conflicts = []
+        for fact in facts:
+            dimensions_json, dimensions_hash = _dimensions(fact.dimensions)
+            del dimensions_json
+            quarter = fact.fiscal_quarter or 0
+            rows = self.conn.execute(
+                """SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND period_end=?
+                AND period_kind=? AND fiscal_year=? AND fiscal_quarter=? AND currency=? AND unit=?
+                AND scope=? AND dimensions_hash=? AND is_current=1""",
+                (fact.company_id, fact.metric, fact.period_end, fact.period_kind.value,
+                 fact.fiscal_year, quarter, fact.currency, fact.unit, fact.scope, dimensions_hash),
+            ).fetchall()
+            if not rows:
+                continue
+            strongest = max(rows, key=self._fact_row_precedence)
+            incoming = (
+                self._source_priority(fact.source_key), fact.filed_at or "", fact.quality_score,
+                int(not fact.is_calculated),
+            )
+            if incoming < self._fact_row_precedence(strongest)[:4] and (
+                strongest["value_decimal"] != str(fact.value)
+            ):
+                conflicts.append({
+                    "code": "lower_trust_current_conflict",
+                    "severity": "warning",
+                    "message": (
+                        f"{fact.metric} {fact.period_end} from {fact.source_key} was retained "
+                        "in staging because a stronger reviewed value is current"
+                    ),
+                    "metric": fact.metric,
+                    "period_end": fact.period_end,
+                    "period_kind": fact.period_kind.value,
+                    "fiscal_year": fact.fiscal_year,
+                    "fiscal_quarter": fact.fiscal_quarter or 0,
+                    "currency": fact.currency,
+                    "unit": fact.unit,
+                    "scope": fact.scope,
+                    "dimensions": fact.dimensions,
+                    "incoming_value": str(fact.value),
+                    "incoming_source_key": fact.source_key,
+                    "current_value": strongest["value_decimal"],
+                    "current_source_key": strongest["source_key"],
+                    "incoming_source_priority": incoming[0],
+                    "current_source_priority": self._source_priority(strongest["source_key"]),
+                })
+        return conflicts
 
     def publish(self, f: Fact) -> str:
         with self.conn:

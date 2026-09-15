@@ -598,7 +598,7 @@ def _understanding_refresh_job_handler(db: Database):
             )
             valuation = domains.refresh_market_valuations(company_id)
             valuations[valuation["status"]] = valuations.get(valuation["status"], 0) + 1
-            domains.refresh_catalog_completeness(company_id)
+            domains.refresh_company_backlog(company_id)
             assessed = refresh_company_understanding(db.conn, company_id)
             state = assessed["readiness_state"]
             states[state] = states.get(state, 0) + 1

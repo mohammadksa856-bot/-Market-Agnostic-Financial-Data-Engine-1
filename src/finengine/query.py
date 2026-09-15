@@ -466,11 +466,16 @@ class FinancialQueryService:
         scope_value = company[scope_field]
         rows = comparable_rows(scope_field, scope_value)
         fallback_from = None
-        has_usable_peer = any(row["company_id"] != company["company_id"] for row in rows)
-        if (scope_field == "industry" and not has_usable_peer and company["sector"]):
+        usable_peer_count = len({
+            row["company_id"] for row in rows if row["company_id"] != company["company_id"]
+        })
+        if (scope_field == "industry" and usable_peer_count < 5 and company["sector"]):
             fallback_from = {
                 "field": "industry", "value": scope_value,
-                "reason": "no_other_peer_with_comparable_facts",
+                "reason": (
+                    "no_other_peer_with_comparable_facts" if usable_peer_count == 0
+                    else "fewer_than_five_peers_with_comparable_facts"
+                ),
             }
             scope_field = "sector"
             scope_value = company["sector"]
