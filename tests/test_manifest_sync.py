@@ -5,9 +5,10 @@ import unittest
 from pathlib import Path
 
 from finengine.archive import _index_local_path
-from finengine.bootstrap import sync_reviewed_manifests
+from finengine.bootstrap import _manifest_company, sync_reviewed_manifests
 from finengine.database import Database
 from finengine.models import Company, Market
+from finengine.registry import CompanyRegistry
 
 
 class ReviewedManifestSyncTests(unittest.TestCase):
@@ -38,6 +39,16 @@ class ReviewedManifestSyncTests(unittest.TestCase):
 
     def tearDown(self):
         self.temporary.cleanup()
+
+    def test_manifest_name_wins_over_year_that_is_another_company_symbol(self):
+        registry = CompanyRegistry([
+            Company("sa:2222", Market.SA, "2222", "Saudi Arabian Oil Company (Aramco)", "SAR"),
+            Company("sa:2019", Market.SA, "2019", "Example Industrial Company", "SAR"),
+        ])
+        company = _manifest_company(
+            Path("aramco-2019-fy-historical.json"), {"facts": []}, registry,
+        )
+        self.assertEqual(company.company_id, "sa:2222")
 
     def _manifest(self, name="test-2025.json", facts=True):
         path = self.imports / name

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import shutil
 import tempfile
@@ -36,18 +37,30 @@ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
         matches = [company for company in registry.all() if company.cik == normalized]
         if len(matches) == 1:
             return matches[0]
-    stem = path.stem.lower()
-    matches = []
+    stem_tokens = set(re.findall(r"[a-z0-9]+", path.stem.lower()))
+    generic_name_tokens = {
+        "arabian", "bank", "company", "corporation", "financial", "group",
+        "holding", "holdings", "international", "limited", "national", "saudi",
+    }
+    # Prefer a distinctive issuer-name token over a numeric ticker. Annual
+    # manifest names contain years, and a year such as 2019 can itself be a
+    # valid Saudi ticker in the full production registry.
+    name_matches = []
     for company in registry.all():
         name_tokens = {
-            token.strip("().,-_").lower()
-            for token in company.name.split()
-            if len(token.strip("().,-_")) >= 4
+            token for token in re.findall(r"[a-z0-9]+", company.name.lower())
+            if len(token) >= 4 and token not in generic_name_tokens
         }
-        if company.symbol.lower() in stem or any(token in stem for token in name_tokens):
-            matches.append(company)
-    if len(matches) == 1:
-        return matches[0]
+        if name_tokens & stem_tokens:
+            name_matches.append(company)
+    if len(name_matches) == 1:
+        return name_matches[0]
+    symbol_matches = [
+        company for company in registry.all()
+        if company.symbol.lower() in stem_tokens
+    ]
+    if len(symbol_matches) == 1:
+        return symbol_matches[0]
     # The Saudi manifest contract has a flat facts list. This fallback is safe only
     # while the selected registry contains one Saudi issuer.
     if isinstance(payload.get("facts"), list):
