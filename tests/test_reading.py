@@ -398,6 +398,31 @@ class TwoPanelStatementTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class StatementReaderTests(unittest.TestCase):
+    def test_ocr_bank_caption_years_do_not_become_value_columns(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "bank-columns.pdf"
+            doc = pymupdf.open()
+            page = doc.new_page(width=595, height=842)
+            page.insert_text((275, 90), "2023", fontsize=9)
+            page.insert_text((337, 90), "2022", fontsize=9)
+            page.insert_text((416, 108), "2023", fontsize=9)
+            page.insert_text((494, 108), "2022", fontsize=9)
+            for index in range(6):
+                y = 145 + index * 30
+                page.insert_text((54, y), f"Financial line {index}", fontsize=9)
+                page.insert_text((342, y), str(20 + index), fontsize=9)
+                page.insert_text((398, y), f"{6200 + index},000", fontsize=9)
+                page.insert_text((476, y), f"{3900 + index},000", fontsize=9)
+            words = page.get_text("words")
+            columns = StatementReader._column_blocks(page, words)
+            doc.close()
+
+            self.assertEqual(len(columns), 1)
+            self.assertEqual(len(columns[0]), 2)
+            self.assertGreater(columns[0][0], 400)
+
     def test_reads_numbered_investor_release_table(self):
         with tempfile.TemporaryDirectory() as name:
             pdf = Path(name) / "release.pdf"

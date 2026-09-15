@@ -271,9 +271,13 @@ class ManifestVerifier:
         for (company, period_end, period_kind), metrics in sorted(periods.items()):
             if not all(m in metrics for m in ("cash_beginning", "cash_end")):
                 continue
-            flows = [m for m in CASH_FLOWS if m in metrics]
-            if len(flows) < 2:
+            # A partial extraction cannot prove the cash identity. Requiring
+            # all three core subtotals avoids rejecting a valid statement when
+            # (for example) financing activities were not extracted, while a
+            # complete-but-inconsistent statement still fails below.
+            if not all(m in metrics for m in CASH_FLOWS):
                 continue
+            flows = list(CASH_FLOWS)
             beginning = self._one(metrics["cash_beginning"])
             end = self._one(metrics["cash_end"])
             fx = self._one(metrics["foreign_exchange_effect"]) if "foreign_exchange_effect" in metrics else Decimal(0)

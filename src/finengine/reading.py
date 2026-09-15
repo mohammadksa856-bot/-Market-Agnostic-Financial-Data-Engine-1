@@ -719,6 +719,28 @@ class StatementReader:
             for x in block:
                 if not columns or x - columns[-1] > 25:
                     columns.append(x)
+            # Some OCR'd bank statements repeat the comparison years in a
+            # caption immediately before the real statement header.  A nearby
+            # note-reference column can then make those caption years look
+            # tabular, even though only the later columns contain reported
+            # amounts.  When at least two amount-bearing columns are clear,
+            # discard year centres that align only with small note numbers.
+            substantial = []
+            for column in columns:
+                hits = 0
+                for word in words:
+                    token = word[4]
+                    if _YEAR.fullmatch(token) or not _NUMBER.match(token):
+                        continue
+                    value = _parse_number(token)
+                    center = (word[0] + word[2]) / 2
+                    if (value is not None and abs(value) >= 1000 and
+                            abs(center - column) < 30):
+                        hits += 1
+                if hits >= 3:
+                    substantial.append(column)
+            if len(substantial) >= 2:
+                columns = substantial
             # Keep enough columns for dual-currency interim statements:
             # quarter/current-prior + YTD/current-prior in both SAR and USD.
             result.append(columns[:8])

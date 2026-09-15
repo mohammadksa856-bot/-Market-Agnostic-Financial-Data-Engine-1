@@ -112,6 +112,19 @@ class ManifestVerificationTests(unittest.TestCase):
             report = ManifestVerifier(directory).verify()
             self.assertFalse(report["ok"])
 
+    def test_partial_cash_flow_extraction_does_not_create_false_failure(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "acme-2025-fy.json", [
+                _fy("operating_cash_flow", 500),
+                _fy("investing_cash_flow", -300),
+                _fy("cash_change", 50),
+                _fy("cash_beginning", 100),
+                _fy("cash_end", 150),
+            ])
+            report = ManifestVerifier(directory).verify()
+            self.assertTrue(report["ok"], report["detail"])
+
     def test_cash_flow_and_balance_sheet_cash_definition_difference_is_review_only(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)
