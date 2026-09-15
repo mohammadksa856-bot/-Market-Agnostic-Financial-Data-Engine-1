@@ -61,6 +61,7 @@ class IssuerReportsMonitor:
     DEFAULT_KEYWORDS = (
         "annual report", "interim report", "financial report", "financial results",
         "financial statement", "consolidated", "financials", "databook",
+        "pillar 3", "basel iii",
     )
 
     def __init__(self, index_url: str, opener=urlopen, keywords: tuple[str, ...] | None = None,
@@ -125,6 +126,10 @@ class IssuerReportsMonitor:
         lowered = title.lower()
         if extension == "xlsx" or "databook" in lowered:
             return "databook"
+        # Before the quarter tokens: "Pillar 3 Disclosures Q2" is a regulatory
+        # capital disclosure, not an interim report.
+        if re.search(r"pillar[\s_%20-]*3|basel[\s_%20-]*iii", lowered):
+            return "regulatory-disclosure"
         if "annual report" in lowered:
             return "annual-report"
         if ("interim report" in lowered or

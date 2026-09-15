@@ -32,6 +32,31 @@ class FetchAgentUnitTests(unittest.TestCase):
             "Download file",
         ))
 
+    def test_basel_pillar_3_disclosures_are_discovered_as_regulatory_filings(self):
+        # Pillar 3 files carry regulatory capital, leverage and liquidity
+        # metrics that no financial statement prints; libraries label them "View".
+        self.assertTrue(_matches_filing_keywords(
+            "https://bank.example/english/SNB-Pillar-3-Disclosures-Q2-2026.pdf", "View",
+        ))
+        self.assertTrue(_matches_filing_keywords(
+            "https://bank.example/basel-disclosures/Basel_III_Pillar_3_Disclosures_Dec_20_EN.pdf",
+            "",
+        ))
+        self.assertEqual(
+            BrowserIssuerMonitor._document_type(
+                "View https://bank.example/english/SNB-Pillar-3-Disclosures-Q2-2026.pdf"),
+            "regulatory-disclosure",
+        )
+        self.assertEqual(
+            BrowserIssuerMonitor._document_type(
+                "https://bank.example/SAB%20-%20PILLAR%203%20Disclosures%20-%20Jun%202025.pdf"),
+            "regulatory-disclosure",
+        )
+        self.assertEqual(
+            BrowserIssuerMonitor._document_type("Q2 2026 interim financial statements"),
+            "interim-report",
+        )
+
     def test_quarter_only_official_links_are_filing_keywords(self):
         self.assertTrue(_matches_filing_keywords(
             "https://bank.example/documents/ANB-FS-Q1-2025.pdf", "Q1 2025"

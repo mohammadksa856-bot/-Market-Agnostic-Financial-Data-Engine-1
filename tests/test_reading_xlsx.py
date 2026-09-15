@@ -297,6 +297,39 @@ class SupplementReaderTests(unittest.TestCase):
                  ("adjusted_net_income", "2025-03-31", "USD")],
             )
 
+    def test_declared_reporting_precision_removes_formula_float_noise(self):
+        # Issuer workbooks store formula results as binary floats; the SNB
+        # supplement reports SAR mn to thousands (3 decimals) and EPS to 2.
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            xlsx = directory / "supp.xlsx"
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Balance Sheet"
+            sheet.append(["SAR (mn)", "1Q 2025", "2Q 2025"])
+            sheet.append(["Total assets", 1171079.4766652656, 1200998.407753465])
+            sheet.append(["Earnings per share", 0.8431634693894562, 0.99])
+            workbook.save(xlsx)
+            mapping_path = directory / "9999.json"
+            mapping_path.write_text(json.dumps({
+                "source_url": "https://issuer.example/supp.xlsx",
+                "scale": "1000000", "precision": 3, "period_kinds": ["quarter"],
+                "sheets": {"Balance Sheet": {
+                    "Total assets": ["total_assets", "instant"],
+                    "Earnings per share": [
+                        "eps_diluted", "flow", {"scale": 1, "unit": "SAR/share", "precision": 2},
+                    ],
+                }},
+            }), encoding="utf-8")
+            from finengine.reading_xlsx import SupplementReader
+            manifest = SupplementReader(xlsx, mapping_path).read(
+                "SA", "9999", "SAR", "2025-07-30", period_kinds=("quarter",))
+        values = {(fact["metric"], fact["period_end"]): fact["value"] for fact in manifest["facts"]}
+        self.assertEqual(manifest["period_end"], "2025-06-30")
+        self.assertEqual(values[("total_assets", "2025-03-31")], "1171079.477")
+        self.assertEqual(values[("total_assets", "2025-06-30")], "1200998.408")
+        self.assertEqual(values[("eps_diluted", "2025-03-31")], "0.84")
+
 
 if __name__ == "__main__":
     unittest.main()

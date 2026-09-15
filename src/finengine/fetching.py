@@ -27,9 +27,12 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 _KEYWORDS = ("financial statement", "financial results", "interim", "annual report",
              "consolidated", "quarterly", "half year", "data supplement", "databook",
+             # Basel III Pillar 3 disclosures carry the regulatory capital,
+             # leverage and liquidity metrics no financial statement prints.
+             "pillar 3", "basel iii", "regulatory disclosure",
              "القوائم المالية",
              "النتائج المالية", "التقرير السنوي", "تقارير سنوية", "ربع سنوي",
-             "مرحلية")
+             "مرحلية", "الركيزة الثالثة")
 _SAUDI_EXCHANGE_HOST = "www.saudiexchange.sa"
 _XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _PDF_LABEL = re.compile(
@@ -618,6 +621,11 @@ class BrowserIssuerMonitor:
         lowered = title.lower()
         if ".xlsx" in lowered or "data supplement" in lowered or "databook" in lowered:
             return "data-supplement"
+        # Checked before the quarter tokens: "Pillar 3 Disclosures Q2 2026" is a
+        # regulatory capital disclosure, not interim financial statements.
+        if (re.search(r"pillar[\s_%20-]*3|basel[\s_%20-]*iii", lowered) or
+                "regulatory disclosure" in lowered or "الركيزة الثالثة" in lowered):
+            return "regulatory-disclosure"
         if ("interim" in lowered or "quarter" in lowered or "half year" in lowered or
                 "مرحلية" in lowered or "ربع سنوي" in lowered or
                 re.search(r"(?:^|[^a-z0-9])(?:[1-4]q|q[1-4])(?:[^a-z0-9]|$)", lowered)):

@@ -46,6 +46,18 @@ def _number(cell) -> Decimal | None:
     return value if value.is_finite() else None
 
 
+def _quantize(value: Decimal, places) -> Decimal:
+    """Round a workbook value to the precision the issuer reports.
+
+    Formula cells carry binary float noise (``56575.571299999996`` for a figure
+    reported as 56,575.571). A reviewed mapping may declare that reporting
+    precision; without one, values are kept exactly as stored.
+    """
+    from decimal import ROUND_HALF_EVEN
+
+    return value.quantize(Decimal(1).scaleb(-int(places)), rounding=ROUND_HALF_EVEN)
+
+
 def _column_period(text: str):
     """(period_kind, fiscal_year, period_end) for a header like 'FY 2023', or None."""
     # Issuer data books commonly footnote back-calculated discrete Q4 columns
@@ -160,6 +172,9 @@ class SupplementReader:
                     value = _number(row[index])
                     if value is None:
                         continue
+                    precision = options.get("precision", self.mapping.get("precision"))
+                    if precision is not None:
+                        value = _quantize(value, precision)
                     if absolute:
                         value = abs(value)
                     if negate:
@@ -237,6 +252,9 @@ class SupplementReader:
                         continue
                     negate = len(spec) > 2 and spec[2] == "negate"
                     options = next((item for item in spec[2:] if isinstance(item, dict)), {})
+                    precision = options.get("precision", self.mapping.get("precision"))
+                    if precision is not None:
+                        value = _quantize(value, precision)
                     absolute = bool(options.get("absolute"))
                     if absolute:
                         value = abs(value)
@@ -269,6 +287,8 @@ class SupplementReader:
             "company_id": f"{market.lower()}:{symbol}",
             "market": market, "symbol": symbol,
             "filing_type": filing_type, "filed_at": filed_at,
+            # The latest period the workbook reports, like a statement's header.
+            "period_end": max((fact["period_end"] for fact in facts), default=None),
             "source_url": self.mapping.get("source_url", ""),
             "reader": "finengine.reading_xlsx/1",
             "facts": sorted(facts, key=lambda f: (f["period_end"], f["metric"])),
