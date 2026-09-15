@@ -3,7 +3,8 @@ import unittest
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
     _direct_document_bytes, _document_content_type, _goto_with_partial_dom,
-    _is_report_page, _published_at_from_url,
+    _is_dedicated_filing_index, _is_report_page, _matches_filing_keywords,
+    _published_at_from_url,
     _request_document_bytes,
     _saudi_financial_announcement_links, _slug, SourceAccessBlocked,
     _validate_document_bytes,
@@ -12,6 +13,25 @@ from finengine.models import Company, Market
 
 
 class FetchAgentUnitTests(unittest.TestCase):
+    def test_dedicated_filing_indexes_are_recognized(self):
+        self.assertTrue(_is_dedicated_filing_index(
+            "https://bank.example/investors/previous-annual-reports"
+        ))
+        self.assertTrue(_is_dedicated_filing_index(
+            "https://bank.example/investors/financial-results"
+        ))
+        self.assertFalse(_is_dedicated_filing_index(
+            "https://bank.example/investor-relations"
+        ))
+
+    def test_hyphenated_annual_report_path_is_a_filing_keyword(self):
+        # The live SNB library labels every link merely "Download file"; the
+        # authoritative filename supplies the annual-report signal.
+        self.assertTrue(_matches_filing_keywords(
+            "https://bank.example/reports/snb-annual-report-2025-en.pdf",
+            "Download file",
+        ))
+
     def test_query_driven_and_labelled_downloads_are_classified(self):
         self.assertEqual(
             _document_content_type(

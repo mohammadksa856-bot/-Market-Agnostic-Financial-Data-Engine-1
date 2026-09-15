@@ -179,6 +179,27 @@ def _is_report_page(url: str, label: str, parent_url: str = "") -> bool:
         any(term.strip("/") in parent for term in _REPORT_PAGE_TERMS)
         and re.search(r"(?:^|[/=_-])20(?:0\d|1\d|2\d)(?:$|[/=&_-])", lowered)
     )
+
+
+def _is_dedicated_filing_index(url: str) -> bool:
+    """True when the configured page itself is the issuer's filing library."""
+    path = unquote(urlparse(url).path).lower().replace("_", "-")
+    return any(term in path for term in (
+        "annual-report", "previous-annual-report", "financial-result",
+        "financial-statement", "financial-reports-chart",
+    ))
+
+
+def _matches_filing_keywords(url: str, label: str,
+                             keywords: tuple[str, ...] = _KEYWORDS) -> bool:
+    parsed = urlparse(url)
+    searchable = re.sub(
+        r"[-_/]+", " ",
+        unquote(f"{label} {parsed.path} {parsed.query}").lower(),
+    )
+    return any(keyword in searchable for keyword in keywords)
+
+
 def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
                                         keywords: tuple[str, ...] = _KEYWORDS) -> list[dict]:
     """Extract official announcement-detail links from Saudi Exchange onclick cards."""
@@ -279,7 +300,13 @@ class BrowserFetcher:
                         _document_content_type(linked_url, linked_label)):
                     trusted_documents.add(linked_url)
                     referers[linked_url] = page.url
-            if host != _SAUDI_EXCHANGE_HOST:
+            # A dedicated filing library already exposes the authoritative
+            # downloads in its first DOM. Avoid crawling dozens of navigation
+            # links after those documents are found; generic IR landing pages
+            # still receive the bounded recursive crawl.
+            if (host != _SAUDI_EXCHANGE_HOST and
+                    not (trusted_documents and
+                         _is_dedicated_filing_index(index_url))):
                 self._crawl_report_pages(
                     page, host, list(raw), raw, referers, trusted_documents,
                     max_pages=min(max_documents, 50),
@@ -350,7 +377,7 @@ class BrowserFetcher:
             label = (text or _slug(full)).lower()
             if full in seen or (not same_site and full not in trusted_documents):
                 continue
-            if not any(k in label or k in parsed.path.lower() for k in keywords):
+            if not _matches_filing_keywords(full, label, keywords):
                 continue
             seen.add(full)
             item = {"url": full, "title": text.strip() or _slug(full),
