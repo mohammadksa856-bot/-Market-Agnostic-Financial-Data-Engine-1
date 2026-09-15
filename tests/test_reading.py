@@ -67,6 +67,16 @@ class OcrGeometryTests(unittest.TestCase):
             heading, "Net income attributable to equity holders", "net_income_parent"
         ))
 
+    def test_changes_in_equity_is_not_a_primary_statement_continuation(self):
+        from finengine.reading import _NON_PRIMARY_STATEMENT
+
+        self.assertIsNotNone(_NON_PRIMARY_STATEMENT.search(
+            "INTERIM CONSOLIDATED STATEMENT OF CHANGES IN EQUITY"
+        ))
+        self.assertIsNone(_NON_PRIMARY_STATEMENT.search(
+            "INTERIM CONSOLIDATED STATEMENT OF INCOME"
+        ))
+
     def test_reported_amount_does_not_override_declared_millions_scale(self):
         from finengine.reading import StatementReader
 

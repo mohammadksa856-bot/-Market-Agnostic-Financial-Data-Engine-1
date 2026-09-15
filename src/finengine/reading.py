@@ -290,6 +290,10 @@ _SCALE_DECLARATION = re.compile(
     r"['‘’]000['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات",
     re.I,
 )
+_NON_PRIMARY_STATEMENT = re.compile(
+    r"\bstatements?\s+of\s+changes?\s+in\s+(?:shareholders['’]?\s+)?equity\b",
+    re.I,
+)
 _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
@@ -575,7 +579,8 @@ class StatementReader:
             heading = None if panels else self._heading_statement(page, words, page_text)
             continuation = bool(
                 not panels and carry and page_index - carry_page == 1 and columns
-                and self._looks_tabular(words, columns))
+                and self._looks_tabular(words, columns)
+                and not _NON_PRIMARY_STATEMENT.search(page_text))
             if panels:
                 carry = None
             elif heading:
