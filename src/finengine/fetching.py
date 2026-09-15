@@ -77,9 +77,34 @@ def _document_content_type(url: str, label: str = "") -> str | None:
     normalized_label = " ".join(str(label or "").split())
     if ".xlsx" in target or _XLSX_LABEL.search(normalized_label):
         return _XLSX_CONTENT_TYPE
-    if ".pdf" in target or _PDF_LABEL.search(normalized_label):
+    historical_download = (
+        re.search(r"annual[-_ ]reports?", target)
+        and re.search(r"\bdownload\s+file\b", normalized_label, re.I)
+    )
+    if ".pdf" in target or _PDF_LABEL.search(normalized_label) or historical_download:
         return "application/pdf"
     return None
+
+
+def _goto_with_partial_dom(page, url: str, timeout_ms: int) -> None:
+    """Keep a usable same-site DOM when a heavy IR page times out late.
+
+    Riyad Bank's report library can populate hundreds of filing anchors before
+    analytics and secondary assets finish.  Playwright raises on the navigation
+    timeout even though the authoritative links are already present.  A partial
+    page is accepted only when it has anchors and remains on the requested host.
+    """
+    try:
+        page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
+    except Exception:
+        requested = (urlparse(url).hostname or "").lower().removeprefix("www.")
+        landed = (urlparse(getattr(page, "url", "")).hostname or "").lower().removeprefix("www.")
+        try:
+            anchors = page.locator("a[href]").count()
+        except Exception:
+            anchors = 0
+        if not anchors or requested != landed:
+            raise
 
 
 def _validate_document_bytes(content: bytes, url: str, content_type: str) -> None:
@@ -232,7 +257,7 @@ class BrowserFetcher:
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
             page = context.new_page()
-            page.goto(index_url, timeout=self.timeout_ms, wait_until="domcontentloaded")
+            _goto_with_partial_dom(page, index_url, self.timeout_ms)
             # give client-rendered link lists a moment; do not wait for networkidle -
             # corporate sites keep long-poll / analytics connections open forever.
             with contextlib.suppress(Exception):
@@ -370,8 +395,7 @@ class BrowserFetcher:
                 continue
             crawled.add(report_url)
             try:
-                page.goto(report_url, timeout=self.timeout_ms,
-                          wait_until="domcontentloaded")
+                _goto_with_partial_dom(page, report_url, self.timeout_ms)
                 page.wait_for_timeout(1500)
                 links = page.eval_on_selector_all(
                     "a[href]", "els => els.map(e => { "

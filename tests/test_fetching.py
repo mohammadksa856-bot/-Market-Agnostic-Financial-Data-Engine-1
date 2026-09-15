@@ -2,7 +2,8 @@ import unittest
 
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
-    _direct_document_bytes, _document_content_type, _is_report_page, _published_at_from_url,
+    _direct_document_bytes, _document_content_type, _goto_with_partial_dom,
+    _is_report_page, _published_at_from_url,
     _request_document_bytes,
     _saudi_financial_announcement_links, _slug, SourceAccessBlocked,
     _validate_document_bytes,
@@ -27,6 +28,35 @@ class FetchAgentUnitTests(unittest.TestCase):
         self.assertIsNone(_document_content_type(
             "https://issuer.example/digital-report", "Digital Annual Report"
         ))
+        self.assertEqual(
+            _document_content_type(
+                "https://cdn.example/annual-reports/report_2014", "Download file"
+            ),
+            "application/pdf",
+        )
+
+    def test_navigation_timeout_keeps_same_site_partial_document(self):
+        class Locator:
+            def count(self):
+                return 12
+
+        class PartialPage:
+            url = "https://www.issuer.example/investor/reports"
+            def goto(self, *_args, **_kwargs):
+                raise TimeoutError("navigation timed out")
+            def locator(self, _selector):
+                return Locator()
+
+        _goto_with_partial_dom(
+            PartialPage(), "https://issuer.example/investor/reports", 1000
+        )
+
+        blocked = PartialPage()
+        blocked.url = "https://login.example/blocked"
+        with self.assertRaises(TimeoutError):
+            _goto_with_partial_dom(
+                blocked, "https://issuer.example/investor/reports", 1000
+            )
 
     def test_historical_report_pages_and_year_children_are_detected(self):
         reports = "https://issuer.example/investors/annual-reports"
