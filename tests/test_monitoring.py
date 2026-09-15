@@ -602,6 +602,32 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(_source_period(h1, self.aramco), ("2025-06-30", 2025))
         self.assertEqual(_source_period(nine_months, self.aramco), ("2019-09-30", 2019))
 
+    def test_source_period_handles_issuer_archive_quarter_and_year_variants(self):
+        compact_quarter = {
+            "metadata_json": json.dumps({"title": "Q1"}),
+            "source_url": "https://issuer.example/bank_fs_1q10_final-english.pdf",
+            "filing_type": "interim-report",
+        }
+        named_quarter = {
+            "metadata_json": json.dumps({"title": "For 2016 the second quarter"}),
+            "source_url": "https://issuer.example/English-FS-of-June-2016.pdf",
+            "filing_type": "interim-report",
+        }
+        annual_statement = {
+            "metadata_json": json.dumps({"title": "Part 2 - Financial Statements"}),
+            "source_url": "https://issuer.example/Financial.statements_2019.pdf",
+            "filing_type": "financial-report",
+        }
+        self.assertEqual(
+            _source_period(compact_quarter, self.aramco), ("2010-03-31", 2010),
+        )
+        self.assertEqual(
+            _source_period(named_quarter, self.aramco), ("2016-06-30", 2016),
+        )
+        self.assertEqual(
+            _source_period(annual_statement, self.aramco), ("2019-12-31", 2019),
+        )
+
     def test_xlsx_without_reviewed_map_enters_precise_exception_queue(self):
         unmapped = Company("sa:9999", Market.SA, "9999", "Unmapped Co", "SAR")
         self.db.register_company(unmapped)

@@ -327,21 +327,64 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     # metadata too.  Many report indexes label a document merely "Q1 interim
     # report" while the URL carries the otherwise missing year.
     period_text = f"{title} {source_url}"
-    quarter = re.search(r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])", period_text, re.I)
-    year_match = re.search(r"\b(20\d{2})\b", period_text)
-    if not quarter and year_match:
+    quarter = re.search(
+        r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])|"
+        r"(?<![A-Za-z0-9])([1-4])Q(?![A-Za-z0-9])",
+        period_text, re.I,
+    )
+    named_quarter = re.search(
+        r"\b(first|second|third|fourth)\s+quarter\b", period_text, re.I,
+    )
+    if not quarter and named_quarter:
+        quarter_number = {
+            "first": 1, "second": 2, "third": 3, "fourth": 4,
+        }[named_quarter.group(1).lower()]
+    elif quarter:
+        quarter_number = int(quarter.group(1) or quarter.group(2))
+    else:
+        quarter_number = None
+    year_match = re.search(r"(?<!\d)(20\d{2})(?!\d)", period_text)
+    if not year_match:
+        compact = re.search(
+            r"(?:Q[1-4]|[1-4]Q)[-_ ]?(\d{2})(?!\d)", period_text, re.I,
+        )
+        if compact:
+            year_match = compact
+    if quarter_number is None and year_match:
         cumulative = re.search(
             r"(?<![A-Za-z0-9])(H1|9M|FY)(?![A-Za-z0-9])", period_text, re.I,
         )
         if cumulative:
             fiscal_year = int(year_match.group(1))
+            if fiscal_year < 100:
+                fiscal_year += 2000
             month_day = {"H1": (6, 30), "9M": (9, 30), "FY": (12, 31)}[
                 cumulative.group(1).upper()
             ]
             return date(fiscal_year, *month_day).isoformat(), fiscal_year
-    if not quarter or not year_match:
+        try:
+            filing_type = str(row["filing_type"] or "").lower()
+        except (KeyError, TypeError, IndexError):
+            filing_type = ""
+        if filing_type and filing_type != "interim-report":
+            fiscal_year = int(year_match.group(1))
+            if fiscal_year < 100:
+                fiscal_year += 2000
+            try:
+                fiscal_end_month, fiscal_end_day = (
+                    int(value) for value in company.fiscal_year_end.split("-")
+                )
+                return (
+                    date(fiscal_year, fiscal_end_month, fiscal_end_day).isoformat(),
+                    fiscal_year,
+                )
+            except (AttributeError, TypeError, ValueError):
+                return date(fiscal_year, 12, 31).isoformat(), fiscal_year
+    if quarter_number is None or not year_match:
         return None
-    fiscal_year, fiscal_quarter = int(year_match.group(1)), int(quarter.group(1))
+    fiscal_year, fiscal_quarter = int(year_match.group(1)), quarter_number
+    if fiscal_year < 100:
+        fiscal_year += 2000
     try:
         fiscal_end_month, fiscal_end_day = (
             int(value) for value in company.fiscal_year_end.split("-")
