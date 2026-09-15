@@ -1,0 +1,220 @@
+{
+  "company_id": "sa:1050",
+  "issuer": "Banque Saudi Fransi (BSF)",
+  "source_url": "https://bsf.sa/english/top-menu/investorrelation/quarterly-results",
+  "notes": "Official BSF quarterly Data Supplement workbooks. Only source-reported monetary and share-count lines are mapped. Published ratios and repeated segment subtotals are deliberately excluded until the engine can recompute or dimension them deterministically.",
+  "scale": "1000000",
+  "period_kinds": [
+    "fy",
+    "quarter",
+    "ytd"
+  ],
+  "sheets": {
+    "Balance sheet": {
+      "Cash and balances with SAMA": [
+        "cash_and_balances_with_central_bank",
+        "instant"
+      ],
+      "Due from banks and other financial Institutions": [
+        "due_from_banks",
+        "instant"
+      ],
+      "Investments, net": [
+        "bank_investments",
+        "instant"
+      ],
+      "Loans and advances, net": [
+        "net_loans",
+        "instant"
+      ],
+      "Investments in associates": [
+        "investments_associates",
+        "instant"
+      ],
+      "Property and equipment, net": [
+        "property_plant_equipment",
+        "instant"
+      ],
+      "Total assets": [
+        "total_assets",
+        "instant"
+      ],
+      "Due to banks and other financial institutions": [
+        "due_to_banks",
+        "instant"
+      ],
+      "Customers' deposits": [
+        "customer_deposits",
+        "instant"
+      ],
+      "Debt securities and sukuks": [
+        "debt_securities_issued",
+        "instant"
+      ],
+      "Total liabilities": [
+        "total_liabilities",
+        "instant"
+      ],
+      "Share capital": [
+        "share_capital",
+        "instant"
+      ],
+      "Statutory reserve": [
+        "statutory_reserve",
+        "instant"
+      ],
+      "Other reserves": [
+        "other_reserves",
+        "instant"
+      ],
+      "Retained earnings": [
+        "retained_earnings",
+        "instant"
+      ],
+      "Treasury shares": [
+        "treasury_shares",
+        "instant"
+      ],
+      "Total equity": [
+        "total_equity",
+        "instant"
+      ],
+      "Total liabilities and equity": [
+        "total_liabilities_equity",
+        "instant"
+      ],
+      "Risk weighted assets": [
+        "risk_weighted_assets",
+        "instant"
+      ],
+      "Total capital (TC)": [
+        "regulatory_capital",
+        "instant"
+      ]
+    },
+    "Income statement": {
+      "Special commission income": [
+        "financing_income",
+        "flow"
+      ],
+      "Special commission expense": [
+        "financing_expense",
+        "flow",
+        "negate"
+      ],
+      "Net special commission income": [
+        "net_financing_income",
+        "flow"
+      ],
+      "Fee and commission income": [
+        "fee_income",
+        "flow"
+      ],
+      "Fee and commission expenses": [
+        "fee_expense",
+        "flow"
+      ],
+      "Net fee and commission income": [
+        "net_fee_income",
+        "flow"
+      ],
+      "Exchange Income, net": [
+        "exchange_income",
+        "flow"
+      ],
+      "Trading income": [
+        "trading_income",
+        "flow"
+      ],
+      "Dividend income": [
+        "dividend_income",
+        "flow"
+      ],
+      "Other operating income": [
+        "other_income",
+        "flow"
+      ],
+      "Total operating income": [
+        "total_operating_income",
+        "flow"
+      ],
+      "Salaries and employee related expenses": [
+        "salaries_and_employee_expenses",
+        "flow"
+      ],
+      "Depreciation and amortization": [
+        "depreciation_amortization",
+        "flow"
+      ],
+      "Other operating, general and administrative expenses": [
+        "general_and_administrative_expense",
+        "flow"
+      ],
+      "Total operating expenses before impairment charge": [
+        "operating_expense_banking",
+        "flow"
+      ],
+      "Total impairment charge": [
+        "provision_expense",
+        "flow"
+      ],
+      "Total operating expenses, net": [
+        "total_operating_expenses",
+        "flow"
+      ],
+      "Net operating income": [
+        "operating_income",
+        "flow"
+      ],
+      "Share in earnings of associates, net": [
+        "share_of_profit_associates",
+        "flow"
+      ],
+      "Net income before zakat and income tax": [
+        "income_before_income_taxes_and_zakat",
+        "flow"
+      ],
+      "Zakat and income tax charge": [
+        "income_taxes_and_zakat",
+        "flow",
+        "negate"
+      ],
+      "Net Income after zakat and income tax": [
+        "net_income",
+        "flow"
+      ],
+      "Number of shares in issue": [
+        "shares_outstanding",
+        "instant",
+        {
+          "scale": 1,
+          "unit": "shares"
+        }
+      ],
+      "Weighted average number of shares": [
+        "weighted_average_shares_diluted",
+        "flow",
+        {
+          "scale": 1,
+          "unit": "shares"
+        }
+      ],
+      "DPS, net": [
+        "dividends_per_share",
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share"
+        }
+      ],
+      "EPS": [
+        "eps_diluted",
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share"
+        }
+      ]
+    }
+  }
+}
