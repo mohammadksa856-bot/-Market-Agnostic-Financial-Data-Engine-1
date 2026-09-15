@@ -2,7 +2,7 @@ import unittest
 
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
-    _direct_document_bytes, _is_report_page, _published_at_from_url,
+    _direct_document_bytes, _document_content_type, _is_report_page, _published_at_from_url,
     _request_document_bytes,
     _saudi_financial_announcement_links, _slug, SourceAccessBlocked,
     _validate_document_bytes,
@@ -11,6 +11,23 @@ from finengine.models import Company, Market
 
 
 class FetchAgentUnitTests(unittest.TestCase):
+    def test_query_driven_and_labelled_downloads_are_classified(self):
+        self.assertEqual(
+            _document_content_type(
+                "https://issuer.example/download?id=42", "Download PDF"
+            ),
+            "application/pdf",
+        )
+        self.assertEqual(
+            _document_content_type(
+                "https://issuer.example/download?file=Q2.xlsx", "Download"
+            ),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIsNone(_document_content_type(
+            "https://issuer.example/digital-report", "Digital Annual Report"
+        ))
+
     def test_historical_report_pages_and_year_children_are_detected(self):
         reports = "https://issuer.example/investors/annual-reports"
         self.assertTrue(_is_report_page(reports, "Annual reports"))

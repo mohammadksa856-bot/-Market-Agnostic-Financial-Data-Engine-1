@@ -12,6 +12,10 @@ from typing import Callable
 from .database import Database, _json
 
 
+class JobLeaseLost(RuntimeError):
+    """The job was cancelled, recovered, or reassigned by another operator."""
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -132,7 +136,7 @@ class DurableJobQueue:
                 (_json(result or {}), now, now, job.job_id, job.leased_by),
             )
             if updated.rowcount != 1:
-                raise RuntimeError("job lease is no longer owned by this worker")
+                raise JobLeaseLost("job lease is no longer owned by this worker")
             self.db.conn.execute(
                 """UPDATE job_attempts SET status='succeeded',finished_at=?
                 WHERE job_id=? AND attempt_number=?""", (now, job.job_id, job.attempts),
@@ -152,7 +156,7 @@ class DurableJobQueue:
                 (status, available, message, now, now if terminal else None, job.job_id, job.leased_by),
             )
             if updated.rowcount != 1:
-                raise RuntimeError("job lease is no longer owned by this worker")
+                raise JobLeaseLost("job lease is no longer owned by this worker")
             self.db.conn.execute(
                 """UPDATE job_attempts SET status=?,finished_at=?,error=?
                 WHERE job_id=? AND attempt_number=?""",
@@ -285,7 +289,13 @@ class Worker:
             self.queue.complete(job, result)
         except Exception as error:
             stop_heartbeat.set(); heartbeat_thread.join(timeout=5)
-            self.queue.fail(job, error)
+            try:
+                self.queue.fail(job, error)
+            except JobLeaseLost:
+                # A deliberate operator cancellation or stale-lease recovery is
+                # already durably recorded by the process that changed the job.
+                # It must not terminate the long-running worker service.
+                pass
         return True
 
     def serve(self, poll_seconds: int = 10) -> None:

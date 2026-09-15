@@ -32,6 +32,11 @@ _KEYWORDS = ("financial statement", "financial results", "interim", "annual repo
              "مرحلية")
 _SAUDI_EXCHANGE_HOST = "www.saudiexchange.sa"
 _XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_PDF_LABEL = re.compile(
+    r"(?:\bpdf\b|download\s+(?:the\s+)?(?:full\s+)?report|view\s+pdf|"
+    r"تحميل\s+(?:التقرير|ملف)|عرض\s+(?:ملف\s+)?pdf)", re.I
+)
+_XLSX_LABEL = re.compile(r"(?:\bxlsx\b|\bexcel\b|data\s+supplement)", re.I)
 _ONCLICK_LOCATION = re.compile(
     r"document\.location\.href\s*=\s*['\"]([^'\"]+)['\"]", re.I
 )
@@ -55,6 +60,26 @@ class SourceAccessBlocked(RuntimeError):
 def _slug(url: str) -> str:
     name = Path(unquote(urlparse(url).path)).name
     return re.sub(r"[^A-Za-z0-9._-]", "_", name) or "document.pdf"
+
+
+def _document_content_type(url: str, label: str = "") -> str | None:
+    """Classify explicit filing downloads, including query-driven IR links.
+
+    Several Saudi bank sites expose a PDF through a download route whose URL
+    has no filename extension.  We accept those only when the official page's
+    link text explicitly says PDF/download; downloaded bytes are still checked
+    by :func:`_validate_document_bytes` before they enter the archive.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        return None
+    target = unquote(f"{parsed.path}?{parsed.query}").lower()
+    normalized_label = " ".join(str(label or "").split())
+    if ".xlsx" in target or _XLSX_LABEL.search(normalized_label):
+        return _XLSX_CONTENT_TYPE
+    if ".pdf" in target or _PDF_LABEL.search(normalized_label):
+        return "application/pdf"
+    return None
 
 
 def _validate_document_bytes(content: bytes, url: str, content_type: str) -> None:
@@ -223,10 +248,10 @@ class BrowserFetcher:
             # Exact document URLs linked by the configured official source page
             # may live on the issuer's cloud/CDN hostname. The trust is the link
             # provenance, not a broad allow-list for that external host.
-            for linked_url, _ in raw:
+            for linked_url, linked_label in raw:
                 linked = urlparse(linked_url)
                 if (linked.scheme == "https" and linked.hostname and
-                        any(ext in linked.path.lower() for ext in (".pdf", ".xlsx"))):
+                        _document_content_type(linked_url, linked_label)):
                     trusted_documents.add(linked_url)
                     referers[linked_url] = page.url
             if host != _SAUDI_EXCHANGE_HOST:
@@ -289,8 +314,8 @@ class BrowserFetcher:
         for href, text in raw:
             full = urljoin(index_url, href)
             parsed = urlparse(full)
-            if (parsed.scheme != "https" or
-                    not any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx"))):
+            content_type = _document_content_type(full, text)
+            if parsed.scheme != "https" or not content_type:
                 continue
             same_site = any(
                 parsed.hostname == allowed or
@@ -303,8 +328,6 @@ class BrowserFetcher:
             if not any(k in label or k in parsed.path.lower() for k in keywords):
                 continue
             seen.add(full)
-            content_type = (_XLSX_CONTENT_TYPE if ".xlsx" in parsed.path.lower()
-                            else "application/pdf")
             item = {"url": full, "title": text.strip() or _slug(full),
                     "content_type": content_type}
             if full in referers:
@@ -330,7 +353,7 @@ class BrowserFetcher:
                 )
                 if not same_host:
                     continue
-                if any(ext in parsed.path.lower() for ext in (".pdf", ".xlsx")):
+                if _document_content_type(href, label):
                     raw.append([href, label])
                     referers[href] = parent_url
                     trusted_documents.add(href)

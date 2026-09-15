@@ -229,6 +229,29 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(competing_claims, [None])
         self.assertEqual((row["status"], row["attempts"]), ("succeeded", 1))
 
+    def test_operator_cancellation_does_not_terminate_worker(self):
+        queue = DurableJobQueue(self.db)
+        job_id, _ = queue.enqueue(
+            "cancelled-during-run", {}, "sa:TST",
+            idempotency_key="cancelled-during-run:1",
+        )
+
+        def cancel(_job):
+            with self.db.conn:
+                self.db.conn.execute(
+                    "UPDATE jobs SET status='cancelled',leased_by=NULL,lease_until=NULL "
+                    "WHERE job_id=?", (job_id,),
+                )
+
+        worker = Worker(queue, "worker-1", {"cancelled-during-run": cancel})
+        self.assertTrue(worker.run_once())
+        self.assertEqual(
+            self.db.conn.execute(
+                "SELECT status FROM jobs WHERE job_id=?", (job_id,)
+            ).fetchone()["status"],
+            "cancelled",
+        )
+
     def _bank_fact(self, metric, value, kind, source):
         return Fact(self.company.company_id, metric, Decimal(value), "SAR", "SAR",
                     "2025-01-01" if kind == PeriodKind.FY else None, "2025-12-31", kind, 2025,
