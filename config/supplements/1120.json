@@ -2,7 +2,7 @@
   "company_id": "sa:1120",
   "issuer": "Al Rajhi Bank",
   "source_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/n/ax0k7s74wvl7/b/Marketing_Email_Images/o/ARB%20External%20Data%20Supplement%20-%204Q2025.xlsx",
-  "notes": "External Data Supplement (quarterly .xlsx). Raw reported lines only; the supplement's own ratios (ROE, ROA, NIM, cost-to-income, cost of risk, CET1/Tier1/CAR, LDR, NPL ratio/coverage) are intentionally not mapped - the engine recomputes every ratio from the ingested lines. Quarterly and YTD columns are read as well as fiscal years (period_kinds), and values are rounded to the issuer's reported precision because formula cells carry binary float noise; per-share rows keep their own SAR/share scale.",
+  "notes": "External Data Supplement (quarterly .xlsx). Raw reported lines only; the supplement's own ratios (ROE, ROA, NIM, cost-to-income, cost of risk, CET1/Tier1/CAR, LDR, NPL ratio/coverage) are intentionally not mapped - the engine recomputes every ratio from the ingested lines. Quarterly and YTD columns are read as well as fiscal years (period_kinds), and values are rounded to the issuer's reported precision because formula cells carry binary float noise; per-share rows keep their own SAR/share scale. Regulatory capital and risk-weighted assets are not mapped: the Basel III Pillar 3 KM1 disclosure is the source of record for them and reconciles its own printed ratios.",
   "scale": "1000000",
   "sheets": {
     "1. Income Statement": {
@@ -166,10 +166,6 @@
       ],
       "Total Equity": [
         "total_equity",
-        "instant"
-      ],
-      "Risk weighted assets": [
-        "risk_weighted_assets",
         "instant"
       ],
       "Non-performing financing": [
