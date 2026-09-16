@@ -28,9 +28,12 @@ ANCHORS = {
         "statement of financial position", "balance sheet", "قائمة المركز المالي",
     ),
     "cash_flow": (
-        # ANB titles the page "Consolidated statement of cash flow" (singular),
-        # so the singular form is recognised as well as the plural.
-        "statement of cash flow", "cash flow statement", "قائمة التدفقات النقدية",
+        # Both spellings are listed: ANB titles the page "Consolidated statement
+        # of cash flow" (singular), while most issuers use the plural. The
+        # plural must stay in its own right - heading matching is per line, so
+        # the singular does not stand in for it.
+        "statement of cash flows", "statement of cash flow", "cash flow statement",
+        "قائمة التدفقات النقدية",
     ),
 }
 
