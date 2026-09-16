@@ -208,6 +208,11 @@ BANK_LINE_MAP = {
     # the longer phrase keeps it from overwriting gross fee income.
     "fee income from banking services, net": ("net_fee_income", "fy"),
     "net fee and commission income": ("net_fee_income", "fy"),
+    # ANB prints the net subtotal directly under the gross lines with the same
+    # words and a trailing ", net"; without this entry the subtotal falls back
+    # to the gross caption and overwrites fee income.
+    "fee and commission income, net": ("net_fee_income", "fy"),
+    "fees and commission income, net": ("net_fee_income", "fy"),
     "exchange income": ("exchange_income", "fy"),
     "foreign exchange income": ("exchange_income", "fy"),
     "income from fx": ("exchange_income", "fy"),

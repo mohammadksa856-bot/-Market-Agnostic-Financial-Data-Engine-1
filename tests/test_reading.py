@@ -829,6 +829,19 @@ class BankInterimStatementTests(unittest.TestCase):
                          "14712696")
         self.assertEqual(facts[("net_income", "quarter")]["value"], "6614848")
 
+    def test_trailing_net_fee_caption_is_not_gross_fee_income(self):
+        # ANB prints "Fee and commission income", "Fee and commission expense"
+        # and "Fee and commission income, net" on consecutive lines. Without the
+        # trailing-", net" caption the subtotal fell back to the gross entry and
+        # overwrote fee income with the net figure.
+        from finengine.reading import _PROFILE_MAPS, LINE_MAP
+
+        bank = _PROFILE_MAPS.get("bank", LINE_MAP)
+        self.assertEqual(bank["fee and commission income"], ("fee_income", "fy"))
+        self.assertEqual(bank["fee and commission expense"], ("fee_expense", "fy"))
+        self.assertEqual(bank["fee and commission income, net"], ("net_fee_income", "fy"))
+        self.assertEqual(bank["fees and commission income, net"], ("net_fee_income", "fy"))
+
     def test_gross_and_net_fee_lines_keep_distinct_metrics(self):
         with tempfile.TemporaryDirectory() as name:
             facts = self._by_kind(self._read(Path(name)))
