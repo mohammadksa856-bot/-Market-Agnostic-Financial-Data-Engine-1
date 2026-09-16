@@ -78,7 +78,14 @@ def _document_content_type(url: str, label: str = "") -> str | None:
         return None
     target = unquote(f"{parsed.path}?{parsed.query}").lower()
     normalized_label = " ".join(str(label or "").split())
-    if ".xlsx" in target or _XLSX_LABEL.search(normalized_label):
+    # An explicit extension in the URL wins over the link text: Al Rajhi
+    # publishes several quarters of its "Data Supplement" as a PDF, and
+    # classifying those as XLSX rejects the download as a corrupt workbook.
+    if ".xlsx" in target:
+        return _XLSX_CONTENT_TYPE
+    if ".pdf" in target:
+        return "application/pdf"
+    if _XLSX_LABEL.search(normalized_label):
         return _XLSX_CONTENT_TYPE
     historical_download = (
         re.search(r"annual[-_ ]reports?", target)

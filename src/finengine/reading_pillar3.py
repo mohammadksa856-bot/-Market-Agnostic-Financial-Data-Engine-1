@@ -62,15 +62,16 @@ class _RowSpec(NamedTuple):
 # IFRS 9 adjustment - the standard KM1 meaning of rows 1-3 - and label row 4 as
 # Pillar 1 RWA. Only these exact qualifiers are accepted; the row number still
 # decides which row is read, and the printed ratios must reconcile.
-_IFRS9 = r"(?: \((?:excluding|exclusive of) ifrs 9 adjustments?\))?"
+_IFRS9 = (r"(?: \((?:excluding|exclusive of|after transitional arrangement for) "
+          r"ifrs ?9(?: adjustments?)?\))?")
 _ROWS = (
     _RowSpec("1", "cet1_capital", "amount", None,
-             rf"^common equity tier 1(?: \(cet1\))?:?{_IFRS9}$", False),
+             rf"^common equity tier 1(?: \(cet ?1\))?:?{_IFRS9}$", False),
     _RowSpec("2", "tier1_capital", "amount", None, rf"^tier 1{_IFRS9}$", False),
     _RowSpec("3", "total_capital", "amount", "regulatory_capital",
              rf"^total capital(?: \(tier i ?\+ ?tier ii\))?{_IFRS9}$", False),
     _RowSpec("4", "total_risk_weighted_assets", "amount", "risk_weighted_assets",
-             r"^total risk-weighted assets \(rwa\)(?: ?- ?pillar 1)?$", False),
+             r"^total risk-weighted assets \(rwa\)(?: ?-? ?pillar ?-? ?1)?$", False),
     _RowSpec("5", "cet1_ratio", "percent", "cet1_ratio",
              r"^(?:cet1|common equity tier 1) ratio \(%\)$", False),
     _RowSpec("6", "tier1_ratio", "percent", "tier1_capital_ratio",
@@ -390,9 +391,26 @@ class Pillar3KeyMetricsReader:
             if not tokens or not _ROW_ID.match(tokens[0]):
                 continue
             spec = _SPEC_BY_ID.get(tokens[0].lower())
-            if spec is None or spec.row_id in found or not line["values"]:
+            if spec is None or spec.row_id in found:
                 continue
+            values = line["values"]
             label = " ".join(tokens[1:])
+            if not values:
+                # Alinma wraps a long caption onto a second line and prints the
+                # figures there ("1 Common Equity Tier 1 (CET 1)" / "(after
+                # transitional arrangement for IFRS 9)  27,069,537 ...").  The
+                # continuation must be the next line, carry values, and start no
+                # row number of its own.
+                continuation = min(
+                    (other for other in lines
+                     if other["values"] and 0 < other["y"] - line["y"] <= 14
+                     and not _ROW_ID.match(other["words"][0][4])),
+                    key=lambda other: other["y"], default=None)
+                if continuation is None:
+                    continue
+                values = continuation["values"]
+                label = " ".join(
+                    [label, *(word[4] for word in continuation["words"])]).strip()
             searchable = _normal(label)
             if spec.context:
                 neighbours = [
@@ -408,7 +426,7 @@ class Pillar3KeyMetricsReader:
                 continue
             cells = []
             for center in centers:
-                here = [word[4] for word in line["values"]
+                here = [word[4] for word in values
                         if abs((word[0] + word[2]) / 2 - center) <= half]
                 cells.append(here[0] if len(here) == 1 else None)
             found[spec.row_id] = {

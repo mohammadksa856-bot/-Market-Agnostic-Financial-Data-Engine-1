@@ -567,9 +567,17 @@ GROUPS = (
     ("banking", "data_points", "banking_balance_sheet", "instant", "currency", "last", "industry", "Banks", _keys(
         "cash_and_balances_with_central_bank debt_securities_issued"
     )),
+    # Basel III KM1 amounts. ``regulatory_capital`` (total capital) and
+    # ``risk_weighted_assets`` already exist above; these are the remaining
+    # rows every Saudi bank publishes in the same template.
+    ("banking", "data_points", "banking_balance_sheet", "instant", "currency", "last", "industry", "Banks", _keys(
+        "cet1_capital tier1_capital leverage_ratio_exposure high_quality_liquid_assets "
+        "net_cash_outflow available_stable_funding required_stable_funding"
+    )),
     ("banking", "data_points", "banking_ratios", "mixed", "ratio", "none", "industry", "Banks", _keys(
         "net_interest_margin cost_of_funds nonperforming_loans_ratio nonperforming_loans_coverage cet1_ratio tier1_capital_ratio "
-        "capital_adequacy_ratio loans_to_deposits_ratio casa_ratio cost_to_income_ratio cost_of_risk bank_health_score"
+        "capital_adequacy_ratio loans_to_deposits_ratio casa_ratio cost_to_income_ratio cost_of_risk bank_health_score "
+        "leverage_ratio liquidity_coverage_ratio net_stable_funding_ratio"
     )),
     ("insurance", "data_points", "insurance_income", "flow", "currency", "sum", "industry", "Insurance", _keys(
         "gross_written_premium insurance_revenue insurance_service_expense claims_incurred insurance_service_result "

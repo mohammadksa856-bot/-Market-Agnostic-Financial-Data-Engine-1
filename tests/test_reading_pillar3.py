@@ -107,6 +107,11 @@ class QuarterHeaderTests(unittest.TestCase):
         self.assertIsNone(_quarter_end("Apr 25"))
         self.assertEqual(Pillar3KeyMetricsReader._scale("a b c\nSAR (000)\n31-Mar-22"), 1000)
 
+    def test_wrapped_row_caption_keeps_the_figures_on_its_continuation_line(self):
+        from finengine.reading_pillar3 import _ROW_ID
+
+        self.assertTrue(_ROW_ID.match("1a"))
+
     def test_malformed_or_non_quarter_headers_are_not_dated(self):
         from finengine.reading_pillar3 import _quarter_end
 
@@ -196,6 +201,20 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
             "3": "Total capital (Tier I+Tier II) (excluding IFRS 9 Adjustment)",
             "4": "Total risk-weighted assets (RWA)-Pillar 1",
         }
+        self._assert_qualified_labels_publish(labels)
+
+    def test_ifrs9_transitional_row_labels(self):
+        # Alinma prints "(after transitional arrangement for IFRS 9)", "(CET 1)"
+        # with a space, and "(RWA)-Pillar - 1".
+        labels = {
+            "1": "Common Equity Tier 1 (CET 1) (after transitional arrangement for IFRS 9)",
+            "2": "Tier 1 (after transitional arrangement for IFRS 9)",
+            "3": "Total Capital (after transitional arrangement for IFRS 9)",
+            "4": "Total risk-weighted assets (RWA)-Pillar - 1",
+        }
+        self._assert_qualified_labels_publish(labels)
+
+    def _assert_qualified_labels_publish(self, labels):
         rows = [(row_id, labels.get(row_id, label), values)
                 for row_id, label, values in _capital_rows()]
         with tempfile.TemporaryDirectory() as name:
@@ -207,6 +226,23 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
         by = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
         self.assertEqual(by[("regulatory_capital", "2025-09-30")]["value"], "174000000")
         self.assertEqual(by[("risk_weighted_assets", "2026-06-30")]["scale"], "1000")
+
+    def test_row_caption_wrapped_onto_the_line_that_carries_the_figures(self):
+        # Alinma prints "1 Common Equity Tier 1 (CET 1)" on one line and
+        # "(after transitional arrangement for IFRS 9)  27,069,537 ..." on the
+        # next, so the figures belong to the continuation line.
+        rows = []
+        for row_id, label, values in _capital_rows():
+            if row_id in {"1", "2", "3"}:
+                rows.append((row_id, label, ("", "", "", "", "")))
+                rows.append(("", "(after transitional arrangement for IFRS 9)", values))
+            else:
+                rows.append((row_id, label, values))
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self._read(Path(name), rows)
+        by = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
+        self.assertEqual(by[("regulatory_capital", "2026-06-30")]["value"], "180000000")
+        self.assertEqual(by[("risk_weighted_assets", "2026-06-30")]["value"], "850000000")
 
     def test_manifest_passes_the_accounting_verifier(self):
         with tempfile.TemporaryDirectory() as name:
