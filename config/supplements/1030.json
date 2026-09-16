@@ -1,0 +1,44 @@
+{
+  "company_id": "sa:1030",
+  "issuer": "The Saudi Investment Bank",
+  "source_url": "https://www.saib.com.sa/sites/default/files/2026-08/SAIB-Data-Supplement-2Q-2026_0.xlsx",
+  "notes": "SAIB quarterly Data Supplement (.xlsx, SAR million). Raw reported lines only; the workbook's own ratios (NPL, coverage, NIBD share, Tier 1, CAR, LCR, NSFR, financing-to-deposits, return on equity, NIM, cost-to-income, cost of risk) are not mapped - regulatory capital comes from the Pillar 3 KM1 reader and every other ratio is recomputed by the engine. Values are rounded to the issuer's reported precision (thousands of SAR = 3 decimals in SAR million; EPS to 2 decimals) because formula cells carry binary float noise. Cross-checked against the audited FY2025 manifest: net income, EPS, operating expenses, provisions, other income and term loans agree. 'Other reserves' is deliberately not mapped: it differs in definition from the audited statement's other reserves (FY2025 SAR 2,206.472 mn in the workbook vs SAR -361,424 thousand audited). 'Term loans' maps to debt_securities_issued, matching the audited statement's line. The workbook has no total-operating-expenses line (impairment is presented separately), so total_operating_expenses is not derived. The 2Q-2026 vintage states that certain balance sheet figures from 1Q 2024 onwards were restated (cash and balances with SAMA; due to banks).",
+  "scale": "1000000",
+  "precision": 3,
+  "period_kinds": ["fy", "quarter", "ytd"],
+  "sheets": {
+    "Balance Sheet": {
+      "Cash and balances with SAMA": ["cash_and_balances_with_central_bank", "instant"],
+      "Due from banks and financial Institutions, net": ["due_from_banks", "instant"],
+      "Investments, net": ["bank_investments", "instant"],
+      "Loans and advances, net": ["net_loans", "instant"],
+      "Total assets": ["total_assets", "instant"],
+      "Due to banks and other financial institutions, net": ["due_to_banks", "instant"],
+      "Customers' deposits": ["customer_deposits", "instant"],
+      "Term loans": ["debt_securities_issued", "instant"],
+      "Total liabilities": ["total_liabilities", "instant"],
+      "Share capital": ["share_capital", "instant"],
+      "Statutory reserve": ["statutory_reserve", "instant"],
+      "Retained earnings": ["retained_earnings", "instant"],
+      "Total equity": ["total_equity", "instant"]
+    },
+    "Income Statement": {
+      "Special commission income": ["financing_income", "flow"],
+      "Special commission expense": ["financing_expense", "flow"],
+      "Net special commission income": ["net_financing_income", "flow"],
+      "Fee income from banking services, net": ["net_fee_income", "flow"],
+      "Exchange income, net": ["exchange_income", "flow"],
+      "Other income": ["other_income", "flow"],
+      "Total operating income": ["total_operating_income", "flow"],
+      "Salaries and employee-related expenses": ["salaries_and_employee_expenses", "flow"],
+      "Depreciation and amortization": ["depreciation_amortization", "flow"],
+      "Other general and administrative expenses": ["general_and_administrative_expense", "flow"],
+      "Operating expenses": ["operating_expense_banking", "flow"],
+      "Provisions for credit and other losses": ["provision_expense", "flow"],
+      "Income before provisions for Zakat": ["income_before_income_taxes_and_zakat", "flow"],
+      "Provisions for Zakat": ["income_taxes_and_zakat", "flow"],
+      "Net Income attributed to equity holders": ["net_income", "flow"],
+      "Earnings per share": ["eps_diluted", "flow", {"scale": 1, "unit": "SAR/share", "precision": 2}]
+    }
+  }
+}

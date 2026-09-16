@@ -58,13 +58,19 @@ class _RowSpec(NamedTuple):
 # BCBS KM1 row numbering. ``metric`` is the governed catalog field a row is
 # published as; ``None`` keeps the value in excluded_facts. Rows 13-20 often
 # wrap their long captions onto neighbouring lines, so they match with context.
+# Some issuers qualify the transitional (non-"a") capital rows as excluding the
+# IFRS 9 adjustment - the standard KM1 meaning of rows 1-3 - and label row 4 as
+# Pillar 1 RWA. Only these exact qualifiers are accepted; the row number still
+# decides which row is read, and the printed ratios must reconcile.
+_IFRS9 = r"(?: \((?:excluding|exclusive of) ifrs 9 adjustments?\))?"
 _ROWS = (
     _RowSpec("1", "cet1_capital", "amount", None,
-             r"^common equity tier 1(?: \(cet1\))?$", False),
-    _RowSpec("2", "tier1_capital", "amount", None, r"^tier 1$", False),
-    _RowSpec("3", "total_capital", "amount", "regulatory_capital", r"^total capital$", False),
+             rf"^common equity tier 1(?: \(cet1\))?:?{_IFRS9}$", False),
+    _RowSpec("2", "tier1_capital", "amount", None, rf"^tier 1{_IFRS9}$", False),
+    _RowSpec("3", "total_capital", "amount", "regulatory_capital",
+             rf"^total capital(?: \(tier i ?\+ ?tier ii\))?{_IFRS9}$", False),
     _RowSpec("4", "total_risk_weighted_assets", "amount", "risk_weighted_assets",
-             r"^total risk-weighted assets \(rwa\)$", False),
+             r"^total risk-weighted assets \(rwa\)(?: ?- ?pillar 1)?$", False),
     _RowSpec("5", "cet1_ratio", "percent", "cet1_ratio",
              r"^(?:cet1|common equity tier 1) ratio \(%\)$", False),
     _RowSpec("6", "tier1_ratio", "percent", "tier1_capital_ratio",
@@ -101,12 +107,23 @@ _MONTHS = {name.lower(): index for index, name in enumerate(calendar.month_abbr)
 _AMOUNT = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})+\)?$|^\(?-?\d{5,}\)?$")
 _PERCENT = re.compile(r"^\(?-?\d+(?:\.\d+)?%\)?$")
 _ROW_ID = re.compile(r"^\d{1,2}[a-e]?$")
-_DAY_MONTH_YEAR = re.compile(r"\b(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})\b")
+# The day may not be the tail of a "T-1" column tag ("T-1 Dec 17").
+_DAY_MONTH_YEAR = re.compile(r"(?<![-\w])(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})\b")
+_MONTH_DAY_YEAR = re.compile(r"\b([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})\b")
 # A two-digit year needs an explicit separator ("Dec-25", "Dec'20"); after a
 # plain space only a four-digit year is accepted, so "December 30" is not 2030.
 _MONTH_YEAR = re.compile(r"\b([A-Za-z]{3,9})(?:\s*[-’'‘_]\s*(\d{4}|\d{2})|\s+(\d{4}))\b")
-_THOUSANDS = re.compile(r"SAR\s*[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\bthousands\b", re.I)
-_MILLIONS = re.compile(r"SAR\s*(?:mn|mln|millions?)\b", re.I)
+# A three-letter abbreviation followed by a space and two digits ("Mar 20",
+# "Dec 17") is a month and short year when nothing numeric follows; a spelled-out
+# month ("December 30") never matches, and the quarterly sequence check still
+# has to agree across the columns.
+_ABBREVIATED_MONTH_SHORT_YEAR = re.compile(r"\b([A-Za-z]{3})\s+(\d{2})\b(?!\s*,?\s*\d)")
+# "SAR '000", "SAR 000's", "SAR (000)", and the Saudi riyal abbreviation
+# "SR 000" printed by some issuers on the KM1 page itself.
+_THOUSANDS = re.compile(
+    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\))|\bthousands\b",
+    re.I)
+_MILLIONS = re.compile(r"(?<![A-Za-z])(?:SAR|SR)\s*(?:mn|mln|millions?)\b", re.I)
 _CELLS = "abcdef"
 
 
@@ -130,11 +147,19 @@ def _quarter_end(text: str) -> date | None:
         year = int(quarter.group(3))
         return date(year, month, calendar.monthrange(year, month)[1])
     candidates = [
+        # Month-first ("December 31, 2025") is tried before day-first, so the
+        # "1" of a "T-1" column tag is never read as a day.
+        (match.group(2), match.group(1), match.group(3))
+        for match in _MONTH_DAY_YEAR.finditer(text)
+    ] + [
         (match.group(1), match.group(2), match.group(3))
         for match in _DAY_MONTH_YEAR.finditer(text)
     ] + [
         (None, match.group(1), match.group(2) or match.group(3))
         for match in _MONTH_YEAR.finditer(text)
+    ] + [
+        (None, match.group(1), match.group(2))
+        for match in _ABBREVIATED_MONTH_SHORT_YEAR.finditer(text)
     ]
     for day_text, month_text, year_text in candidates:
         month = _MONTHS.get(month_text[:3].lower())

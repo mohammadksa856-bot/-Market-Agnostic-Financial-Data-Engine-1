@@ -83,6 +83,30 @@ class QuarterHeaderTests(unittest.TestCase):
         self.assertEqual(_quarter_end("4Q 2022"), date(2022, 12, 31))
         self.assertIsNone(_quarter_end("Q5 2022"))
 
+    def test_month_first_headers_and_riyal_abbreviation_units(self):
+        # SAIB prints "T-1 ... December 31, 2025"; Riyad Bank and SAIB declare "SR 000".
+        from finengine.reading_pillar3 import Pillar3KeyMetricsReader, _quarter_end
+
+        self.assertEqual(_quarter_end("T-1 December 31, 2025"), date(2025, 12, 31))
+        self.assertEqual(_quarter_end("March 31 2026"), date(2026, 3, 31))
+        self.assertIsNone(_quarter_end("March 30, 2026"))
+        self.assertEqual(Pillar3KeyMetricsReader._scale("Basel III Pillar III\nSR 000's"), 1000)
+        self.assertEqual(Pillar3KeyMetricsReader._scale("SR 000\na b c d e"), 1000)
+        self.assertEqual(Pillar3KeyMetricsReader._scale("SR mn"), 1_000_000)
+
+    def test_abbreviated_month_with_short_year_after_a_space(self):
+        # Riyad Bank's 2018-2022 KM1 columns print "T Mar 18" / "Dec 19".
+        from finengine.reading_pillar3 import Pillar3KeyMetricsReader, _quarter_end
+
+        self.assertEqual(_quarter_end("a T Mar 18"), date(2018, 3, 31))
+        self.assertEqual(_quarter_end("b Dec 19"), date(2019, 12, 31))
+        self.assertEqual(_quarter_end("b T-1 Dec 17"), date(2017, 12, 31))
+        self.assertEqual(_quarter_end("e T-4 Mar 17"), date(2017, 3, 31))
+        self.assertEqual(_quarter_end("Mar 31, 2026"), date(2026, 3, 31))
+        self.assertIsNone(_quarter_end("December 30"))
+        self.assertIsNone(_quarter_end("Apr 25"))
+        self.assertEqual(Pillar3KeyMetricsReader._scale("a b c\nSAR (000)\n31-Mar-22"), 1000)
+
     def test_malformed_or_non_quarter_headers_are_not_dated(self):
         from finengine.reading_pillar3 import _quarter_end
 
@@ -162,6 +186,27 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
             manifest = self._read(Path(name), _capital_rows(), unit="(Figures in SAR 000's)")
         self.assertEqual({fact["scale"] for fact in manifest["facts"] if fact["unit"] == "SAR"},
                          {"1000"})
+
+    def test_ifrs9_qualified_row_labels_and_short_year_headers(self):
+        # SAIB's KM1 qualifies rows 1-3 "(excluding IFRS 9 Adjustment)" and row 4
+        # "(RWA)-Pillar 1"; Riyad Bank's older KM1 dates columns "Jun 26".
+        labels = {
+            "1": "Common Equity Tier 1 (CET1) (excluding IFRS 9 Adjustment)",
+            "2": "Tier 1 (excluding IFRS 9 Adjustment)",
+            "3": "Total capital (Tier I+Tier II) (excluding IFRS 9 Adjustment)",
+            "4": "Total risk-weighted assets (RWA)-Pillar 1",
+        }
+        rows = [(row_id, labels.get(row_id, label), values)
+                for row_id, label, values in _capital_rows()]
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self._read(Path(name), rows, unit="SAR (000)",
+                                  headers=("Jun 26", "Mar 26", "Dec 25", "Sep 25", "Jun 25"))
+        periods = sorted({fact["period_end"] for fact in manifest["facts"]})
+        self.assertEqual(periods, ["2025-06-30", "2025-09-30", "2025-12-31",
+                                   "2026-03-31", "2026-06-30"])
+        by = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
+        self.assertEqual(by[("regulatory_capital", "2025-09-30")]["value"], "174000000")
+        self.assertEqual(by[("risk_weighted_assets", "2026-06-30")]["scale"], "1000")
 
     def test_manifest_passes_the_accounting_verifier(self):
         with tempfile.TemporaryDirectory() as name:
