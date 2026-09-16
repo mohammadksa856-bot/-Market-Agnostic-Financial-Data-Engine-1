@@ -125,10 +125,16 @@ class SupplementReader:
         excluded_facts: list[dict] = []
         seen: set[tuple] = set()
 
+        # An issuer renames a tab by a stray space between vintages: Bank
+        # AlJazira ships "Income Statment " in one quarter and "Income
+        # Statment" in the next. Whitespace is not part of the tab's identity,
+        # so match on it collapsed; everything else must still be exact.
+        by_name = {" ".join(name.split()): name for name in reversed(workbook.sheetnames)}
         for sheet_name, row_map in self.mapping.get("sheets", {}).items():
-            if sheet_name not in workbook.sheetnames:
+            actual = by_name.get(" ".join(sheet_name.split()))
+            if actual is None:
                 continue
-            sheet = workbook[sheet_name]
+            sheet = workbook[actual]
             scale = self._detect_scale(sheet, self.mapping.get("scale"))
             columns = self._period_columns(sheet, only)
             if not columns:

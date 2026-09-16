@@ -251,6 +251,14 @@ BANK_LINE_MAP = {
     "income before zakat and tax": ("income_before_income_taxes_and_zakat", "fy"),
     "income for the period before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
     "income for the year before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    # The indirect cash-flow statement opens on the pre-zakat figure and Bank
+    # Albilad words it four ways. Without these the caption falls back to the
+    # shorter "net income for the period" and a pre-zakat amount is published
+    # as net income - which the period roll-forward check then rejects.
+    "net income for the period before zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income before zakat for the period": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income for the year before zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income before zakat for the year": ("income_before_income_taxes_and_zakat", "fy"),
     "zakat and income tax": ("income_taxes_and_zakat", "fy"),
     "zakat and income tax charge for the year": ("income_taxes_and_zakat", "fy"),
     "net income attributable to equity holders of the bank": ("net_income_parent", "fy"),

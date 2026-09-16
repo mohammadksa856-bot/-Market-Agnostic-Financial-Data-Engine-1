@@ -1,0 +1,247 @@
+{
+  "company_id": "sa:1020",
+  "issuer": "Bank AlJazira",
+  "source_url": "https://ir.aljazirabank.com.sa/en/financial-information/financial-results/",
+  "notes": "Bank AlJazira quarterly Data Supplement (.xlsx, SAR mn). Raw reported lines only; the workbook's own ratios (NPL ratio and coverage, CET1/Tier 1/total capital ratios, LCR, NSFR, loans-to-deposits, CASA, Basel III leverage, RWA density, ROAE, ROAA, yield, cost of funds, net margin, cost-to-income, cost of risk) are not mapped - regulatory capital comes from the Pillar 3 KM1 reader and the engine recomputes the rest. Values are rounded to the issuer's reported precision because formula cells carry binary float noise; the per-share row keeps its own SAR/share scale.",
+  "scale": "1000000",
+  "precision": 3,
+  "period_kinds": [
+    "fy",
+    "quarter",
+    "ytd"
+  ],
+  "sheets": {
+    "Balance Sheet": {
+      "Cash and balances with Saudi Central Bank (SAMA)": [
+        "cash_and_balances_with_central_bank",
+        "instant"
+      ],
+      "Due from banks and other financial institutions, net": [
+        "due_from_banks",
+        "instant"
+      ],
+      "Investments, net": [
+        "bank_investments",
+        "instant"
+      ],
+      "Financing, net": [
+        "net_loans",
+        "instant"
+      ],
+      "Total assets": [
+        "total_assets",
+        "instant"
+      ],
+      "Due to banks and other financial institutions": [
+        "due_to_banks",
+        "instant"
+      ],
+      "Customers' deposits": [
+        "customer_deposits",
+        "instant"
+      ],
+      "Subordinated Sukuk": [
+        "debt_securities_issued",
+        "instant"
+      ],
+      "Total liabilities": [
+        "total_liabilities",
+        "instant"
+      ],
+      "Share capital": [
+        "share_capital",
+        "instant"
+      ],
+      "Treasury shares": [
+        "treasury_shares",
+        "instant"
+      ],
+      "Statutory reserve": [
+        "statutory_reserve",
+        "instant"
+      ],
+      "Other reserves": [
+        "other_reserves",
+        "instant"
+      ],
+      "Retained earnings": [
+        "retained_earnings",
+        "instant"
+      ],
+      "Equity attributable to shareholders of the Bank": [
+        "equity_parent",
+        "instant"
+      ],
+      "Total equity": [
+        "total_equity",
+        "instant"
+      ],
+      "Total liabilities and equity": [
+        "total_liabilities_equity",
+        "instant"
+      ]
+    },
+    "Income Statment": {
+      "Income from investments and financing": [
+        "financing_income",
+        "flow"
+      ],
+      "Return on deposits and financial liabilities": [
+        "financing_expense",
+        "flow",
+        "negate"
+      ],
+      "Net financing and investment income": [
+        "net_financing_income",
+        "flow"
+      ],
+      "Fees from banking services, net": [
+        "net_fee_income",
+        "flow"
+      ],
+      "Exchange income, net": [
+        "exchange_income",
+        "flow"
+      ],
+      "Other operating income": [
+        "other_income",
+        "flow"
+      ],
+      "Total operating income": [
+        "total_operating_income",
+        "flow"
+      ],
+      "Salaries and employee-related expenses": [
+        "salaries_and_employee_expenses",
+        "flow",
+        "negate"
+      ],
+      "Depreciation and amortisation": [
+        "depreciation_amortization",
+        "flow",
+        "negate"
+      ],
+      "Other general and administrative expenses": [
+        "general_and_administrative_expense",
+        "flow",
+        "negate"
+      ],
+      "Total operating expenses before impairment charge": [
+        "operating_expense_banking",
+        "flow",
+        "negate"
+      ],
+      "Impairment charge, net": [
+        "provision_expense",
+        "flow",
+        "negate"
+      ],
+      "Net income for the period before zakat and income tax": [
+        "income_before_income_taxes_and_zakat",
+        "flow"
+      ],
+      "Zakat and income tax": [
+        "income_taxes_and_zakat",
+        "flow",
+        "negate",
+        {
+          "absolute": true
+        }
+      ],
+      "Net income for the period": [
+        "net_income",
+        "flow"
+      ],
+      "EPS": [
+        "eps_diluted",
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share",
+          "precision": 2
+        }
+      ]
+    },
+    "Income Statement": {
+      "Income from investments and financing": [
+        "financing_income",
+        "flow"
+      ],
+      "Return on deposits and financial liabilities": [
+        "financing_expense",
+        "flow",
+        "negate"
+      ],
+      "Net financing and investment income": [
+        "net_financing_income",
+        "flow"
+      ],
+      "Fees from banking services, net": [
+        "net_fee_income",
+        "flow"
+      ],
+      "Exchange income, net": [
+        "exchange_income",
+        "flow"
+      ],
+      "Other operating income": [
+        "other_income",
+        "flow"
+      ],
+      "Total operating income": [
+        "total_operating_income",
+        "flow"
+      ],
+      "Salaries and employee-related expenses": [
+        "salaries_and_employee_expenses",
+        "flow",
+        "negate"
+      ],
+      "Depreciation and amortisation": [
+        "depreciation_amortization",
+        "flow",
+        "negate"
+      ],
+      "Other general and administrative expenses": [
+        "general_and_administrative_expense",
+        "flow",
+        "negate"
+      ],
+      "Total operating expenses before impairment charge": [
+        "operating_expense_banking",
+        "flow",
+        "negate"
+      ],
+      "Impairment charge, net": [
+        "provision_expense",
+        "flow",
+        "negate"
+      ],
+      "Net income for the period before zakat and income tax": [
+        "income_before_income_taxes_and_zakat",
+        "flow"
+      ],
+      "Zakat and income tax": [
+        "income_taxes_and_zakat",
+        "flow",
+        "negate",
+        {
+          "absolute": true
+        }
+      ],
+      "Net income for the period": [
+        "net_income",
+        "flow"
+      ],
+      "EPS": [
+        "eps_diluted",
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share",
+          "precision": 2
+        }
+      ]
+    }
+  }
+}
