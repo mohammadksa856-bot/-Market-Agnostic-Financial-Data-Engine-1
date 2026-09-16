@@ -15,6 +15,23 @@ No value is estimated, and nothing is published that the accounting verifier rej
 | Bank Albilad (`sa:1140`) before | 1 | 86 | 43 | 2 | 2024-12-31..2025-12-31 |
 | Bank Albilad (`sa:1140`) after | 60 | 1573 | 61 | 37 | 2011-12-31..2026-06-30 |
 
+## Current data points, from a CI-parity bootstrap
+
+Counted the way `audit` counts them: rows in `data_points` with `is_current = 1`, in a
+scratch database built from `data/imports` alone. The TTM column is the engine's own
+derivation - no manifest carries a TTM fact.
+
+| Bank | Current points | Calculated | Metrics | Fiscal years | Annual | Instant | Quarter | YTD | TTM | Open exceptions |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Bank AlJazira before | 133 | 47 | 73 | 2024-2025 | 2 | 2 | 0 | 0 | 0 | 0 |
+| Bank AlJazira after | 1264 | 201 | 93 | 2008-2026 | 149 | 770 | 230 | 108 | 7 | 0 |
+| Bank Albilad before | 133 | 47 | 73 | 2024-2025 | 2 | 2 | 0 | 0 | 0 | 0 |
+| Bank Albilad after | 1959 | 386 | 98 | 2011-2026 | 307 | 1038 | 290 | 308 | 16 | 0 |
+
+The eight banks merged before this batch are unchanged, measured in the same database:
+SAB 231, SNB 838, Riyad 2,255, SAIB 1,418, Al Rajhi 2,286, Alinma 1,470, BSF 2,573,
+ANB 3,937 current data points, each matching the figure its own batch published.
+
 ## Period kinds, sources and regulatory coverage
 
 **Bank AlJazira**
