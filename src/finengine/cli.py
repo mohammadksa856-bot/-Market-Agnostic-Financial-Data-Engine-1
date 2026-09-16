@@ -1414,7 +1414,7 @@ def main():
         except KeyboardInterrupt: return
     if a.cmd=="export-supabase":
         from . import __version__
-        from .export_supabase import SupabaseExporter, facts_to_sql
+        from .export_supabase import SupabaseExporter, current_fact_company_ids, facts_to_sql
         # Production universe companies are persisted in SQLite and can greatly
         # outnumber the small reviewed seed registry.  Exporting only the JSON
         # registry silently leaves newly onboarded issuers out of Supabase.
@@ -1425,7 +1425,11 @@ def main():
         finally:
             registry_db.close()
         if a.all:
-            targets=[(c.market.value,c.symbol) for c in registry.all() if c.enabled]
+            exportable=current_fact_company_ids(a.db)
+            targets=[
+                (c.market.value,c.symbol) for c in registry.all()
+                if c.enabled and c.company_id in exportable
+            ]
         elif a.market and a.symbol:
             targets=[(a.market,a.symbol)]
         else:

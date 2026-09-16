@@ -23,11 +23,13 @@ review-before-apply when a service key is not available locally.
 from __future__ import annotations
 
 import json
+import sqlite3
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 
 TABLE = "financial_facts"
 CONFLICT = "company_id,metric,period_end,period_kind,scope,dimensions_key"
@@ -44,6 +46,28 @@ COLUMNS = (
     "extraction_label", "extraction_value", "mapping_confidence", "mapping_method",
     "archived_path", "archived_sha256", "engine_version", "synced_at",
 )
+
+
+def current_fact_company_ids(db_path: str) -> set[str]:
+    """Return companies that can contribute rows to ``financial_facts``.
+
+    The production universe is intentionally much larger than the set of
+    companies already populated in SQLite. Walking every empty company on each
+    Supabase cycle can exceed the export timeout without changing the target.
+    A company becomes eligible automatically when its first current fact is
+    published.
+    """
+    uri = f"{Path(db_path).resolve().as_uri()}?mode=ro"
+    connection = sqlite3.connect(uri, uri=True)
+    try:
+        return {
+            str(row[0])
+            for row in connection.execute(
+                "SELECT DISTINCT company_id FROM data_points WHERE is_current=1"
+            )
+        }
+    finally:
+        connection.close()
 
 
 def canonical_dimensions(dimensions: dict | None) -> str:

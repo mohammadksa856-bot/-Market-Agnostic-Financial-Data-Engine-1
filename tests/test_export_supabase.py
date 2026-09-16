@@ -1,10 +1,13 @@
 import json
+import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 
 from finengine.export_supabase import (
-    SupabaseExporter, canonical_dimensions, deduplicate_rows, facts_to_sql,
-    flatten_fact,
+    SupabaseExporter, canonical_dimensions, current_fact_company_ids,
+    deduplicate_rows, facts_to_sql, flatten_fact,
 )
 from finengine.models import Market
 
@@ -46,6 +49,29 @@ _CALC_FACT = {
     "provenance": {"source": {}, "derivation": {"type": "deterministic_calculation",
                                                "calculation": "operating_cash_flow - abs(capex)"}},
 }
+
+
+class ExportTargetTests(unittest.TestCase):
+    def test_current_fact_company_ids_skips_empty_universe_companies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "facts.sqlite3"
+            connection = sqlite3.connect(database)
+            connection.executescript(
+                """
+                CREATE TABLE data_points(company_id TEXT, is_current INTEGER);
+                INSERT INTO data_points VALUES ('sa:1180', 1);
+                INSERT INTO data_points VALUES ('sa:1180', 0);
+                INSERT INTO data_points VALUES ('sa:1060', 1);
+                INSERT INTO data_points VALUES ('sa:empty', 0);
+                """
+            )
+            connection.commit()
+            connection.close()
+
+            self.assertEqual(
+                current_fact_company_ids(str(database)),
+                {"sa:1060", "sa:1180"},
+            )
 
 
 class FlattenTests(unittest.TestCase):
