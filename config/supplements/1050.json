@@ -2,7 +2,7 @@
   "company_id": "sa:1050",
   "issuer": "Banque Saudi Fransi (BSF)",
   "source_url": "https://bsf.sa/english/top-menu/investorrelation/quarterly-results",
-  "notes": "Official BSF quarterly Data Supplement workbooks. Only source-reported monetary and share-count lines are mapped. Published ratios and repeated segment subtotals are deliberately excluded until the engine can recompute or dimension them deterministically.",
+  "notes": "Official BSF quarterly Data Supplement workbooks. Only source-reported monetary and share-count lines are mapped. Published ratios and repeated segment subtotals are deliberately excluded until the engine can recompute or dimension them deterministically. Values are rounded to the issuer's reported precision because formula cells carry binary float noise; per-share rows keep their own SAR/share scale and share counts are integers. BSF does not publish a Basel III Pillar 3 KM1 disclosure on its investor site, so the supplement's own Tier 1 capital, total capital, RWA, LCR and Basel III leverage ratio rows are the source of record for them; the capital adequacy, Tier 1 and NPL ratios stay unmapped because the engine recomputes them from the published amounts.",
   "scale": "1000000",
   "period_kinds": [
     "fy",
@@ -98,6 +98,28 @@
       "Total capital (TC)": [
         "regulatory_capital",
         "instant"
+      ],
+      "Tier 1 capital": [
+        "tier1_capital",
+        "instant"
+      ],
+      "Liquidity coverage ratio (LCR)": [
+        "liquidity_coverage_ratio",
+        "instant",
+        {
+          "scale": 1,
+          "unit": "ratio",
+          "precision": 4
+        }
+      ],
+      "Basel III leverage ratio": [
+        "leverage_ratio",
+        "instant",
+        {
+          "scale": 1,
+          "unit": "ratio",
+          "precision": 4
+        }
       ]
     },
     "Income statement": {
@@ -230,7 +252,8 @@
         "instant",
         {
           "scale": 1,
-          "unit": "shares"
+          "unit": "shares",
+          "precision": 0
         }
       ],
       "Weighted average number of shares": [
@@ -238,7 +261,8 @@
         "flow",
         {
           "scale": 1,
-          "unit": "shares"
+          "unit": "shares",
+          "precision": 0
         }
       ],
       "DPS, net": [
@@ -246,7 +270,8 @@
         "flow",
         {
           "scale": 1,
-          "unit": "SAR/share"
+          "unit": "SAR/share",
+          "precision": 2
         }
       ],
       "EPS": [
@@ -254,9 +279,11 @@
         "flow",
         {
           "scale": 1,
-          "unit": "SAR/share"
+          "unit": "SAR/share",
+          "precision": 2
         }
       ]
     }
-  }
+  },
+  "precision": 3
 }

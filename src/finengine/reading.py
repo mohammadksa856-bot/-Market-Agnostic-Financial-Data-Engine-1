@@ -28,7 +28,12 @@ ANCHORS = {
         "statement of financial position", "balance sheet", "قائمة المركز المالي",
     ),
     "cash_flow": (
-        "statement of cash flows", "cash flow statement", "قائمة التدفقات النقدية",
+        # Both spellings are listed: ANB titles the page "Consolidated statement
+        # of cash flow" (singular), while most issuers use the plural. The
+        # plural must stay in its own right - heading matching is per line, so
+        # the singular does not stand in for it.
+        "statement of cash flows", "statement of cash flow", "cash flow statement",
+        "قائمة التدفقات النقدية",
     ),
 }
 
@@ -203,6 +208,11 @@ BANK_LINE_MAP = {
     # the longer phrase keeps it from overwriting gross fee income.
     "fee income from banking services, net": ("net_fee_income", "fy"),
     "net fee and commission income": ("net_fee_income", "fy"),
+    # ANB prints the net subtotal directly under the gross lines with the same
+    # words and a trailing ", net"; without this entry the subtotal falls back
+    # to the gross caption and overwrites fee income.
+    "fee and commission income, net": ("net_fee_income", "fy"),
+    "fees and commission income, net": ("net_fee_income", "fy"),
     "exchange income": ("exchange_income", "fy"),
     "foreign exchange income": ("exchange_income", "fy"),
     "income from fx": ("exchange_income", "fy"),
@@ -571,7 +581,7 @@ class StatementReader:
                     continue
                 top = (page.rect.height or 1000) * 0.45
                 years = [int(w[4]) for w in words
-                         if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035
+                         if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035
                          and abs((w[0] + w[2]) / 2 - columns[0]) < 20]
                 if years:
                     year = max(years)  # the current period is the newest year in its column
@@ -847,9 +857,13 @@ class StatementReader:
         sheet) - each with its own period columns, current period first
         (leftmost) within its panel. A gap over 150pt between consecutive
         year hits marks a new panel."""
+        # The floor is 2000, not 2010: a bank's own archive goes back further
+        # (ANB publishes quarterly statements from 2003), and a column headed
+        # "2006" is as real as one headed "2016". Note-reference columns are
+        # still discarded below, and the page must already be a statement.
         top = (page.rect.height or 1000) * 0.45
         hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
-                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035})
+                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035})
         if not hits:
             return []
         blocks: list[list[float]] = [[hits[0]]]
