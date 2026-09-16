@@ -318,6 +318,31 @@ def _investor_release_pdf(path: Path) -> None:
 
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
+def _singular_cash_flow_pdf(path: Path) -> None:
+    """ANB titles the page "Consolidated statement of cash flow" (singular)."""
+    doc = pymupdf.open()
+    page = doc.new_page(width=595, height=842)
+
+    def row(y, label, current, prior):
+        page.insert_text((60, y), label, fontsize=9)
+        page.insert_text((360, y), current, fontsize=9)
+        page.insert_text((460, y), prior, fontsize=9)
+
+    page.insert_text((60, 60), "Consolidated statement of cash flow", fontsize=13)
+    page.insert_text((360, 90), "2024", fontsize=9)
+    page.insert_text((460, 90), "2023", fontsize=9)
+    page.insert_text((360, 102), "SAR '000", fontsize=8)
+    rows = [
+        ("Net cash from operating activities", "9,100,000", "8,400,000"),
+        ("Net cash used in investing activities", "(3,200,000)", "(2,900,000)"),
+        ("Net cash used in financing activities", "(1,400,000)", "(1,100,000)"),
+    ]
+    for index, (label, current, prior) in enumerate(rows):
+        row(140 + index * 20, label, current, prior)
+    doc.save(path)
+    doc.close()
+
+
 class BankStatementTests(unittest.TestCase):
     def _read(self, directory: Path):
         from finengine.reading import StatementReader
@@ -572,6 +597,26 @@ class StatementReaderTests(unittest.TestCase):
                 {fact["period_kind"] for fact in manifest["facts"]},
                 {"quarter", "ytd"},
             )
+
+    def test_cash_flow_statement_titled_in_the_singular_is_read(self):
+        # The heading list required "statement of cash flows"; ANB's annual
+        # statements title the page "statement of cash flow", so the page was
+        # skipped and every figure on it was lost.
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "cash-flow.pdf"
+            _singular_cash_flow_pdf(pdf)
+            manifest = StatementReader(pdf, enable_ocr=False).read(
+                market="SA", symbol="1080", currency="SAR",
+                source_url="https://bank.example/fs-2024.pdf", filed_at="2025-02-13",
+                period_end="2024-12-31", fiscal_year=2024,
+                filing_type="financial-statements", profile="bank")
+        values = {fact["metric"]: fact["value"] for fact in manifest["facts"]
+                  if fact["period_end"] == "2024-12-31"}
+        self.assertEqual(values["operating_cash_flow"], "9100000")
+        self.assertEqual(values["investing_cash_flow"], "-3200000")
+        self.assertEqual(values["financing_cash_flow"], "-1400000")
 
     def test_reads_a_balance_sheet_and_verify_accepts_it(self):
         from finengine.reading import StatementReader
