@@ -106,7 +106,10 @@ _OTHER_CHECKS = (
 )
 
 _MONTHS = {name.lower(): index for index, name in enumerate(calendar.month_abbr) if name}
-_AMOUNT = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})+\)?$|^\(?-?\d{5,}\)?$")
+# Bank AlJazira prints some capital rows to two decimals
+# ("12,545,339.89"). The fraction does not change what the token is, and
+# the magnitude rules (a thousands-grouped or five-digit figure) still hold.
+_AMOUNT = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})+(?:\.\d+)?\)?$|^\(?-?\d{5,}(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?\d+(?:\.\d+)?%\)?$")
 _ROW_ID = re.compile(r"^\d{1,2}[a-e]?$")
 # A printed figure, never a caption word: "19.76", "1,234", "18.8%". A bare
@@ -126,7 +129,7 @@ _ABBREVIATED_MONTH_SHORT_YEAR = re.compile(r"\b([A-Za-z]{3})\s+(\d{2})\b(?!\s*,?
 # "SAR '000", "SAR 000's", "SAR (000)", and the Saudi riyal abbreviation
 # "SR 000" printed by some issuers on the KM1 page itself.
 _THOUSANDS = re.compile(
-    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\))|\bthousands\b"
+    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\)|\s*,\s*0{3}\b)|\bthousands\b"
     # Al Rajhi prints the scale as a bare "'000s" / "000's" token whose SAR
     # word sits elsewhere in the page's text order.
     r"|(?<![\d.,])(?:[’'‘`]\s*0{3}(?:\s*['’]?s)?|0{3}\s*[’'‘`]\s*s)(?![\d.,])",
@@ -138,14 +141,22 @@ _CELLS = "abcdef"
 
 
 def _normal(text: str) -> str:
-    return " ".join(text.replace("’", "'").replace("‘", "'").lower().split())
+    cleaned = " ".join(text.replace("’", "'").replace("‘", "'").lower().split())
+    # Bank AlJazira's CET1 caption carries a bracket it never opened
+    # ("Common Equity Tier 1 (CET1) )"). A trailing unmatched bracket is a
+    # typesetting artefact, not part of the row's name.
+    while cleaned.endswith(")") and cleaned.count(")") > cleaned.count("("):
+        cleaned = cleaned[:-1].rstrip()
+    return cleaned
 
 
 def _is_number(token: str) -> bool:
     return bool(_AMOUNT.match(token) or _PERCENT.match(token))
 
 
-_QUARTER_YEAR = re.compile(r"(?<![A-Za-z0-9])(?:Q([1-4])|([1-4])Q)[\s\-_']*(20\d{2})(?!\d)", re.I)
+# Bank AlJazira punctuates the column header as "Q1, 2022"; the comma
+# separates the quarter from its year exactly as a space does.
+_QUARTER_YEAR = re.compile(r"(?<![A-Za-z0-9])(?:Q([1-4])|([1-4])Q)[\s\-_',]*(20\d{2})(?!\d)", re.I)
 
 
 def _quarter_end(text: str) -> date | None:
@@ -183,6 +194,45 @@ def _quarter_end(text: str) -> date | None:
             return None
         return date(year, month, last_day)
     return None
+
+
+_COLUMN_TAG = re.compile("^T(?:[-–—]([1-9]))?$", re.I)
+
+
+def _tag_sequence_anchor(headers: list[str], page_text: str) -> date | None:
+    """Anchor a KM1 whose columns are labelled T, T-1 ... instead of dated.
+
+    Bank AlJazira prints the relative column tags only, and states the
+    reporting quarter on the page itself ("... as of Q2 2026"). The tags are an
+    explicit order, so the sequence is read, not guessed: every column must be
+    a tag, they must run T, T-1, ... without a gap, and the page must name
+    exactly one quarter.
+    """
+    positions = []
+    for header in headers:
+        # The unit sits in the header band and lands in whichever column is
+        # nearest ("SR 000's e T-4"). It declares the scale, not the period, so
+        # it is removed before the column's tag is read.
+        cleaned = _MILLIONS.sub(" ", _THOUSANDS.sub(" ", header))
+        # The table caption starts inside the header band, so its words land in
+        # the nearest column ("a T capital (amounts)"). The tag is read as a
+        # token: the cell must carry exactly one, and the run as a whole must
+        # still be complete and anchored by a single quarter stated on the page.
+        tags = [token for token in cleaned.split() if _COLUMN_TAG.match(token)]
+        if len(tags) != 1:
+            return None
+        positions.append(int(_COLUMN_TAG.match(tags[0]).group(1) or 0))
+    if positions != list(range(len(positions))):
+        return None
+    quarters = {
+        (int(match.group(3)), int(match.group(1) or match.group(2)))
+        for match in _QUARTER_YEAR.finditer(page_text)
+    }
+    if len(quarters) != 1:
+        return None
+    year, quarter = quarters.pop()
+    month = quarter * 3
+    return date(year, month, calendar.monthrange(year, month)[1])
 
 
 def _quarter_shift(value: date, quarters: int) -> date:
@@ -230,10 +280,23 @@ class Pillar3KeyMetricsReader:
             page = document[page_index]
             text = page.get_text()
             words = [tuple(word[:5]) for word in page.get_text("words")]
+            document_text = "\n".join(other.get_text() for other in document)
         finally:
             document.close()
 
-        scale = self._scale(text)
+        try:
+            scale = self._scale(text)
+        except Pillar3ReadError as error:
+            # Bank AlJazira prints the KM1 table without repeating the unit,
+            # declaring it on the report's other templates instead. The unit is
+            # taken from the document only when the page itself states none and
+            # every declaration in that document agrees; a report that declares
+            # nothing, or both units, still fails. Note the capital-ratio checks
+            # cannot catch a wrong scale - a ratio divides the unit out - so
+            # this rests on the document's own agreeing declarations.
+            if error.code != "unit_not_declared":
+                raise
+            scale = self._scale(document_text)
         centers = self._columns(words)
         pitch = min((b - a for a, b in zip(centers, centers[1:])), default=480.0)
         rows = self._rows(self._lines(words), centers, pitch / 2)
@@ -243,6 +306,10 @@ class Pillar3KeyMetricsReader:
                 "required_rows_missing", f"KM1 capital rows not found: {', '.join(missing)}")
         headers = self._headers(words, centers, pitch, rows["1"]["y"])
         parsed = [_quarter_end(header) for header in headers]
+        if not any(parsed):
+            tagged = _tag_sequence_anchor(headers, text)
+            if tagged:
+                parsed = [_quarter_shift(tagged, -index) for index in range(len(headers))]
         anchor = self._anchor(parsed, headers)
 
         facts: list[dict] = []
