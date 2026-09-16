@@ -158,11 +158,15 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
     def test_amounts_without_catalog_fields_are_kept_as_excluded_evidence(self):
         with tempfile.TemporaryDirectory() as name:
             manifest = self._read(Path(name), _capital_rows() + _liquidity_rows())
+        published = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
+        # Rows 1-2 and 13-20 now have governed catalog fields.
+        self.assertEqual(published[("cet1_capital", "2026-06-30")]["value"], "150000000")
+        self.assertEqual(published[("tier1_capital", "2026-06-30")]["value"], "170000000")
+        self.assertEqual(published[("liquidity_coverage_ratio", "2026-06-30")]["value"], "2.5")
+        self.assertEqual(published[("high_quality_liquid_assets", "2026-06-30")]["value"],
+                         "200000000")
         reasons = {(fact["metric"], fact["reason"]) for fact in manifest["excluded_facts"]
                    if fact["period_end"] == "2026-06-30"}
-        self.assertIn(("cet1_capital", "catalog_field_missing"), reasons)
-        self.assertIn(("tier1_capital", "catalog_field_missing"), reasons)
-        self.assertIn(("liquidity_coverage_ratio", "catalog_field_missing"), reasons)
         self.assertIn(("total_capital_ratio", "engine_calculates_metric"), reasons)
         lcr = [check for check in manifest["checks"]
                if check["check"].startswith("liquidity_coverage_ratio")

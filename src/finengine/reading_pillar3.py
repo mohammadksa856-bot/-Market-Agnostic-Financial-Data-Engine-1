@@ -18,10 +18,11 @@ The reader never guesses:
   its CET1, Tier 1 and total capital amounts reproduce the printed ratios
   within the printed rounding.
 
-Values without a governed catalog field (CET1 and Tier 1 amounts, leverage,
-LCR and NSFR components) stay in ``excluded_facts`` with the reason, so they
-remain reviewable without entering production. The printed total capital ratio
-is not published either: the engine calculates ``capital_adequacy_ratio`` from
+Every KM1 row with a governed catalog field is published: the capital amounts
+and ratios, the leverage ratio with its exposure measure, and the LCR and NSFR
+ratios with their components. A column whose printed ratio does not reconcile
+stays in ``excluded_facts`` with the reason. The printed total capital ratio
+is not published: the engine calculates ``capital_adequacy_ratio`` from
 the published ``regulatory_capital`` and ``risk_weighted_assets``.
 
 Requires the optional ``pymupdf`` extra.
@@ -65,9 +66,9 @@ class _RowSpec(NamedTuple):
 _IFRS9 = (r"(?: \((?:excluding|exclusive of|after transitional arrangement for) "
           r"ifrs ?9(?: adjustments?)?\))?")
 _ROWS = (
-    _RowSpec("1", "cet1_capital", "amount", None,
+    _RowSpec("1", "cet1_capital", "amount", "cet1_capital",
              rf"^common equity tier 1(?: \(cet ?1\))?:?{_IFRS9}$", False),
-    _RowSpec("2", "tier1_capital", "amount", None, rf"^tier 1{_IFRS9}$", False),
+    _RowSpec("2", "tier1_capital", "amount", "tier1_capital", rf"^tier 1{_IFRS9}$", False),
     _RowSpec("3", "total_capital", "amount", "regulatory_capital",
              rf"^total capital(?: \(tier i ?\+ ?tier ii\))?{_IFRS9}$", False),
     _RowSpec("4", "total_risk_weighted_assets", "amount", "risk_weighted_assets",
@@ -77,17 +78,17 @@ _ROWS = (
     _RowSpec("6", "tier1_ratio", "percent", "tier1_capital_ratio",
              r"^tier 1 ratio \(%\)$", False),
     _RowSpec("7", "total_capital_ratio", "percent", None, r"^total capital ratio \(%\)$", False),
-    _RowSpec("13", "leverage_ratio_exposure", "amount", None,
+    _RowSpec("13", "leverage_ratio_exposure", "amount", "leverage_ratio_exposure",
              r"leverage ratio exposure measure", True),
-    _RowSpec("14", "leverage_ratio", "percent", None, r"leverage ratio \(%\)", True),
-    _RowSpec("15", "high_quality_liquid_assets", "amount", None,
+    _RowSpec("14", "leverage_ratio", "percent", "leverage_ratio", r"leverage ratio \(%\)", True),
+    _RowSpec("15", "high_quality_liquid_assets", "amount", "high_quality_liquid_assets",
              r"high-quality liquid assets", True),
-    _RowSpec("16", "net_cash_outflow", "amount", None, r"net cash outflow", True),
-    _RowSpec("17", "liquidity_coverage_ratio", "percent", None,
+    _RowSpec("16", "net_cash_outflow", "amount", "net_cash_outflow", r"net cash outflow", True),
+    _RowSpec("17", "liquidity_coverage_ratio", "percent", "liquidity_coverage_ratio",
              r"\blcr\b|liquidity coverage ratio", True),
-    _RowSpec("18", "available_stable_funding", "amount", None, r"available stable funding", True),
-    _RowSpec("19", "required_stable_funding", "amount", None, r"required stable funding", True),
-    _RowSpec("20", "net_stable_funding_ratio", "percent", None,
+    _RowSpec("18", "available_stable_funding", "amount", "available_stable_funding", r"available stable funding", True),
+    _RowSpec("19", "required_stable_funding", "amount", "required_stable_funding", r"required stable funding", True),
+    _RowSpec("20", "net_stable_funding_ratio", "percent", "net_stable_funding_ratio",
              r"\bnsfr\b|net stable funding ratio", True),
 )
 _SPEC_BY_ID = {spec.row_id: spec for spec in _ROWS}
