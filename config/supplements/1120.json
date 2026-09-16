@@ -2,7 +2,7 @@
   "company_id": "sa:1120",
   "issuer": "Al Rajhi Bank",
   "source_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/n/ax0k7s74wvl7/b/Marketing_Email_Images/o/ARB%20External%20Data%20Supplement%20-%204Q2025.xlsx",
-  "notes": "External Data Supplement (quarterly .xlsx). Raw reported lines only; the supplement's own ratios (ROE, ROA, NIM, cost-to-income, cost of risk, CET1/Tier1/CAR, LDR, NPL ratio/coverage) are intentionally not mapped - the engine recomputes every ratio from the ingested lines.",
+  "notes": "External Data Supplement (quarterly .xlsx). Raw reported lines only; the supplement's own ratios (ROE, ROA, NIM, cost-to-income, cost of risk, CET1/Tier1/CAR, LDR, NPL ratio/coverage) are intentionally not mapped - the engine recomputes every ratio from the ingested lines. Quarterly and YTD columns are read as well as fiscal years (period_kinds), and values are rounded to the issuer's reported precision because formula cells carry binary float noise; per-share rows keep their own SAR/share scale. Regulatory capital and risk-weighted assets are not mapped: the Basel III Pillar 3 KM1 disclosure is the source of record for them and reconciles its own printed ratios.",
   "scale": "1000000",
   "sheets": {
     "1. Income Statement": {
@@ -73,7 +73,10 @@
       "Weighted average number of shares*": [
         "weighted_average_shares_diluted",
         "flow",
-        {"unit": "shares"}
+        {
+          "unit": "shares",
+          "precision": 0
+        }
       ],
       "Earnings per share (SAR)": [
         "eps_diluted",
@@ -81,14 +84,21 @@
         {
           "scale": 1,
           "unit": "SAR/share",
-          "exclude_period_ends": ["2025-12-31"],
-          "exclude_reason": "The management supplement reports unrounded EPS while the same-day audited annual financial statements publish SAR 5.85; retain the raw supplement row but publish the audited value."
+          "exclude_period_ends": [
+            "2025-12-31"
+          ],
+          "exclude_reason": "The management supplement reports unrounded EPS while the same-day audited annual financial statements publish SAR 5.85; retain the raw supplement row but publish the audited value.",
+          "precision": 2
         }
       ],
       "Dividends per share (SAR)": [
         "dividends_per_share",
         "flow",
-        {"scale": 1, "unit": "SAR/share"}
+        {
+          "scale": 1,
+          "unit": "SAR/share",
+          "precision": 2
+        }
       ]
     },
     "2. Balance Sheet": {
@@ -104,7 +114,9 @@
         "bank_investments",
         "instant",
         {
-          "exclude_period_ends": ["2025-12-31"],
+          "exclude_period_ends": [
+            "2025-12-31"
+          ],
           "exclude_reason": "The Q4 management supplement reports SAR 175,461.841m while the same-day audited financial statements and Pillar III reconciliation report SAR 174,304.596m; retain the raw row but publish the audited value."
         }
       ],
@@ -156,10 +168,6 @@
         "total_equity",
         "instant"
       ],
-      "Risk weighted assets": [
-        "risk_weighted_assets",
-        "instant"
-      ],
       "Non-performing financing": [
         "nonperforming_loans",
         "instant"
@@ -169,5 +177,11 @@
         "instant"
       ]
     }
-  }
+  },
+  "precision": 3,
+  "period_kinds": [
+    "fy",
+    "quarter",
+    "ytd"
+  ]
 }

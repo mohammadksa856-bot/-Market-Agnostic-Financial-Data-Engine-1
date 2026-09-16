@@ -2,7 +2,7 @@
   "company_id": "sa:1150",
   "issuer": "Alinma Bank",
   "source_url": "https://ir.alinma.com/en/investor-relations/financial-information/",
-  "notes": "Alinma Bank Financial Data Supplement (quarterly .xlsx, FY2018+). Raw reported lines only; the supplement's own ratios (ROAE, ROAA, NIM, cost-to-income, cost of risk, NPL ratio/coverage, CAR/T1/CET1, LCR, NSFR, LDR) are not mapped - the engine recomputes them.",
+  "notes": "Alinma Bank Financial Data Supplement (quarterly .xlsx, FY2018+). Raw reported lines only; the supplement's own ratios (ROAE, ROAA, NIM, cost-to-income, cost of risk, NPL ratio/coverage, CAR/T1/CET1, LCR, NSFR, LDR) are not mapped - the engine recomputes them. Quarterly and YTD columns are read as well as fiscal years (period_kinds), and values are rounded to the issuer's reported precision because formula cells carry binary float noise; per-share rows keep their own SAR/share scale. Regulatory capital and risk-weighted assets are not mapped: the Basel III Pillar 3 KM1 disclosure is the source of record for them and reconciles its own printed ratios.",
   "scale": "1000000",
   "sheets": {
     "Income Statement": {
@@ -60,15 +60,29 @@
       ],
       "weighted average numbe": [
         "weighted_average_shares_diluted",
-        "flow"
+        "flow",
+        {
+          "unit": "shares",
+          "precision": 0
+        }
       ],
       "eps": [
         "eps_diluted",
-        "flow"
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share",
+          "precision": 2
+        }
       ],
       "dps, net": [
         "dividends_per_share",
-        "flow"
+        "flow",
+        {
+          "scale": 1,
+          "unit": "SAR/share",
+          "precision": 2
+        }
       ]
     },
     "Balance Sheet": {
@@ -139,15 +153,13 @@
       "total npl": [
         "nonperforming_loans",
         "instant"
-      ],
-      "total rwa": [
-        "risk_weighted_assets",
-        "instant"
-      ],
-      "total capital": [
-        "regulatory_capital",
-        "instant"
       ]
     }
-  }
+  },
+  "precision": 3,
+  "period_kinds": [
+    "fy",
+    "quarter",
+    "ytd"
+  ]
 }

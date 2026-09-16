@@ -36,6 +36,25 @@ SECTOR_CODES = {
 }
 
 
+def _entity_option_for(symbol: str, values: list[str]) -> str | None:
+    """Match a listed symbol against the portal's entity option values.
+
+    The historical-reports selector does not spell every issuer the same way:
+    some options carry the bare symbol ("1150"), others pad it ("01150") or
+    prefix the market ("SA1150"). Matching on the digits alone keeps the lookup
+    working for issuers the exact-string comparison used to miss, while still
+    refusing anything whose digits differ.
+    """
+    wanted = "".join(character for character in str(symbol) if character.isdigit())
+    if not wanted:
+        return None
+    for value in values:
+        digits = "".join(character for character in str(value) if character.isdigit())
+        if digits and digits.lstrip("0") == wanted.lstrip("0"):
+            return value
+    return None
+
+
 def _access_blocked(title: str, body_text: str) -> bool:
     """Recognize CDN denial pages before waiting for controls that do not exist."""
     evidence = f"{title}\n{body_text}".lower()
@@ -141,12 +160,13 @@ def fetch_saudi_market_history(
                     continue
                 values = page.locator("#entity option").evaluate_all(
                     "els => els.map(e => e.value)")
-                if symbol in values:
+                entity_value = _entity_option_for(symbol, values)
+                if entity_value:
                     found_sector = sector_value
                     break
             if not found_sector:
                 raise KeyError(f"symbol not present in Saudi Exchange historical selector: {symbol}")
-            page.select_option("#entity", symbol, force=True)
+            page.select_option("#entity", entity_value, force=True)
             # These inputs are deliberately readonly because the public page
             # uses a date picker.  Set the value through the DOM and emit the
             # same events the picker would emit; Locator.fill cannot edit a

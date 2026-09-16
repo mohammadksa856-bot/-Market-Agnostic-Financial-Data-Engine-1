@@ -87,6 +87,15 @@ class FetchAgentUnitTests(unittest.TestCase):
         self.assertIsNone(_document_content_type(
             "https://issuer.example/digital-report", "Digital Annual Report"
         ))
+        # An explicit extension outranks the link text: Al Rajhi publishes
+        # several quarters of its "Data Supplement" as a PDF.
+        self.assertEqual(
+            _document_content_type(
+                "https://issuer.example/ARB_External_Data_Supplement_4Q2024.pdf",
+                "Data Supplement",
+            ),
+            "application/pdf",
+        )
         self.assertEqual(
             _document_content_type(
                 "https://cdn.example/annual-reports/report_2014", "Download file"

@@ -107,6 +107,11 @@ class QuarterHeaderTests(unittest.TestCase):
         self.assertIsNone(_quarter_end("Apr 25"))
         self.assertEqual(Pillar3KeyMetricsReader._scale("a b c\nSAR (000)\n31-Mar-22"), 1000)
 
+    def test_wrapped_row_caption_keeps_the_figures_on_its_continuation_line(self):
+        from finengine.reading_pillar3 import _ROW_ID
+
+        self.assertTrue(_ROW_ID.match("1a"))
+
     def test_malformed_or_non_quarter_headers_are_not_dated(self):
         from finengine.reading_pillar3 import _quarter_end
 
@@ -153,11 +158,15 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
     def test_amounts_without_catalog_fields_are_kept_as_excluded_evidence(self):
         with tempfile.TemporaryDirectory() as name:
             manifest = self._read(Path(name), _capital_rows() + _liquidity_rows())
+        published = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
+        # Rows 1-2 and 13-20 now have governed catalog fields.
+        self.assertEqual(published[("cet1_capital", "2026-06-30")]["value"], "150000000")
+        self.assertEqual(published[("tier1_capital", "2026-06-30")]["value"], "170000000")
+        self.assertEqual(published[("liquidity_coverage_ratio", "2026-06-30")]["value"], "2.5")
+        self.assertEqual(published[("high_quality_liquid_assets", "2026-06-30")]["value"],
+                         "200000000")
         reasons = {(fact["metric"], fact["reason"]) for fact in manifest["excluded_facts"]
                    if fact["period_end"] == "2026-06-30"}
-        self.assertIn(("cet1_capital", "catalog_field_missing"), reasons)
-        self.assertIn(("tier1_capital", "catalog_field_missing"), reasons)
-        self.assertIn(("liquidity_coverage_ratio", "catalog_field_missing"), reasons)
         self.assertIn(("total_capital_ratio", "engine_calculates_metric"), reasons)
         lcr = [check for check in manifest["checks"]
                if check["check"].startswith("liquidity_coverage_ratio")
@@ -196,6 +205,20 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
             "3": "Total capital (Tier I+Tier II) (excluding IFRS 9 Adjustment)",
             "4": "Total risk-weighted assets (RWA)-Pillar 1",
         }
+        self._assert_qualified_labels_publish(labels)
+
+    def test_ifrs9_transitional_row_labels(self):
+        # Alinma prints "(after transitional arrangement for IFRS 9)", "(CET 1)"
+        # with a space, and "(RWA)-Pillar - 1".
+        labels = {
+            "1": "Common Equity Tier 1 (CET 1) (after transitional arrangement for IFRS 9)",
+            "2": "Tier 1 (after transitional arrangement for IFRS 9)",
+            "3": "Total Capital (after transitional arrangement for IFRS 9)",
+            "4": "Total risk-weighted assets (RWA)-Pillar - 1",
+        }
+        self._assert_qualified_labels_publish(labels)
+
+    def _assert_qualified_labels_publish(self, labels):
         rows = [(row_id, labels.get(row_id, label), values)
                 for row_id, label, values in _capital_rows()]
         with tempfile.TemporaryDirectory() as name:
@@ -207,6 +230,45 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
         by = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
         self.assertEqual(by[("regulatory_capital", "2025-09-30")]["value"], "174000000")
         self.assertEqual(by[("risk_weighted_assets", "2026-06-30")]["scale"], "1000")
+
+    def test_row_caption_wrapped_onto_the_line_that_carries_the_figures(self):
+        # Alinma prints "1 Common Equity Tier 1 (CET 1)" on one line and
+        # "(after transitional arrangement for IFRS 9)  27,069,537 ..." on the
+        # next, so the figures belong to the continuation line.
+        rows = []
+        for row_id, label, values in _capital_rows():
+            if row_id in {"1", "2", "3"}:
+                rows.append((row_id, label, ("", "", "", "", "")))
+                rows.append(("", "(after transitional arrangement for IFRS 9)", values))
+            else:
+                rows.append((row_id, label, values))
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self._read(Path(name), rows)
+        by = {(fact["metric"], fact["period_end"]): fact for fact in manifest["facts"]}
+        self.assertEqual(by[("regulatory_capital", "2026-06-30")]["value"], "180000000")
+        self.assertEqual(by[("risk_weighted_assets", "2026-06-30")]["value"], "850000000")
+
+    def test_bare_thousands_token_declares_the_unit(self):
+        from finengine.reading_pillar3 import Pillar3KeyMetricsReader, Pillar3ReadError
+
+        scale = Pillar3KeyMetricsReader._scale
+        self.assertEqual(scale("KM1 (at consolidated group level)\n\u2018000s\na b c"), 1000)
+        self.assertEqual(scale("000\u2019s"), 1000)
+        with self.assertRaises(Pillar3ReadError):
+            scale("row 4 total 1,000 assets")
+
+    def test_figure_printed_without_its_percent_sign_is_not_part_of_the_caption(self):
+        # Al Rajhi's Q4-2019 KM1 prints "19.76" (no %) in one CET1 ratio cell.
+        rows = [(row_id, label,
+                 (values[0], values[1], "19.76", values[3], values[4]) if row_id == "5" else values)
+                for row_id, label, values in _capital_rows()]
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self._read(Path(name), rows)
+        published = {fact["period_end"] for fact in manifest["facts"]}
+        # The column whose printed ratio cannot be read is not published; the
+        # caption still matches, so every other column is.
+        self.assertIn("2026-06-30", published)
+        self.assertNotIn("2025-12-31", published)
 
     def test_manifest_passes_the_accounting_verifier(self):
         with tempfile.TemporaryDirectory() as name:

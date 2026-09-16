@@ -18,10 +18,11 @@ The reader never guesses:
   its CET1, Tier 1 and total capital amounts reproduce the printed ratios
   within the printed rounding.
 
-Values without a governed catalog field (CET1 and Tier 1 amounts, leverage,
-LCR and NSFR components) stay in ``excluded_facts`` with the reason, so they
-remain reviewable without entering production. The printed total capital ratio
-is not published either: the engine calculates ``capital_adequacy_ratio`` from
+Every KM1 row with a governed catalog field is published: the capital amounts
+and ratios, the leverage ratio with its exposure measure, and the LCR and NSFR
+ratios with their components. A column whose printed ratio does not reconcile
+stays in ``excluded_facts`` with the reason. The printed total capital ratio
+is not published: the engine calculates ``capital_adequacy_ratio`` from
 the published ``regulatory_capital`` and ``risk_weighted_assets``.
 
 Requires the optional ``pymupdf`` extra.
@@ -62,31 +63,32 @@ class _RowSpec(NamedTuple):
 # IFRS 9 adjustment - the standard KM1 meaning of rows 1-3 - and label row 4 as
 # Pillar 1 RWA. Only these exact qualifiers are accepted; the row number still
 # decides which row is read, and the printed ratios must reconcile.
-_IFRS9 = r"(?: \((?:excluding|exclusive of) ifrs 9 adjustments?\))?"
+_IFRS9 = (r"(?: \((?:excluding|exclusive of|after transitional arrangement for) "
+          r"ifrs ?9(?: adjustments?)?\))?")
 _ROWS = (
-    _RowSpec("1", "cet1_capital", "amount", None,
-             rf"^common equity tier 1(?: \(cet1\))?:?{_IFRS9}$", False),
-    _RowSpec("2", "tier1_capital", "amount", None, rf"^tier 1{_IFRS9}$", False),
+    _RowSpec("1", "cet1_capital", "amount", "cet1_capital",
+             rf"^common equity tier 1(?: \(cet ?1\))?:?{_IFRS9}$", False),
+    _RowSpec("2", "tier1_capital", "amount", "tier1_capital", rf"^tier 1{_IFRS9}$", False),
     _RowSpec("3", "total_capital", "amount", "regulatory_capital",
              rf"^total capital(?: \(tier i ?\+ ?tier ii\))?{_IFRS9}$", False),
     _RowSpec("4", "total_risk_weighted_assets", "amount", "risk_weighted_assets",
-             r"^total risk-weighted assets \(rwa\)(?: ?- ?pillar 1)?$", False),
+             r"^total risk-weighted assets \(rwa\)(?: ?-? ?pillar ?-? ?1)?$", False),
     _RowSpec("5", "cet1_ratio", "percent", "cet1_ratio",
              r"^(?:cet1|common equity tier 1) ratio \(%\)$", False),
     _RowSpec("6", "tier1_ratio", "percent", "tier1_capital_ratio",
              r"^tier 1 ratio \(%\)$", False),
     _RowSpec("7", "total_capital_ratio", "percent", None, r"^total capital ratio \(%\)$", False),
-    _RowSpec("13", "leverage_ratio_exposure", "amount", None,
+    _RowSpec("13", "leverage_ratio_exposure", "amount", "leverage_ratio_exposure",
              r"leverage ratio exposure measure", True),
-    _RowSpec("14", "leverage_ratio", "percent", None, r"leverage ratio \(%\)", True),
-    _RowSpec("15", "high_quality_liquid_assets", "amount", None,
+    _RowSpec("14", "leverage_ratio", "percent", "leverage_ratio", r"leverage ratio \(%\)", True),
+    _RowSpec("15", "high_quality_liquid_assets", "amount", "high_quality_liquid_assets",
              r"high-quality liquid assets", True),
-    _RowSpec("16", "net_cash_outflow", "amount", None, r"net cash outflow", True),
-    _RowSpec("17", "liquidity_coverage_ratio", "percent", None,
+    _RowSpec("16", "net_cash_outflow", "amount", "net_cash_outflow", r"net cash outflow", True),
+    _RowSpec("17", "liquidity_coverage_ratio", "percent", "liquidity_coverage_ratio",
              r"\blcr\b|liquidity coverage ratio", True),
-    _RowSpec("18", "available_stable_funding", "amount", None, r"available stable funding", True),
-    _RowSpec("19", "required_stable_funding", "amount", None, r"required stable funding", True),
-    _RowSpec("20", "net_stable_funding_ratio", "percent", None,
+    _RowSpec("18", "available_stable_funding", "amount", "available_stable_funding", r"available stable funding", True),
+    _RowSpec("19", "required_stable_funding", "amount", "required_stable_funding", r"required stable funding", True),
+    _RowSpec("20", "net_stable_funding_ratio", "percent", "net_stable_funding_ratio",
              r"\bnsfr\b|net stable funding ratio", True),
 )
 _SPEC_BY_ID = {spec.row_id: spec for spec in _ROWS}
@@ -107,6 +109,9 @@ _MONTHS = {name.lower(): index for index, name in enumerate(calendar.month_abbr)
 _AMOUNT = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})+\)?$|^\(?-?\d{5,}\)?$")
 _PERCENT = re.compile(r"^\(?-?\d+(?:\.\d+)?%\)?$")
 _ROW_ID = re.compile(r"^\d{1,2}[a-e]?$")
+# A printed figure, never a caption word: "19.76", "1,234", "18.8%". A bare
+# integer ("Tier 1") is part of the caption and is kept.
+_STRAY_FIGURE = re.compile(r"^\(?-?(?:\d{1,3}(?:,\d{3})+|\d+\.\d+|\d+%)\)?%?$")
 # The day may not be the tail of a "T-1" column tag ("T-1 Dec 17").
 _DAY_MONTH_YEAR = re.compile(r"(?<![-\w])(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})\b")
 _MONTH_DAY_YEAR = re.compile(r"\b([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})\b")
@@ -121,8 +126,13 @@ _ABBREVIATED_MONTH_SHORT_YEAR = re.compile(r"\b([A-Za-z]{3})\s+(\d{2})\b(?!\s*,?
 # "SAR '000", "SAR 000's", "SAR (000)", and the Saudi riyal abbreviation
 # "SR 000" printed by some issuers on the KM1 page itself.
 _THOUSANDS = re.compile(
-    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\))|\bthousands\b",
+    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\))|\bthousands\b"
+    # Al Rajhi prints the scale as a bare "'000s" / "000's" token whose SAR
+    # word sits elsewhere in the page's text order.
+    r"|(?<![\d.,])(?:[’'‘`]\s*0{3}(?:\s*['’]?s)?|0{3}\s*[’'‘`]\s*s)(?![\d.,])",
     re.I)
+
+
 _MILLIONS = re.compile(r"(?<![A-Za-z])(?:SAR|SR)\s*(?:mn|mln|millions?)\b", re.I)
 _CELLS = "abcdef"
 
@@ -390,9 +400,33 @@ class Pillar3KeyMetricsReader:
             if not tokens or not _ROW_ID.match(tokens[0]):
                 continue
             spec = _SPEC_BY_ID.get(tokens[0].lower())
-            if spec is None or spec.row_id in found or not line["values"]:
+            if spec is None or spec.row_id in found:
                 continue
-            label = " ".join(tokens[1:])
+            values = line["values"]
+            # Al Rajhi prints one CET1 ratio cell without its "%", so the
+            # figure is not recognised as a value and would otherwise be read
+            # as part of the caption. Trailing figures are dropped; the cell
+            # itself stays empty, so that column is never published.
+            caption = list(tokens[1:])
+            while caption and _STRAY_FIGURE.match(caption[-1]):
+                caption.pop()
+            label = " ".join(caption)
+            if not values:
+                # Alinma wraps a long caption onto a second line and prints the
+                # figures there ("1 Common Equity Tier 1 (CET 1)" / "(after
+                # transitional arrangement for IFRS 9)  27,069,537 ...").  The
+                # continuation must be the next line, carry values, and start no
+                # row number of its own.
+                continuation = min(
+                    (other for other in lines
+                     if other["values"] and 0 < other["y"] - line["y"] <= 14
+                     and not _ROW_ID.match(other["words"][0][4])),
+                    key=lambda other: other["y"], default=None)
+                if continuation is None:
+                    continue
+                values = continuation["values"]
+                label = " ".join(
+                    [label, *(word[4] for word in continuation["words"])]).strip()
             searchable = _normal(label)
             if spec.context:
                 neighbours = [
@@ -408,7 +442,7 @@ class Pillar3KeyMetricsReader:
                 continue
             cells = []
             for center in centers:
-                here = [word[4] for word in line["values"]
+                here = [word[4] for word in values
                         if abs((word[0] + word[2]) / 2 - center) <= half]
                 cells.append(here[0] if len(here) == 1 else None)
             found[spec.row_id] = {

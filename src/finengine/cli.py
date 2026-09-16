@@ -901,6 +901,7 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                     manifest,report=_read_xlsx_manifest(path,company,row,mapping_path)
                 except Exception as error:
                     manifest=None; report=None; read_error=str(error)
+                    reader_source="xlsx-supplement"
                     code="xlsx_extraction_failed"
                 else:
                     reader_source="xlsx-supplement"; read_error=None
