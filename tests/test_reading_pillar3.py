@@ -244,6 +244,28 @@ class Pillar3KeyMetricsReaderTests(unittest.TestCase):
         self.assertEqual(by[("regulatory_capital", "2026-06-30")]["value"], "180000000")
         self.assertEqual(by[("risk_weighted_assets", "2026-06-30")]["value"], "850000000")
 
+    def test_bare_thousands_token_declares_the_unit(self):
+        from finengine.reading_pillar3 import Pillar3KeyMetricsReader, Pillar3ReadError
+
+        scale = Pillar3KeyMetricsReader._scale
+        self.assertEqual(scale("KM1 (at consolidated group level)\n\u2018000s\na b c"), 1000)
+        self.assertEqual(scale("000\u2019s"), 1000)
+        with self.assertRaises(Pillar3ReadError):
+            scale("row 4 total 1,000 assets")
+
+    def test_figure_printed_without_its_percent_sign_is_not_part_of_the_caption(self):
+        # Al Rajhi's Q4-2019 KM1 prints "19.76" (no %) in one CET1 ratio cell.
+        rows = [(row_id, label,
+                 (values[0], values[1], "19.76", values[3], values[4]) if row_id == "5" else values)
+                for row_id, label, values in _capital_rows()]
+        with tempfile.TemporaryDirectory() as name:
+            manifest = self._read(Path(name), rows)
+        published = {fact["period_end"] for fact in manifest["facts"]}
+        # The column whose printed ratio cannot be read is not published; the
+        # caption still matches, so every other column is.
+        self.assertIn("2026-06-30", published)
+        self.assertNotIn("2025-12-31", published)
+
     def test_manifest_passes_the_accounting_verifier(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)

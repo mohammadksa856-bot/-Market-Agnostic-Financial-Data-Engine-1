@@ -108,6 +108,9 @@ _MONTHS = {name.lower(): index for index, name in enumerate(calendar.month_abbr)
 _AMOUNT = re.compile(r"^\(?-?\d{1,3}(?:,\d{3})+\)?$|^\(?-?\d{5,}\)?$")
 _PERCENT = re.compile(r"^\(?-?\d+(?:\.\d+)?%\)?$")
 _ROW_ID = re.compile(r"^\d{1,2}[a-e]?$")
+# A printed figure, never a caption word: "19.76", "1,234", "18.8%". A bare
+# integer ("Tier 1") is part of the caption and is kept.
+_STRAY_FIGURE = re.compile(r"^\(?-?(?:\d{1,3}(?:,\d{3})+|\d+\.\d+|\d+%)\)?%?$")
 # The day may not be the tail of a "T-1" column tag ("T-1 Dec 17").
 _DAY_MONTH_YEAR = re.compile(r"(?<![-\w])(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})\b")
 _MONTH_DAY_YEAR = re.compile(r"\b([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})\b")
@@ -122,8 +125,13 @@ _ABBREVIATED_MONTH_SHORT_YEAR = re.compile(r"\b([A-Za-z]{3})\s+(\d{2})\b(?!\s*,?
 # "SAR '000", "SAR 000's", "SAR (000)", and the Saudi riyal abbreviation
 # "SR 000" printed by some issuers on the KM1 page itself.
 _THOUSANDS = re.compile(
-    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\))|\bthousands\b",
+    r"(?<![A-Za-z])(?:SAR|SR)\s*(?:[’'‘`]?\s*0{3}(?:\s*['’]?s)?\b|\(\s*0{3}\s*\))|\bthousands\b"
+    # Al Rajhi prints the scale as a bare "'000s" / "000's" token whose SAR
+    # word sits elsewhere in the page's text order.
+    r"|(?<![\d.,])(?:[’'‘`]\s*0{3}(?:\s*['’]?s)?|0{3}\s*[’'‘`]\s*s)(?![\d.,])",
     re.I)
+
+
 _MILLIONS = re.compile(r"(?<![A-Za-z])(?:SAR|SR)\s*(?:mn|mln|millions?)\b", re.I)
 _CELLS = "abcdef"
 
@@ -394,7 +402,14 @@ class Pillar3KeyMetricsReader:
             if spec is None or spec.row_id in found:
                 continue
             values = line["values"]
-            label = " ".join(tokens[1:])
+            # Al Rajhi prints one CET1 ratio cell without its "%", so the
+            # figure is not recognised as a value and would otherwise be read
+            # as part of the caption. Trailing figures are dropped; the cell
+            # itself stays empty, so that column is never published.
+            caption = list(tokens[1:])
+            while caption and _STRAY_FIGURE.match(caption[-1]):
+                caption.pop()
+            label = " ".join(caption)
             if not values:
                 # Alinma wraps a long caption onto a second line and prints the
                 # figures there ("1 Common Equity Tier 1 (CET 1)" / "(after
