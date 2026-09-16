@@ -573,7 +573,7 @@ class StatementReader:
                     continue
                 top = (page.rect.height or 1000) * 0.45
                 years = [int(w[4]) for w in words
-                         if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035
+                         if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035
                          and abs((w[0] + w[2]) / 2 - columns[0]) < 20]
                 if years:
                     year = max(years)  # the current period is the newest year in its column
@@ -849,9 +849,13 @@ class StatementReader:
         sheet) - each with its own period columns, current period first
         (leftmost) within its panel. A gap over 150pt between consecutive
         year hits marks a new panel."""
+        # The floor is 2000, not 2010: a bank's own archive goes back further
+        # (ANB publishes quarterly statements from 2003), and a column headed
+        # "2006" is as real as one headed "2016". Note-reference columns are
+        # still discarded below, and the page must already be a statement.
         top = (page.rect.height or 1000) * 0.45
         hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
-                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2010 <= int(w[4]) <= 2035})
+                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035})
         if not hits:
             return []
         blocks: list[list[float]] = [[hits[0]]]
