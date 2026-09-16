@@ -12,6 +12,17 @@ class SaudiMarketHistoryTests(unittest.TestCase):
         ))
         self.assertFalse(_access_blocked("Historical Reports", "Market and sector filters"))
 
+    def test_entity_option_matches_padded_and_prefixed_symbols(self):
+        from finengine.saudi_market import _entity_option_for
+
+        # Alinma (1150) is listed by some portal builds as "01150" / "SA1150";
+        # the exact-string lookup used to miss it and fail the whole fetch.
+        self.assertEqual(_entity_option_for("1150", ["1120", "1150"]), "1150")
+        self.assertEqual(_entity_option_for("1150", ["01150", "1120"]), "01150")
+        self.assertEqual(_entity_option_for("1150", ["SA1150"]), "SA1150")
+        self.assertIsNone(_entity_option_for("1150", ["1151", "2222"]))
+        self.assertIsNone(_entity_option_for("1150", []))
+
     def test_normalizes_visible_close_and_numeric_fields(self):
         rows = [{
             "transactionDateStr": "2026/09/14", "todaysOpen": "25.70",
