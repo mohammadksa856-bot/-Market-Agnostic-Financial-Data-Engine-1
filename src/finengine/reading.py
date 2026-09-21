@@ -307,22 +307,75 @@ BANK_LINE_MAP = {
 INSURANCE_LINE_MAP = {
     "insurance revenue": ("insurance_revenue", "fy"),
     "insurance service expenses": ("insurance_service_expense", "fy"),
+    # The pre-reinsurance subtotal and the final, post-reinsurance result are
+    # two distinct printed lines with two distinct meanings; each keeps its
+    # own metric rather than one overwriting the other by row order.
     "insurance service result before reinsurance contracts held":
-        ("insurance_service_result", "fy"),
+        ("underwriting_result", "fy"),
     "insurance service result - net": ("insurance_service_result", "fy"),
+    "insurance service result": ("insurance_service_result", "fy"),
     "allocation of reinsurance premiums": ("reinsurance_premiums", "fy"),
     "amounts recoverable from reinsurers for incurred claims":
         ("reinsurance_recoveries", "fy"),
     "net expense from reinsurance contracts held": ("reinsurance_result", "fy"),
+    # Tawuniya's interim statements pluralise the same line as "expenses".
+    "net expenses from reinsurance contracts held": ("reinsurance_result", "fy"),
     "net investment income": ("insurance_investment_income", "fy"),
+    # The interim statements call the same subtotal "Investment return"
+    # instead of "Net investment income"; both name the same line.
+    "investment return": ("insurance_investment_income", "fy"),
     "revenue from non-insurance services": ("other_operating_revenue", "fy"),
+    "dividend income": ("dividend_income", "fy"),
+    "expected credit loss allowance on financial assets": ("provision_expense", "fy"),
+    "allowance for expected credit losses on financial assets": ("provision_expense", "fy"),
+    # Zakat-only wording (no "and income tax"): this issuer is a zakat payer
+    # only, unlike the mixed zakat-and-tax captions elsewhere in the map.
     "net profit for the year after zakat": ("net_income", "fy"),
+    "net profit for the period after zakat": ("net_income", "fy"),
+    "net profit for the year before zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net profit for the period before zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "zakat charge for the year": ("income_taxes_and_zakat", "fy"),
+    "zakat charge for the period": ("income_taxes_and_zakat", "fy"),
     "insurance contract assets": ("insurance_contract_assets", "instant"),
     "reinsurance contract assets": ("reinsurance_contract_assets", "instant"),
     "insurance contract liabilities": ("insurance_contract_liabilities", "instant"),
     "reinsurance contract liabilities": ("reinsurance_contract_liabilities", "instant"),
     "property, equipment, and right-of-use assets":
         ("property_plant_equipment", "instant"),
+    # Interim cash-flow statements print the totals with a parenthetical
+    # alternate sign or "period" instead of "year"; the printed value already
+    # carries its own sign, so these are read like any other cash-flow total.
+    "net cash flows (used in) / generated from operating activities":
+        ("operating_cash_flow", "fy"),
+    "net cash flows used in from investing activities": ("investing_cash_flow", "fy"),
+    "net cash flows used in financing activities": ("financing_cash_flow", "fy"),
+    "net cash generated from / (used in) investing activities":
+        ("investing_cash_flow", "fy"),
+    "cash and cash equivalents, beginning of the period": ("cash_beginning", "fy"),
+    "cash and cash equivalents, end of the period": ("cash_end", "fy"),
+    # Bupa Arabia phrases the same cash-flow rollforward lines with "at"
+    # instead of a comma.
+    "cash and cash equivalents at beginning of the period": ("cash_beginning", "fy"),
+    "cash and cash equivalents at end of the period": ("cash_end", "fy"),
+    # Bupa Arabia's captions: singular "expense", "Net" prefixed on the result,
+    # "results" on the investment subtotal, and a wordier profit-before-tax
+    # line that names the shareholders explicitly.
+    "insurance service expense": ("insurance_service_expense", "fy"),
+    "net investment results": ("insurance_investment_income", "fy"),
+    "income attributed to the shareholders before zakat and income tax":
+        ("income_before_income_taxes_and_zakat", "fy"),
+    "net income attributed to shareholders before zakat and income tax":
+        ("income_before_income_taxes_and_zakat", "fy"),
+    "net income attributed to the shareholders after zakat and income tax":
+        ("net_income", "fy"),
+    # Bupa Arabia is a zakat AND income tax payer and prints the two charges
+    # as separate lines, unlike issuers that report one combined charge; each
+    # keeps its own catalog field rather than one overwriting the other.
+    "zakat charge": ("zakat_expense", "fy"),
+    "income tax charge": ("income_tax_expense", "fy"),
+    "goodwill": ("goodwill", "instant"),
+    "deferred tax asset": ("deferred_tax_assets", "instant"),
+    "statutory reserve": ("statutory_reserve", "instant"),
 }
 
 _PROFILE_MAPS = {
@@ -355,7 +408,7 @@ _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
 _RULE = re.compile(r"^[\u2500-\u257f_=\-–—]{3,}$")
-_NOTE_REFERENCE = re.compile(r"^(?:\d{1,3},?|\([a-z]\))$")
+_NOTE_REFERENCE = re.compile(r"^(?:\d{1,3},?|\d{1,2}\.\d{1,2}|\([a-z]\))$")
 
 
 def _is_rule_token(token: str) -> bool:
@@ -605,6 +658,7 @@ class StatementReader:
         import pymupdf
 
         line_map = _PROFILE_MAPS.get(profile, LINE_MAP)
+        self._reading_profile = profile
 
         if fiscal_year is None:
             fiscal_year = self.infer_fiscal_year()
@@ -637,7 +691,7 @@ class StatementReader:
         for page_index in range(doc.page_count):
             page = doc[page_index]
             words, page_text = self._page_content(page, page_index, ocr_budget)
-            blocks = self._column_blocks(page, words)
+            blocks = self._column_blocks(page, words, profile=profile)
             columns = blocks[0] if blocks else []
             panels: list[tuple[str, list[tuple], list[list[float]]]] = []
             if len(blocks) > 1:
@@ -911,7 +965,7 @@ class StatementReader:
         return None
 
     @staticmethod
-    def _column_blocks(page, words) -> list[list[float]]:
+    def _column_blocks(page, words, profile: str | None = None) -> list[list[float]]:
         """Up to two side-by-side statement panels on one page (e.g. assets on
         the left, equity and liabilities on the right of a landscape balance
         sheet) - each with its own period columns, current period first
@@ -922,8 +976,41 @@ class StatementReader:
         # "2006" is as real as one headed "2016". Note-reference columns are
         # still discarded below, and the page must already be a statement.
         top = (page.rect.height or 1000) * 0.45
+        # Some insurance interim statements print a lone year inside a prose
+        # sentence ("... for the six-month period ended 30 June 2025 ...")
+        # above the real four-column header; that lone hit can merge into the
+        # genuine comparative-year block and throw off the column count. Drop
+        # a year hit only when it has no same-line sibling year AND it sits
+        # close enough to a hit that does have one to actually be mistaken
+        # for part of that block. This is scoped to profile == "insurance"
+        # because the same heuristic misreads a bank's multi-page "commission
+        # rate sensitivity" note table (see ANB 2018/2019 regression, proven
+        # via data/imports/anb-2018-annual-report.json + anb-2019-annual-report.json).
+        excluded_lone_years: set[float] = set()
+        if profile == "insurance":
+            year_words = [w for w in words if _YEAR.fullmatch(w[4]) and w[1] < top
+                          and 2000 <= int(w[4]) <= 2035]
+            by_line: dict[float, list[tuple]] = {}
+            for w in year_words:
+                y = round(w[1], 1)
+                key = next((k for k in by_line if abs(k - y) <= 3.0), y)
+                by_line.setdefault(key, []).append(w)
+            lone_centers = sorted(
+                round((w[0] + w[2]) / 2, 1)
+                for line_words in by_line.values() if len(line_words) == 1
+                for w in line_words
+            )
+            sibling_centers = sorted(
+                round((w[0] + w[2]) / 2, 1)
+                for line_words in by_line.values() if len(line_words) > 1
+                for w in line_words
+            )
+            for lone in lone_centers:
+                if any(abs(lone - sib) < 30 for sib in sibling_centers):
+                    excluded_lone_years.add(lone)
         hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
-                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035})
+                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035
+                       and round((w[0] + w[2]) / 2, 1) not in excluded_lone_years})
         if not hits:
             return []
         blocks: list[list[float]] = [[hits[0]]]
@@ -1073,7 +1160,14 @@ class StatementReader:
                 right = [w for w in row if w[0] >= boundary]
                 panels = [seg for seg in ((left, blocks[0]), (right, blocks[1])) if seg[0]]
             for panel_words, columns in panels:
-                note_zone = (min(columns) - 90, min(columns) - 25)  # lone note refs sit just left of the values
+                # Insurance interim statements place the note reference a
+                # little further from the value column than bank/corporate
+                # statements do; widen the zone only for that profile, since
+                # widening it globally lets ANB's multi-page "commission rate
+                # sensitivity" note table be misread as a statement continuation
+                # (see data/imports/anb-2018-annual-report.json / anb-2019-annual-report.json).
+                note_zone_width = 130 if getattr(self, "_reading_profile", None) == "insurance" else 90
+                note_zone = (min(columns) - note_zone_width, min(columns) - 25)  # lone note refs sit just left of the values
                 text_tokens, number_tokens = [], []
                 for w in panel_words:
                     token = w[4]
