@@ -646,16 +646,29 @@ class StatementReader:
                     [word for word in words if boundary is None or word[0] < boundary],
                     [word for word in words if boundary is not None and word[0] >= boundary],
                 )
+                segment_anchors = []
                 for segment, block in zip(segments, blocks):
                     panel_heading = self._heading_statement(page, segment, page_text)
+                    # What the panel *names*, even when that heading carries too
+                    # little to be read on its own: a panel headed "statement of
+                    # financial position" is not part of the income statement
+                    # beside it, however incomplete its own signature is.
+                    segment_anchors.append(self._heading_anchor(page, segment, page_text))
                     if panel_heading:
                         panels.append((panel_heading, segment, [block]))
-                if len(panels) == 1 and panels[0][0] == "balance_sheet":
-                    # A conventional landscape balance sheet may print one
-                    # heading across its assets and liabilities/equity panels.
-                    panels = [("balance_sheet", segment, [block])
+                if len(panels) == 1 and all(
+                        name in (None, panels[0][0]) for name in segment_anchors):
+                    # One heading printed across both panels of a single
+                    # statement: a landscape balance sheet does this with
+                    # assets and equity, and SABIC's income statement does it
+                    # with the profit-attribution rows in the right-hand panel.
+                    # Pool them only when the other panel claims no statement
+                    # of its own, so an unrelated side table is never absorbed.
+                    panels = [(panels[0][0], segment, [block])
                               for segment, block in zip(segments, blocks)]
             heading = None if panels else self._heading_statement(page, words, page_text)
+            if heading is None and not panels:
+                heading = self._continued_statement(doc, page, words, page_text, page_index)
             continuation = bool(
                 not panels and carry and page_index - carry_page == 1 and columns
                 and self._looks_tabular(words, columns)
@@ -856,6 +869,45 @@ class StatementReader:
                         all(any(term in page_text for term in group)
                             for group in signature)):
                     return name
+        return None
+
+    def _heading_anchor(self, page, words, page_text: str) -> str | None:
+        """The statement a page's heading row names, ignoring its signature."""
+        top = (page.rect.height or 1000) * 0.42
+        for row in _rows([word for word in words if word[1] < top]):
+            text = " ".join(word[4] for word in row).lower().strip()
+            text = re.sub(r"^\d+\s+", "", text)
+            if len(text) > 75 or not self._HEADING_PREFIX.match(text):
+                continue
+            if any(bad in text for bad in self._NEGATIVE):
+                return None
+            for name, anchors in ANCHORS.items():
+                if any(anchor in text for anchor in anchors):
+                    return name
+        return None
+
+    def _continued_statement(self, doc, page, words, page_text: str,
+                             page_index: int) -> str | None:
+        """A primary statement whose signature lines are split over two pages.
+
+        SABIC prints its consolidated statement of cash flows with operating
+        activities on one page and investing and financing on the next, headed
+        "... (continued)". Neither page carries the whole signature, so neither
+        is recognised alone. The two are pooled only when the issuer itself
+        repeats the same statement heading on the next page, so a page is never
+        joined to an unrelated table.
+        """
+        name = self._heading_anchor(page, words, page_text)
+        if name is None or page_index + 1 >= doc.page_count:
+            return None
+        neighbour = doc[page_index + 1]
+        neighbour_words = [tuple(word[:5]) for word in neighbour.get_text("words")]
+        neighbour_text = neighbour.get_text() or ""
+        if self._heading_anchor(neighbour, neighbour_words, neighbour_text) != name:
+            return None
+        pooled = f"{page_text}\n{neighbour_text}".lower()
+        if all(any(term in pooled for term in group) for group in self._SIGNATURE[name]):
+            return name
         return None
 
     @staticmethod
