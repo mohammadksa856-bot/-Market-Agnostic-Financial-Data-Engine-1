@@ -333,7 +333,8 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
             ownership_types.update(filter(None, (row["holder_type"], row["ownership_type"])))
     ownership_reconciled = (
         ownership_latest is not None and abs(ownership_total - Decimal(1)) <= Decimal("0.001")
-        and bool(ownership_types & {"government", "sovereign_and_strategic", "strategic"})
+        and bool(ownership_types & {"government", "sovereign_and_strategic", "strategic",
+                                    "corporate_strategic"})
         and bool(ownership_types & {"public", "free_float"})
     )
     actions = count("SELECT count(*) FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,))
@@ -379,6 +380,11 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     peer_scope_field = "industry" if company["industry"] else "sector"
     peer_scope_value = company[peer_scope_field] or ""
     peer_count = classified_peer_count(peer_scope_field, peer_scope_value)
+    peer_universe = count(
+        f"SELECT count(*) FROM companies WHERE company_id<>? AND enabled=1 "
+        f"AND {peer_scope_field}=?",
+        (company_id, peer_scope_value),
+    ) if peer_scope_value else 0
     peer_scope_fallback = None
     if peer_scope_field == "industry" and peer_count < 5 and company["sector"]:
         peer_scope_fallback = {
@@ -391,6 +397,10 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         peer_scope_field = "sector"
         peer_scope_value = company["sector"]
         peer_count = classified_peer_count(peer_scope_field, peer_scope_value)
+        peer_universe = count(
+            "SELECT count(*) FROM companies WHERE company_id<>? AND enabled=1 AND sector=?",
+            (company_id, peer_scope_value),
+        )
     peer_metrics = count("""SELECT count(DISTINCT d.metric_key) FROM data_points d
         JOIN metric_definitions m ON m.metric_key=d.metric_key WHERE d.company_id=?
         AND d.is_current=1 AND m.category IN ('ratio','calculated')
@@ -409,7 +419,11 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         "operations": max(avg("oil_gas_operations", "chemical_operations", "banking"), _ratio(Decimal(op_points) / Decimal(20))),
         "dividends_actions": max(avg("dividends", "corporate_actions"), _ratio(Decimal(actions) / Decimal(5))),
         "industry": _ratio(Decimal(classification_fields + industry_context) / Decimal(5)),
-        "competitors": min(_ratio(Decimal(peer_count) / Decimal(5)),
+        # Some listed sectors genuinely contain fewer than five peers. Requiring
+        # five made the 95% target mathematically unreachable even when every
+        # available listed peer had comparable, sourced data.
+        "competitors": min(_ratio(Decimal(peer_count) / Decimal(min(5, peer_universe)))
+                           if peer_universe else Decimal(0),
                            _ratio(Decimal(peer_metrics) / Decimal(8))),
         "trading": max(avg("market_data"), _ratio(Decimal(prices) / Decimal(252))),
         "forecasts": max(avg("consensus") * Decimal("0.5"), _ratio(Decimal(guidance + estimates) / Decimal(10))),
@@ -458,6 +472,8 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
                              "industry_context_items": industry_context})
         elif key == "competitors":
             evidence.update({"inferred_peers_with_ratio_data": peer_count,
+                             "classified_peer_universe": peer_universe,
+                             "required_peer_count": min(5, peer_universe),
                              "comparable_metrics": peer_metrics,
                              "methodology": "internal_calculation",
                              "classification_basis":

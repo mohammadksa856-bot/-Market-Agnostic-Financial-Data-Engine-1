@@ -78,21 +78,50 @@ revenue facts and nine operating facts: mobile/prepaid/postpaid/fiber subscriber
 3G/4G/5G coverage, 5G sites and network capex. The four segment revenue facts
 reconcile exactly to consolidated revenue of SAR 19.642bn.
 
-Tests: `tests/test_telecom_sector.py` (11 tests).
+The second operational pass adds 28 sourced stc facts and 19 sourced Zain KSA
+facts. stc now has 5G coverage for 2021-2025, 4G coverage and data traffic for
+2021-2023, 5G sites, FTTH homes passed, data-center count and 2024-2025 subscriber
+splits. Zain KSA now has a continuous 2021-2025 customer, blended-ARPU and capex
+series, plus only those network-coverage observations explicitly identified by
+the issuer. The ambiguous 99% coverage cards in the 2023/2024 parent presentations
+are deliberately not labelled as 5G coverage.
+
+Mobily's company-understanding layer publishes 23 versioned attributes, two
+ownership positions reconciling to 100%, three dividend actions and four
+disclosures. Every item points back to the archived FY2025 annual report.
+
+The historical pass adds audited/issuer-reported annual headlines for Mobily
+FY2021-FY2024 and standalone Q1-Q3 for 2021-2024. It also adds 12 consecutive
+quarters for stc and Zain KSA (Q1 2023 through Q4 2025). stc manifests are split
+by presentation so each fact resolves to the exact official PDF; Zain facts
+carry the precise Saudi Exchange announcement sources, including both inputs
+for Q4 values derived as FY minus 9M. Mobily's 2021 quarters are explicitly
+labelled comparatives from the corresponding 2022 issuer presentations.
+
+Tests: `tests/test_telecom_sector.py` cover financial identities, operational
+history, segment reconciliation, catalog contracts, profile, ownership,
+dividends and disclosures for all three operators.
 
 ## Unresolved fields
 
-* **Historical depth.** Mobily currently has FY2025 only; stc and Zain remain
-  shallow. Annual and quarterly source histories must be archived and parsed
-  before any operator can honestly be called 95% complete.
-* **Operational KPIs.** Mobily now has the printed subscriber split, FTTH,
-  coverage, 5G sites and network capex. ARPU, churn and traffic are absent from
-  the FY2025 report and remain explicit gaps. stc and Zain still need their own
-  source-grounded operational supplements.
-* **Company understanding domains.** Detailed company model, products,
-  competitors, ownership history, governance, announcements, corporate actions,
-  market data and valuation history are not completed by this batch. They remain
-  required by the 18-category 95% target.
+* **Historical statement depth.** The annual/quarter hard gates are now closed,
+  but most historical quarters contain headline revenue/profit measures rather
+  than every IFRS statement line. Mobily Q4 standalone values require the
+  governed `FY - 9M` derivation; they are not presented directly by the issuer.
+* **stc presentation archive.** Exact official URLs and per-file manifests are
+  retained, but the issuer CDN returns HTTP 403/TLS authentication failures to
+  the local archive worker for six quarterly-presentation PDFs. No fictitious
+  archive entries were created; this remains an explicit retrieval backlog.
+* **Operational KPI gaps.** Mobily now has the printed subscriber split, FTTH,
+  coverage, 5G sites and network capex, but ARPU and churn are not disclosed.
+  stc does not publish ARPU in the reviewed 2021-2025 reports and no proxy is
+  invented. Zain's 2023-2024 5G-specific coverage is not disclosed separately.
+* **Company understanding domains.** Identity, business model, current
+  ownership, dividends, governance and selected risks/ESG are now populated,
+  but market history, valuation, industry context, deeper financial notes and
+  attributable analyst coverage remain incomplete. They remain required by the
+  18-category 95% target; the engine must not label the sector ready before the
+  weighted score and all hard gates pass.
 * **EBITDA / net debt / net-debt-to-EBITDA.** Neither issuer presents EBITDA or a
   net-debt reconciliation as a line in the audited statements (both stop at
   operating profit). The engine does not derive them. If a deterministic

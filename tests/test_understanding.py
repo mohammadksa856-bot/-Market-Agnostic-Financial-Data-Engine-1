@@ -5,6 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from finengine.database import Database
+from finengine.domains import CompanyDomainStore
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
 from finengine.query import FinancialQueryService
 from finengine.understanding import refresh_all_understanding, refresh_company_understanding
@@ -111,6 +112,8 @@ class UnderstandingModelTests(unittest.TestCase):
                            if item["category_key"] == "competitors")
         evidence = competitors["evidence"]
         self.assertEqual(evidence["inferred_peers_with_ratio_data"], 1)
+        self.assertEqual(evidence["classified_peer_universe"], 1)
+        self.assertEqual(evidence["required_peer_count"], 1)
         self.assertEqual(evidence["peer_scope"]["field"], "sector")
         self.assertEqual(evidence["peer_scope"]["value"], "Materials")
         self.assertEqual(evidence["peer_scope"]["fallback_from"]["field"], "industry")
@@ -133,6 +136,24 @@ class UnderstandingModelTests(unittest.TestCase):
         forecasts = next(item for item in result["categories"]
                          if item["category_key"] == "forecasts")
         self.assertEqual(forecasts["score"], "0.1")
+
+    def test_reconciled_corporate_strategic_and_public_ownership_is_complete(self):
+        store = CompanyDomainStore(self.db)
+        store.publish_ownership_position(
+            "sa:TST", "strategic_holder", "Strategic Holder", "direct",
+            "2025-12-31", "src:annual", ownership_pct=Decimal("0.28"),
+            holder_type="corporate_strategic",
+        )
+        store.publish_ownership_position(
+            "sa:TST", "public_float", "Public Float", "free_float",
+            "2025-12-31", "src:annual", ownership_pct=Decimal("0.72"),
+            holder_type="public",
+        )
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        ownership = next(item for item in result["categories"]
+                         if item["category_key"] == "ownership")
+        self.assertEqual(ownership["score"], "1")
+        self.assertTrue(ownership["evidence"]["latest_snapshot_reconciled"])
 
 
 if __name__ == "__main__":
