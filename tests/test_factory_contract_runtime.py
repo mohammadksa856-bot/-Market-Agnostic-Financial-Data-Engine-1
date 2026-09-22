@@ -110,6 +110,77 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertEqual(lineage["hard_gates"][1]["status"], "failed")
         self.assertIn("market_data", lineage["hard_gates"][1]["stale_categories"])
 
+    def test_reviewed_unavailable_field_changes_denominator_with_archived_evidence(self):
+        before = evaluate_factory_contract(self.db, self.company.company_id)
+        profile_before = next(
+            row for row in before["categories"] if row["category_key"] == "company_profile"
+        )
+        missing = next(iter(profile_before["evidence"]["missing_fields"].values()))[0]
+        source = SourceDocument(
+            self.company.company_id, Market.SA, "https://issuer.example/report.pdf",
+            "source:availability", "annual-report", "2026-03-01", b"document",
+        )
+        self.db.save_source(source, "pdf", None)
+        self.db.upsert_field_availability(
+            self.company.company_id, missing, "unavailable",
+            reason_code="not_disclosed", reason="Reviewed report does not disclose the field",
+            assessed_by="test-reviewer", evidence_source_key=source.source_key,
+            evidence_note="Annual report and notes searched; no disclosure found.",
+        )
+        after = evaluate_factory_contract(self.db, self.company.company_id)
+        profile_after = next(
+            row for row in after["categories"] if row["category_key"] == "company_profile"
+        )
+        self.assertEqual(
+            profile_after["evidence"]["expected_fields"],
+            profile_before["evidence"]["expected_fields"] - 1,
+        )
+        self.assertEqual(
+            profile_after["evidence"]["reviewed_unavailable_or_not_applicable"][0]["field_key"],
+            missing,
+        )
+
+    def test_negative_evidence_cannot_be_recorded_without_required_proof(self):
+        field = self.db.conn.execute(
+            "SELECT field_key FROM data_catalog_fields WHERE enabled=1 LIMIT 1"
+        ).fetchone()[0]
+        with self.assertRaisesRegex(ValueError, "archived company source"):
+            self.db.upsert_field_availability(
+                self.company.company_id, field, "unavailable",
+                reason_code="not_disclosed", reason="Not found", assessed_by="reviewer",
+            )
+        with self.assertRaisesRegex(ValueError, "structural rule"):
+            self.db.upsert_field_availability(
+                self.company.company_id, field, "not_applicable",
+                reason_code="not_applicable", reason="Wrong business model",
+                assessed_by="reviewer",
+            )
+
+    def test_expired_negative_evidence_does_not_change_contract_score(self):
+        before = evaluate_factory_contract(self.db, self.company.company_id)
+        profile = next(
+            row for row in before["categories"] if row["category_key"] == "company_profile"
+        )
+        missing = next(iter(profile["evidence"]["missing_fields"].values()))[0]
+        source = SourceDocument(
+            self.company.company_id, Market.SA, "https://issuer.example/old.pdf",
+            "source:expired", "annual-report", "2025-03-01", b"old document",
+        )
+        self.db.save_source(source, "pdf", None)
+        self.db.upsert_field_availability(
+            self.company.company_id, missing, "unavailable",
+            reason_code="not_disclosed", reason="Old review", assessed_by="reviewer",
+            evidence_source_key=source.source_key, evidence_note="Old report searched.",
+            expires_at="2020-01-01T00:00:00+00:00",
+        )
+        after = evaluate_factory_contract(self.db, self.company.company_id)
+        profile_after = next(
+            row for row in after["categories"] if row["category_key"] == "company_profile"
+        )
+        self.assertEqual(profile_after["score"], profile["score"])
+        self.assertEqual(profile_after["evidence"]["expected_fields"],
+                         profile["evidence"]["expected_fields"])
+
 
 if __name__ == "__main__":
     unittest.main()

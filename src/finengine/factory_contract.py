@@ -198,6 +198,60 @@ def _freshness_audit(
             "checks": checks}
 
 
+def _reviewed_field_exclusions(
+    db: Database, company_id: str, field_groups: list[str], missing_fields: set[str],
+    contract: dict,
+) -> dict:
+    """Return only current, contract-valid negative evidence for missing fields."""
+    if not field_groups or not missing_fields:
+        return {"fields": set(), "required_fields": set(), "assessments": [], "rejected": []}
+    marks = ",".join("?" for _ in field_groups)
+    rows = db.conn.execute(
+        f"""SELECT a.*,f.requirement,s.company_id AS source_company_id,
+        s.source_url AS archived_source_url,s.content_hash
+        FROM company_field_availability a
+        JOIN data_catalog_fields f ON f.field_key=a.field_key AND f.enabled=1
+        LEFT JOIN source_documents s ON s.source_key=a.evidence_source_key
+        WHERE a.company_id=? AND f.category IN ({marks})
+        AND (a.expires_at IS NULL OR datetime(a.expires_at)>CURRENT_TIMESTAMP)""",
+        (company_id, *field_groups),
+    ).fetchall()
+    allowed_unavailable = set(contract["controlled_vocabularies"]["unavailable_reasons"])
+    allowed_na = set(contract["controlled_vocabularies"]["not_applicable_reasons"])
+    accepted: list[dict] = []
+    rejected: list[dict] = []
+    excluded: set[str] = set()
+    required: set[str] = set()
+    for row in rows:
+        field = row["field_key"]
+        if field not in missing_fields:
+            continue
+        valid = bool(row["reason"] and row["assessed_by"])
+        if row["status"] == "unavailable":
+            valid = valid and row["reason_code"] in allowed_unavailable and bool(
+                row["evidence_source_key"] and row["source_company_id"] == company_id
+                and row["archived_source_url"] and row["content_hash"]
+                and row["evidence_url"] and row["evidence_note"]
+            )
+        else:
+            valid = valid and row["reason_code"] in allowed_na and bool(row["rule_reference"])
+        item = {
+            "field_key": field, "status": row["status"],
+            "reason_code": row["reason_code"], "reason": row["reason"],
+            "evidence_source_key": row["evidence_source_key"],
+            "evidence_url": row["evidence_url"], "evidence_note": row["evidence_note"],
+            "rule_reference": row["rule_reference"], "assessed_by": row["assessed_by"],
+            "assessed_at": row["assessed_at"], "expires_at": row["expires_at"],
+        }
+        (accepted if valid else rejected).append(item)
+        if valid:
+            excluded.add(field)
+            if row["requirement"] == "required":
+                required.add(field)
+    return {"fields": excluded, "required_fields": required,
+            "assessments": accepted, "rejected": rejected}
+
+
 def _deterministic_gates(
     db: Database, company_id: str, category_key: str, evidence: dict, *,
     category_not_applicable: bool, freshness_audit: dict,
@@ -468,21 +522,37 @@ def evaluate_factory_contract(
             status = "complete" if threshold_passed else ("partial" if score else "missing")
         else:
             selected = [groups[name] for name in field_groups if name in groups]
-            expected = sum(int(row["expected"]) for row in selected)
+            raw_expected = sum(int(row["expected"]) for row in selected)
             populated = sum(int(row["populated"]) for row in selected)
-            required = sum(int(row["required"]) for row in selected)
+            raw_required = sum(int(row["required"]) for row in selected)
             populated_required = sum(int(row["populated_required"]) for row in selected)
-            score = Decimal(populated) / Decimal(expected) if expected else Decimal(0)
+            missing = {
+                field for row in selected for field in row["missing"]
+            }
+            exclusions = _reviewed_field_exclusions(
+                db, company_id, field_groups, missing, contract
+            )
+            expected = raw_expected - len(exclusions["fields"])
+            required = raw_required - len(exclusions["required_fields"])
+            score = Decimal(populated) / Decimal(expected) if expected else Decimal(1)
             threshold_passed = score >= threshold
             status = "complete" if threshold_passed else ("partial" if populated else "missing")
             evidence.update({
+                "raw_expected_fields": raw_expected,
                 "expected_fields": expected,
                 "populated_fields": populated,
+                "raw_required_fields": raw_required,
                 "required_fields": required,
                 "populated_required_fields": populated_required,
+                "reviewed_unavailable_or_not_applicable": exclusions["assessments"],
+                "rejected_field_assessments": exclusions["rejected"],
                 "missing_field_groups": [name for name in field_groups if name not in groups],
                 "missing_fields": {
-                    row["category"]: row["missing"] for row in selected if row["missing"]
+                    row["category"]: [
+                        field for field in row["missing"] if field not in exclusions["fields"]
+                    ]
+                    for row in selected
+                    if any(field not in exclusions["fields"] for field in row["missing"])
                 },
             })
 

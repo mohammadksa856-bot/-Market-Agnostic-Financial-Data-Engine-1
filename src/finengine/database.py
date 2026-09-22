@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 22
+SCHEMA_VERSION = 23
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -155,6 +155,18 @@ CREATE TABLE IF NOT EXISTS company_completeness(
  missing_fields_json TEXT NOT NULL DEFAULT '[]', required_missing_json TEXT NOT NULL DEFAULT '[]',
  checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  PRIMARY KEY(company_id,category));
+CREATE TABLE IF NOT EXISTS company_field_availability(
+ company_id TEXT NOT NULL REFERENCES companies(company_id),
+ field_key TEXT NOT NULL REFERENCES data_catalog_fields(field_key),
+ status TEXT NOT NULL CHECK(status IN ('unavailable','not_applicable')),
+ reason_code TEXT NOT NULL, reason TEXT NOT NULL,
+ evidence_source_key TEXT REFERENCES source_documents(source_key),
+ evidence_url TEXT NOT NULL DEFAULT '', evidence_note TEXT NOT NULL DEFAULT '',
+ rule_reference TEXT NOT NULL DEFAULT '', assessed_by TEXT NOT NULL,
+ assessed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT,
+ PRIMARY KEY(company_id,field_key));
+CREATE INDEX IF NOT EXISTS idx_field_availability_status
+ ON company_field_availability(company_id,status,expires_at);
 CREATE TABLE IF NOT EXISTS observations(
  id INTEGER PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id), metric TEXT NOT NULL,
  value TEXT NOT NULL, currency TEXT NOT NULL, unit TEXT NOT NULL, period_start TEXT,
@@ -1726,6 +1738,62 @@ class Database:
         if not row:
             raise KeyError(f"unknown source {source_key}")
         return dict(row)
+
+    def upsert_field_availability(
+        self, company_id: str, field_key: str, status: str, *,
+        reason_code: str, reason: str, assessed_by: str,
+        evidence_source_key: str | None = None, evidence_url: str = "",
+        evidence_note: str = "", rule_reference: str = "",
+        expires_at: str | None = None,
+    ) -> None:
+        """Persist reviewed negative evidence without allowing silent denominator edits."""
+        if status not in {"unavailable", "not_applicable"}:
+            raise ValueError("field availability status must be unavailable or not_applicable")
+        required = {
+            "reason_code": reason_code, "reason": reason, "assessed_by": assessed_by,
+        }
+        if any(not value.strip() for value in required.values()):
+            raise ValueError("reason_code, reason and assessed_by are required")
+        if not self.conn.execute(
+            "SELECT 1 FROM companies WHERE company_id=?", (company_id,)
+        ).fetchone():
+            raise KeyError(f"unknown company {company_id}")
+        if not self.conn.execute(
+            "SELECT 1 FROM data_catalog_fields WHERE field_key=? AND enabled=1", (field_key,)
+        ).fetchone():
+            raise KeyError(f"unknown catalog field {field_key}")
+        if evidence_source_key:
+            source = self.conn.execute(
+                "SELECT company_id,source_url FROM source_documents WHERE source_key=?",
+                (evidence_source_key,),
+            ).fetchone()
+            if not source or source["company_id"] != company_id:
+                raise ValueError("evidence source must belong to the assessed company")
+            evidence_url = evidence_url or source["source_url"]
+        if status == "unavailable" and not (
+            evidence_source_key and evidence_url.strip() and evidence_note.strip()
+        ):
+            raise ValueError(
+                "unavailable requires an archived company source, URL and review note"
+            )
+        if status == "not_applicable" and not rule_reference.strip():
+            raise ValueError("not_applicable requires a structural rule reference")
+        with self.conn:
+            self.conn.execute(
+                """INSERT INTO company_field_availability(
+                company_id,field_key,status,reason_code,reason,evidence_source_key,
+                evidence_url,evidence_note,rule_reference,assessed_by,expires_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(company_id,field_key) DO UPDATE SET
+                status=excluded.status,reason_code=excluded.reason_code,reason=excluded.reason,
+                evidence_source_key=excluded.evidence_source_key,evidence_url=excluded.evidence_url,
+                evidence_note=excluded.evidence_note,rule_reference=excluded.rule_reference,
+                assessed_by=excluded.assessed_by,assessed_at=CURRENT_TIMESTAMP,
+                expires_at=excluded.expires_at""",
+                (company_id, field_key, status, reason_code, reason,
+                 evidence_source_key, evidence_url.strip(), evidence_note.strip(),
+                 rule_reference.strip(), assessed_by.strip(), expires_at),
+            )
 
     def upsert_backlog_item(
         self, idempotency_key: str, item_type: str, domain: str, title: str,
