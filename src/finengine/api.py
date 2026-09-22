@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import __version__
 from .query import FinancialQueryService
+from .viewer import company_viewer_html
 
 
 def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
@@ -22,6 +23,16 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
             self.send_header("X-Content-Type-Options","nosniff")
             self.end_headers(); self.wfile.write(body)
 
+        def _send_html(self, status: int, markup: str):
+            body=markup.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type","text/html; charset=utf-8")
+            self.send_header("Content-Length",str(len(body)))
+            self.send_header("Cache-Control","public, max-age=60")
+            self.send_header("X-Content-Type-Options","nosniff")
+            self.send_header("Content-Security-Policy","default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'")
+            self.end_headers(); self.wfile.write(body)
+
         def _authorized(self) -> bool:
             if not api_key:
                 return True
@@ -34,9 +45,20 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
             except (TypeError,ValueError): raise ValueError(f"{name} must be an integer")
 
         def do_GET(self):
+            parsed=urlparse(self.path); parts=[part for part in parsed.path.split("/") if part]
+            if len(parts) == 3 and parts[0] == "view":
+                query=FinancialQueryService(db_path)
+                try:
+                    self._send_html(200,company_viewer_html(query.company_page(parts[1],parts[2])))
+                except KeyError:
+                    self._send_html(404,"<h1 dir='rtl'>الشركة غير موجودة</h1>")
+                except Exception:
+                    self._send_html(500,"<h1 dir='rtl'>تعذر تحميل الصفحة</h1>")
+                finally:
+                    query.close()
+                return
             if not self._authorized():
                 self._send(401,{"error":"unauthorized"}); return
-            parsed=urlparse(self.path); parts=[part for part in parsed.path.split("/") if part]
             params=parse_qs(parsed.query)
             query=FinancialQueryService(db_path)
             try:

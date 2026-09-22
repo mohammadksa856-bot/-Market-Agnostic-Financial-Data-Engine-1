@@ -43,6 +43,11 @@ class ServiceTests(unittest.TestCase):
         thread=threading.Thread(target=server.serve_forever,daemon=True); thread.start()
         port=server.server_address[1]
         try:
+            viewer=urlopen(f"http://127.0.0.1:{port}/view/SA/TST")
+            self.assertEqual(viewer.headers.get_content_type(),"text/html")
+            markup=viewer.read().decode("utf-8")
+            self.assertIn("Test Company",markup)
+            self.assertIn("100.00 SAR",markup)
             with self.assertRaises(HTTPError) as denied:
                 urlopen(f"http://127.0.0.1:{port}/health")
             self.assertEqual(denied.exception.code,401)
