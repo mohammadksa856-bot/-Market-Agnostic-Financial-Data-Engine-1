@@ -104,10 +104,7 @@ class FactoryThroughputReportingTests(unittest.TestCase):
             # Dispatch alone (no finished jobs) must not be reported as
             # completed throughput either.
             self.assertEqual(report_after_dispatch["companies_reaching_target"], 0)
-            blocked_categories = {
-                item["category_key"] for item in report_after_dispatch["top_blocking_categories"]
-            }
-            self.assertIn("analysts", blocked_categories)
+            self.assertEqual(report_after_dispatch["companies_blocked"], 0)
         finally:
             db.close()
 
@@ -119,9 +116,32 @@ class FactoryThroughputReportingTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_legacy_run_status_remains_readable_after_contract_migration(self):
+        db = Database(self.db_path)
+        try:
+            db.register_company(Company(
+                "sa:TST", Market.SA, "TST", "Test Company", "SAR",
+                sector="Telecommunication Services",
+            ))
+            with db.conn:
+                db.conn.execute(
+                    "INSERT INTO factory_runs(run_id,scope_json,target_score,total_items) "
+                    "VALUES('legacy-run','{}','95',1)"
+                )
+                db.conn.execute(
+                    """INSERT INTO factory_work_items(
+                    work_item_id,run_id,company_id,category_key,state
+                    ) VALUES('legacy-item','legacy-run','sa:TST','identity','queued')"""
+                )
+            status = FactoryOrchestrator(db).status("legacy-run")
+            self.assertEqual(status["scoring_model"], "legacy_investor_understanding")
+            self.assertEqual(status["companies"][0]["categories_total"], 1)
+        finally:
+            db.close()
 
-class AnalystGovernanceCannotInflateReadinessTests(unittest.TestCase):
-    """Missing analyst coverage must never look like progress or completion."""
+
+class ConsensusGovernanceCannotInflateReadinessTests(unittest.TestCase):
+    """Missing consensus must stay visible inside the contract's valuation category."""
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -131,7 +151,7 @@ class AnalystGovernanceCannotInflateReadinessTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_zero_configured_providers_leaves_analysts_blocked_not_complete(self):
+    def test_zero_consensus_does_not_create_a_fake_analyst_category_or_completion(self):
         db = Database(self.db_path)
         try:
             db.register_company(Company(
@@ -144,32 +164,27 @@ class AnalystGovernanceCannotInflateReadinessTests(unittest.TestCase):
 
             row = db.conn.execute(
                 "SELECT state,gap_snapshot_json FROM factory_work_items "
-                "WHERE run_id=? AND category_key='analysts'", (run_id,),
+                "WHERE run_id=? AND category_key='valuation'", (run_id,),
             ).fetchone()
             self.assertEqual(row["state"], "queued")
             snapshot = json.loads(row["gap_snapshot_json"])
-            self.assertEqual(snapshot["strategy"], "licensed_provider_required")
+            self.assertEqual(snapshot["strategy"], "market_history")
             self.assertNotEqual(snapshot["score_before"], "1")
+            self.assertEqual(db.conn.execute(
+                "SELECT count(*) FROM factory_work_items WHERE run_id=? AND category_key='analysts'",
+                (run_id,),
+            ).fetchone()[0], 0)
 
             factory.dispatch(run_id, limit=10)
-            blocked = db.conn.execute(
-                "SELECT state,last_error FROM factory_work_items "
-                "WHERE run_id=? AND category_key='analysts'", (run_id,),
+            valuation = db.conn.execute(
+                "SELECT state FROM factory_work_items "
+                "WHERE run_id=? AND category_key='valuation'", (run_id,),
             ).fetchone()
-            self.assertEqual(blocked["state"], "blocked")
-            self.assertIn("licensed", blocked["last_error"])
-
-            score_row = db.conn.execute(
-                "SELECT score,status FROM company_understanding_scores "
-                "WHERE company_id='sa:TST' AND category_key='analysts'"
-            ).fetchone()
-            self.assertNotEqual(score_row["status"], "complete")
-            self.assertEqual(score_row["score"], "0")
+            self.assertEqual(valuation["state"], "running")
 
             status = factory.status(run_id)
             company_row = status["companies"][0]
-            # A blocked analyst category must not be counted among the
-            # completed categories that push a company toward 95%.
+            self.assertEqual(status["scoring_model"], "factory_18_category_contract")
             self.assertLess(company_row["categories_complete"], company_row["categories_total"])
         finally:
             db.close()

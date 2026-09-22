@@ -3,7 +3,11 @@ import unittest
 from pathlib import Path
 
 from finengine.database import Database
-from finengine.factory_contract import evaluate_factory_contract
+from finengine.factory_contract import (
+    contract_category_ready,
+    evaluate_factory_contract,
+    seed_factory_contract_categories,
+)
 from finengine.models import Company, Market, SourceDocument
 
 
@@ -34,6 +38,15 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertNotIn("identity", keys)
         self.assertFalse(result["legacy_understanding_score_included"])
 
+    def test_contract_categories_are_seeded_without_replacing_legacy_taxonomy(self):
+        keys = seed_factory_contract_categories(self.db)
+        self.assertEqual(len(keys), 18)
+        stored = {row[0] for row in self.db.conn.execute(
+            "SELECT category_key FROM knowledge_categories"
+        )}
+        self.assertIn("company_profile", stored)
+        self.assertIn("identity", stored)
+
     def test_telecom_pack_narrows_operational_groups_and_marks_sector_fields_na(self):
         result = evaluate_factory_contract(self.db, self.company.company_id)
         by_key = {row["category_key"]: row for row in result["categories"]}
@@ -57,6 +70,10 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertTrue(any(
             reason.startswith("hard_gate_failed:") for reason in result["blocking_reasons"]
         ))
+        financial = next(
+            row for row in result["categories"] if row["category_key"] == "financial_statements"
+        )
+        self.assertFalse(contract_category_ready(financial))
 
     def test_machine_evaluable_gates_report_pass_or_failure_with_evidence(self):
         result = evaluate_factory_contract(self.db, self.company.company_id)

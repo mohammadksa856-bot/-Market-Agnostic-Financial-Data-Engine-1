@@ -17,6 +17,36 @@ def _load_json(path: str | Path) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def seed_factory_contract_categories(
+    db: Database, contract_path: str | Path = DEFAULT_CONTRACT,
+) -> list[str]:
+    """Register contract keys for factory_work_items without replacing legacy categories."""
+    contract = _load_json(contract_path)
+    keys = []
+    with db.conn:
+        for ordinal, category in enumerate(contract["categories"], start=101):
+            key = category["category_key"]
+            keys.append(key)
+            name = key.replace("_", " ").title()
+            db.conn.execute(
+                """INSERT INTO knowledge_categories(
+                category_key,ordinal,name_en,name_ar,weight,description
+                ) VALUES(?,?,?,?,?,?) ON CONFLICT(category_key) DO UPDATE SET
+                name_en=excluded.name_en,weight=excluded.weight,
+                description=excluded.description,updated_at=CURRENT_TIMESTAMP""",
+                (key, ordinal, name, name, int(category["weight"]),
+                 category["threshold_rationale"]),
+            )
+    return keys
+
+
+def contract_category_ready(category: dict) -> bool:
+    return bool(
+        category["threshold_passed"]
+        and all(gate["status"] == "passed" for gate in category["hard_gates"])
+    )
+
+
 def _sector_pack(industry: str, directory: str | Path) -> tuple[str | None, dict | None]:
     for path in sorted(Path(directory).glob("*.json")):
         pack = _load_json(path)

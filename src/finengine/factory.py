@@ -6,8 +6,13 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from .database import Database, _json
+from .factory_contract import (
+    contract_category_ready,
+    evaluate_factory_contract,
+    seed_factory_contract_categories,
+)
 from .jobs import DurableJobQueue
-from .understanding import CATEGORIES, refresh_company_understanding
+from .understanding import CATEGORIES as LEGACY_CATEGORIES, refresh_company_understanding
 
 
 CATEGORY_TARGET = Decimal("0.95")
@@ -16,7 +21,7 @@ CATEGORY_TARGET = Decimal("0.95")
 # single issuer crawl can improve identity, business, governance and risks; it
 # must not be repeated once per category.  Analyst data stays blocked until a
 # licensed or publicly attributable provider is configured.
-STRATEGIES = {
+LEGACY_STRATEGIES = {
     "identity": "issuer_monitor",
     "business": "issuer_monitor",
     "governance": "issuer_monitor",
@@ -35,6 +40,27 @@ STRATEGIES = {
     "trading": "market_history",
     "valuation": "market_history",
     "analysts": "licensed_provider_required",
+}
+
+CONTRACT_STRATEGIES = {
+    "company_profile": "issuer_monitor",
+    "financial_statements": "issuer_monitor",
+    "profitability": "deterministic_refresh",
+    "liquidity_solvency": "deterministic_refresh",
+    "efficiency": "deterministic_refresh",
+    "growth": "deterministic_refresh",
+    "per_share": "deterministic_refresh",
+    "valuation": "market_history",
+    "market_data": "market_history",
+    "dividends": "issuer_monitor",
+    "segments": "issuer_monitor",
+    "ownership": "issuer_monitor",
+    "corporate_actions": "issuer_monitor",
+    "announcements": "issuer_monitor",
+    "operational_kpis": "issuer_monitor",
+    "sector_specific_fields": "issuer_monitor",
+    "calculated_smart_metrics": "deterministic_refresh",
+    "sources_lineage_freshness": "issuer_monitor",
 }
 
 
@@ -61,30 +87,35 @@ class FactoryOrchestrator:
             "SELECT * FROM companies WHERE " + " AND ".join(clauses) + " ORDER BY market,symbol",
             args,
         ).fetchall()
+        contract_keys = seed_factory_contract_categories(self.db)
         run_id = str(uuid.uuid4())
-        scope = {"market": market.upper() if market else None, "symbols": symbols or []}
+        scope = {"market": market.upper() if market else None, "symbols": symbols or [],
+                 "scoring_model": "factory_18_category_contract", "contract_version": "1.0.0"}
         with self.db.conn:
             self.db.conn.execute(
                 "INSERT INTO factory_runs(run_id,scope_json,target_score,total_items) VALUES(?,?,?,?)",
-                (run_id, _json(scope), str(target_score), len(companies) * len(CATEGORIES)),
+                (run_id, _json(scope), str(target_score), len(companies) * len(contract_keys)),
             )
         queued = completed = 0
         for company in companies:
-            result = refresh_company_understanding(self.db.conn, company["company_id"])
-            by_key = {item["category_key"]: item for item in result["categories"]}
-            for key, ordinal, *_ in CATEGORIES:
-                category = by_key[key]
+            result = evaluate_factory_contract(self.db, company["company_id"])
+            for ordinal, category in enumerate(result["categories"], start=1):
+                key = category["category_key"]
                 score = Decimal(category["score"])
-                state = "published" if score >= CATEGORY_TARGET else "queued"
+                category_ready = contract_category_ready(category)
+                state = "published" if category_ready and (
+                    result["readiness_state"] == "ready" or score >= Decimal(1)
+                ) else "queued"
                 queued += state == "queued"
                 completed += state == "published"
                 work_id = f"factory:{run_id}:{company['company_id']}:{key}"
-                source_plan = category.get("evidence", {}).get("source_plan", [])
                 gap = {
                     "score_before": str(score),
-                    "gaps": category.get("gaps", []),
-                    "hard_gates": result["hard_gates"],
-                    "strategy": STRATEGIES[key],
+                    "weighted_score_before": category["weighted_score"],
+                    "threshold": category["threshold"],
+                    "hard_gates": category["hard_gates"],
+                    "strategy": CONTRACT_STRATEGIES[key],
+                    "scoring_model": result["scoring_model"],
                 }
                 with self.db.conn:
                     self.db.conn.execute(
@@ -93,15 +124,15 @@ class FactoryOrchestrator:
                         source_plan_json,gap_snapshot_json,finished_at
                         ) VALUES(?,?,?,?,?,?,?,?,CASE WHEN ?='published' THEN CURRENT_TIMESTAMP END)""",
                         (work_id, run_id, company["company_id"], key, state,
-                         10 + ordinal, _json(source_plan), _json(gap), state),
+                         10 + ordinal, "[]", _json(gap), state),
                     )
         with self.db.conn:
             self.db.conn.execute(
                 "UPDATE factory_runs SET completed_items=?,updated_at=CURRENT_TIMESTAMP WHERE run_id=?",
                 (completed, run_id),
             )
-        return {"run_id": run_id, "companies": len(companies), "categories": len(CATEGORIES),
-                "total_items": len(companies) * len(CATEGORIES), "completed": completed,
+        return {"run_id": run_id, "companies": len(companies), "categories": len(contract_keys),
+                "total_items": len(companies) * len(contract_keys), "completed": completed,
                 "queued": queued, "target_score": str(target_score)}
 
     def dispatch(
@@ -119,7 +150,7 @@ class FactoryOrchestrator:
              ORDER BY priority,id LIMIT 1) AS source_index
             FROM factory_work_items w JOIN companies c USING(company_id)
             WHERE w.run_id=? AND w.state='queued'
-            ORDER BY w.priority,w.created_at LIMIT ?""", (run_id, limit * len(CATEGORIES)),
+            ORDER BY w.priority,w.created_at LIMIT ?""", (run_id, limit * 18),
         ).fetchall()
         groups: dict[tuple[str, str], list] = {}
         for row in rows:
@@ -145,7 +176,8 @@ class FactoryOrchestrator:
                            "sector": first["sector"], "market_segment": first["exchange"]}
             elif strategy == "deterministic_refresh":
                 job_type = "understanding_refresh"
-                payload = {"source_map_version": "18-categories-v1", "target_score": "95"}
+                payload = {"source_map_version": "factory-18-category-contract-v1",
+                           "target_score": "95"}
             else:
                 job_type = "monitor"
                 payload = {"market": first["market"], "symbol": first["symbol"],
@@ -174,15 +206,24 @@ class FactoryOrchestrator:
                 "blocked_items": blocked}
 
     def reconcile(self, run_id: str) -> dict:
-        self._run(run_id)
+        run = self._run(run_id)
+        contract_mode = json.loads(run["scope_json"] or "{}").get("scoring_model") == (
+            "factory_18_category_contract"
+        )
         company_ids = [row[0] for row in self.db.conn.execute(
             "SELECT DISTINCT company_id FROM factory_work_items WHERE run_id=?", (run_id,)
         )]
         latest = {}
+        company_ready = {}
         for company_id in company_ids:
-            result = refresh_company_understanding(self.db.conn, company_id)
-            latest[company_id] = {item["category_key"]: Decimal(item["score"])
-                                  for item in result["categories"]}
+            if contract_mode:
+                result = evaluate_factory_contract(self.db, company_id)
+                latest[company_id] = {item["category_key"]: item for item in result["categories"]}
+                company_ready[company_id] = result["readiness_state"] == "ready"
+            else:
+                result = refresh_company_understanding(self.db.conn, company_id)
+                latest[company_id] = {item["category_key"]: Decimal(item["score"])
+                                      for item in result["categories"]}
         rows = self.db.conn.execute(
             """SELECT w.*,j.status AS job_status,j.last_error AS job_error,j.result_json
             FROM factory_work_items w LEFT JOIN jobs j ON j.job_id=w.job_id
@@ -190,8 +231,16 @@ class FactoryOrchestrator:
         ).fetchall()
         with self.db.conn:
             for row in rows:
-                score = latest[row["company_id"]][row["category_key"]]
-                if score >= CATEGORY_TARGET:
+                current = latest[row["company_id"]][row["category_key"]]
+                if contract_mode:
+                    score = Decimal(current["score"])
+                    passed = contract_category_ready(current) and (
+                        company_ready[row["company_id"]] or score >= Decimal(1)
+                    )
+                else:
+                    score = current
+                    passed = score >= CATEGORY_TARGET
+                if passed:
                     state, error = "published", None
                 elif row["job_status"] == "dead":
                     state, error = "blocked", row["job_error"] or "deterministic worker exhausted retries"
@@ -209,6 +258,8 @@ class FactoryOrchestrator:
 
     def status(self, run_id: str) -> dict:
         run = self._run(run_id)
+        scope = json.loads(run["scope_json"] or "{}")
+        contract_mode = scope.get("scoring_model") == "factory_18_category_contract"
         counts = {row["state"]: row["n"] for row in self.db.conn.execute(
             "SELECT state,count(*) n FROM factory_work_items WHERE run_id=? GROUP BY state",
             (run_id,),
@@ -228,22 +279,40 @@ class FactoryOrchestrator:
                 THEN CURRENT_TIMESTAMP ELSE finished_at END WHERE run_id=?""",
                 (status, total, completed, failed, status, run_id),
             )
-        companies = [dict(row) for row in self.db.conn.execute(
-            """SELECT c.market,c.symbol,c.name,r.total_score,r.readiness_state,
+        company_rows = self.db.conn.execute(
+            """SELECT w.company_id,c.market,c.symbol,c.name,
             sum(w.state='published') AS categories_complete,count(*) AS categories_total,
             sum(w.state='blocked') AS categories_blocked
             FROM factory_work_items w JOIN companies c USING(company_id)
-            LEFT JOIN company_readiness r USING(company_id) WHERE w.run_id=?
+            WHERE w.run_id=?
             GROUP BY w.company_id ORDER BY c.market,c.symbol""", (run_id,),
-        )]
+        ).fetchall()
+        companies = []
+        for row in company_rows:
+            company = dict(row)
+            if contract_mode:
+                readiness = evaluate_factory_contract(self.db, row["company_id"])
+                company.update({"total_score": readiness["total_score"],
+                                "readiness_state": readiness["readiness_state"],
+                                "scoring_model": readiness["scoring_model"]})
+            else:
+                readiness = self.db.conn.execute(
+                    "SELECT total_score,readiness_state FROM company_readiness WHERE company_id=?",
+                    (row["company_id"],),
+                ).fetchone()
+                company.update({"total_score": readiness["total_score"] if readiness else None,
+                                "readiness_state": readiness["readiness_state"] if readiness else None,
+                                "scoring_model": "legacy_investor_understanding"})
+            companies.append(company)
         return {"run_id": run_id, "status": status, "target_score": run["target_score"],
+                "scoring_model": scope.get("scoring_model", "legacy_investor_understanding"),
                 "counts": counts, "companies": companies}
 
     def throughput(self, run_id: str | None = None, *, window_hours: int = 24) -> dict:
         """Report factory throughput from work that has actually finished.
 
-        Every figure is derived from `factory_work_items` and `company_readiness`
-        rows already written by `dispatch`/`reconcile`; none of it is estimated
+        Every figure is derived from finished `factory_work_items` and the
+        scoring model recorded on their run; none of it is estimated
         from queue depth or backlog size, per the reporting requirement that the
         sustainable daily throughput reflect completed runs only.
         """
@@ -256,31 +325,46 @@ class FactoryOrchestrator:
             args.append(run_id)
         where = " AND ".join(clauses)
         rows = self.db.conn.execute(
-            f"""SELECT w.company_id,w.category_key,w.state,w.finished_at,w.created_at,
-            r.readiness_state FROM factory_work_items w
-            LEFT JOIN company_readiness r USING(company_id) WHERE {where}""", args,
+            f"""SELECT w.run_id,w.company_id,w.category_key,w.state,w.finished_at,w.created_at,
+            f.scope_json FROM factory_work_items w JOIN factory_runs f USING(run_id)
+            WHERE {where}""", args,
         ).fetchall()
-        by_company: dict[str, list] = {}
+        by_run_company: dict[tuple[str, str], list] = {}
         for row in rows:
-            by_company.setdefault(row["company_id"], []).append(row)
+            by_run_company.setdefault((row["run_id"], row["company_id"]), []).append(row)
 
-        companies_attempted = len(by_company)
-        companies_reaching_target = 0
+        companies_attempted = len({company_id for _, company_id in by_run_company})
+        ready_companies: set[str] = set()
         companies_blocked = 0
         blocked_categories: dict[str, int] = {}
         completions: dict[str, str] = {}
-        for company_id, items in by_company.items():
-            ready = any(item["readiness_state"] == "ready" for item in items)
+        blocked_companies: set[str] = set()
+        for (_, company_id), items in by_run_company.items():
+            scope = json.loads(items[0]["scope_json"] or "{}")
+            terminal = all(item["state"] in ("published", "skipped") for item in items)
+            if scope.get("scoring_model") == "factory_18_category_contract":
+                ready = terminal and evaluate_factory_contract(
+                    self.db, company_id
+                )["readiness_state"] == "ready"
+            else:
+                row = self.db.conn.execute(
+                    "SELECT readiness_state FROM company_readiness WHERE company_id=?",
+                    (company_id,),
+                ).fetchone()
+                ready = terminal and row is not None and row["readiness_state"] == "ready"
             if ready:
-                companies_reaching_target += 1
+                ready_companies.add(company_id)
                 finished = [item["finished_at"] for item in items if item["finished_at"]]
                 if finished:
                     completions[company_id] = max(finished)
             blocked_keys = [item["category_key"] for item in items if item["state"] == "blocked"]
             if blocked_keys:
-                companies_blocked += 1
+                blocked_companies.add(company_id)
             for key in blocked_keys:
                 blocked_categories[key] = blocked_categories.get(key, 0) + 1
+
+        companies_reaching_target = len(ready_companies)
+        companies_blocked = len(blocked_companies)
 
         category_jobs_completed = sum(1 for row in rows if row["state"] in ("published", "skipped"))
         now = datetime.now(timezone.utc)
@@ -317,7 +401,7 @@ class FactoryOrchestrator:
                 for key, count in top_blocking_categories
             ],
             "estimated_sustainable_daily_throughput": sustainable_daily_throughput,
-            "basis": "completed_factory_work_items_and_company_readiness",
+            "basis": "completed_factory_work_items_and_run_scoring_model",
         }
 
     def cancel(self, run_id: str) -> dict:

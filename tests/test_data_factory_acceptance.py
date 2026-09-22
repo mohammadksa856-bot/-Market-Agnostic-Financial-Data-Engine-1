@@ -212,9 +212,14 @@ class DataFactoryAcceptanceTests(unittest.TestCase):
             self.assertEqual(len(monitor), 1)
             self.assertFalse(monitor[0]["llm"])
             self.assertEqual(db.conn.execute(
-                "SELECT count(*) FROM factory_work_items WHERE run_id=? AND category_key='analysts' "
-                "AND state='blocked'", (run_id,),
-            ).fetchone()[0], 1)
+                "SELECT count(*) FROM factory_work_items WHERE run_id=? AND category_key='analysts'",
+                (run_id,),
+            ).fetchone()[0], 0)
+            self.assertEqual(db.conn.execute(
+                "SELECT count(*) FROM factory_work_items WHERE run_id=? "
+                "AND category_key IN ('valuation','market_data') AND state='running'",
+                (run_id,),
+            ).fetchone()[0], 2)
         finally:
             db.close()
 
