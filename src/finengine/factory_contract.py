@@ -91,6 +91,30 @@ def _deterministic_gates(
              "published_values_without_source_hash": orphaned, "required": 0},
         ]
 
+    if category_key in {
+        "profitability", "liquidity_solvency", "efficiency", "growth", "per_share",
+        "calculated_smart_metrics",
+    }:
+        field_groups = evidence.get("field_groups", [])
+        placeholders = ",".join("?" for _ in field_groups)
+        if not field_groups:
+            return [{"status": "failed", "reason": "no_field_groups_activated"}]
+        rows = db.conn.execute(
+            f"""SELECT d.metric_key,d.is_calculated,d.calculation FROM data_points d
+            WHERE d.company_id=? AND d.is_current=1 AND d.metric_key IN
+            (SELECT field_key FROM data_catalog_fields WHERE enabled=1
+             AND category IN ({placeholders}))""",
+            (company_id, *field_groups),
+        ).fetchall()
+        calculated = [row for row in rows if row["is_calculated"]]
+        invalid = [row["metric_key"] for row in calculated if not (row["calculation"] or "").strip()]
+        return [{
+            "status": "passed" if not invalid else "failed",
+            "published_fields": len(rows),
+            "calculated_fields": len(calculated),
+            "calculated_fields_without_declared_formula": sorted(set(invalid)),
+        }]
+
     if category_key == "market_data":
         latest = db.conn.execute(
             """SELECT max(p.observed_at) FROM market_prices p JOIN listings l USING(listing_id)
@@ -104,6 +128,74 @@ def _deterministic_gates(
         return [{"status": "passed" if observed and observed >= cutoff else "failed",
                  "latest_market_observation": latest,
                  "maximum_calendar_age_days_for_five_trading_days": 7}]
+
+    if category_key == "valuation":
+        def completeness(group: str) -> Decimal:
+            row = db.conn.execute(
+                "SELECT completeness_score FROM company_completeness WHERE company_id=? AND category=?",
+                (company_id, group),
+            ).fetchone()
+            return Decimal(row[0]) if row else Decimal(0)
+
+        valuation = completeness("valuation")
+        market = completeness("market_data")
+        statement_rows = [
+            completeness(group) for group in ("income_statement", "balance_sheet", "cash_flow")
+        ]
+        financials = sum(statement_rows, Decimal(0)) / Decimal(len(statement_rows))
+        prerequisites_pass = market >= Decimal("0.85") and financials >= Decimal("0.95")
+        passed = not prerequisites_pass or valuation >= Decimal("0.9")
+        return [{
+            "status": "passed" if passed else "failed",
+            "valuation_group_score": str(valuation),
+            "market_data_score": str(market),
+            "financial_statement_score": str(financials),
+            "prerequisites_pass": prerequisites_pass,
+            "required_valuation_score_when_prerequisites_pass": "0.9",
+        }]
+
+    if category_key == "dividends":
+        fact_count = db.conn.execute(
+            """SELECT count(*) FROM data_points WHERE company_id=? AND is_current=1
+            AND metric_key IN ('dividend_per_share','dividend_payout_ratio','fcf_payout_ratio')""",
+            (company_id,),
+        ).fetchone()[0]
+        linked = db.conn.execute(
+            """SELECT count(*) FROM corporate_actions a WHERE a.company_id=? AND a.is_current=1
+            AND a.action_type='cash_dividend' AND EXISTS (
+              SELECT 1 FROM disclosures d WHERE d.company_id=a.company_id
+              AND d.is_current=1 AND d.source_key=a.source_key)""",
+            (company_id,),
+        ).fetchone()[0]
+        passed = fact_count == 0 or linked > 0
+        return [{"status": "passed" if passed else "failed",
+                 "dividend_or_payout_facts": fact_count,
+                 "dividend_actions_linked_to_disclosures": linked}]
+
+    if category_key == "segments":
+        rows = db.conn.execute(
+            """SELECT metric_key,dimensions_json FROM data_points
+            WHERE company_id=? AND is_current=1 AND scope='segment'""",
+            (company_id,),
+        ).fetchall()
+        disclosed: set[str] = set()
+        revenue: set[str] = set()
+        for row in rows:
+            try:
+                dimensions = json.loads(row["dimensions_json"] or "{}")
+            except (TypeError, ValueError):
+                dimensions = {}
+            segment = dimensions.get("segment")
+            if not segment:
+                continue
+            disclosed.add(str(segment))
+            if row["metric_key"] in {"segment_revenue", "revenue"}:
+                revenue.add(str(segment))
+        missing = sorted(disclosed - revenue) if len(disclosed) > 1 else []
+        return [{"status": "passed" if not missing else "failed",
+                 "disclosed_segments": sorted(disclosed),
+                 "segments_with_revenue": sorted(revenue),
+                 "segments_missing_revenue": missing}]
 
     if category_key == "ownership":
         latest = db.conn.execute(
