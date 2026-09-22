@@ -29,7 +29,8 @@ $compose up -d --build --remove-orphans
 
 container="$($compose ps -q engine)"
 attempt=0
-while [ "$attempt" -lt 30 ]; do
+health_attempts="${FINENGINE_DEPLOY_HEALTH_ATTEMPTS:-180}"
+while [ "$attempt" -lt "$health_attempts" ]; do
     status="$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
     if [ "$status" = "healthy" ]; then
         $compose ps
@@ -44,5 +45,5 @@ while [ "$attempt" -lt 30 ]; do
 done
 
 $compose logs --tail=100 engine
-echo "Engine did not become healthy within 150 seconds." >&2
+echo "Engine did not become healthy within $((health_attempts * 5)) seconds." >&2
 exit 6
