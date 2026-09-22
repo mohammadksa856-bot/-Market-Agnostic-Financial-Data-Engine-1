@@ -1043,6 +1043,7 @@ def main():
     factory_run=sub.add_parser("factory-run"); factory_run.add_argument("run_id"); factory_run.add_argument("--dispatch-limit",type=int,default=50); factory_run.add_argument("--registry",default="config/companies.json"); factory_run.add_argument("--raw-dir",default="data/raw")
     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+    factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
     universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe"); universe_sync.add_argument("--show",action="store_true",help="show browser during live Saudi directory sync")
     universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json"); universe_activate.add_argument("--include-funds",action="store_true")
     universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
@@ -1155,6 +1156,12 @@ def main():
         from .factory import FactoryOrchestrator
         db=Database(a.db)
         try: result=FactoryOrchestrator(db).cancel(a.run_id)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-throughput":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try: result=FactoryOrchestrator(db).throughput(a.run_id,window_hours=a.window_hours)
         finally: db.close()
         print(json.dumps(result,indent=2)); return
     if a.cmd=="universe-sync":

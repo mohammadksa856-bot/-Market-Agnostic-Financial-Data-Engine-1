@@ -43,6 +43,27 @@ class CompanyRegistry:
     def get(self, company_id: str) -> Company:
         return self._companies[company_id]
     def resolve(self, market: str, symbol: str) -> Company:
-        return self._symbols[(market.upper(), symbol.upper())]
+        market_key = market.upper()
+        key = (market_key, symbol.upper())
+        company = self._symbols.get(key)
+        if company is not None:
+            return company
+        # Saudi Exchange symbols appear in several equivalent spellings across
+        # sources and requests: bare ("7010"), zero-padded ("07010") and
+        # market-prefixed ("SA7010"). Match on digits alone (leading zeros
+        # stripped) as a fallback so any of these resolve to the same company,
+        # without ever matching a symbol whose digits genuinely differ.
+        if market_key == "SA":
+            digits = "".join(character for character in symbol if character.isdigit()).lstrip("0")
+            if digits:
+                for (candidate_market, candidate_symbol), candidate in self._symbols.items():
+                    if candidate_market != "SA":
+                        continue
+                    candidate_digits = "".join(
+                        character for character in candidate_symbol if character.isdigit()
+                    ).lstrip("0")
+                    if candidate_digits == digits:
+                        return candidate
+        raise KeyError(f"unknown company: {market_key}:{symbol}")
     def all(self) -> list[Company]:
         return list(self._companies.values())

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from .database import Database, _json
@@ -237,6 +238,84 @@ class FactoryOrchestrator:
         )]
         return {"run_id": run_id, "status": status, "target_score": run["target_score"],
                 "counts": counts, "companies": companies}
+
+    def throughput(self, run_id: str | None = None, *, window_hours: int = 24) -> dict:
+        """Report factory throughput from work that has actually finished.
+
+        Every figure is derived from `factory_work_items` and `company_readiness`
+        rows already written by `dispatch`/`reconcile`; none of it is estimated
+        from queue depth or backlog size, per the reporting requirement that the
+        sustainable daily throughput reflect completed runs only.
+        """
+        clauses = ["1=1"]
+        args: list[object] = []
+        if run_id:
+            clauses.append("w.run_id=?")
+            args.append(run_id)
+        where = " AND ".join(clauses)
+        rows = self.db.conn.execute(
+            f"""SELECT w.company_id,w.category_key,w.state,w.finished_at,w.created_at,
+            r.readiness_state FROM factory_work_items w
+            LEFT JOIN company_readiness r USING(company_id) WHERE {where}""", args,
+        ).fetchall()
+        by_company: dict[str, list] = {}
+        for row in rows:
+            by_company.setdefault(row["company_id"], []).append(row)
+
+        companies_attempted = len(by_company)
+        companies_reaching_target = 0
+        companies_blocked = 0
+        blocked_categories: dict[str, int] = {}
+        completions: dict[str, str] = {}
+        for company_id, items in by_company.items():
+            ready = any(item["readiness_state"] == "ready" for item in items)
+            if ready:
+                companies_reaching_target += 1
+                finished = [item["finished_at"] for item in items if item["finished_at"]]
+                if finished:
+                    completions[company_id] = max(finished)
+            blocked_keys = [item["category_key"] for item in items if item["state"] == "blocked"]
+            if blocked_keys:
+                companies_blocked += 1
+            for key in blocked_keys:
+                blocked_categories[key] = blocked_categories.get(key, 0) + 1
+
+        category_jobs_completed = sum(1 for row in rows if row["state"] in ("published", "skipped"))
+        now = datetime.now(timezone.utc)
+        window_start = (now - timedelta(hours=window_hours)).isoformat()
+
+        def _normalize(value: str) -> str:
+            # SQLite CURRENT_TIMESTAMP has no offset; treat stored timestamps as UTC.
+            return value if value.endswith("Z") or "+" in value[10:] else value + "Z"
+
+        companies_completed_in_window = sum(
+            1 for finished_at in completions.values() if _normalize(finished_at) >= window_start
+        )
+        earliest_started = min((row["created_at"] for row in rows), default=None)
+        sustainable_daily_throughput = None
+        if earliest_started and completions:
+            started_at = datetime.fromisoformat(_normalize(earliest_started).replace("Z", "+00:00"))
+            elapsed_hours = max((now - started_at).total_seconds() / 3600, 1e-6)
+            sustainable_daily_throughput = round(len(completions) / elapsed_hours * 24, 4)
+        top_blocking_categories = sorted(
+            blocked_categories.items(), key=lambda item: item[1], reverse=True
+        )[:5]
+
+        return {
+            "run_id": run_id,
+            "window_hours": window_hours,
+            "companies_attempted": companies_attempted,
+            "companies_reaching_target": companies_reaching_target,
+            "companies_blocked": companies_blocked,
+            "category_jobs_completed": category_jobs_completed,
+            "companies_completed_in_window": companies_completed_in_window,
+            "top_blocking_categories": [
+                {"category_key": key, "companies_blocked": count}
+                for key, count in top_blocking_categories
+            ],
+            "estimated_sustainable_daily_throughput": sustainable_daily_throughput,
+            "basis": "completed_factory_work_items_and_company_readiness",
+        }
 
     def cancel(self, run_id: str) -> dict:
         self._run(run_id)
