@@ -54,6 +54,19 @@ class FactoryContractRuntimeTests(unittest.TestCase):
             for reason in result["blocking_reasons"]
         ))
 
+    def test_machine_evaluable_gates_report_pass_or_failure_with_evidence(self):
+        result = evaluate_factory_contract(self.db, self.company.company_id)
+        by_key = {row["category_key"]: row for row in result["categories"]}
+        financial_gates = by_key["financial_statements"]["hard_gates"]
+        self.assertEqual([gate["status"] for gate in financial_gates], ["failed", "passed"])
+        self.assertEqual(financial_gates[0]["annual_periods"], 0)
+        self.assertEqual(financial_gates[0]["quarter_periods"], 0)
+        self.assertEqual(by_key["market_data"]["hard_gates"][0]["status"], "failed")
+        self.assertEqual(
+            by_key["sector_specific_fields"]["hard_gates"][0]["status"], "passed"
+        )
+        self.assertFalse(result["all_hard_gates_passed"])
+
     def test_strict_lineage_needs_document_and_fact_location(self):
         source = SourceDocument(
             self.company.company_id, Market.SA, "https://issuer.example/report.pdf",
