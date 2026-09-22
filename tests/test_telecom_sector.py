@@ -157,7 +157,13 @@ class TelecomSnapshotTests(unittest.TestCase):
         self.assertEqual(attributes["founding_date"]["value"], "2004")
         self.assertIn("business_segments", attributes)
         self.assertEqual(sum(Decimal(row["ownership_pct"]) for row in ownership), Decimal("1.0000"))
-        self.assertEqual(len(actions), 3)
+        action_keys = {row["action_key"] for row in actions}
+        self.assertTrue({
+            "sa:7020:dividend:2024:h2",
+            "sa:7020:dividend:2025:h1",
+            "sa:7020:dividend:2025:h2",
+        }.issubset(action_keys))
+        self.assertGreaterEqual(len(actions), 3)
         self.assertGreaterEqual(len(disclosures), 4)
 
     def test_mobily_four_year_financial_and_twelve_quarter_history_is_available(self):
