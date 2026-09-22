@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 21
+SCHEMA_VERSION = 22
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -400,6 +400,27 @@ CREATE TABLE IF NOT EXISTS company_readiness(
  ('ready','not_ready','awaiting_data','blocked')),
  hard_gates_json TEXT NOT NULL DEFAULT '{}', blocking_reasons_json TEXT NOT NULL DEFAULT '[]',
  checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS factory_runs(
+ run_id TEXT PRIMARY KEY, scope_json TEXT NOT NULL DEFAULT '{}', target_score TEXT NOT NULL DEFAULT '95',
+ status TEXT NOT NULL DEFAULT 'queued'
+ CHECK(status IN ('queued','running','completed','blocked','cancelled')),
+ total_items INTEGER NOT NULL DEFAULT 0, completed_items INTEGER NOT NULL DEFAULT 0,
+ failed_items INTEGER NOT NULL DEFAULT 0, started_at TEXT, finished_at TEXT,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS factory_work_items(
+ work_item_id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES factory_runs(run_id),
+ company_id TEXT NOT NULL REFERENCES companies(company_id),
+ category_key TEXT NOT NULL REFERENCES knowledge_categories(category_key),
+ job_id TEXT REFERENCES jobs(job_id),
+ state TEXT NOT NULL DEFAULT 'queued'
+ CHECK(state IN ('queued','running','validated','published','blocked','skipped','cancelled')),
+ priority INTEGER NOT NULL DEFAULT 100, attempts INTEGER NOT NULL DEFAULT 0,
+ source_plan_json TEXT NOT NULL DEFAULT '[]', gap_snapshot_json TEXT NOT NULL DEFAULT '{}',
+ result_json TEXT NOT NULL DEFAULT '{}', last_error TEXT,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ finished_at TEXT, UNIQUE(run_id,company_id,category_key));
+CREATE INDEX IF NOT EXISTS idx_factory_work_state
+ ON factory_work_items(run_id,state,priority,created_at);
 CREATE TABLE IF NOT EXISTS company_peer_sets(
  peer_set_id TEXT PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
  name TEXT NOT NULL, methodology TEXT NOT NULL, scope TEXT NOT NULL DEFAULT 'global',

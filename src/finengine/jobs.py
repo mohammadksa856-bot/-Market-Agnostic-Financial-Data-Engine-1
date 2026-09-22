@@ -51,18 +51,18 @@ class DurableJobQueue:
         key = idempotency_key or f"manual:{job_type}:{job_id}"
         available = _iso(available_at or _now())
         with self.db.conn:
-            existing = self.db.conn.execute(
-                "SELECT job_id FROM jobs WHERE idempotency_key=?", (key,)
-            ).fetchone()
-            if existing:
-                return existing["job_id"], False
-            self.db.conn.execute(
+            inserted = self.db.conn.execute(
                 """INSERT INTO jobs(job_id,job_type,company_id,source_key,payload_json,priority,
-                available_at,max_attempts,idempotency_key) VALUES(?,?,?,?,?,?,?,?,?)""",
+                available_at,max_attempts,idempotency_key) VALUES(?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(idempotency_key) DO NOTHING""",
                 (job_id, job_type, company_id, source_key, _json(payload or {}), priority,
                  available, max_attempts, key),
             )
-        return job_id, True
+            created = inserted.rowcount == 1
+            durable = self.db.conn.execute(
+                "SELECT job_id FROM jobs WHERE idempotency_key=?", (key,)
+            ).fetchone()
+        return durable["job_id"], created
 
     def _recover_expired(self, now: str) -> None:
         expired = self.db.conn.execute(

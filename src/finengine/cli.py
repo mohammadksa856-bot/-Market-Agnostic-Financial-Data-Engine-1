@@ -1038,7 +1038,11 @@ def main():
     sync_manifests=sub.add_parser("sync-manifests"); sync_manifests.add_argument("--imports",default="data/imports"); sync_manifests.add_argument("--manifest",action="append",default=[],help="one reviewed JSON manifest (repeatable); omit to sync the complete imports directory"); sync_manifests.add_argument("--registry",default="config/companies.json"); sync_manifests.add_argument("--raw-dir",default="data/raw"); sync_manifests.add_argument("--archive-index",default="data/raw/archive-index.json"); sync_manifests.add_argument("--project-root",default="."); sync_manifests.add_argument("--backup-dir"); sync_manifests.add_argument("--backup-keep",type=int,default=3)
     backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
     bundle=sub.add_parser("backup-bundle"); bundle.add_argument("--output-dir",default="backups/bundles"); bundle.add_argument("--project-root",default="."); bundle.add_argument("--keep",type=int,default=7)
-    production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--raw-dir",default="data/raw"); production.add_argument("--no-llm",action="store_true")
+    production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--raw-dir",default="data/raw"); production.add_argument("--llm",action="store_true",help="opt in to scheduled LLM profile review; disabled by default"); production.add_argument("--no-llm",action="store_true",help=argparse.SUPPRESS)
+    factory_plan=sub.add_parser("factory-plan"); factory_plan.add_argument("--market",choices=["SA","US"]); factory_plan.add_argument("--symbols",help="comma-separated symbols"); factory_plan.add_argument("--target",default="95")
+    factory_run=sub.add_parser("factory-run"); factory_run.add_argument("run_id"); factory_run.add_argument("--dispatch-limit",type=int,default=50); factory_run.add_argument("--registry",default="config/companies.json"); factory_run.add_argument("--raw-dir",default="data/raw")
+    factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+    factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
     universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe"); universe_sync.add_argument("--show",action="store_true",help="show browser during live Saudi directory sync")
     universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json"); universe_activate.add_argument("--include-funds",action="store_true")
     universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
@@ -1118,8 +1122,40 @@ def main():
     if a.cmd=="configure-production":
         from .operations import configure_production_schedules
         result=configure_production_schedules(
-            a.db,a.registry,a.every,a.source_limit,not a.no_llm,a.raw_dir
+            a.db,a.registry,a.every,a.source_limit,a.llm and not a.no_llm,a.raw_dir
         )
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-plan":
+        from decimal import Decimal
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try:
+            symbols=[item.strip() for item in (a.symbols or "").split(",") if item.strip()]
+            result=FactoryOrchestrator(db).plan(
+                market=a.market,symbols=symbols or None,target_score=Decimal(a.target))
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-run":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try:
+            controller=FactoryOrchestrator(db)
+            dispatched=controller.dispatch(a.run_id,limit=a.dispatch_limit,
+                                           registry=a.registry,raw_dir=a.raw_dir)
+            result={"dispatch":dispatched,"progress":controller.reconcile(a.run_id)}
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-status":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try: result=FactoryOrchestrator(db).reconcile(a.run_id)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-cancel":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try: result=FactoryOrchestrator(db).cancel(a.run_id)
+        finally: db.close()
         print(json.dumps(result,indent=2)); return
     if a.cmd=="universe-sync":
         from .universe import sync_universe

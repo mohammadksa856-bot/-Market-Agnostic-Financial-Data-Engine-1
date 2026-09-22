@@ -20,6 +20,19 @@ finengine --db data/financial.sqlite3 understanding SA 2222 --refresh
 finengine --db data/financial.sqlite3 source-governance
 ```
 
+The durable factory controller snapshots all 18 categories per company, coalesces
+categories that share the same issuer crawl, and exposes progress without starting
+18 model agents. Scheduled production is deterministic by default:
+
+```bash
+finengine --db data/financial.sqlite3 factory-plan --market SA --symbols 7010,7020,7030,7040
+finengine --db data/financial.sqlite3 factory-run RUN_ID --dispatch-limit 50
+finengine --db data/financial.sqlite3 factory-status RUN_ID
+```
+
+`configure-production` never schedules an LLM call unless the operator explicitly
+passes `--llm`. Model review is an exception path, not the normal ingestion path.
+
 Read-only consumers use `GET /v1/companies/{market}/{symbol}/understanding` and
 `GET /v1/source-governance`. Source classes are `P` primary, `C` deterministic
 calculation, `O` external opinion, and `S` attributed secondary. The source
@@ -224,6 +237,11 @@ Optionally protect the API:
 Start the durable scheduler, worker, and read-only API together:
 
     finengine --db data/financial.sqlite3 run --host 127.0.0.1 --port 8000
+
+Production configuration is zero-token by default. Only opt in after setting a
+review budget and model key:
+
+    finengine --db data/financial.sqlite3 configure-production --llm
 
 For an always-on host, copy `.env.example` to `.env`, replace the example SEC
 identity and API key, then run:

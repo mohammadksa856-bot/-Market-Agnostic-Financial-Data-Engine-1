@@ -203,7 +203,7 @@ def configure_production_schedules(
     registry_path: str | Path = "config/companies.json",
     interval_seconds: int = 21600,
     source_limit: int = 50,
-    use_llm: bool = True,
+    use_llm: bool = False,
     raw_dir: str | Path = "data/raw",
 ) -> dict:
     """Idempotently configure monitoring for every enabled registry company."""
@@ -272,13 +272,18 @@ def configure_production_schedules(
                     company.company_id, priority=60,
                 )
                 configured.append(market_schedule_id)
-        scheduler.upsert(
-            "profile-scan", "Scan archived annual reports for grounded company profiles",
-            "profile_scan", interval_seconds,
-            {"registry": str(registry_path), "raw_dir": str(raw_dir),
-             "limit": 10, "max_pages": 40, "model": "claude-opus-5"},
-        )
-        configured.append("profile-scan")
+        # LLM profile extraction is deliberately opt-in. The production worker
+        # must remain useful with no model key and must not silently spend a
+        # token budget every six hours. Unsupported deterministic extraction is
+        # routed to the durable review backlog instead.
+        if use_llm:
+            scheduler.upsert(
+                "profile-scan", "Scan archived annual reports for grounded company profiles",
+                "profile_scan", interval_seconds,
+                {"registry": str(registry_path), "raw_dir": str(raw_dir),
+                 "limit": 10, "max_pages": 40, "model": "claude-opus-5"},
+            )
+            configured.append("profile-scan")
         scheduler.upsert(
             "understanding-refresh", "Re-score the 18-category 95% coverage contract",
             "understanding_refresh", interval_seconds,
