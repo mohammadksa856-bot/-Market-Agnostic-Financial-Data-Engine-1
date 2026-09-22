@@ -135,6 +135,93 @@ coverage. The Saudi Exchange historical-price CDN currently denies the local
 connector, so trading and valuation must remain open rather than being filled
 from an unattributed source.
 
+## Market data batch (2026-09-23): Saudi Exchange price history
+
+Real Saudi Exchange historical daily OHLCV was added for all four listed
+telecom operators, closing part of the "point-in-time market history and
+valuation" gap noted above. The automated `saudi_market.py` connector
+remains CDN-blocked from this environment (`access denied` /
+`errors.edgesuite.net`), so the data was captured through an authorized
+interactive browser session against the official historical-reports UI
+(`https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/
+reports-publications/historical-reports?locale=en`, Main Market →
+Telecommunication Services sector) and then archived and published through
+the normal manifest pipeline.
+
+### Sources and archives
+
+| Symbol | Trading days | Range | Raw archive | SHA-256 |
+|---|---|---|---|---|
+| 7010 (stc) | 1,247 | 2021-09-22 → 2026-09-22 | `data/raw/SA/7010/market/saudi-exchange-historical-2026-09-22.json` | `eb3033f792f3773572df13eccbeb8f0233f860b2ab1a5c10721c9ce17ee668f2` |
+| 7020 (Mobily) | 1,247 | 2021-09-22 → 2026-09-22 | `data/raw/SA/7020/market/saudi-exchange-historical-2026-09-22.csv` | `0a9b858381ef4055d14d729d779fe793928566dcbb8fdb8892f760efe6b044b3` |
+| 7030 (Zain KSA) | 1,247 | 2021-09-22 → 2026-09-22 | `data/raw/SA/7030/market/saudi-exchange-historical-2026-09-22.csv` | `e0901bd77170323ec993fade9c609f2cbbdc9d8ee8bffadf056655f2aeb853c9` |
+| 7040 (GO Telecom) | 516 | 2024-09-01 → 2026-09-22 (**partial**) | `data/raw/SA/7040/market/saudi-exchange-historical-2026-09-22-partial-2024-2026.csv` | `ccecc804a50087376a17baa9aa8be4740dcef8f3c98e370e54eb9b3521ba6014` |
+
+All four are registered in `data/raw/archive-index.json` (source_url,
+content_hash, byte_size, content_type, archived_at) and published through
+`data/imports/{stc,mobily,zain,go-telecom}-market-prices-2026-09-23.json`,
+schema-matched to the existing `aramco-market-prices-2026-09-04.json`.
+
+**GO Telecom (7040) gap, stated plainly:** only the 2024-09-01 through
+2026-09-22 window (~2 years) was captured to a file before the authorized
+capture session ended. The earlier 2021-09-22 through 2024-08-31 history
+was viewed live in that same session but never saved to disk, and several
+trading-halt rows in that window showed `-` placeholders for OHLCV. Neither
+is included here — the missing ~2.5 years is an open gap for a future
+capture pass, not something estimated or interpolated.
+
+### Parsing
+
+The CSV export interleaves the field delimiter and the thousands-group
+separator with the same character (e.g. `...,64.10,64.60,63.65,63.65,621,
+870,39,823,443.95,2,975`), so a naive comma-split, or a greedy
+"3-digits-after-a-comma" regex, cannot reliably place the volume/turnover/
+trades boundaries once volume itself spans more than one digit group. A new
+`parse_saudi_history_csv` (`src/finengine/saudi_market.py`) resolves this by
+testing every split point that matches standard thousands-grouping shape
+and, when more than one survives, disambiguating with the row's own
+turnover/volume ratio (the day's VWAP), which must fall inside that row's
+`[low, high]` — a constraint only the true split satisfies. Trading-halt
+rows are excluded, never zero-filled. `normalize_saudi_market_rows` is
+reused unchanged for STC's raw DataTables JSON, whose row shape already
+matches its expected input. Targeted tests in `tests/test_saudi_market.py`
+cover the thousands-grouped reconstruction, halt-row exclusion, and an
+OHLC-sanity rejection case.
+
+### Real before/after completeness (scratch-DB bootstrap, `company_completeness` table)
+
+| Symbol | market_data before | market_data after | valuation before | valuation after |
+|---|---|---|---|---|
+| 7010 (stc) | 5/26 (0.19) | 8/26 (0.31) | 11/25 (0.44) | 11/25 (0.44, unchanged) |
+| 7020 (Mobily) | 1/26 (0.04) | 7/26 (0.27) | 0/25 (0.00) | 19/25 (0.76) |
+| 7030 (Zain KSA) | 0/26 (0.00) | 7/26 (0.27) | 0/25 (0.00) | 21/25 (0.84) |
+| 7040 (GO Telecom) | 0/26 (0.00) | 6/26 (0.23) | 0/25 (0.00) | 0/25 (0.00, unchanged) |
+
+Mobily and Zain KSA both got real valuation facts published by
+`refresh_market_valuations` (20 and 22 facts respectively: market cap,
+P/E, P/B, EV multiples, yields, 52-week high/low, SMAs, calendar returns,
+etc., all filtered to `filed_at <= price_date`). **stc and GO Telecom's
+valuation refresh returned `no_fundamentals_available_as_of_price_date`
+both times** (first pass and the bootstrap's final registry-wide sweep) —
+their market_data completeness improved from the new price archive, but no
+new valuation facts were published. This is a real, unresolved finding, not
+downplayed here: it needs follow-up to determine why stc's existing
+fundamentals don't align with the archived price dates for this refresh
+(Zain and Mobily, which do have overlapping filed_at/price_date fundamentals,
+worked correctly), and GO Telecom has no valuation facts at all pending
+either the fundamentals or the rest of its price history.
+
+Ingestion was proven through the real pipeline, not just JSON validity:
+`_apply_reviewed_manifest` (the same code `finengine bootstrap` calls) on a
+scratch database, `finengine verify --imports data/imports
+--strict-warnings` (0 fail, pre-existing warns only — none new, none on
+these four symbols' price data), and `finengine audit --strict-warnings`
+(0 failures, 0 warnings). Idempotency was confirmed by re-running the
+Mobily manifest through `_apply_reviewed_manifest` twice against the same
+scratch DB: both reruns reported `duplicate` (0 inserted, 0 restated, 1,247
+duplicate) with the row count and `max(version)` unchanged across both
+reruns.
+
 ## Unresolved fields
 
 * **Historical statement depth.** The annual/quarter hard gates are now closed
