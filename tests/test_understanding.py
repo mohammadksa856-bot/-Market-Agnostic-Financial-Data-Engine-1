@@ -155,6 +155,29 @@ class UnderstandingModelTests(unittest.TestCase):
         self.assertEqual(ownership["score"], "1")
         self.assertTrue(ownership["evidence"]["latest_snapshot_reconciled"])
 
+    def test_esg_score_counts_reviewed_numeric_esg_attributes(self):
+        for index in range(8):
+            self.db.publish_company_attribute(
+                "sa:TST", f"esg_metric_{index}", index, "2025-12-31",
+                source_key="src:annual", category="esg_environmental",
+                metadata={"source_page": 10 + index},
+            )
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        esg = next(item for item in result["categories"] if item["category_key"] == "esg")
+        self.assertEqual(esg["score"], "1")
+        self.assertEqual(esg["evidence"]["reviewed_attributes"], 8)
+
+    def test_official_risk_disclosure_contributes_to_risk_coverage(self):
+        self.db.publish_disclosure(
+            "sa:TST", "risk_disclosure", "Principal risks",
+            "The issuer identified and described its principal risks and controls.",
+            "2026-03-01", "src:annual", "2025-12-31",
+            metadata={"source_page": 30},
+        )
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        risks = next(item for item in result["categories"] if item["category_key"] == "risks")
+        self.assertGreater(Decimal(risks["score"]), Decimal(0))
+
 
 if __name__ == "__main__":
     unittest.main()

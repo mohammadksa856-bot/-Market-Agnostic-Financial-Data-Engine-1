@@ -102,6 +102,19 @@ Tests: `tests/test_telecom_sector.py` cover financial identities, operational
 history, segment reconciliation, catalog contracts, profile, ownership,
 dividends and disclosures for all three operators.
 
+## Readiness measurement
+
+After the second clean build, all three operators pass the five-annual-period,
+12-quarter, required-core-field, provenance, no-synthetic-source and
+no-critical-exception gates. The remaining blocker is the weighted 18-category
+coverage target itself. Current governed scores are 55.54 for stc, 46.41 for
+Mobily and 56.84 for Zain KSA. These are deliberately not labelled 95% or ready.
+The largest remaining gaps are deeper statement/note coverage, point-in-time
+market history and valuation, issuer guidance, and attributable/licensed analyst
+coverage. The Saudi Exchange historical-price CDN currently denies the local
+connector, so trading and valuation must remain open rather than being filled
+from an unattributed source.
+
 ## Unresolved fields
 
 * **Historical statement depth.** The annual/quarter hard gates are now closed,

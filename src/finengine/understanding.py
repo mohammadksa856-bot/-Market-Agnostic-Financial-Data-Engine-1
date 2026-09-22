@@ -352,7 +352,8 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         AND json_extract(metadata_json,'$.forward_looking')=1
         AND COALESCE(json_extract(metadata_json,'$.analyst_forecast'),0)=0""", (company_id,))
     risk_items = count("""SELECT count(*) FROM disclosures WHERE company_id=? AND is_current=1
-                        AND disclosure_type IN ('risk_factor','liquidity_risk','contingency','customer_concentration','restatement')""", (company_id,))
+                        AND disclosure_type IN ('risk_factor','risk_disclosure','risk_management',
+                        'liquidity_risk','contingency','customer_concentration','restatement')""", (company_id,))
     op_points = count("""SELECT count(*) FROM data_points p JOIN metric_definitions m ON m.metric_key=p.metric_key
                        WHERE p.company_id=? AND p.is_current=1 AND m.category='operational'""", (company_id,))
     ratio_points = count("""SELECT count(*) FROM data_points p JOIN metric_definitions m ON m.metric_key=p.metric_key
@@ -360,6 +361,10 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
     esg_points = count("""SELECT count(*) FROM data_points WHERE company_id=? AND is_current=1 AND
         (metric_key LIKE '%emission%' OR metric_key LIKE '%water%' OR metric_key LIKE '%saudization%'
          OR metric_key LIKE '%injury%' OR metric_key LIKE '%sustainab%')""", (company_id,))
+    esg_attributes = count("""SELECT count(*) FROM company_attributes WHERE company_id=?
+        AND is_current=1 AND (category LIKE 'esg%' OR category IN ('sustainability','environment','social')
+        OR attribute_key LIKE '%saudization%' OR attribute_key LIKE '%female_%'
+        OR attribute_key LIKE '%learning%' OR attribute_key LIKE '%training%')""", (company_id,))
     identity_base = sum(bool(company[k]) for k in ("name", "symbol", "market", "currency", "fiscal_year_end", "exchange", "country", "sector", "industry", "isin"))
     industry_context = count("""SELECT count(*) FROM company_attributes WHERE company_id=?
         AND is_current=1 AND attribute_key IN ('industry_overview','industry_drivers',
@@ -430,7 +435,7 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         "analysts": _ratio(Decimal(estimates) / Decimal(12)),
         "valuation": avg("valuation"),
         "risks": max(_ratio(Decimal(risk_items) / Decimal(8)), avg("financial_notes") * Decimal("0.5")),
-        "esg": _ratio(Decimal(esg_points) / Decimal(8)),
+        "esg": _ratio(Decimal(esg_points + esg_attributes) / Decimal(8)),
         "news": _ratio(Decimal(disclosures + min(sources, 10)) / Decimal(20)),
     }
     now = datetime.now(timezone.utc).isoformat()
@@ -467,6 +472,9 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
                 "latest_snapshot_reconciled": ownership_reconciled,
                 "position_count": ownership,
             })
+        elif key == "esg":
+            evidence.update({"numeric_data_points": esg_points,
+                             "reviewed_attributes": esg_attributes})
         if key == "industry":
             evidence.update({"classification_fields": classification_fields,
                              "industry_context_items": industry_context})

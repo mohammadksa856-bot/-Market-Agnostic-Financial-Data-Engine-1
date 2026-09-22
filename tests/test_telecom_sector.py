@@ -87,6 +87,21 @@ class TelecomSnapshotTests(unittest.TestCase):
                 self.assertIn(row["status"], {"published", "duplicate"}, row)
                 self.assertNotIn("error", row, row)
 
+    def test_official_regulator_industry_context_is_available_for_all_operators(self):
+        q = FinancialQueryService(self.dbpath)
+        try:
+            for symbol in ("7010", "7020", "7030"):
+                attributes = q.attributes("SA", symbol)
+                self.assertIn("industry_overview", attributes)
+                self.assertIn("industry_drivers", attributes)
+                self.assertIn("regulatory_environment", attributes)
+                self.assertEqual(
+                    attributes["industry_overview"]["value"]["internet_penetration"],
+                    0.99,
+                )
+        finally:
+            q.close()
+
     def test_mobily_headline_and_operating_metrics_match_the_annual_report(self):
         q = FinancialQueryService(self.dbpath)
         try:
