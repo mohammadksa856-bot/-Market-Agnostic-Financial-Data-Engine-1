@@ -225,6 +225,47 @@ class ReviewedManifestSyncTests(unittest.TestCase):
             )
         self.assertEqual(self._durable_counts(), before)
 
+    def test_changed_manifest_retires_removed_current_numeric_facts(self):
+        manifest = self._manifest()
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        payload["facts"].append({
+            "metric": "net_income", "value": "200",
+            "period_start": "2025-01-01", "period_end": "2025-12-31",
+            "period_kind": "fy", "fiscal_year": 2025,
+        })
+        manifest.write_text(json.dumps(payload), encoding="utf-8")
+        kwargs = {
+            "database": self.database, "imports_dir": self.imports,
+            "registry_path": self.registry, "raw_dir": self.root / "runtime-raw",
+            "manifest_paths": [manifest], "archive_index": None,
+            "project_root": self.root,
+        }
+        first = sync_reviewed_manifests(**kwargs)
+        old_source = first["results"][0]["source_key"]
+
+        payload["facts"] = [payload["facts"][0]]
+        payload["facts"][0]["value"] = "1100"
+        manifest.write_text(json.dumps(payload), encoding="utf-8")
+        second = sync_reviewed_manifests(**kwargs)
+
+        db = Database(self.database)
+        try:
+            revenue = db.conn.execute(
+                "SELECT value_decimal FROM data_points WHERE metric_key='revenue' AND is_current=1"
+            ).fetchone()[0]
+            removed = db.conn.execute(
+                "SELECT count(*) FROM data_points WHERE metric_key='net_income' AND is_current=1"
+            ).fetchone()[0]
+            old_status = db.conn.execute(
+                "SELECT status FROM source_documents WHERE source_key=?", (old_source,)
+            ).fetchone()[0]
+        finally:
+            db.close()
+        self.assertEqual(revenue, "1100")
+        self.assertEqual(removed, 0)
+        self.assertEqual(old_status, "superseded")
+        self.assertEqual(second["retired_superseded"]["sources"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

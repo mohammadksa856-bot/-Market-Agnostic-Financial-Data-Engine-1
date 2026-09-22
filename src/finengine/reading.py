@@ -119,6 +119,12 @@ LINE_MAP = {
     "trade payables": ("accounts_payable", "instant"),
     "liabilities directly associated with assets held for sale": ("liabilities_held_for_sale", "instant"),
     # cash flow
+    "operating income before changes in operating assets and liabilities":
+        ("operating_profit_before_working_capital_changes", "fy"),
+    "operating profit before changes in operating assets and liabilities":
+        ("operating_profit_before_working_capital_changes", "fy"),
+    "operating profit before changes in operating assets and":
+        ("operating_profit_before_working_capital_changes", "fy"),
     "net cash from operating activities": ("operating_cash_flow", "fy"),
     "net cash generated from operating activities": ("operating_cash_flow", "fy"),
     "net cash provided by operating activities": ("operating_cash_flow", "fy"),

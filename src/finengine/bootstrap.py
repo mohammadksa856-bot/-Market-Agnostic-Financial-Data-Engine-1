@@ -309,6 +309,63 @@ def _selected_manifests(
     return selected
 
 
+def _retire_superseded_reviewed_numeric_sources(
+    db: Database, manifests: list[Path], project_root: str | Path,
+) -> dict[str, int]:
+    """Retire current facts from an older revision of the same manifest path.
+
+    Reviewed manifests are mutable review outputs even though every stored
+    source revision remains content-addressed.  When a correction changes a
+    manifest digest, facts removed or renamed by that correction must stop
+    being current before the replacement is validated.  Otherwise stale
+    values can both survive forever and make a valid replacement fail a
+    cross-period rule.
+    """
+    selected = {
+        _portable_manifest_path(path, project_root):
+        f"file:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        for path in manifests
+    }
+    obsolete: set[str] = set()
+    for row in db.conn.execute(
+        "SELECT source_key,metadata_json FROM source_documents"
+    ).fetchall():
+        try:
+            metadata = json.loads(row["metadata_json"] or "{}")
+        except (TypeError, ValueError):
+            continue
+        path = metadata.get("reviewed_manifest_path")
+        if path in selected and row["source_key"] != selected[path]:
+            obsolete.add(row["source_key"])
+    if not obsolete:
+        return {"sources": 0, "data_points": 0, "observations": 0}
+
+    placeholders = ",".join("?" for _ in obsolete)
+    keys = tuple(sorted(obsolete))
+    points = db.conn.execute(
+        f"SELECT count(*) FROM data_points WHERE is_current=1 AND source_key IN ({placeholders})",
+        keys,
+    ).fetchone()[0]
+    observations = db.conn.execute(
+        f"SELECT count(*) FROM observations WHERE is_current=1 AND source_key IN ({placeholders})",
+        keys,
+    ).fetchone()[0]
+    db.conn.execute(
+        f"UPDATE data_points SET is_current=0 WHERE is_current=1 AND source_key IN ({placeholders})",
+        keys,
+    )
+    db.conn.execute(
+        f"UPDATE observations SET is_current=0 WHERE is_current=1 AND source_key IN ({placeholders})",
+        keys,
+    )
+    db.conn.execute(
+        f"UPDATE source_documents SET status='superseded' WHERE source_key IN ({placeholders})",
+        keys,
+    )
+    db.conn.commit()
+    return {"sources": len(obsolete), "data_points": points, "observations": observations}
+
+
 def _verify_selected_manifests(manifests: list[Path]) -> dict:
     """Run deterministic manifest checks before opening the live DB writable."""
     from .verification import ManifestVerifier
@@ -348,6 +405,7 @@ def _sync_manifests_to_database(
     project_root: str | Path,
 ) -> dict:
     registry = CompanyRegistry.combined(db.conn, registry_path)
+    retired = _retire_superseded_reviewed_numeric_sources(db, manifests, project_root)
     results = [
         _apply_reviewed_manifest(db, registry, manifest, raw_dir, project_root)
         for manifest in manifests
@@ -395,6 +453,7 @@ def _sync_manifests_to_database(
         "duplicate_manifests": sum(row["status"] == "duplicate" for row in results),
         "counts": totals,
         "archived_artifacts_loaded": archived_artifacts,
+        "retired_superseded": retired,
         "companies": company_results,
         "integrity": integrity,
         "results": results,

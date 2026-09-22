@@ -413,7 +413,7 @@ GROUPS = (
         "net_debt working_capital invested_capital shares_outstanding tangible_book_value"
     )),
     ("cash_flow", "data_points", "cash_flow", "flow", "currency", "sum", "all", "*", _keys(
-        "net_income_cash_flow depreciation_amortization_cash_flow impairment_cash_flow share_based_compensation deferred_tax "
+        "net_income_cash_flow operating_profit_before_working_capital_changes depreciation_amortization_cash_flow impairment_cash_flow share_based_compensation deferred_tax "
         "gain_loss_investing working_capital_change accounts_receivable_change inventory_change accounts_payable_change "
         "other_operating_changes exploration_evaluation_written_off investment_fair_value_change due_from_government_change "
         "royalties_payable_change operating_cash_flow capex ppe_purchases intangible_asset_purchases acquisitions proceeds_asset_sales "

@@ -904,6 +904,17 @@ class BankInterimStatementTests(unittest.TestCase):
         self.assertEqual(_resolve_line("Total non-current assets", "balance_sheet", LINE_MAP),
                          "noncurrent_assets")
 
+    def test_cash_flow_operating_subtotal_has_its_own_metric(self):
+        from finengine.reading import LINE_MAP, _resolve_line
+
+        self.assertEqual(
+            _resolve_line(
+                "Operating income before changes in operating assets and liabilities",
+                "cash_flow", LINE_MAP,
+            ),
+            "operating_profit_before_working_capital_changes",
+        )
+
     def test_box_drawing_rules_are_not_caption_text(self):
         from finengine.reading import _is_rule_token
 
