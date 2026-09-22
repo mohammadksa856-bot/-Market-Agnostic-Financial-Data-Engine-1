@@ -280,7 +280,10 @@ class TelecomSnapshotTests(unittest.TestCase):
             q.close()
         self.assertEqual(attributes["founding_date"]["value"], "2008-08-26")
         self.assertEqual(sum(Decimal(row["ownership_pct"]) for row in ownership), Decimal("1.0000"))
-        self.assertEqual(len(actions), 4)
+        dividend_actions = [row for row in actions if row["action_type"] == "cash_dividend"]
+        acquisition_actions = [row for row in actions if row["action_type"] == "acquisition"]
+        self.assertEqual(len(dividend_actions), 4)
+        self.assertEqual(len(acquisition_actions), 2)
         self.assertGreaterEqual(len(disclosures), 4)
 
     def test_derived_margins_are_reasonable_for_both_operators(self):
