@@ -64,6 +64,19 @@ class FactoryOrchestrator:
         self.db = db
         self.queue = DurableJobQueue(db)
 
+    def latest_active_run(self, scoring_model: str | None = None) -> str | None:
+        """Return the newest compatible active run, never a stale model by accident."""
+        rows = self.db.conn.execute(
+            "SELECT run_id,scope_json FROM factory_runs "
+            "WHERE status IN ('queued','running') ORDER BY created_at DESC"
+        ).fetchall()
+        for row in rows:
+            scope = json.loads(row["scope_json"] or "{}")
+            model = scope.get("scoring_model", "legacy_investor_understanding")
+            if scoring_model is None or model == scoring_model:
+                return row["run_id"]
+        return None
+
     def plan(
         self, *, market: str | None = None, symbols: list[str] | None = None,
         target_score: Decimal = Decimal("95"),

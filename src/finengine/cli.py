@@ -1484,12 +1484,9 @@ def main():
         if not a.no_factory:
             from .factory import FactoryOrchestrator
             factory = FactoryOrchestrator(db)
-            active = db.conn.execute(
-                "SELECT run_id FROM factory_runs WHERE status IN ('queued','running') "
-                "ORDER BY created_at DESC LIMIT 1"
-            ).fetchone()
+            active = factory.latest_active_run("factory_18_category_contract")
             if active:
-                factory_run_id = active["run_id"]
+                factory_run_id = active
             else:
                 factory_run_id = factory.plan(market=a.factory_market)["run_id"]
             factory.dispatch(factory_run_id,limit=a.factory_dispatch_limit)

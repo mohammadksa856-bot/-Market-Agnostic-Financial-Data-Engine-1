@@ -139,6 +139,26 @@ class FactoryThroughputReportingTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_legacy_active_run_is_not_reused_for_contract_factory(self):
+        db = Database(self.db_path)
+        try:
+            with db.conn:
+                db.conn.execute(
+                    "INSERT INTO factory_runs(run_id,scope_json,target_score,total_items) "
+                    "VALUES('legacy-running','{}','95',0)"
+                )
+            factory = FactoryOrchestrator(db)
+            self.assertIsNone(
+                factory.latest_active_run("factory_18_category_contract")
+            )
+            contract_run = factory.plan(market="SA")["run_id"]
+            self.assertEqual(
+                factory.latest_active_run("factory_18_category_contract"),
+                contract_run,
+            )
+        finally:
+            db.close()
+
 
 class ConsensusGovernanceCannotInflateReadinessTests(unittest.TestCase):
     """Missing consensus must stay visible inside the contract's valuation category."""
