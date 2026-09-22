@@ -55,6 +55,8 @@ class SaudiSymbolResolutionTests(unittest.TestCase):
             self.registry.resolve("SA", "9999")
         with self.assertRaises(KeyError):
             self.registry.resolve("SA", "SA09999")
+        with self.assertRaises(KeyError):
+            self.registry.resolve("SA", "issuer-7010-copy")
 
     def test_non_saudi_market_never_falls_back_to_digit_matching(self):
         registry = CompanyRegistry(self.registry.all() + [
@@ -106,6 +108,14 @@ class FactoryThroughputReportingTests(unittest.TestCase):
                 item["category_key"] for item in report_after_dispatch["top_blocking_categories"]
             }
             self.assertIn("analysts", blocked_categories)
+        finally:
+            db.close()
+
+    def test_window_must_be_positive(self):
+        db = Database(self.db_path)
+        try:
+            with self.assertRaises(ValueError):
+                FactoryOrchestrator(db).throughput(window_hours=0)
         finally:
             db.close()
 

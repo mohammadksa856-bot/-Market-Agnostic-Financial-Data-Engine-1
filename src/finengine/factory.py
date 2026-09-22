@@ -247,6 +247,8 @@ class FactoryOrchestrator:
         from queue depth or backlog size, per the reporting requirement that the
         sustainable daily throughput reflect completed runs only.
         """
+        if window_hours <= 0:
+            raise ValueError("window_hours must be positive")
         clauses = ["1=1"]
         args: list[object] = []
         if run_id:
@@ -282,19 +284,20 @@ class FactoryOrchestrator:
 
         category_jobs_completed = sum(1 for row in rows if row["state"] in ("published", "skipped"))
         now = datetime.now(timezone.utc)
-        window_start = (now - timedelta(hours=window_hours)).isoformat()
+        window_start = now - timedelta(hours=window_hours)
 
-        def _normalize(value: str) -> str:
+        def _timestamp(value: str) -> datetime:
             # SQLite CURRENT_TIMESTAMP has no offset; treat stored timestamps as UTC.
-            return value if value.endswith("Z") or "+" in value[10:] else value + "Z"
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
 
         companies_completed_in_window = sum(
-            1 for finished_at in completions.values() if _normalize(finished_at) >= window_start
+            1 for finished_at in completions.values() if _timestamp(finished_at) >= window_start
         )
         earliest_started = min((row["created_at"] for row in rows), default=None)
         sustainable_daily_throughput = None
         if earliest_started and completions:
-            started_at = datetime.fromisoformat(_normalize(earliest_started).replace("Z", "+00:00"))
+            started_at = _timestamp(earliest_started)
             elapsed_hours = max((now - started_at).total_seconds() / 3600, 1e-6)
             sustainable_daily_throughput = round(len(completions) / elapsed_hours * 24, 4)
         top_blocking_categories = sorted(

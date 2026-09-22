@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from .models import Company, Market
 
@@ -54,14 +55,16 @@ class CompanyRegistry:
         # stripped) as a fallback so any of these resolve to the same company,
         # without ever matching a symbol whose digits genuinely differ.
         if market_key == "SA":
-            digits = "".join(character for character in symbol if character.isdigit()).lstrip("0")
+            match = re.fullmatch(r"(?:SA)?0*(\d+)", symbol.upper())
+            digits = match.group(1).lstrip("0") if match else ""
             if digits:
                 for (candidate_market, candidate_symbol), candidate in self._symbols.items():
                     if candidate_market != "SA":
                         continue
-                    candidate_digits = "".join(
-                        character for character in candidate_symbol if character.isdigit()
-                    ).lstrip("0")
+                    candidate_match = re.fullmatch(r"(?:SA)?0*(\d+)", candidate_symbol)
+                    candidate_digits = (
+                        candidate_match.group(1).lstrip("0") if candidate_match else ""
+                    )
                     if candidate_digits == digits:
                         return candidate
         raise KeyError(f"unknown company: {market_key}:{symbol}")
