@@ -1,0 +1,42 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "telecom",
+  "sector_display_name": "Telecommunications",
+  "canonical_industry_values": [
+    "Telecommunications"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md (e.g. 'Banks', 'Telecommunications'), so a company's existing reviewed industry classification is what selects this pack — no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "telecommunications"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "subscriber_count",
+    "mobile_subscribers",
+    "prepaid_subscribers",
+    "postpaid_subscribers",
+    "arpu",
+    "mobile_arpu",
+    "churn_rate",
+    "network_coverage",
+    "five_g_coverage",
+    "spectrum_holdings",
+    "towers_count"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for telecom in this pack: telecom has no distinct sector-specific statement template in src/finengine/catalog.py comparable to banking's Basel III/IFRS 9 rows or insurance's IFRS 17 rows -- its subscriber/ARPU/churn metrics are physical operating-unit KPIs and belong entirely in operational_kpis, not sector_specific_fields. This mirrors catalog.py's own 'telecommunications' GROUPS entry, which only defines telecom_operations fields, no telecom-specific balance-sheet/income/ratio group.",
+    "ARPU and churn are frequently not disclosed even by large issuers -- docs/data/telecom-sector.md records 'stc does not publish ARPU in the reviewed 2021-2025 reports and no proxy is invented' and 'Zain's 2023-2024 5G-specific coverage is not disclosed separately'. Both are legitimate `unavailable` (reason: not_disclosed) outcomes under this pack, never a fabricated estimate.",
+    "5G/network coverage figures must be extracted only when the issuer's stated basis is unambiguous -- docs/data/telecom-sector.md explicitly excluded Mobily's ambiguous '99% coverage' figures for this reason. This is why operational_kpis.extraction_mode is requires_review at the master-contract level, not overridden per sector."
+  ]
+}
