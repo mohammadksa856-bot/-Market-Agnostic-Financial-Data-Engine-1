@@ -121,19 +121,29 @@ publication gate.
 
 ## Readiness measurement
 
-After the clean four-company build, all four operators pass the
-five-annual-period, 12-quarter, provenance, no-synthetic-source and
-no-critical-exception gates. GO (7040) has five annual
-periods, 12 historical standalone quarters for FY2023-FY2025, and the latest
-FY2026 Q1, all with clean provenance; it still lacks four of the 28 required
-core fields. The weighted 18-category coverage target remains open. Current
-governed scores are 53.54 for stc, 44.41 for Mobily, 54.84 for Zain KSA and
-27.46 for GO. None is labelled 95% or ready.
-The largest remaining gaps are deeper statement/note coverage, point-in-time
-market history and valuation, issuer guidance, and attributable/licensed analyst
-coverage. The Saudi Exchange historical-price CDN currently denies the local
-connector, so trading and valuation must remain open rather than being filled
-from an unattributed source.
+The annual/quarter, provenance, no-synthetic-source and no-critical-exception
+gates are evaluated independently from the weighted 18-category contract. GO
+(7040) has five annual periods, 12 historical standalone quarters for
+FY2023-FY2025, and FY2026 Q1 with clean provenance; deeper statement-line
+coverage remains open.
+
+On 2026-09-22 the official Saudi Exchange Historical Reports UI was captured
+through the reviewed browser path after the server-side connector was denied.
+The governed manifests contain 20,335 unique daily closes: stc 6,062
+(2003-01-25 onward), Mobily 5,495 (2004-12-20 onward), Zain KSA 4,616
+(2008-03-22 onward), and GO 4,162 (2009-03-21 onward). All end at 2026-09-22.
+Rows whose exchange-displayed open/high/low violate OHLC ordering keep the
+official close, volume and turnover but leave those three unsafe optional
+values null; no session or close was invented or discarded.
+
+Under contract version 1.0.0 after that import, the current governed scores are
+45.82 for stc, 43.63 for Mobily, 49.33 for Zain KSA and 26.62 for GO. The market
+history raised them from 44.25, 37.80, 42.53 and 24.47 respectively. None is
+labelled 95% or ready: only one of 18 categories currently clears its complete
+category gate for each company. The largest weighted gaps are deeper
+statement/note coverage, operational KPIs, announcements, dividends, ownership
+and valuation. Attributable/licensed analyst coverage remains explicitly
+unavailable until a governed provider exists and cannot be counted as complete.
 
 ## Unresolved fields
 
@@ -151,7 +161,7 @@ from an unattributed source.
   invented. Zain's 2023-2024 5G-specific coverage is not disclosed separately.
 * **Company understanding domains.** Identity, business model, current
   ownership, dividends, governance and selected risks/ESG are now populated,
-  but market history, valuation, industry context, deeper financial notes and
+  but valuation, industry context, deeper financial notes and
   attributable analyst coverage remain incomplete. They remain required by the
   18-category 95% target; the engine must not label the sector ready before the
   weighted score and all hard gates pass.
