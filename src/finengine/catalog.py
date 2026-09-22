@@ -3,7 +3,7 @@ from __future__ import annotations
 """Reviewed coverage catalog. It defines what the factory should collect, not sourced facts."""
 
 
-CATALOG_SCHEMA_VERSION = 12
+CATALOG_SCHEMA_VERSION = 13
 
 # These are the minimum fields that make a company/period usable. Everything else
 # remains recommended until a market, sector, or company pack makes it required.
@@ -88,6 +88,23 @@ FIELD_OVERRIDES = {
     "institutional_shareholders_count": {"default_unit": "count", "aggregation": "last"},
     "foreign_investor_limit": {"default_unit": "ratio", "aggregation": "none"},
     "ownership_concentration": {"default_unit": "ratio", "aggregation": "none"},
+    "subscriber_count": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "mobile_subscribers": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "prepaid_subscribers": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "postpaid_subscribers": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "broadband_subscribers": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "fiber_subscribers": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "network_coverage": {"default_unit": "ratio", "aggregation": "last", "period_behavior": "instant"},
+    "five_g_coverage": {"default_unit": "ratio", "aggregation": "last", "period_behavior": "instant"},
+    "fiber_home_passes": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "towers_count": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "network_sites": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "data_centers_count": {"default_unit": "count", "aggregation": "last", "period_behavior": "instant"},
+    "digital_services_revenue": {"default_unit": "currency", "aggregation": "sum", "period_behavior": "flow"},
+    "roaming_revenue": {"default_unit": "currency", "aggregation": "sum", "period_behavior": "flow"},
+    "interconnection_revenue": {"default_unit": "currency", "aggregation": "sum", "period_behavior": "flow"},
+    "handset_sales": {"default_unit": "currency", "aggregation": "sum", "period_behavior": "flow"},
+    "network_capex": {"default_unit": "currency", "aggregation": "sum", "period_behavior": "flow"},
     "total_hydrocarbon_production": {"default_unit": "mboe/day", "aggregation": "average"},
     "total_liquids_production": {"default_unit": "mbbl/day", "aggregation": "average"},
     "crude_oil_production": {"default_unit": "mbbl/day", "aggregation": "average"},
@@ -167,13 +184,9 @@ FIELD_OVERRIDES = {
     "expense_ratio": {"default_unit": "ratio", "aggregation": "none"},
     "retention_ratio": {"default_unit": "ratio", "aggregation": "none"},
     "solvency_ratio": {"default_unit": "ratio", "aggregation": "none"},
-    "subscriber_count": {"default_unit": "count", "aggregation": "last"},
-    "mobile_subscribers": {"default_unit": "count", "aggregation": "last"},
-    "broadband_subscribers": {"default_unit": "count", "aggregation": "last"},
     "arpu": {"default_unit": "currency/subscriber", "aggregation": "weighted_average"},
     "churn_rate": {"default_unit": "ratio", "aggregation": "average"},
     "data_traffic": {"default_unit": "petabytes", "aggregation": "sum"},
-    "network_coverage": {"default_unit": "ratio", "aggregation": "last"},
     "electricity_generated": {"default_unit": "GWh", "aggregation": "sum"},
     "electricity_sold": {"default_unit": "GWh", "aggregation": "sum"},
     "installed_generation_capacity": {"default_unit": "MW", "aggregation": "last"},

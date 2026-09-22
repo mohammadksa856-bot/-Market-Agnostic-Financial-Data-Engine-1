@@ -1,15 +1,15 @@
 # Saudi telecommunications sector — FY2025 batch
 
-Batch branch: `claude/data-telecom-1`. Source-faithful manifests transcribed by
-hand from each issuer's official FY2025 audited consolidated financial
-statements. No third-party data vendors were used.
+The original stc/Zain batch is extended on `codex/telecom-95pct` with Mobily's
+official FY2025 annual report and the first source-grounded operational KPI
+layer. No third-party data vendors are used.
 
 ## Companies
 
 | Symbol | Company | Manifest | Status | Primary source |
 |---|---|---|---|---|
 | 7010 | Saudi Telecom Company (stc) | `data/imports/stc-2025-fy.json` | enabled, published | stc IR annual FS PDF |
-| 7020 | Etihad Etisalat (Mobily) | — | monitoring enabled, audited manifest pending | see "Unresolved" below |
+| 7020 | Etihad Etisalat (Mobily) | `data/imports/mobily-2025-fy.json` | enabled, published | Mobily FY2025 annual report |
 | 7030 | Mobile Telecommunications Company Saudi Arabia (Zain KSA) | `data/imports/zain-ksa-2025-fy.json` | enabled, published | Zain KSA IR signed FS PDF |
 
 ## Sources and archives
@@ -17,6 +17,7 @@ statements. No third-party data vendors were used.
 | Symbol | URL | SHA-256 | Local archive |
 |---|---|---|---|
 | 7010 | `https://www.stc.com/content/dam/groupsites/en/pdf/stc_Annual-2025-en.pdf` | `aeec895e88a6d48c1ae9e64c99eadeed5773deb87381239e9265403137b95e55` | `data/raw/SA/7010/documents/aeec895e…pdf` |
+| 7020 | `https://ir.mobily.link/2025/pdfs/Mobily%20Annual%20Report%202025%20-%20English.pdf` | `6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6` | `data/raw/SA/7020/documents/6368c06e…pdf` |
 | 7030 | `https://sa.zain.com/sites/default/files/media/2026-02/Zain%20English%20Signed%20FS%202025_3.pdf` | `bee6f9b63c9d81f625abb5675852d96679bb2776b746ef6f1bf2b1e7e26d192c` | `data/raw/SA/7030/documents/bee6f9b6…pdf` |
 
 Both are registered in `data/raw/archive-index.json`. In both PDFs the primary
@@ -30,6 +31,9 @@ finance cost, segment totals, board-approval date all reconcile).
 
 * **stc (7010):** statement of financial position p8, profit or loss p9,
   cash flows p11. Filed / board-approved 2026-02-17.
+* **Mobily (7020):** operating KPIs pp9, 13 and 25; primary statements pp116–117;
+  segment revenue and capital expenditure p144. Board approval 2026-02-16;
+  annual-report publication/PDF metadata date 2026-03-31.
 * **Zain KSA (7030):** statement of financial position p8, profit or loss p9,
   cash flows p11. Board-approved 22 Sha'ban 1447H = 10 February 2026.
 
@@ -59,6 +63,7 @@ finance cost, segment totals, board-approval date all reconcile).
 ## Verification
 
 `finengine verify stc` → 23 pass / 1 warn / 0 fail.
+`finengine verify mobily` → 3 pass / 0 warn / 0 fail.
 `finengine verify zain` → 20 pass / 1 warn / 0 fail.
 The warns are the zakat-reversal effective-tax ratios described above.
 
@@ -68,20 +73,26 @@ points with no pipeline errors. Derived checks: stc FY2025 net margin 19.4%
 margin 18.6%, free cash flow SAR 6.49bn, ROE 16.9%; Zain KSA FY2025 net margin
 5.5%, operating margin 12.0%, free cash flow SAR 1.28bn, ROE 5.6%.
 
-Tests: `tests/test_telecom_sector.py` (8 tests).
+Mobily publishes 45 current points in a clean bootstrap, including four segment
+revenue facts and nine operating facts: mobile/prepaid/postpaid/fiber subscribers,
+3G/4G/5G coverage, 5G sites and network capex. The four segment revenue facts
+reconcile exactly to consolidated revenue of SAR 19.642bn.
+
+Tests: `tests/test_telecom_sector.py` (11 tests).
 
 ## Unresolved fields
 
-* **Mobily (7020) — whole company.** During the extraction window
-  `mobily.com.sa` served an "Under Maintenance" page and the EurolandIR investor
-  mirror refused navigation during the manual extraction window. The only FY2025 document reachable was the 9-page
-  Tadawul earnings release (`19852_481_2026-02-16`), which is a KPI summary with
-  no full audited primary statements. Automated monitoring is enabled; the
-  company remains explicitly incomplete until an audited FS PDF is archived.
-* **Operational KPIs (ARPU, subscriber base, blended churn, 5G coverage).** Not
-  presented in the audited IFRS financial statements — disclosed only in investor
-  presentations and earnings releases. Out of scope for source-faithful FS
-  manifests; candidate for a separate operational-KPI supplement.
+* **Historical depth.** Mobily currently has FY2025 only; stc and Zain remain
+  shallow. Annual and quarterly source histories must be archived and parsed
+  before any operator can honestly be called 95% complete.
+* **Operational KPIs.** Mobily now has the printed subscriber split, FTTH,
+  coverage, 5G sites and network capex. ARPU, churn and traffic are absent from
+  the FY2025 report and remain explicit gaps. stc and Zain still need their own
+  source-grounded operational supplements.
+* **Company understanding domains.** Detailed company model, products,
+  competitors, ownership history, governance, announcements, corporate actions,
+  market data and valuation history are not completed by this batch. They remain
+  required by the 18-category 95% target.
 * **EBITDA / net debt / net-debt-to-EBITDA.** Neither issuer presents EBITDA or a
   net-debt reconciliation as a line in the audited statements (both stop at
   operating profit). The engine does not derive them. If a deterministic
