@@ -13,7 +13,7 @@ from .models import Company, Fact, PeriodKind, SourceCandidate, SourceDocument, 
 from .catalog import CATALOG_SCHEMA_VERSION, DIMENSION_DEFINITIONS, iter_catalog_fields
 
 
-SCHEMA_VERSION = 20
+SCHEMA_VERSION = 21
 ALLOWED_SCOPES = {"consolidated", "segment", "geography", "product", "legal_entity", "note", "other"}
 
 SCHEMA = """
@@ -400,6 +400,20 @@ CREATE TABLE IF NOT EXISTS company_readiness(
  ('ready','not_ready','awaiting_data','blocked')),
  hard_gates_json TEXT NOT NULL DEFAULT '{}', blocking_reasons_json TEXT NOT NULL DEFAULT '[]',
  checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS company_peer_sets(
+ peer_set_id TEXT PRIMARY KEY, company_id TEXT NOT NULL REFERENCES companies(company_id),
+ name TEXT NOT NULL, methodology TEXT NOT NULL, scope TEXT NOT NULL DEFAULT 'global',
+ reviewed_at TEXT NOT NULL, source_url TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}',
+ enabled INTEGER NOT NULL DEFAULT 1, UNIQUE(company_id,name));
+CREATE TABLE IF NOT EXISTS company_peer_members(
+ peer_set_id TEXT NOT NULL REFERENCES company_peer_sets(peer_set_id), peer_key TEXT NOT NULL,
+ peer_company_id TEXT REFERENCES companies(company_id), peer_name TEXT NOT NULL,
+ peer_market TEXT, peer_symbol TEXT, relationship_type TEXT NOT NULL,
+ classification_source_url TEXT NOT NULL, rationale TEXT NOT NULL,
+ metadata_json TEXT NOT NULL DEFAULT '{}', enabled INTEGER NOT NULL DEFAULT 1,
+ PRIMARY KEY(peer_set_id,peer_key));
+CREATE INDEX IF NOT EXISTS idx_company_peer_sets_company ON company_peer_sets(company_id,enabled);
+CREATE INDEX IF NOT EXISTS idx_company_peer_members_company ON company_peer_members(peer_company_id,enabled);
 """
 
 
@@ -502,6 +516,8 @@ class Database:
         self._seed_metric_applicability()
         from .understanding import seed_understanding_governance
         seed_understanding_governance(self.conn)
+        from .peer_sets import seed_reviewed_peer_sets
+        seed_reviewed_peer_sets(self.conn)
         self._backfill_data_points()
         self._backfill_company_entities()
 
@@ -1129,6 +1145,10 @@ class Database:
         self._register_security_listing(c.company_id, c.name, c.isin, c.currency, c.market.value,
                                         c.exchange or c.market.value, c.symbol, c.country, c.timezone)
         self.conn.commit()
+        # Reviewed sets are seeded after registration as fresh databases load the
+        # company registry only after schema initialization.
+        from .peer_sets import seed_reviewed_peer_sets
+        seed_reviewed_peer_sets(self.conn)
 
     def register_metric(self, metric_key: str, display_name: str | None = None, category: str = "financial",
                         statement: str | None = None, value_type: str = "decimal",

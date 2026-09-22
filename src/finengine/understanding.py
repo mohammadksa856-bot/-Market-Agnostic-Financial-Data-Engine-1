@@ -382,6 +382,11 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
                           AND d.dimensions_json='{{}}' AND d.value_type='decimal'
                           AND d.value_decimal IS NOT NULL)""", (company_id, scope_value))
 
+    explicit_peer_set = conn.execute(
+        """SELECT peer_set_id,name,scope,source_url FROM company_peer_sets
+        WHERE company_id=? AND enabled=1 ORDER BY reviewed_at DESC,peer_set_id LIMIT 1""",
+        (company_id,),
+    ).fetchone()
     peer_scope_field = "industry" if company["industry"] else "sector"
     peer_scope_value = company[peer_scope_field] or ""
     peer_count = classified_peer_count(peer_scope_field, peer_scope_value)
@@ -391,7 +396,24 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
         (company_id, peer_scope_value),
     ) if peer_scope_value else 0
     peer_scope_fallback = None
-    if peer_scope_field == "industry" and peer_count < 5 and company["sector"]:
+    if explicit_peer_set:
+        peer_universe = count(
+            "SELECT count(*) FROM company_peer_members WHERE peer_set_id=? AND enabled=1",
+            (explicit_peer_set["peer_set_id"],),
+        )
+        peer_count = count("""SELECT count(DISTINCT pm.peer_company_id)
+            FROM company_peer_members pm WHERE pm.peer_set_id=? AND pm.enabled=1
+            AND pm.peer_company_id IS NOT NULL AND EXISTS (
+              SELECT 1 FROM data_points d JOIN metric_definitions m ON m.metric_key=d.metric_key
+              WHERE d.company_id=pm.peer_company_id AND d.is_current=1
+              AND m.category IN ('ratio','calculated') AND d.period_kind IN ('ttm','fy')
+              AND d.scope='consolidated' AND d.dimensions_json='{}'
+              AND d.value_type='decimal' AND d.value_decimal IS NOT NULL)""",
+            (explicit_peer_set["peer_set_id"],),
+        )
+        peer_scope_field = "explicit_peer_set"
+        peer_scope_value = explicit_peer_set["name"]
+    elif peer_scope_field == "industry" and peer_count < 5 and company["sector"]:
         peer_scope_fallback = {
             "field": "industry", "value": peer_scope_value,
             "reason": (
@@ -484,12 +506,19 @@ def refresh_company_understanding(conn, company_id: str) -> dict:
                              "required_peer_count": min(5, peer_universe),
                              "comparable_metrics": peer_metrics,
                              "methodology": "internal_calculation",
-                             "classification_basis":
-                                 "inferred_peer_not_issuer_declared_competitor",
+                             "classification_basis": (
+                                 "reviewed_explicit_global_peer_set" if explicit_peer_set
+                                 else "inferred_peer_not_issuer_declared_competitor"),
                              "peer_scope": {
                                  "field": peer_scope_field,
                                  "value": peer_scope_value,
-                                 "classification_source": "reviewed_company_registry",
+                                 "classification_source": (
+                                     "reviewed_explicit_peer_relationships" if explicit_peer_set
+                                     else "reviewed_company_registry"),
+                                 **({"peer_set_id": explicit_peer_set["peer_set_id"],
+                                     "scope": explicit_peer_set["scope"],
+                                     "source_url": explicit_peer_set["source_url"]}
+                                    if explicit_peer_set else {}),
                                  **({"fallback_from": peer_scope_fallback}
                                     if peer_scope_fallback else {}),
                              }})

@@ -1,8 +1,11 @@
 # Saudi telecommunications sector — FY2025 batch
 
-The original stc/Zain batch is extended on `codex/telecom-95pct` with Mobily's
-official FY2025 annual report and the first source-grounded operational KPI
-layer. No third-party data vendors are used.
+The governed Saudi telecom universe contains four listed operators: stc,
+Mobily, Zain KSA, and Etihad Atheeb/GO. All four have source-grounded issuer
+data; GO currently has five annual periods, a company profile and one interim
+quarter plus 12 historical standalone quarters, with deeper statement-line and
+industry-context coverage still open. No
+third-party data vendors are used.
 
 ## Companies
 
@@ -11,6 +14,16 @@ layer. No third-party data vendors are used.
 | 7010 | Saudi Telecom Company (stc) | `data/imports/stc-2025-fy.json` | enabled, published | stc IR annual FS PDF |
 | 7020 | Etihad Etisalat (Mobily) | `data/imports/mobily-2025-fy.json` | enabled, published | Mobily FY2025 annual report |
 | 7030 | Mobile Telecommunications Company Saudi Arabia (Zain KSA) | `data/imports/zain-ksa-2025-fy.json` | enabled, published | Zain KSA IR signed FS PDF |
+| 7040 | Etihad Atheeb/GO Telecom | `data/imports/go-telecom-2021-2025-fy-history.json` | enabled, published | GO Telecom FY2025 annual report |
+
+## Reviewed global peers
+
+Each operator has an explicit reviewed global peer set. It contains the other
+three Saudi listed operators plus e&, Ooredoo, Zain Group, Vodafone, Orange and
+Deutsche Telekom. Membership records the official issuer/IR source and the
+classification rationale; it does not invent financial metrics. Quantitative
+comparisons use only peers whose sourced financial data has been onboarded,
+while the complete nine-member universe remains visible in coverage scoring.
 
 ## Sources and archives
 
@@ -19,13 +32,14 @@ layer. No third-party data vendors are used.
 | 7010 | `https://www.stc.com/content/dam/groupsites/en/pdf/stc_Annual-2025-en.pdf` | `aeec895e88a6d48c1ae9e64c99eadeed5773deb87381239e9265403137b95e55` | `data/raw/SA/7010/documents/aeec895e…pdf` |
 | 7020 | `https://ir.mobily.link/2025/pdfs/Mobily%20Annual%20Report%202025%20-%20English.pdf` | `6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6` | `data/raw/SA/7020/documents/6368c06e…pdf` |
 | 7030 | `https://sa.zain.com/sites/default/files/media/2026-02/Zain%20English%20Signed%20FS%202025_3.pdf` | `bee6f9b63c9d81f625abb5675852d96679bb2776b746ef6f1bf2b1e7e26d192c` | `data/raw/SA/7030/documents/bee6f9b6…pdf` |
+| 7040 | `https://www.go.com.sa/en/Resources/2/2025-2024-E.pdf` | `d76f55f907fc95a16d3fc852616c135f9a0e61d7d698e96c9ab2cc52e0ef34fe` | `data/raw/SA/7040/documents/d76f55f9…pdf` |
 
-Both are registered in `data/raw/archive-index.json`. In both PDFs the primary
-statements (financial position, profit or loss, cash flows) are **scanned
-images**; the notes are digital text. Primary-statement figures were transcribed
-from the page images (`reader: manual.vision/...`) and cross-checked against the
-digital note disclosures (revenue, cost of revenue, depreciation & amortisation,
-finance cost, segment totals, board-approval date all reconcile).
+The completed issuer PDFs are registered in `data/raw/archive-index.json`.
+Where primary statements (financial position, profit or loss, cash flows) are
+**scanned images**, figures were transcribed from the page images
+(`reader: manual.vision/...`) and cross-checked against digital note disclosures
+(revenue, cost of revenue, depreciation & amortisation, finance cost, segment
+totals and board-approval date reconcile).
 
 ### Page references
 
@@ -98,17 +112,23 @@ carry the precise Saudi Exchange announcement sources, including both inputs
 for Q4 values derived as FY minus 9M. Mobily's 2021 quarters are explicitly
 labelled comparatives from the corresponding 2022 issuer presentations.
 
-Tests: `tests/test_telecom_sector.py` cover financial identities, operational
-history, segment reconciliation, catalog contracts, profile, ownership,
-dividends and disclosures for all three operators.
+Tests: `tests/test_telecom_sector.py` lock the universe to all four operators
+and require every enabled telecom to publish without errors. Issuer-specific
+financial identities, operational history, segment reconciliation, profile,
+ownership, dividends and disclosures are asserted where those layers are
+ingested. GO also has a manifest identity test and participates in the common
+publication gate.
 
 ## Readiness measurement
 
-After the second clean build, all three operators pass the five-annual-period,
-12-quarter, required-core-field, provenance, no-synthetic-source and
-no-critical-exception gates. The remaining blocker is the weighted 18-category
-coverage target itself. Current governed scores are 55.54 for stc, 46.41 for
-Mobily and 56.84 for Zain KSA. These are deliberately not labelled 95% or ready.
+After the clean four-company build, all four operators pass the
+five-annual-period, 12-quarter, provenance, no-synthetic-source and
+no-critical-exception gates. GO (7040) has five annual
+periods, 12 historical standalone quarters for FY2023-FY2025, and the latest
+FY2026 Q1, all with clean provenance; it still lacks four of the 28 required
+core fields. The weighted 18-category coverage target remains open. Current
+governed scores are 53.54 for stc, 44.41 for Mobily, 54.84 for Zain KSA and
+27.46 for GO. None is labelled 95% or ready.
 The largest remaining gaps are deeper statement/note coverage, point-in-time
 market history and valuation, issuer guidance, and attributable/licensed analyst
 coverage. The Saudi Exchange historical-price CDN currently denies the local
@@ -117,8 +137,8 @@ from an unattributed source.
 
 ## Unresolved fields
 
-* **Historical statement depth.** The annual/quarter hard gates are now closed,
-  but most historical quarters contain headline revenue/profit measures rather
+* **Historical statement depth.** The annual/quarter hard gates are now closed
+  for all four listed operators. Most historical quarters contain headline revenue/profit measures rather
   than every IFRS statement line. Mobily Q4 standalone values require the
   governed `FY - 9M` derivation; they are not presented directly by the issuer.
 * **stc presentation archive.** Exact official URLs and per-file manifests are

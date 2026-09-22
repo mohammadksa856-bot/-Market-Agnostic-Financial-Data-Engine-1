@@ -1,9 +1,10 @@
-"""Acceptance tests for the Saudi telecommunications-sector data batch.
+"""Acceptance tests for the four-company Saudi telecommunications universe.
 
-Covers stc (7010), Mobily (7020), and Zain KSA (7030) from the issuers'
-official FY2025 annual reports and audited consolidated financial statements.
+Covers stc (7010), Mobily (7020), Zain KSA (7030), and Etihad Atheeb/GO
+(7040). Source-specific assertions remain below for each completed issuer batch.
 """
 
+import json
 import tempfile
 import unittest
 from decimal import Decimal
@@ -16,6 +17,9 @@ from finengine.verification import ManifestVerifier
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPO_IMPORTS = REPO_ROOT / "data" / "imports"
+TELECOM_SYMBOLS = ("7010", "7020", "7030", "7040")
+TELECOM_COMPANY_IDS = tuple(f"sa:{symbol}" for symbol in TELECOM_SYMBOLS)
+TELECOM_SYMBOLS_WITH_INDUSTRY_CONTEXT = ("7010", "7020", "7030")
 
 
 class TelecomManifestVerificationTests(unittest.TestCase):
@@ -41,6 +45,12 @@ class TelecomManifestVerificationTests(unittest.TestCase):
 
     def test_mobily_manifest_has_no_identity_failures(self):
         report = ManifestVerifier(REPO_IMPORTS).verify("mobily-")
+        self.assertEqual(report["failures"], 0, report["detail"])
+        self.assertEqual(report["unmapped_labels"], [])
+        self.assertGreater(report["passed"], 2)
+
+    def test_go_telecom_manifest_has_no_identity_failures(self):
+        report = ManifestVerifier(REPO_IMPORTS).verify("go-telecom-")
         self.assertEqual(report["failures"], 0, report["detail"])
         self.assertEqual(report["unmapped_labels"], [])
         self.assertGreater(report["passed"], 2)
@@ -79,18 +89,26 @@ class TelecomSnapshotTests(unittest.TestCase):
     def _published(self, company_id):
         return [r for r in self.summary["results"] if r["company_id"] == company_id]
 
+    def test_registry_contains_the_complete_four_company_telecom_universe(self):
+        companies = json.loads((REPO_ROOT / "config" / "companies.json").read_text(encoding="utf-8"))
+        enabled = {
+            row["company_id"] for row in companies
+            if row.get("enabled") and row.get("industry") == "Telecommunications"
+        }
+        self.assertEqual(enabled, set(TELECOM_COMPANY_IDS))
+
     def test_all_enabled_telecoms_publish_without_errors(self):
-        for company_id in ("sa:7010", "sa:7020", "sa:7030"):
+        for company_id in TELECOM_COMPANY_IDS:
             rows = self._published(company_id)
             self.assertTrue(rows, f"no manifest published for {company_id}")
             for row in rows:
                 self.assertIn(row["status"], {"published", "duplicate"}, row)
                 self.assertNotIn("error", row, row)
 
-    def test_official_regulator_industry_context_is_available_for_all_operators(self):
+    def test_official_regulator_industry_context_is_available_where_ingested(self):
         q = FinancialQueryService(self.dbpath)
         try:
-            for symbol in ("7010", "7020", "7030"):
+            for symbol in TELECOM_SYMBOLS_WITH_INDUSTRY_CONTEXT:
                 attributes = q.attributes("SA", symbol)
                 self.assertIn("industry_overview", attributes)
                 self.assertIn("industry_drivers", attributes)

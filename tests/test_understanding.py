@@ -121,6 +121,37 @@ class UnderstandingModelTests(unittest.TestCase):
                          "inferred_peer_not_issuer_declared_competitor")
         self.assertGreater(Decimal(competitors["score"]), Decimal(0))
 
+    def test_competitor_readiness_uses_explicit_global_peers_when_available(self):
+        peer = Company("us:TEL", Market.US, "TEL", "Global Telecom Peer", "USD",
+                       sector="Communication Services", industry="Telecom Services")
+        self.db.register_company(peer)
+        self.db.conn.execute("""INSERT INTO company_peer_sets
+            (peer_set_id,company_id,name,methodology,scope,reviewed_at,source_url)
+            VALUES('set:test','sa:TST','Global operators','reviewed telecom classification',
+                   'global','2026-09-22','https://example.test/official')""")
+        self.db.conn.execute("""INSERT INTO company_peer_members
+            (peer_set_id,peer_key,peer_company_id,peer_name,peer_market,peer_symbol,
+             relationship_type,classification_source_url,rationale)
+            VALUES('set:test','us:TEL','us:TEL','Global Telecom Peer','US','TEL',
+                   'global_integrated_operator','https://example.test/peer-official',
+                   'Public network operator')""")
+        self.db.save_source(SourceDocument(
+            peer.company_id, peer.market, "https://example.test/tel.pdf", "src:tel",
+            "annual-report", "2026-03-01", b"tel"), "tel", None)
+        for company_id, source_key, source_url, value in (
+            ("sa:TST", "src:annual", "https://example.test/annual.pdf", "0.10"),
+            ("us:TEL", "src:tel", "https://example.test/tel.pdf", "0.20"),
+        ):
+            self.db.publish(Fact(company_id, "net_margin", Decimal(value), "ratio", "ratio",
+                "2025-01-01", "2025-12-31", PeriodKind.FY, 2025, None,
+                source_key, source_url, "2026-03-01"))
+        result = refresh_company_understanding(self.db.conn, "sa:TST")
+        competitors = next(x for x in result["categories"] if x["category_key"] == "competitors")
+        self.assertEqual(competitors["evidence"]["classification_basis"],
+                         "reviewed_explicit_global_peer_set")
+        self.assertEqual(competitors["evidence"]["peer_scope"]["field"], "explicit_peer_set")
+        self.assertEqual(competitors["evidence"]["inferred_peers_with_ratio_data"], 1)
+
     def test_forecast_score_counts_only_reviewed_forward_looking_guidance(self):
         self.db.publish_disclosure(
             "sa:TST", "guidance", "Declared dividend", "The board declared a dividend.",

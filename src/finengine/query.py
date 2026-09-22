@@ -426,7 +426,11 @@ class FinancialQueryService:
         ).fetchone()
         if not company:
             raise KeyError(f"unknown company {market}:{symbol}")
-        if not company["industry"] and not company["sector"]:
+        has_explicit_peer_set = bool(self.conn.execute(
+            "SELECT 1 FROM company_peer_sets WHERE company_id=? AND enabled=1 LIMIT 1",
+            (company["company_id"],),
+        ).fetchone())
+        if not has_explicit_peer_set and not company["industry"] and not company["sector"]:
             return {"status": "unavailable", "reason": "company_classification_required",
                     "methodology": None, "scope": None, "peer_count": 0,
                     "metric_count": 0, "companies": []}
@@ -462,14 +466,58 @@ class FinancialQueryService:
             ORDER BY market,symbol,metric_key""", (scope_value, *metrics),
             ).fetchall()
 
+        def explicit_peer_rows(company_ids: tuple[str, ...]) -> list[sqlite3.Row]:
+            ids = tuple(dict.fromkeys((company["company_id"], *company_ids)))
+            id_slots = ",".join("?" for _ in ids)
+            return self.conn.execute(
+                f"""WITH candidates AS (
+                SELECT d.id AS data_point_id,d.company_id,c.market,c.symbol,c.name,
+                       d.metric_key,d.value_decimal,d.unit,d.period_end,d.period_kind,
+                       d.source_key,d.source_url,d.is_calculated,d.calculation,d.quality_score,
+                       ROW_NUMBER() OVER (PARTITION BY d.company_id,d.metric_key
+                           ORDER BY CASE d.period_kind WHEN 'ttm' THEN 0 ELSE 1 END,
+                                    d.period_end DESC,d.version DESC,d.id DESC) AS recency_rank
+                FROM data_points d JOIN companies c USING(company_id)
+                WHERE c.enabled=1 AND c.company_id IN ({id_slots})
+                  AND d.is_current=1 AND d.metric_key IN ({slots})
+                  AND d.period_kind IN ('ttm','fy') AND d.scope='consolidated'
+                  AND d.dimensions_json='{{}}' AND d.value_type='decimal'
+                  AND d.value_decimal IS NOT NULL
+                ) SELECT * FROM candidates WHERE recency_rank=1
+                ORDER BY market,symbol,metric_key""", (*ids, *metrics),
+            ).fetchall()
+
+        explicit_set = self.conn.execute(
+            """SELECT peer_set_id,name,methodology,scope,source_url FROM company_peer_sets
+            WHERE company_id=? AND enabled=1 ORDER BY reviewed_at DESC,peer_set_id LIMIT 1""",
+            (company["company_id"],),
+        ).fetchone()
+        explicit_ids: tuple[str, ...] = ()
+        if explicit_set:
+            explicit_ids = tuple(row[0] for row in self.conn.execute(
+                """SELECT peer_company_id FROM company_peer_members
+                WHERE peer_set_id=? AND enabled=1 AND peer_company_id IS NOT NULL""",
+                (explicit_set["peer_set_id"],),
+            ).fetchall())
+
         scope_field = "industry" if company["industry"] else "sector"
         scope_value = company[scope_field]
-        rows = comparable_rows(scope_field, scope_value)
+        rows = explicit_peer_rows(explicit_ids) if explicit_ids else []
         fallback_from = None
         usable_peer_count = len({
             row["company_id"] for row in rows if row["company_id"] != company["company_id"]
         })
-        if (scope_field == "industry" and usable_peer_count < 5 and company["sector"]):
+        if explicit_set and usable_peer_count:
+            scope = {"field": "explicit_peer_set", "value": explicit_set["name"],
+                     "peer_set_id": explicit_set["peer_set_id"], "scope": explicit_set["scope"],
+                     "source_url": explicit_set["source_url"],
+                     "classification_source": "reviewed_explicit_peer_relationships"}
+        else:
+            rows = comparable_rows(scope_field, scope_value)
+            usable_peer_count = len({row["company_id"] for row in rows
+                                     if row["company_id"] != company["company_id"]})
+        if (not (explicit_set and usable_peer_count) and scope_field == "industry"
+                and usable_peer_count < 5 and company["sector"]):
             fallback_from = {
                 "field": "industry", "value": scope_value,
                 "reason": (
@@ -481,12 +529,11 @@ class FinancialQueryService:
             scope_value = company["sector"]
             rows = comparable_rows(scope_field, scope_value)
 
-        scope = {
-            "field": scope_field, "value": scope_value,
-            "classification_source": "reviewed_company_registry",
-        }
-        if fallback_from:
-            scope["fallback_from"] = fallback_from
+        if not (explicit_set and usable_peer_count):
+            scope = {"field": scope_field, "value": scope_value,
+                     "classification_source": "reviewed_company_registry"}
+            if fallback_from:
+                scope["fallback_from"] = fallback_from
         if not rows:
             return {"status": "unavailable", "reason": "no_comparable_peer_facts",
                     "methodology": "internal_calculation", "scope": scope, "peer_count": 0,
@@ -531,7 +578,9 @@ class FinancialQueryService:
             "status": "available" if peer_count else "partial",
             "reason": None if peer_count else "no_other_peer_with_comparable_facts",
             "methodology": "internal_calculation",
-            "classification_basis": "inferred_peer_not_issuer_declared_competitor",
+            "classification_basis": ("reviewed_explicit_global_peer_set"
+                                     if scope["field"] == "explicit_peer_set"
+                                     else "inferred_peer_not_issuer_declared_competitor"),
             "scope": scope,
             "peer_count": peer_count, "metric_count": len(values_by_metric),
             "companies": ordered_companies,

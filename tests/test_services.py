@@ -193,6 +193,42 @@ class ServiceTests(unittest.TestCase):
                          "inferred_peer_not_issuer_declared_competitor")
         self.assertIn("SECTOR",{row["symbol"] for row in peers["companies"]})
 
+    def test_peer_comparison_prefers_reviewed_global_peer_set(self):
+        db=Database(self.dbpath)
+        peer=Company("us:TEL",Market.US,"TEL","Global Telecom Peer","USD",
+                     sector="Communication Services",industry="Telecom Services")
+        db.register_company(peer)
+        db.conn.execute("""INSERT INTO company_peer_sets
+            (peer_set_id,company_id,name,methodology,scope,reviewed_at,source_url)
+            VALUES('set:test','sa:TST','Global operators','reviewed telecom classification',
+                   'global','2026-09-22','https://example.test/official')""")
+        db.conn.execute("""INSERT INTO company_peer_members
+            (peer_set_id,peer_key,peer_company_id,peer_name,peer_market,peer_symbol,
+             relationship_type,classification_source_url,rationale)
+            VALUES('set:test','us:TEL','us:TEL','Global Telecom Peer','US','TEL',
+                   'global_integrated_operator','https://example.test/peer-official',
+                   'Public network operator')""")
+        document=SourceDocument(peer.company_id,peer.market,"https://example.test/tel",
+                                "source:tel","annual","2026-01-02",b"tel")
+        raw=Path(self.temp.name)/"tel.json"; raw.write_bytes(b"tel")
+        db.save_source(document,hashlib.sha256(b"tel").hexdigest(),str(raw))
+        db.set_source_status(document.source_key,"published")
+        for company_id,source_key,source_url,value in (
+            ("sa:TST","source:test","https://example.test/report","0.10"),
+            ("us:TEL","source:tel","https://example.test/tel","0.20"),
+        ):
+            db.publish(Fact(company_id,"net_margin",Decimal(value),"ratio","ratio",
+                            "2025-01-01","2025-12-31",PeriodKind.FY,2025,None,
+                            source_key,source_url,"2026-01-02"))
+        db.close()
+        query=FinancialQueryService(self.dbpath)
+        try: peers=query.peer_comparison("SA","TST",("net_margin",))
+        finally: query.close()
+        self.assertEqual(peers["scope"]["field"],"explicit_peer_set")
+        self.assertEqual(peers["scope"]["scope"],"global")
+        self.assertEqual(peers["classification_basis"],"reviewed_explicit_global_peer_set")
+        self.assertIn("TEL",{row["symbol"] for row in peers["companies"]})
+
     def test_release_audit_checks_source_hashes(self):
         result=audit_release(self.dbpath)
         self.assertTrue(result["ready"])
