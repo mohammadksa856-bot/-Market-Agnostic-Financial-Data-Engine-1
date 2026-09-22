@@ -337,6 +337,31 @@ class ServiceTests(unittest.TestCase):
             manifest = json.loads(archive.read("manifest.json"))
         self.assertEqual(manifest["files"][0]["content_hash"], digest)
 
+    def test_portable_bundle_uses_immutable_artifact_when_seed_file_is_retired(self):
+        original = self.raw.read_bytes()
+        digest = hashlib.sha256(original).hexdigest()
+        immutable = Path(self.temp.name) / "raw" / f"archived_{digest}.json"
+        immutable.parent.mkdir(parents=True, exist_ok=True)
+        immutable.write_bytes(original)
+        db = Database(self.dbpath)
+        try:
+            db.save_source_artifact(
+                "artifact:retired-seed-fallback", "sa:TST",
+                "https://example.test/source", digest, str(immutable),
+                "application/json", immutable.stat().st_size,
+                {"immutable": True},
+            )
+        finally:
+            db.close()
+        self.raw.unlink()
+        result = create_portable_bundle(
+            self.dbpath, Path(self.temp.name) / "bundles", self.temp.name, keep=1
+        )
+        self.assertEqual(result["status"], "ready")
+        with zipfile.ZipFile(result["bundle"], "r") as archive:
+            manifest = json.loads(archive.read("manifest.json"))
+        self.assertEqual(manifest["files"][0]["content_hash"], digest)
+
     def test_production_schedule_configuration_is_idempotent(self):
         registry=Path(self.temp.name)/"companies.json"
         registry.write_text(json.dumps([{

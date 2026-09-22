@@ -87,6 +87,25 @@ def create_portable_bundle(
     conn = sqlite3.connect(f"file:{source.as_posix()}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
+        def archived_copy(content_hash: str) -> tuple[Path, Path] | None:
+            """Resolve an immutable archive when a reviewed seed moved or changed."""
+            archived = conn.execute(
+                """SELECT local_path FROM source_artifacts
+                WHERE content_hash=? AND status='archived' AND local_path IS NOT NULL
+                ORDER BY archived_at DESC""", (content_hash,),
+            ).fetchall()
+            for candidate in archived:
+                candidate_path = Path(candidate["local_path"])
+                candidate_absolute = (
+                    candidate_path if candidate_path.is_absolute()
+                    else root / candidate_path
+                ).resolve()
+                if candidate_absolute.is_file() and hashlib.sha256(
+                    candidate_absolute.read_bytes()
+                ).hexdigest() == content_hash:
+                    return candidate_path, candidate_absolute
+            return None
+
         for table, identity, local_path, content_hash in tables:
             where = " WHERE status='archived'" if table == "source_artifacts" else ""
             predicate = " AND" if where else " WHERE"
@@ -100,7 +119,12 @@ def create_portable_bundle(
                 absolute = path if path.is_absolute() else root / path
                 absolute = absolute.resolve()
                 if not absolute.is_file():
-                    raise FileNotFoundError(f"bundle source missing: {row['identity']}: {path}")
+                    fallback = archived_copy(row["content_hash"])
+                    if fallback is None:
+                        raise FileNotFoundError(
+                            f"bundle source missing: {row['identity']}: {path}"
+                        )
+                    path, absolute = fallback
                 digest = hashlib.sha256(absolute.read_bytes()).hexdigest()
                 if digest != row["content_hash"]:
                     # A reviewed seed manifest can evolve while the immutable
@@ -108,26 +132,11 @@ def create_portable_bundle(
                     # source version.  Resolve that content-addressed artifact
                     # rather than either backing up changed bytes or failing a
                     # valid production backup forever.
-                    archived = conn.execute(
-                        """SELECT local_path FROM source_artifacts
-                        WHERE content_hash=? AND status='archived' AND local_path IS NOT NULL
-                        ORDER BY archived_at DESC""", (row["content_hash"],),
-                    ).fetchall()
-                    for candidate in archived:
-                        candidate_path = Path(candidate["local_path"])
-                        candidate_absolute = (
-                            candidate_path if candidate_path.is_absolute()
-                            else root / candidate_path
-                        ).resolve()
-                        if candidate_absolute.is_file() and hashlib.sha256(
-                            candidate_absolute.read_bytes()
-                        ).hexdigest() == row["content_hash"]:
-                            path,absolute,digest=(
-                                candidate_path,candidate_absolute,row["content_hash"]
-                            )
-                            break
-                    else:
+                    fallback = archived_copy(row["content_hash"])
+                    if fallback is None:
                         raise ValueError(f"bundle source hash mismatch: {row['identity']}")
+                    path, absolute = fallback
+                    digest = row["content_hash"]
                 bundle_path = f"files/{digest}{absolute.suffix.lower()}"
                 entry = files.setdefault(bundle_path, {
                     "content_hash": digest, "bytes": absolute.stat().st_size,
