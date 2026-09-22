@@ -10,10 +10,148 @@ source payload that can be archived before publication.
 
 import contextlib
 import json
+import re
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from .fetching import _UA
+
+_HALT_PLACEHOLDERS = {"", "-", "--", "n/a", "na", "null", "none"}
+
+
+def _is_valid_group_shape(tokens: list[str], *, decimal_last: bool) -> bool:
+    """Check a token run matches standard thousands grouping.
+
+    The leading token may be 1-3 digits; every following token must be
+    exactly 3 digits, except the run's final token when it carries the
+    turnover's decimal fraction, whose integer part must be exactly 3 digits
+    unless it is also the run's only token.
+    """
+    if not tokens:
+        return False
+    if not tokens[0].isdigit() or not (1 <= len(tokens[0]) <= 3):
+        return False
+    middle = tokens[1:-1] if decimal_last and len(tokens) > 1 else tokens[1:]
+    if any(not (token.isdigit() and len(token) == 3) for token in middle):
+        return False
+    if decimal_last and len(tokens) > 1:
+        last = tokens[-1]
+        integer_part, _, fraction = last.partition(".")
+        if not fraction or not integer_part.isdigit() or len(integer_part) != 3:
+            return False
+    elif decimal_last:
+        integer_part, _, fraction = tokens[0].partition(".")
+        if not fraction:
+            return False
+    return True
+
+
+def parse_saudi_history_csv(text: str) -> tuple[list[dict], list[dict]]:
+    """Deterministically parse the Exchange's exported CSV rows.
+
+    Each row is ``date,open,high,low,close,volume,turnover,trades`` where the
+    last three fields are thousands-grouped (e.g. ``1,215,120``) and the
+    delimiter between fields is also a comma, so naive ``split(",")`` cannot
+    tell a field boundary from a digit-group boundary, and a plain
+    "3-digits-after-a-comma continues the number" regex is ambiguous whenever
+    volume itself spans more than one group (both volume and turnover are
+    then indistinguishable runs of 3-digit groups back to back).
+
+    Rows are split on the first four commas to isolate the five ungrouped
+    price fields (this market's prices never reach four digits, so they
+    never carry a thousands separator themselves). The remaining comma-split
+    tokens are partitioned into exactly three numbers - volume, turnover,
+    trades - by finding the one token holding the decimal point (turnover is
+    the only field with a fraction) and testing every possible volume/
+    turnover split point against the standard grouping shape (leading token
+    1-3 digits, every other token exactly 3 digits). Real trading data
+    resolves to exactly one candidate split; when the shape check alone
+    leaves more than one, the true split is the one whose turnover/volume
+    ratio (the day's volume-weighted average price) falls inside that row's
+    own [low, high] - a value no other split can satisfy by construction.
+    Ambiguous or shapeless rows are excluded rather than guessed.
+
+    Trading-halt rows (``-`` placeholders for OHLCV) are excluded, never
+    zero-filled. Returns ``(rows, excluded)`` where ``rows`` are dicts shaped
+    for :func:`normalize_saudi_market_rows` and ``excluded`` records the raw
+    line plus the reason it was dropped.
+
+    Some captures collapse row breaks into plain spaces instead of newlines
+    (one giant line of space-joined rows) while others keep one row per
+    physical line. Both are normalized the same way: every run of whitespace
+    is collapsed to a single space, then the text is split right before each
+    ``YYYY-MM-DD,`` date token, which is the one unambiguous row boundary
+    common to both capture styles.
+    """
+    collapsed = re.sub(r"\s+", " ", text).strip()
+    row_start = re.compile(r"(?=\d{4}-\d{2}-\d{2},)")
+    candidate_lines = [segment.strip() for segment in row_start.split(collapsed) if segment.strip()]
+    rows: list[dict] = []
+    excluded: list[dict] = []
+    for line in candidate_lines:
+        if not line:
+            continue
+        parts = line.split(",")
+        if len(parts) < 8:
+            excluded.append({"line": line, "reason": f"expected >=8 comma fields, got {len(parts)}"})
+            continue
+        date_str, open_, high_, low_, close_ = parts[0], parts[1], parts[2], parts[3], parts[4]
+        if any(field.strip().lower() in _HALT_PLACEHOLDERS for field in (open_, high_, low_, close_)):
+            excluded.append({"line": line, "reason": "trading-halt placeholder in OHLC field"})
+            continue
+        try:
+            open_d, high_d, low_d, close_d = (Decimal(open_), Decimal(high_), Decimal(low_), Decimal(close_))
+        except InvalidOperation:
+            excluded.append({"line": line, "reason": "non-numeric OHLC field"})
+            continue
+        if high_d < max(open_d, close_d) or low_d > min(open_d, close_d):
+            excluded.append({"line": line, "reason": "failed OHLC sanity check (high/low out of range)"})
+            continue
+        tokens = parts[5:]
+        decimal_positions = [index for index, token in enumerate(tokens) if "." in token]
+        if len(decimal_positions) != 1:
+            excluded.append({
+                "line": line,
+                "reason": f"expected exactly one decimal (turnover) token, found {len(decimal_positions)}",
+            })
+            continue
+        decimal_idx = decimal_positions[0]
+        candidates = []
+        for start2 in range(1, decimal_idx + 1):
+            group1, group2, group3 = tokens[:start2], tokens[start2:decimal_idx + 1], tokens[decimal_idx + 1:]
+            if not group3:
+                continue
+            if not (_is_valid_group_shape(group1, decimal_last=False)
+                    and _is_valid_group_shape(group2, decimal_last=True)
+                    and _is_valid_group_shape(group3, decimal_last=False)):
+                continue
+            volume = int("".join(group1))
+            turnover = Decimal("".join(group2))
+            trades = int("".join(group3))
+            candidates.append((volume, turnover, trades))
+        if len(candidates) > 1:
+            # Disambiguate with the day's volume-weighted average price,
+            # which must fall within [low, high] for the correct split.
+            in_range = [
+                candidate for candidate in candidates
+                if candidate[0] and low_d <= (candidate[1] / candidate[0]) <= high_d
+            ]
+            if len(in_range) == 1:
+                candidates = in_range
+        if len(candidates) != 1:
+            excluded.append({
+                "line": line,
+                "reason": f"volume/turnover/trades split not uniquely determined ({len(candidates)} candidates)",
+            })
+            continue
+        volume, turnover, trades = candidates[0]
+        rows.append({
+            "transactionDateStr": date_str,
+            "todaysOpen": open_, "highPrice": high_, "lowPrice": low_,
+            "previousClosePrice": close_,
+            "volumeTraded": str(volume), "turnOver": str(turnover), "noOfTrades": str(trades),
+        })
+    return rows, excluded
 
 
 SAUDI_HISTORICAL_REPORTS_URL = (
