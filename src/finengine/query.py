@@ -1005,6 +1005,50 @@ class FinancialQueryService:
                                    "O": "external opinion", "S": "attributed secondary"},
                 "sources": sources, "category_rules": categories}
 
+    def factory_runs(self, status: str | None = None, limit: int = 20) -> list[dict]:
+        filters, args = [], []
+        if status:
+            filters.append("status=?")
+            args.append(status)
+        where = " WHERE " + " AND ".join(filters) if filters else ""
+        args.append(limit)
+        rows = self.conn.execute(
+            "SELECT * FROM factory_runs" + where +
+            " ORDER BY created_at DESC LIMIT ?", args,
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["scope"] = json.loads(item.pop("scope_json") or "{}")
+            result.append(item)
+        return result
+
+    def factory_status(self, run_id: str) -> dict:
+        run = self.conn.execute(
+            "SELECT * FROM factory_runs WHERE run_id=?", (run_id,),
+        ).fetchone()
+        if not run:
+            raise KeyError(f"unknown factory run {run_id}")
+        counts = {row["state"]: row["n"] for row in self.conn.execute(
+            "SELECT state,count(*) n FROM factory_work_items WHERE run_id=? GROUP BY state",
+            (run_id,),
+        )}
+        companies = []
+        for row in self.conn.execute(
+            """SELECT c.market,c.symbol,c.name,r.total_score,r.readiness_state,
+            sum(w.state='published') AS categories_complete,count(*) AS categories_total,
+            sum(w.state='blocked') AS categories_blocked
+            FROM factory_work_items w JOIN companies c USING(company_id)
+            LEFT JOIN company_readiness r USING(company_id) WHERE w.run_id=?
+            GROUP BY w.company_id ORDER BY c.market,c.symbol""", (run_id,),
+        ):
+            companies.append(dict(row))
+        result = dict(run)
+        result["scope"] = json.loads(result.pop("scope_json") or "{}")
+        result["counts"] = counts
+        result["companies"] = companies
+        return result
+
     def disclosures(self, market: str, symbol: str, disclosure_type: str | None = None,
                     limit: int = 50) -> list[dict]:
         filters = ["c.market=?", "c.symbol=?", "d.is_current=1"]

@@ -11,10 +11,10 @@ contract claims to align with catalog.py's existing field-group naming.
 from __future__ import annotations
 
 import copy
+import inspect
 import json
+import unittest
 from pathlib import Path
-
-import pytest
 
 from finengine.catalog import GROUPS
 
@@ -43,17 +43,35 @@ CATALOG_FIELD_GROUP_NAMES = {g[0] for g in GROUPS}
 CROSS_CUTTING_SENTINEL = "*cross_cutting*"
 
 
-@pytest.fixture(scope="module")
 def contract():
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
 
-@pytest.fixture(scope="module")
 def sector_packs():
     packs = {}
     for path in sorted(SECTOR_PACK_DIR.glob("*.json")):
         packs[path.stem] = json.loads(path.read_text(encoding="utf-8"))
     return packs
+
+
+def load_tests(loader, tests, pattern):
+    """Expose the contract specification to the repository's unittest CI.
+
+    The original review branch used pytest fixtures even though pytest is not
+    a project dependency.  Keeping these checks dependency-free prevents the
+    contract from silently disappearing from the normal test suite.
+    """
+    suite = unittest.TestSuite()
+    fixtures = {"contract": contract(), "sector_packs": sector_packs()}
+    for name, function in sorted(globals().items()):
+        if not name.startswith("test_") or not callable(function):
+            continue
+        parameters = inspect.signature(function).parameters
+        suite.addTest(unittest.FunctionTestCase(
+            lambda f=function, p=parameters: f(**{key: fixtures[key] for key in p}),
+            description=name,
+        ))
+    return suite
 
 
 # --- Master contract structural validation ----------------------------------

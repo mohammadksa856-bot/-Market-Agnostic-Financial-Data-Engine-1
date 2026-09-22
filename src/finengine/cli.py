@@ -1090,7 +1090,7 @@ def main():
     resolve_source=sub.add_parser("resolve-source-exceptions"); resolve_source.add_argument("source_key"); resolve_source.add_argument("--resolution",required=True); resolve_source.add_argument("--assigned-to")
     retry=sub.add_parser("retry-source"); retry.add_argument("source_key"); retry.add_argument("--registry",default="config/companies.json"); retry.add_argument("--raw-dir",default="data/raw")
     serve=sub.add_parser("serve"); serve.add_argument("--host",default="127.0.0.1"); serve.add_argument("--port",type=int,default=8000); serve.add_argument("--api-key-env",default="FINENGINE_API_KEY")
-    run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id")
+    run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id"); run.add_argument("--factory-market",choices=["SA","US"],default="SA"); run.add_argument("--factory-dispatch-limit",type=int,default=50); run.add_argument("--no-factory",action="store_true")
     telegram=sub.add_parser("telegram"); telegram.add_argument("--token-env",default="TELEGRAM_BOT_TOKEN"); telegram.add_argument("--poll",type=int,default=2)
     export=sub.add_parser("export-supabase")
     export.add_argument("market",nargs="?",choices=["SA","US"]); export.add_argument("symbol",nargs="?")
@@ -1435,10 +1435,28 @@ def main():
         runner=Worker(queue,worker_id,handlers)
         server=create_api_server(a.db,a.host,a.port,os.environ.get(a.api_key_env) or None)
         api_thread=threading.Thread(target=server.serve_forever,name="finengine-api",daemon=True); api_thread.start()
-        print(f"engine worker and read-only API running on http://{a.host}:{a.port}")
+        factory = None; factory_run_id = None; factory_checked_at = 0.0
+        if not a.no_factory:
+            from .factory import FactoryOrchestrator
+            factory = FactoryOrchestrator(db)
+            active = db.conn.execute(
+                "SELECT run_id FROM factory_runs WHERE status IN ('queued','running') "
+                "ORDER BY created_at DESC LIMIT 1"
+            ).fetchone()
+            if active:
+                factory_run_id = active["run_id"]
+            else:
+                factory_run_id = factory.plan(market=a.factory_market)["run_id"]
+            factory.dispatch(factory_run_id,limit=a.factory_dispatch_limit)
+        print(f"engine worker, data factory and read-only API running on http://{a.host}:{a.port}")
         try:
             while True:
                 scheduler.tick()
+                now = time.monotonic()
+                if factory and now - factory_checked_at >= 60:
+                    factory.reconcile(factory_run_id)
+                    factory.dispatch(factory_run_id,limit=a.factory_dispatch_limit)
+                    factory_checked_at = now
                 if not runner.run_once(): time.sleep(max(1,min(a.poll,30)))
         except KeyboardInterrupt: pass
         finally:

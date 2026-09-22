@@ -30,6 +30,13 @@ finengine --db data/financial.sqlite3 factory-run RUN_ID --dispatch-limit 50
 finengine --db data/financial.sqlite3 factory-status RUN_ID
 ```
 
+The production `run` command now starts or resumes the Saudi factory
+automatically, dispatches bounded deterministic work, and reconciles the
+18-category gates every minute. Use `--no-factory` only for maintenance. The
+read-only API exposes live progress at `GET /v1/factory/runs` and
+`GET /v1/factory/runs/{run_id}`; these endpoints use the same API-key policy as
+the rest of the service.
+
 `configure-production` never schedules an LLM call unless the operator explicitly
 passes `--llm`. Model review is an exception path, not the normal ingestion path.
 

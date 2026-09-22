@@ -14,6 +14,7 @@ from finengine.audit import audit_release
 from finengine.archive import archive_manifest_sources
 from finengine.bootstrap import rebuild_snapshot
 from finengine.database import Database
+from finengine.factory import FactoryOrchestrator
 from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
 from finengine.operations import (
     backup_database, configure_production_schedules, create_portable_bundle,
@@ -84,6 +85,21 @@ class ServiceTests(unittest.TestCase):
             inventory=json.loads(urlopen(request).read())
             self.assertEqual(inventory["coverage_warning"],
                              "inventory_membership_is_not_product_coverage")
+            db = Database(self.dbpath)
+            try:
+                factory_run = FactoryOrchestrator(db).plan(market="SA")
+            finally:
+                db.close()
+            request=Request(f"http://127.0.0.1:{port}/v1/factory/runs",
+                            headers={"X-API-Key":"secret"})
+            runs=json.loads(urlopen(request).read())
+            self.assertEqual(runs[0]["run_id"],factory_run["run_id"])
+            request=Request(
+                f"http://127.0.0.1:{port}/v1/factory/runs/{factory_run['run_id']}",
+                headers={"X-API-Key":"secret"})
+            factory_status=json.loads(urlopen(request).read())
+            self.assertEqual(factory_status["counts"]["queued"],18)
+            self.assertEqual(factory_status["companies"][0]["categories_total"],18)
             request=Request(f"http://127.0.0.1:{port}/health",data=b"{}",method="POST",
                             headers={"X-API-Key":"secret"})
             with self.assertRaises(HTTPError) as readonly: urlopen(request)

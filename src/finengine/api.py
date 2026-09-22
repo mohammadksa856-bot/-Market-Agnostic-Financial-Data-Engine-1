@@ -98,6 +98,11 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     result=query.universe_rollout(params.get("market",[None])[0],
                                                    self._int(params,"limit",100),
                                                    self._int(params,"offset",0))
+                elif parts == ["v1","factory","runs"]:
+                    result=query.factory_runs(params.get("status",[None])[0],
+                                              self._int(params,"limit",20))
+                elif len(parts) == 4 and parts[:3] == ["v1","factory","runs"]:
+                    result=query.factory_status(parts[3])
                 else:
                     raise KeyError("unknown endpoint")
                 self._send(200,result)
