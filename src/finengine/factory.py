@@ -42,25 +42,18 @@ LEGACY_STRATEGIES = {
     "analysts": "licensed_provider_required",
 }
 
-CONTRACT_STRATEGIES = {
-    "company_profile": "issuer_monitor",
-    "financial_statements": "issuer_monitor",
-    "profitability": "deterministic_refresh",
-    "liquidity_solvency": "deterministic_refresh",
-    "efficiency": "deterministic_refresh",
-    "growth": "deterministic_refresh",
-    "per_share": "deterministic_refresh",
-    "valuation": "market_history",
-    "market_data": "market_history",
-    "dividends": "issuer_monitor",
-    "segments": "issuer_monitor",
-    "ownership": "issuer_monitor",
-    "corporate_actions": "issuer_monitor",
-    "announcements": "issuer_monitor",
-    "operational_kpis": "issuer_monitor",
-    "sector_specific_fields": "issuer_monitor",
-    "calculated_smart_metrics": "deterministic_refresh",
-    "sources_lineage_freshness": "issuer_monitor",
+CONTRACT_JOB_STRATEGIES = {
+    "one_time_profile_capture": "issuer_monitor",
+    "periodic_statement_ingestion": "issuer_monitor",
+    "periodic_market_data_sync": "market_history",
+    "periodic_ownership_sync": "issuer_monitor",
+    "continuous_announcement_polling": "issuer_monitor",
+    "dividend_corporate_action_polling": "issuer_monitor",
+    "periodic_operational_kpi_capture": "issuer_monitor",
+    "sector_specific_periodic_capture": "issuer_monitor",
+    "segment_note_periodic_capture": "issuer_monitor",
+    "calculated_no_network": "deterministic_refresh",
+    "provenance_audit_continuous": "deterministic_refresh",
 }
 
 
@@ -114,7 +107,8 @@ class FactoryOrchestrator:
                     "weighted_score_before": category["weighted_score"],
                     "threshold": category["threshold"],
                     "hard_gates": category["hard_gates"],
-                    "strategy": CONTRACT_STRATEGIES[key],
+                    "strategy": CONTRACT_JOB_STRATEGIES[category["job_strategy"]],
+                    "contract_job_strategy": category["job_strategy"],
                     "scoring_model": result["scoring_model"],
                 }
                 with self.db.conn:

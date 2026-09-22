@@ -168,7 +168,8 @@ class ConsensusGovernanceCannotInflateReadinessTests(unittest.TestCase):
             ).fetchone()
             self.assertEqual(row["state"], "queued")
             snapshot = json.loads(row["gap_snapshot_json"])
-            self.assertEqual(snapshot["strategy"], "market_history")
+            self.assertEqual(snapshot["strategy"], "deterministic_refresh")
+            self.assertEqual(snapshot["contract_job_strategy"], "calculated_no_network")
             self.assertNotEqual(snapshot["score_before"], "1")
             self.assertEqual(db.conn.execute(
                 "SELECT count(*) FROM factory_work_items WHERE run_id=? AND category_key='analysts'",

@@ -517,6 +517,7 @@ def evaluate_factory_contract(
 
         categories.append({
             "category_key": key,
+            "job_strategy": category["job_strategy"],
             "weight": str(weight),
             "threshold": str(threshold),
             "score": str(score),

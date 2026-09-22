@@ -37,6 +37,9 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertIn("sources_lineage_freshness", keys)
         self.assertNotIn("identity", keys)
         self.assertFalse(result["legacy_understanding_score_included"])
+        strategies = {row["category_key"]: row["job_strategy"] for row in result["categories"]}
+        self.assertEqual(strategies["market_data"], "periodic_market_data_sync")
+        self.assertEqual(strategies["valuation"], "calculated_no_network")
 
     def test_contract_categories_are_seeded_without_replacing_legacy_taxonomy(self):
         keys = seed_factory_contract_categories(self.db)
