@@ -539,6 +539,7 @@ def rebuild_snapshot(
     html_path: str | Path | None = None,
     csv_path: str | Path | None = None,
     schedule_every: int | None = None,
+    field_availability_dir: str | Path = "config/factory/field-availability",
 ) -> dict:
     """Build a complete snapshot atomically from reviewed, versioned manifests."""
     target = Path(output_path)
@@ -595,6 +596,10 @@ def rebuild_snapshot(
         archived_artifacts = load_archive_index(
             db, Path(raw_dir) / "archive-index.json", Path.cwd(),
         )
+        from .factory_contract import load_field_availability_assessments
+        field_availability = load_field_availability_assessments(
+            db, field_availability_dir
+        )
         domain_store = CompanyDomainStore(db)
         market_statistics = [domain_store.refresh_market_statistics(company.company_id)
                              for company in registry.all()]
@@ -643,6 +648,7 @@ def rebuild_snapshot(
         "status": "ready", "database": str(target), "backup": str(backup) if backup else None,
         "manifests": len(results), "results": results, "health": health,
         "archived_artifacts": archived_artifacts,
+        "field_availability": field_availability,
         "market_valuations": market_valuations,
         "scheduled": scheduled_count,
     }

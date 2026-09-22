@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -6,6 +7,7 @@ from finengine.database import Database
 from finengine.factory_contract import (
     contract_category_ready,
     evaluate_factory_contract,
+    load_field_availability_assessments,
     seed_factory_contract_categories,
 )
 from finengine.models import Company, Market, SourceDocument
@@ -180,6 +182,42 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertEqual(profile_after["score"], profile["score"])
         self.assertEqual(profile_after["evidence"]["expected_fields"],
                          profile["evidence"]["expected_fields"])
+
+    def test_reviewed_assessment_artifact_survives_snapshot_style_reload(self):
+        result = evaluate_factory_contract(self.db, self.company.company_id)
+        profile = next(
+            row for row in result["categories"] if row["category_key"] == "company_profile"
+        )
+        fields = next(iter(profile["evidence"]["missing_fields"].values()))[:2]
+        source_url = "https://issuer.example/availability-report.pdf"
+        source = SourceDocument(
+            self.company.company_id, Market.SA, source_url,
+            "source:artifact", "annual-report", "2026-03-01", b"document",
+        )
+        self.db.save_source(source, "pdf", None)
+        directory = Path(self.temp.name) / "availability"
+        directory.mkdir()
+        (directory / "sa-7010.json").write_text(json.dumps({
+            "company_id": self.company.company_id,
+            "assessments": [
+                {
+                    "field_key": fields[0], "status": "unavailable",
+                    "reason_code": "not_disclosed", "reason": "Not disclosed",
+                    "assessed_by": "reviewer", "evidence_source_url": source_url,
+                    "evidence_note": "Annual report and notes searched.",
+                },
+                {
+                    "field_key": fields[1], "status": "not_applicable",
+                    "reason_code": "not_applicable", "reason": "Structural exclusion",
+                    "assessed_by": "reviewer", "rule_reference": "telecom-pack:no-field",
+                },
+            ],
+        }), encoding="utf-8")
+        loaded = load_field_availability_assessments(self.db, directory)
+        self.assertEqual(loaded, {"files": 1, "assessments": 2})
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM company_field_availability"
+        ).fetchone()[0], 2)
 
 
 if __name__ == "__main__":

@@ -1034,7 +1034,7 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
 def main():
     p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
     init=sub.add_parser("init"); init.add_argument("--registry",default="config/companies.json")
-    bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int)
+    bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int); bootstrap.add_argument("--field-availability-dir",default="config/factory/field-availability")
     sync_manifests=sub.add_parser("sync-manifests"); sync_manifests.add_argument("--imports",default="data/imports"); sync_manifests.add_argument("--manifest",action="append",default=[],help="one reviewed JSON manifest (repeatable); omit to sync the complete imports directory"); sync_manifests.add_argument("--registry",default="config/companies.json"); sync_manifests.add_argument("--raw-dir",default="data/raw"); sync_manifests.add_argument("--archive-index",default="data/raw/archive-index.json"); sync_manifests.add_argument("--project-root",default="."); sync_manifests.add_argument("--backup-dir"); sync_manifests.add_argument("--backup-keep",type=int,default=3)
     backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
     bundle=sub.add_parser("backup-bundle"); bundle.add_argument("--output-dir",default="backups/bundles"); bundle.add_argument("--project-root",default="."); bundle.add_argument("--keep",type=int,default=7)
@@ -1108,7 +1108,7 @@ def main():
         for c in reg.all(): db.register_company(c)
         db.close(); print(f"initialized {a.db} with {len(reg.all())} companies"); return
     if a.cmd=="bootstrap":
-        result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every)
+        result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every,a.field_availability_dir)
         print(json.dumps(result,indent=2)); return
     if a.cmd=="sync-manifests":
         result=sync_reviewed_manifests(

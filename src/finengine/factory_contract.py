@@ -11,10 +11,61 @@ from .domains import CompanyDomainStore
 
 DEFAULT_CONTRACT = Path("config/factory/18-category-contract.json")
 DEFAULT_SECTOR_PACKS = Path("config/factory/sector-packs")
+DEFAULT_FIELD_AVAILABILITY = Path("config/factory/field-availability")
 
 
 def _load_json(path: str | Path) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def load_field_availability_assessments(
+    db: Database, directory: str | Path = DEFAULT_FIELD_AVAILABILITY,
+) -> dict:
+    """Load reviewed per-company negative evidence after source publication."""
+    root = Path(directory)
+    if not root.exists():
+        return {"files": 0, "assessments": 0}
+    files = sorted(root.glob("*.json"))
+    loaded = 0
+    for path in files:
+        payload = _load_json(path)
+        company_id = payload.get("company_id", "")
+        if not db.conn.execute(
+            "SELECT 1 FROM companies WHERE company_id=?", (company_id,)
+        ).fetchone():
+            raise ValueError(f"{path}: unknown company_id {company_id!r}")
+        assessments = payload.get("assessments")
+        if not isinstance(assessments, list):
+            raise ValueError(f"{path}: assessments must be a list")
+        for index, item in enumerate(assessments):
+            if not isinstance(item, dict):
+                raise ValueError(f"{path}: assessment {index} must be an object")
+            evidence_url = str(item.get("evidence_source_url", "")).strip()
+            source_key = None
+            if item.get("status") == "unavailable":
+                source = db.conn.execute(
+                    """SELECT source_key FROM source_documents
+                    WHERE company_id=? AND source_url=? AND content_hash<>''
+                    ORDER BY created_at DESC,source_key DESC LIMIT 1""",
+                    (company_id, evidence_url),
+                ).fetchone()
+                if not source:
+                    raise ValueError(
+                        f"{path}: assessment {index} has no archived source for {evidence_url!r}"
+                    )
+                source_key = source["source_key"]
+            db.upsert_field_availability(
+                company_id, str(item.get("field_key", "")), str(item.get("status", "")),
+                reason_code=str(item.get("reason_code", "")),
+                reason=str(item.get("reason", "")),
+                assessed_by=str(item.get("assessed_by", "")),
+                evidence_source_key=source_key, evidence_url=evidence_url,
+                evidence_note=str(item.get("evidence_note", "")),
+                rule_reference=str(item.get("rule_reference", "")),
+                expires_at=item.get("expires_at"),
+            )
+            loaded += 1
+    return {"files": len(files), "assessments": loaded}
 
 
 def seed_factory_contract_categories(
