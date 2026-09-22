@@ -1045,6 +1045,8 @@ def main():
     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+    field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
+    field_availability_list=sub.add_parser("field-availability-list"); field_availability_list.add_argument("market"); field_availability_list.add_argument("symbol"); field_availability_list.add_argument("--status",choices=["unavailable","not_applicable"])
     universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe"); universe_sync.add_argument("--show",action="store_true",help="show browser during live Saudi directory sync")
     universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json"); universe_activate.add_argument("--include-funds",action="store_true")
     universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
@@ -1169,11 +1171,37 @@ def main():
         from .factory_contract import evaluate_factory_contract
         db=Database(a.db)
         try:
-            row=db.conn.execute("SELECT company_id FROM companies WHERE market=? AND symbol=?",(a.market.upper(),a.symbol.upper())).fetchone()
-            if not row: raise KeyError(f"unknown company {a.market}:{a.symbol}")
-            result=evaluate_factory_contract(db,row["company_id"],contract_path=a.contract,sector_pack_dir=a.sector_packs)
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
         finally: db.close()
         print(json.dumps(result,indent=2)); return
+    if a.cmd=="field-availability-set":
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            db.upsert_field_availability(
+                company.company_id,a.field_key,a.status,reason_code=a.reason_code,
+                reason=a.reason,assessed_by=a.assessed_by,
+                evidence_source_key=a.source_key,evidence_url=a.evidence_url,
+                evidence_note=a.evidence_note,rule_reference=a.rule_reference,
+                expires_at=a.expires_at,
+            )
+            result={"company_id":company.company_id,"field_key":a.field_key,
+                    "status":a.status,"saved":True}
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="field-availability-list":
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            where=" AND status=?" if a.status else ""
+            params=(company.company_id,a.status) if a.status else (company.company_id,)
+            rows=[dict(row) for row in db.conn.execute(
+                "SELECT * FROM company_field_availability WHERE company_id=?"+where+
+                " ORDER BY field_key",params
+            ).fetchall()]
+        finally: db.close()
+        print(json.dumps(rows,indent=2)); return
     if a.cmd=="universe-sync":
         from .universe import sync_universe
         db=Database(a.db)
