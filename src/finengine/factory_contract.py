@@ -54,9 +54,123 @@ def _provenance_score(db: Database, company_id: str) -> tuple[Decimal, dict]:
     }
 
 
+def _as_utc(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
+
+
+def _latest_for_groups(db: Database, company_id: str, field_groups: list[str]) -> str | None:
+    if not field_groups:
+        return None
+    placeholders = ",".join("?" for _ in field_groups)
+    fields = db.conn.execute(
+        f"""SELECT field_key,storage_domain FROM data_catalog_fields
+        WHERE enabled=1 AND category IN ({placeholders})""",
+        field_groups,
+    ).fetchall()
+    by_domain: dict[str, list[str]] = {}
+    for row in fields:
+        by_domain.setdefault(row["storage_domain"], []).append(row["field_key"])
+    candidates: list[str] = []
+
+    def add(value) -> None:
+        if value:
+            candidates.append(str(value))
+
+    keys = by_domain.get("data_points", [])
+    if keys:
+        marks = ",".join("?" for _ in keys)
+        add(db.conn.execute(
+            f"""SELECT max(s.filed_at) FROM data_points d JOIN source_documents s USING(source_key)
+            WHERE d.company_id=? AND d.is_current=1 AND d.metric_key IN ({marks})""",
+            (company_id, *keys),
+        ).fetchone()[0])
+    keys = by_domain.get("company_profile", [])
+    if keys:
+        marks = ",".join("?" for _ in keys)
+        add(db.conn.execute(
+            f"""SELECT max(s.filed_at) FROM company_attributes a
+            JOIN company_attribute_evidence e ON e.attribute_id=a.id
+            JOIN source_documents s ON s.source_key=e.source_key
+            WHERE a.company_id=? AND a.is_current=1 AND a.attribute_key IN ({marks})""",
+            (company_id, *keys),
+        ).fetchone()[0])
+    if by_domain.get("market_prices"):
+        add(db.conn.execute(
+            """SELECT max(p.observed_at) FROM market_prices p JOIN listings l USING(listing_id)
+            JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1""",
+            (company_id,),
+        ).fetchone()[0])
+    if by_domain.get("ownership_positions"):
+        add(db.conn.execute(
+            "SELECT max(as_of_date) FROM ownership_positions WHERE company_id=? AND is_current=1",
+            (company_id,),
+        ).fetchone()[0])
+    if by_domain.get("corporate_actions"):
+        add(db.conn.execute(
+            "SELECT max(announcement_date) FROM corporate_actions WHERE company_id=? AND is_current=1",
+            (company_id,),
+        ).fetchone()[0])
+    if by_domain.get("disclosures"):
+        add(db.conn.execute(
+            "SELECT max(published_at) FROM disclosures WHERE company_id=? AND is_current=1",
+            (company_id,),
+        ).fetchone()[0])
+    if by_domain.get("consensus_estimates"):
+        add(db.conn.execute(
+            "SELECT max(estimate_as_of) FROM consensus_estimates WHERE company_id=? AND is_current=1",
+            (company_id,),
+        ).fetchone()[0])
+    return max(candidates, key=lambda value: _as_utc(value) or datetime.min.replace(tzinfo=timezone.utc)) if candidates else None
+
+
+def _freshness_audit(
+    db: Database, company_id: str, contract: dict,
+    category_groups: dict[str, list[str]], not_applicable: set[str],
+) -> dict:
+    now = datetime.now(timezone.utc)
+    monitor_latest = db.conn.execute(
+        "SELECT max(last_success_at) FROM monitor_state WHERE company_id=?", (company_id,)
+    ).fetchone()[0]
+    checks: list[dict] = []
+    fresh_by_key: dict[str, bool] = {}
+    for category in contract["categories"]:
+        key = category["category_key"]
+        if key in not_applicable or key == "sources_lineage_freshness":
+            continue
+        policy = category["freshness_policy"]
+        max_age = policy.get("max_age_before_stale_days")
+        if policy["cadence_kind"] == "derived":
+            dependencies = ["financial_statements"]
+            if key == "valuation":
+                dependencies.append("market_data")
+            passed = all(fresh_by_key.get(dependency, False) for dependency in dependencies)
+            checks.append({"category_key": key, "status": "fresh" if passed else "stale",
+                           "basis": "derived_from_input_freshness", "dependencies": dependencies})
+            fresh_by_key[key] = passed
+            continue
+        latest = monitor_latest if policy["cadence_kind"] == "continuous" else _latest_for_groups(
+            db, company_id, category_groups.get(key, [])
+        )
+        observed = _as_utc(latest)
+        age_days = (now - observed).total_seconds() / 86400 if observed else None
+        passed = observed is not None and max_age is not None and age_days <= float(max_age)
+        checks.append({"category_key": key, "status": "fresh" if passed else "stale",
+                       "latest_evidence_at": latest, "age_days": age_days,
+                       "max_age_before_stale_days": max_age,
+                       "basis": "monitor_last_success" if policy["cadence_kind"] == "continuous"
+                       else "latest_governed_category_evidence"})
+        fresh_by_key[key] = passed
+    stale = [row["category_key"] for row in checks if row["status"] == "stale"]
+    return {"status": "passed" if not stale else "failed", "stale_categories": stale,
+            "checks": checks}
+
+
 def _deterministic_gates(
     db: Database, company_id: str, category_key: str, evidence: dict, *,
-    category_not_applicable: bool,
+    category_not_applicable: bool, freshness_audit: dict,
 ) -> list[dict]:
     """Return gate results only where the current schema proves the condition."""
     if category_key == "company_profile":
@@ -244,8 +358,11 @@ def _deterministic_gates(
 
     if category_key == "sources_lineage_freshness":
         certified = bool(evidence.get("strict_five_field_provenance_certified"))
-        return [{"status": "passed" if certified else "failed",
-                 "strict_five_field_provenance_certified": certified}]
+        return [
+            {"status": "passed" if certified else "failed",
+             "strict_five_field_provenance_certified": certified},
+            freshness_audit,
+        ]
 
     return []
 
@@ -278,6 +395,18 @@ def evaluate_factory_contract(
         (pack or {}).get("category_overrides", {}).get("not_applicable_categories", [])
     )
     activations = (pack or {}).get("activates", {})
+    category_groups: dict[str, list[str]] = {}
+    for category in contract["categories"]:
+        key = category["category_key"]
+        selected_groups = list(category["field_groups"])
+        if key == "operational_kpis" and pack:
+            selected_groups = list(activations.get("operational_kpis_field_groups", []))
+        elif key == "sector_specific_fields" and pack:
+            selected_groups = list(activations.get("sector_specific_fields_field_groups", []))
+        category_groups[key] = selected_groups
+    freshness_audit = _freshness_audit(
+        db, company_id, contract, category_groups, not_applicable
+    )
 
     categories = []
     total_score = Decimal(0)
@@ -290,11 +419,7 @@ def evaluate_factory_contract(
         key = category["category_key"]
         weight = Decimal(str(category["weight"]))
         threshold = Decimal(str(category["completeness_threshold"]))
-        field_groups = list(category["field_groups"])
-        if key == "operational_kpis" and pack:
-            field_groups = list(activations.get("operational_kpis_field_groups", []))
-        elif key == "sector_specific_fields" and pack:
-            field_groups = list(activations.get("sector_specific_fields_field_groups", []))
+        field_groups = category_groups[key]
 
         evidence: dict = {"field_groups": field_groups, "sector_pack": pack_key}
         if key in not_applicable:
@@ -339,7 +464,8 @@ def evaluate_factory_contract(
 
         hard_gates = []
         deterministic = _deterministic_gates(
-            db, company_id, key, evidence, category_not_applicable=key in not_applicable
+            db, company_id, key, evidence, category_not_applicable=key in not_applicable,
+            freshness_audit=freshness_audit,
         )
         for index, gate in enumerate(category["hard_gates"], start=1):
             evaluated = deterministic[index - 1] if index <= len(deterministic) else {

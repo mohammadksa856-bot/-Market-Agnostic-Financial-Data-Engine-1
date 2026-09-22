@@ -45,13 +45,17 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertEqual(by_key["sector_specific_fields"]["status"], "not_applicable")
         self.assertEqual(by_key["sector_specific_fields"]["score"], "1")
 
-    def test_prose_hard_gates_never_silently_pass(self):
+    def test_every_hard_gate_is_evaluated_and_failures_block_readiness(self):
         result = evaluate_factory_contract(self.db, self.company.company_id)
-        self.assertFalse(result["all_hard_gates_evaluated"])
+        self.assertTrue(result["all_hard_gates_evaluated"])
+        self.assertFalse(result["all_hard_gates_passed"])
         self.assertEqual(result["readiness_state"], "not_ready")
-        self.assertTrue(any(
+        self.assertFalse(any(
             reason.startswith("hard_gate_evaluator_required:")
             for reason in result["blocking_reasons"]
+        ))
+        self.assertTrue(any(
+            reason.startswith("hard_gate_failed:") for reason in result["blocking_reasons"]
         ))
 
     def test_machine_evaluable_gates_report_pass_or_failure_with_evidence(self):
@@ -82,6 +86,9 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         self.assertFalse(
             lineage["evidence"]["strict_five_field_provenance_certified"]
         )
+        self.assertEqual(len(lineage["hard_gates"]), 2)
+        self.assertEqual(lineage["hard_gates"][1]["status"], "failed")
+        self.assertIn("market_data", lineage["hard_gates"][1]["stale_categories"])
 
 
 if __name__ == "__main__":
