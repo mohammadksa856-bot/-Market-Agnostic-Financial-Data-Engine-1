@@ -26,10 +26,8 @@ RUN python -m pip install --no-cache-dir --no-deps -e . \
 EXPOSE 8000
 VOLUME ["/app/state"]
 
-# Production startup intentionally performs manifest synchronization and a full
-# readiness refresh before binding the API port.  Large persistent databases can
-# take several minutes, so do not mark a healthy boot as failed while that
-# deterministic initialization is still running.
+# The image serves either the independent read-only API or the writer. Compose
+# overrides the writer healthcheck because only the API binds this port.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15m --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/health', method='HEAD'), timeout=4)" || exit 1
 
