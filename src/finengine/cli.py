@@ -19,6 +19,7 @@ from .jobs import DurableJobQueue, DurableScheduler, Worker
 from .domains import CompanyDomainStore
 from .monitoring import DocumentArchiver, MonitorService
 from .telegram import TelegramBot
+from . import exception_bundles as exception_bundles_mod
 
 
 def _print_utf8(text: str) -> None:
@@ -1090,6 +1091,25 @@ def main():
     understanding=sub.add_parser("understanding"); understanding.add_argument("market",nargs="?"); understanding.add_argument("symbol",nargs="?"); understanding.add_argument("--refresh",action="store_true"); understanding.add_argument("--all",action="store_true")
     sub.add_parser("source-governance")
     exceptions=sub.add_parser("exceptions"); exceptions.add_argument("market",nargs="?"); exceptions.add_argument("symbol",nargs="?"); exceptions.add_argument("--status",default="open",choices=["open","resolved","all"]); exceptions.add_argument("--limit",type=int,default=100)
+    exception_bundles=sub.add_parser(
+        "exception-bundles",
+        description=(
+            "Group all open exceptions by shared root cause (reader/parser, source domain, "
+            "document type, metric/raw label, failure code — layout fingerprint is emitted as "
+            "null; see LIMITATIONS in exception_bundles.py, the schema has no such column) so "
+            "one compact bundle can be reviewed instead of every exception individually. Each "
+            "bundle carries at most 3 short representative samples, never full documents. "
+            "Priority formula (see exception_bundles.priority_score): "
+            "criticality x affected_companies_count x estimated_exceptions_closed x source_authority, where "
+            "criticality is 3/2/1 for a data_catalog_fields.requirement of required/recommended/optional "
+            "(1 if the metric has no catalog entry), and source_authority is 4/3/2/1 for this project's "
+            "documented P/C/S/O source tiers (docs/SOURCE_MAP.md), defaulting to S=2 for an unrecognized domain."
+        ),
+    )
+    exception_bundles.add_argument("--limit",type=int,default=1000,help="max open exceptions to read before bundling (reuses FinancialQueryService.exceptions(), which caps at 1000)")
+    exception_bundles.add_argument("--output",help="write JSON Lines (one bundle per line) to this path instead of stdout")
+    exception_bundles.add_argument("--classification",choices=list(exception_bundles_mod.CLASSIFICATIONS),help="only emit bundles of this classification")
+    exception_bundles.add_argument("--sort-by-priority",dest="sort_by_priority",action=argparse.BooleanOptionalAction,default=True,help="order bundles by priority_score descending (default: on)")
     resolve=sub.add_parser("resolve-exception"); resolve.add_argument("exception_id",type=int); resolve.add_argument("--resolution",required=True); resolve.add_argument("--assigned-to")
     resolve_source=sub.add_parser("resolve-source-exceptions"); resolve_source.add_argument("source_key"); resolve_source.add_argument("--resolution",required=True); resolve_source.add_argument("--assigned-to")
     retry=sub.add_parser("retry-source"); retry.add_argument("source_key"); retry.add_argument("--registry",default="config/companies.json"); retry.add_argument("--raw-dir",default="data/raw")
@@ -1563,6 +1583,37 @@ def main():
     if a.cmd=="exceptions":
         if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
         q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
+    if a.cmd=="exception-bundles":
+        q=FinancialQueryService(a.db)
+        rows=q.exceptions(None,None,"open",a.limit)
+        source_keys={r["source_key"] for r in rows if r.get("source_key")}
+        source_lookup={}
+        if source_keys:
+            placeholders=",".join("?"*len(source_keys))
+            for srow in q.conn.execute(
+                f"SELECT source_key,source_url,filing_type,content_type,local_path,content_hash FROM source_documents WHERE source_key IN ({placeholders})",
+                tuple(source_keys),
+            ).fetchall():
+                source_lookup[srow["source_key"]]=dict(srow)
+        catalog_requirement={r["field_key"]:r["requirement"] for r in q.conn.execute(
+            "SELECT field_key,requirement FROM data_catalog_fields WHERE enabled=1"
+        ).fetchall()}
+        known_metric_keys={r["metric_key"] for r in q.conn.execute(
+            "SELECT metric_key FROM metric_definitions WHERE enabled=1"
+        ).fetchall()}
+        q.close()
+        bundles=exception_bundles_mod.build_bundles(rows,source_lookup,catalog_requirement,known_metric_keys)
+        if a.classification: bundles=[b for b in bundles if b["classification"]==a.classification]
+        if a.sort_by_priority:
+            bundles=sorted(bundles,key=lambda b:(-b["priority_score"],b["group_key"]["reader"],b["group_key"]["source_domain"],b["group_key"]["document_type"],b["group_key"]["code"],b["group_key"]["metric"] or ""))
+        lines=[json.dumps(b,ensure_ascii=False,sort_keys=True) for b in bundles]
+        payload="\n".join(lines)
+        if a.output:
+            target=Path(a.output); target.parent.mkdir(parents=True,exist_ok=True); target.write_text(payload+("\n" if payload else ""),encoding="utf-8")
+            print(json.dumps({"output":a.output,"bundles":len(bundles),"open_exceptions_read":len(rows)},indent=2))
+        else:
+            print(payload)
+        return
     if a.cmd=="resolve-exception":
         db=Database(a.db); result=db.resolve_exception(a.exception_id,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
     if a.cmd=="resolve-source-exceptions":
