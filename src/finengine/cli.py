@@ -1076,6 +1076,7 @@ def main():
     sub.add_parser("universe-status")
     archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
+    raw_coverage=sub.add_parser("raw-coverage-audit"); raw_coverage.add_argument("market"); raw_coverage.add_argument("symbol"); raw_coverage.add_argument("--project-root",default=".")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
     read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank","insurance"])
     readprofile=sub.add_parser("read-profile"); readprofile.add_argument("pdf"); readprofile.add_argument("market",choices=["SA","US"]); readprofile.add_argument("symbol"); readprofile.add_argument("--source-url",required=True); readprofile.add_argument("--filed-at",required=True); readprofile.add_argument("--pages",help="comma-separated page numbers to read, e.g. 10,11,25,224,225; omit to read the whole document"); readprofile.add_argument("--model",default="claude-opus-5"); readprofile.add_argument("--out")
@@ -1307,6 +1308,20 @@ def main():
         result=audit_release(a.db,a.project_root); print(json.dumps(result,indent=2))
         if result["failures"] or (a.strict_warnings and result["warnings"]): raise SystemExit(1)
         return
+    if a.cmd=="raw-coverage-audit":
+        from .coverage_audit import classify_company_artifacts, summarize
+        db=Database(a.db)
+        try:
+            company=db.conn.execute(
+                "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+                (a.market.upper(), a.symbol.upper()),
+            ).fetchone()
+            if not company: raise SystemExit(f"unknown company {a.market}:{a.symbol}")
+            records=classify_company_artifacts(db, company["company_id"], a.project_root)
+            result={"company_id": company["company_id"], "summary": summarize(records), "records": records}
+        finally:
+            db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
     if a.cmd=="verify":
         from .verification import ManifestVerifier
         result=ManifestVerifier(a.imports).verify(a.prefix)
