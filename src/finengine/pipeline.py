@@ -1,11 +1,18 @@
 from __future__ import annotations
 import hashlib
+import json
 from decimal import Decimal
 from pathlib import Path
 from .calculations import Calculator
 from .canonicalization import CanonicalProjector, load_projection_facts, projection_period_key
 from .database import Database
-from .domains import CompanyDomainStore
+from .domains import (
+    CompanyDomainStore,
+    MANIFEST_DOMAIN_KEYS,
+    domain_state_totals,
+    has_extractable_facts,
+    publish_manifest_domains,
+)
 from .extraction import JsonExtractor
 from .mapping import MappingEngine
 from .models import Company
@@ -53,6 +60,40 @@ class Pipeline:
         extracted_ids=self.db.save_extracted(extracted)
         for e in errors: self.db.exception(company.company_id,doc.source_key,"extraction",e["code"],e.get("message",e["code"]),e)
         if errors or not extracted:
+            # A manifest with no `facts` intentionally (a narrative disclosure,
+            # governance note, board report excerpt, etc, each fully sourced
+            # with page/quote citation in its own metadata) is not an
+            # extraction failure — it simply has nothing for the *numeric*
+            # staging pipeline below to normalize/validate. Route it through
+            # the same generic, version-aware domain publishers the reviewed-
+            # manifest bootstrap sync uses, instead of stranding it at
+            # review_required forever. This only ever writes fields already
+            # present in the manifest payload (produced by a deterministic
+            # reader from an archived source); it publishes nothing an LLM
+            # invented and nothing without its own source_key citation.
+            if not errors and not extracted and doc.content_type == "application/json":
+                try:
+                    payload = json.loads(doc.content)
+                except ValueError:
+                    payload = None
+                if (
+                    isinstance(payload, dict)
+                    and not has_extractable_facts(payload)
+                    and any(payload.get(key) for key in MANIFEST_DOMAIN_KEYS)
+                ):
+                    domain_counts = publish_manifest_domains(self.db, company, payload, doc.source_key)
+                    totals = domain_state_totals(domain_counts)
+                    changes = totals["inserted"] + totals["restated"]
+                    self.db.set_source_status(doc.source_key, "published")
+                    self.db.publication_batch(
+                        doc.source_key, company.company_id, "published", 0, changes,
+                    )
+                    return {
+                        "status": "published", "source_key": doc.source_key,
+                        "published": changes, "inserted": totals["inserted"],
+                        "restated": totals["restated"], "duplicates": totals["duplicate"],
+                        "domains": domain_counts, "stage": "domain_publish",
+                    }
             self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(extracted),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(errors) or 1,"stage":"extraction"}
         mapped,mapping_errors=self.mapper.map(extracted,company.market.value)

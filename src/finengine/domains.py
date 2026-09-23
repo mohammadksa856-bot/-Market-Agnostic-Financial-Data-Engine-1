@@ -74,6 +74,90 @@ GAP_RESOLUTION_PLAYBOOK = {
 }
 
 
+MANIFEST_DOMAIN_KEYS = (
+    "company_attributes", "disclosures", "ownership_positions",
+    "corporate_actions", "market_prices", "consensus_estimates",
+)
+
+
+def has_extractable_facts(payload: dict) -> bool:
+    """Whether a manifest contains facts for the numeric staging pipeline.
+
+    A domain-only manifest still receives an immutable source record and
+    versioned publication. It must not invent a placeholder financial fact.
+    """
+    facts = payload.get("facts")
+    return bool(facts) if isinstance(facts, (list, dict)) else False
+
+
+def domain_state_totals(domains: dict[str, dict[str, int]]) -> dict[str, int]:
+    return {
+        state: sum(bucket.get(state, 0) for bucket in domains.values())
+        for state in ("inserted", "restated", "duplicate")
+    }
+
+
+def publish_manifest_domains(
+    db: Database, company, payload: dict, source_key: str,
+) -> dict[str, dict[str, int]]:
+    """Publish reviewed non-financial domains from an immutable manifest.
+
+    Generic across every company and market: it only ever writes fields that
+    are literally present in the manifest payload (produced by a deterministic
+    reader from an archived source document), never an inferred or
+    LLM-authored value. Domain records deliberately bypass the numeric
+    extractor, but retain the manifest's content-addressed source key and
+    their own version history. Shared by the reviewed-manifest bootstrap sync
+    and by Pipeline._run so a disclosures-only (facts-less) manifest is not
+    stranded at review_required forever.
+    """
+    store = CompanyDomainStore(db)
+    counts: dict[str, dict[str, int]] = {}
+
+    def record(domain: str, state: str) -> None:
+        bucket = counts.setdefault(domain, {"inserted": 0, "restated": 0, "duplicate": 0})
+        bucket[state] += 1
+
+    effective_at = payload.get("period_end") or payload.get("filed_at")
+    for item in payload.get("company_attributes", []):
+        state = db.publish_company_attribute(
+            company.company_id, item["attribute_key"], item["value"],
+            item.get("effective_at", effective_at), source_key,
+            item.get("category", "general"), item.get("language", "en"),
+            item.get("metadata"),
+        )
+        record("company_attributes", state)
+    for item in payload.get("disclosures", []):
+        state = db.publish_disclosure(
+            company.company_id, item["disclosure_type"], item["title"], item["body_text"],
+            item.get("published_at", payload.get("filed_at")), source_key,
+            item.get("period_end", payload.get("period_end")), item.get("language", "en"),
+            item.get("metadata"),
+        )
+        record("disclosures", state)
+    for item in payload.get("ownership_positions", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_ownership_position(**values)
+        record("ownership_positions", state)
+    for item in payload.get("corporate_actions", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_corporate_action(**values)
+        record("corporate_actions", state)
+    for item in payload.get("market_prices", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_market_price(**values)
+        record("market_prices", state)
+    for item in payload.get("consensus_estimates", []):
+        values = dict(item)
+        values.update(company_id=company.company_id, source_key=source_key)
+        state = store.publish_consensus_estimate(**values)
+        record("consensus_estimates", state)
+    return counts
+
+
 class CompanyDomainStore:
     """Structured stores for market, ownership, actions, formulas and coverage."""
 
