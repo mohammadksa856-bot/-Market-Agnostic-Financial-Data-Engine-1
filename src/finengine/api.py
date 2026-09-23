@@ -110,7 +110,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     elif tail==["actions"]: result=query.corporate_actions(market,symbol,params.get("type",[None])[0],self._int(params,"limit",100))
                     else: raise KeyError("unknown endpoint")
                 elif parts == ["v1","exceptions"]:
-                    result=query.exceptions(status=params.get("status",["open"])[0],limit=self._int(params,"limit",100))
+                    result=query.exceptions(status=params.get("status",["open"])[0],limit=self._int(params,"limit",100),offset=self._int(params,"offset",0))
                 elif parts == ["v1","catalog"]:
                     result=query.data_catalog(params.get("category",[None])[0],params.get("domain",[None])[0],self._int(params,"limit",1000))
                 elif len(parts) == 4 and parts[:3] == ["v1","catalog","history"]:

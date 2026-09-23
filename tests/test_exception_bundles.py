@@ -242,6 +242,26 @@ class ExceptionBundlesCliTests(unittest.TestCase):
         self.assertEqual(bundle["classification"], "generic_mapping_fix")
         self.assertIn("priority_score", bundle)
 
+    def test_cli_reads_more_than_one_thousand_open_exceptions(self):
+        db = Database(self.dbpath)
+        for index in range(1005):
+            db.exception("sa:7001", "tadawul:7001:fy2024", "mapping", "unmapped_metric",
+                         "unmapped_metric", {"label": "Sales revenue", "row": index})
+        db.close()
+        from finengine.cli import main
+        import contextlib
+        import io
+        old_argv = sys.argv
+        sys.argv = ["finengine", "--db", self.dbpath, "exception-bundles"]
+        try:
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                main()
+        finally:
+            sys.argv = old_argv
+        bundle = json.loads(buffer.getvalue().strip())
+        self.assertEqual(bundle["exception_count"], 1006)
+
 
 if __name__ == "__main__":
     unittest.main()

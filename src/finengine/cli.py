@@ -1106,7 +1106,7 @@ def main():
             "documented P/C/S/O source tiers (docs/SOURCE_MAP.md), defaulting to S=2 for an unrecognized domain."
         ),
     )
-    exception_bundles.add_argument("--limit",type=int,default=1000,help="max open exceptions to read before bundling (reuses FinancialQueryService.exceptions(), which caps at 1000)")
+    exception_bundles.add_argument("--limit",type=int,default=0,help="max open exceptions to read; 0 reads all open exceptions (default)")
     exception_bundles.add_argument("--output",help="write JSON Lines (one bundle per line) to this path instead of stdout")
     exception_bundles.add_argument("--classification",choices=list(exception_bundles_mod.CLASSIFICATIONS),help="only emit bundles of this classification")
     exception_bundles.add_argument("--sort-by-priority",dest="sort_by_priority",action=argparse.BooleanOptionalAction,default=True,help="order bundles by priority_score descending (default: on)")
@@ -1585,13 +1585,27 @@ def main():
         q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
     if a.cmd=="exception-bundles":
         q=FinancialQueryService(a.db)
-        rows=q.exceptions(None,None,"open",a.limit)
+        rows=[]
+        while True:
+            remaining=a.limit-len(rows) if a.limit else 1000
+            if a.limit and remaining <= 0: break
+            page_size=min(1000,remaining)
+            batch=q.exceptions(None,None,"open",page_size,len(rows))
+            rows.extend(batch)
+            if len(batch) < page_size: break
         source_keys={r["source_key"] for r in rows if r.get("source_key")}
         source_lookup={}
         if source_keys:
             placeholders=",".join("?"*len(source_keys))
             for srow in q.conn.execute(
-                f"SELECT source_key,source_url,filing_type,content_type,local_path,content_hash FROM source_documents WHERE source_key IN ({placeholders})",
+                f"""SELECT s.source_key,s.source_url,s.filing_type,
+                COALESCE((SELECT a.content_type FROM source_artifact_links l JOIN source_artifacts a USING(artifact_key)
+                          WHERE l.source_key=s.source_key ORDER BY a.archived_at DESC LIMIT 1),s.content_type) AS content_type,
+                COALESCE((SELECT a.local_path FROM source_artifact_links l JOIN source_artifacts a USING(artifact_key)
+                          WHERE l.source_key=s.source_key ORDER BY a.archived_at DESC LIMIT 1),s.local_path) AS local_path,
+                COALESCE((SELECT a.content_hash FROM source_artifact_links l JOIN source_artifacts a USING(artifact_key)
+                          WHERE l.source_key=s.source_key ORDER BY a.archived_at DESC LIMIT 1),s.content_hash) AS content_hash
+                FROM source_documents s WHERE s.source_key IN ({placeholders})""",
                 tuple(source_keys),
             ).fetchall():
                 source_lookup[srow["source_key"]]=dict(srow)

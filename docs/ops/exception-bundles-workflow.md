@@ -62,10 +62,8 @@ PYTHONPATH=src python -B -m finengine.cli --db <scratch-or-prod-db-path> excepti
 
 Always pass an explicit `--db`. Flags:
 
-- `--limit N` — how many open exceptions to read before bundling (default
-  1000; this reuses `FinancialQueryService.exceptions()`, the same code path
-  the `finengine exceptions` command uses, which itself caps at 1000 rows
-  per call — see **Known limitation** below).
+- `--limit N` — how many open exceptions to read before bundling. The default
+  `0` reads all open exceptions in deterministic pages of 1,000 rows.
 - `--classification NAME` — only print bundles of one classification.
 - `--output PATH` — write JSON Lines to a file instead of stdout.
 - `--sort-by-priority` / `--no-sort-by-priority` — priority order is the
@@ -253,13 +251,9 @@ priority_score = criticality × affected_companies_count × estimated_exceptions
 
 ## Known limitations
 
-- **`--limit` is capped at 1000** by the shared `FinancialQueryService.exceptions()`
-  method this tool reuses (by design, so this tool has no parallel query
-  path to the `exceptions` table — see "reuse" note in
-  `exception_bundles.py`). If there are more than 1000 open exceptions,
-  only the first 1000 (ordered by severity then `created_at`, the existing
-  method's own ordering) are read per run. Run it again after resolving
-  the first batch to see the rest.
+- **Large queues are paginated**, not silently truncated. Each database read
+  is capped at 1,000 rows, while the command continues until every open
+  exception is included. Use `--limit N` only when intentionally sampling.
 - **`layout_fingerprint` has no data source** in the current schema (see
   above) — always `null`.
 - **Reader/parser identity is inferred**, not verified, for most exceptions

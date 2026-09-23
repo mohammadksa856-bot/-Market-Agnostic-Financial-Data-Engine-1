@@ -1092,7 +1092,7 @@ class FinancialQueryService:
         return result
 
     def exceptions(self, market: str | None = None, symbol: str | None = None,
-                   status: str = "open", limit: int = 100) -> list[dict]:
+                   status: str = "open", limit: int = 100, offset: int = 0) -> list[dict]:
         filters=[]; args=[]
         if market or symbol:
             if not market or not symbol:
@@ -1101,13 +1101,13 @@ class FinancialQueryService:
             args.extend([market.upper(), symbol.upper()])
         if status != "all":
             filters.append("e.status=?"); args.append(status)
-        args.append(min(max(limit,1),1000))
+        args.extend([min(max(limit,1),1000), max(offset,0)])
         where=" WHERE " + " AND ".join(filters) if filters else ""
         rows=self.conn.execute(
             """SELECT e.id,e.source_key,c.market,c.symbol,e.stage,e.code,e.message,e.payload_json,
             e.severity,e.status,e.assigned_to,e.resolution,e.retry_count,e.created_at,e.updated_at
             FROM exceptions e LEFT JOIN companies c USING(company_id)""" + where +
-            " ORDER BY CASE e.severity WHEN 'error' THEN 0 ELSE 1 END,e.created_at LIMIT ?", args,
+            " ORDER BY CASE e.severity WHEN 'error' THEN 0 ELSE 1 END,e.created_at,e.id LIMIT ? OFFSET ?", args,
         ).fetchall()
         result=[]
         for row in rows:
