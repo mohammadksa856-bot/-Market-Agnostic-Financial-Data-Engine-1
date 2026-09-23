@@ -1,0 +1,90 @@
+{
+  "company_id": "sa:1120",
+  "market": "SA",
+  "symbol": "1120",
+  "filing_type": "financial-statements",
+  "filed_at": "2026-02-04",
+  "period_end": "2025-12-31",
+  "source_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/n/ax0k7s74wvl7/b/Marketing_Email_Images/o/Financial%20ResultsQ4en.pdf",
+  "source_index_url": "https://www.alrajhibank.com.sa/en/About-alrajhi-bank/Investor-Relations",
+  "reader": "manual.review/alrajhi-annual-notes-2025",
+  "notes": "Additional facts reviewed from Notes 15 (Customers' deposits, page 55), 28 (Earnings per share, page 64) and 33 (Cash and cash equivalents, page 91) of the same FY2025 consolidated financial statements PDF already archived as alrajhi-2025-fy.json. Note 33's 'cash and cash equivalents' figure (cash in hand + short-maturity due-from-banks + unrestricted current accounts with SAMA + Mutajara with SAMA) is deliberately extracted as the distinct 'cash' catalog field rather than aliased from 'cash_and_balances_with_central_bank' (Note 4): the two are not equivalent because Note 4's total also includes the statutory reserve deposit with SAMA, which is not freely available and is therefore excluded from the Note 33 cash-flow-statement cash figure.",
+  "facts": [
+    {
+      "metric": "cash",
+      "source_label": "Cash and cash equivalents (total)",
+      "value": "36465221",
+      "period_end": "2025-12-31",
+      "period_kind": "fy",
+      "fiscal_year": 2025,
+      "page": 91,
+      "table": "Note 33 - Cash and cash equivalents",
+      "scale": "1000",
+      "currency": "SAR",
+      "unit": "SAR"
+    },
+    {
+      "metric": "cash",
+      "source_label": "Cash and cash equivalents (total)",
+      "value": "24100411",
+      "period_end": "2024-12-31",
+      "period_kind": "fy",
+      "fiscal_year": 2024,
+      "page": 91,
+      "table": "Note 33 - Cash and cash equivalents",
+      "scale": "1000",
+      "currency": "SAR",
+      "unit": "SAR"
+    },
+    {
+      "metric": "demand_deposits",
+      "source_label": "Demand deposits and call accounts",
+      "value": "421380121",
+      "period_end": "2025-12-31",
+      "period_kind": "fy",
+      "fiscal_year": 2025,
+      "page": 55,
+      "table": "Note 15 - Customers' deposits",
+      "scale": "1000",
+      "currency": "SAR",
+      "unit": "SAR"
+    },
+    {
+      "metric": "demand_deposits",
+      "source_label": "Demand deposits and call accounts",
+      "value": "446437107",
+      "period_end": "2024-12-31",
+      "period_kind": "fy",
+      "fiscal_year": 2024,
+      "page": 55,
+      "table": "Note 15 - Customers' deposits",
+      "scale": "1000",
+      "currency": "SAR",
+      "unit": "SAR"
+    },
+    {
+      "metric": "basic_eps",
+      "source_label": "Basic and diluted earning per share",
+      "value": "5.85",
+      "period_end": "2025-12-31",
+      "period_kind": "fy",
+      "fiscal_year": 2025,
+      "page": 64,
+      "table": "Note 28 - Earnings per share",
+      "currency": "SAR",
+      "unit": "SAR/share"
+    },
+    {
+      "metric": "basic_eps",
+      "source_label": "Basic and diluted earning per share",
+      "value": "4.67",
+      "period_end": "2024-12-31",
+      "period_kind": "fy",
+      "fiscal_year": 2024,
+      "page": 64,
+      "table": "Note 28 - Earnings per share",
+      "currency": "SAR",
+      "unit": "SAR/share"
+    }
+  ]
+}
