@@ -49,7 +49,16 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
             if len(parts) == 3 and parts[0] == "view":
                 query=FinancialQueryService(db_path)
                 try:
-                    self._send_html(200,company_viewer_html(query.company_page(parts[1],parts[2])))
+                    market,symbol=parts[1],parts[2]
+                    payload={
+                        "company":query.company_overview(market,symbol),
+                        "sections":{
+                            "profile":query.attributes(market,symbol),
+                            "financials":{"annual":query.period_snapshot(market,symbol,"fy")},
+                            "market":{"latest":next(iter(query.market_prices(market,symbol,limit=1)),None)},
+                        },
+                    }
+                    self._send_html(200,company_viewer_html(payload))
                 except KeyError:
                     self._send_html(404,"<h1 dir='rtl'>الشركة غير موجودة</h1>")
                 except Exception:
