@@ -371,11 +371,21 @@ def _is_rule_token(token: str) -> bool:
 
 
 def _parse_number(token: str) -> Decimal | None:
-    token = token.strip().replace(",", "").replace("–", "-").replace("—", "-")
+    token = token.strip().replace("–", "-").replace("—", "-")
     if token in {"", "-", "–", "—", "�", "n/a"}:
         return None
     negative = token.startswith("(") and token.endswith(")")
     token = token.strip("()")
+    # Broken PDF font maps and OCR occasionally change one thousands comma to
+    # a full stop (for example ``99,227.318`` for ``99,227,318``).  A primary
+    # statement amount with grouped digits on both sides is an integer, not a
+    # three-decimal value: treating the final group as decimals understates it
+    # by 1,000 and makes otherwise source-faithful balance sheets fail verify.
+    # Keep ordinary decimals (including 1.234 and 1,234.56) unchanged.
+    if re.fullmatch(r"\d{1,3}(?:,\d{3})+\.\d{3}", token):
+        token = token.replace(",", "").replace(".", "")
+    else:
+        token = token.replace(",", "")
     try:
         value = Decimal(token)
     except InvalidOperation:

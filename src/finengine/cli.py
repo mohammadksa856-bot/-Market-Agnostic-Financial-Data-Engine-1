@@ -923,12 +923,26 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                     "equivalent_source_key": equivalent_source, "published": 0,
                     "reader": "language-equivalence",
                 }
+            pdf_supplement = row["filing_type"] == "data-supplement"
             regulatory_disclosure = row["filing_type"] == "regulatory-disclosure"
             interim_period_missing = (
                 row["filing_type"] == "interim-report" and
                 _source_period(row, company) is None
             )
-            if regulatory_disclosure:
+            if pdf_supplement:
+                # Data supplements are wide KPI workbooks rendered as PDF,
+                # not primary financial statements. Sending them through the
+                # statement reader creates a misleading pdf_extraction_failed
+                # bundle even when the PDF is perfectly readable. They need a
+                # reviewed, issuer-specific table map just like XLSX
+                # supplements; classify that missing adapter precisely.
+                manifest=None; report=None; reader_source="pdf-supplement"
+                read_error=(
+                    "PDF data supplement requires a reviewed issuer-specific "
+                    "table mapping adapter"
+                )
+                code="pdf_supplement_mapping_required"
+            elif regulatory_disclosure:
                 # Pillar 3 KM1 tables carry their own period headers, which the
                 # reader proves as a quarterly sequence before any fact is kept.
                 try:
@@ -1001,7 +1015,9 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                     result.update(_queue_profile_extraction(db, queue, job, row))
                 return result
             if row["content_type"] == "application/pdf":
-                if interim_period_missing:
+                if row["filing_type"] == "data-supplement":
+                    code="pdf_supplement_mapping_required"
+                elif interim_period_missing:
                     code="interim_period_semantics_required"
                 elif read_error and "optional OCR dependencies" in read_error:
                     code="pdf_ocr_required"

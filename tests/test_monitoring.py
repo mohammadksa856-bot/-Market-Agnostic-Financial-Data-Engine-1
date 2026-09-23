@@ -528,6 +528,32 @@ class MonitoringTests(unittest.TestCase):
         result = _extract_document_job_handler(self.db)(job)
         self.assertEqual(result["code"], "pdf_extraction_failed")
 
+    def test_pdf_data_supplement_is_not_sent_to_statement_reader(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "pdf-supplement",
+            "https://issuer.example/Q1-2026-data-supplement.pdf",
+            "Q1 2026 Data Supplement", "data-supplement",
+            "2026-04-30", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-supplement"),
+        ).fetch(candidate_id)
+        job = type("Job", (), {
+            "payload": {"source_key": archived["source_key"]},
+            "job_id": "pdf-supplement-test",
+        })()
+        with patch("finengine.cli._read_pdf_manifest") as reader:
+            result = _extract_document_job_handler(self.db)(job)
+        reader.assert_not_called()
+        self.assertEqual(result["code"], "pdf_supplement_mapping_required")
+        exception = self.db.conn.execute(
+            "SELECT code,payload_json FROM exceptions ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        self.assertEqual(exception["code"], "pdf_supplement_mapping_required")
+        self.assertEqual(json.loads(exception["payload_json"])["reader"],
+                         "pdf-supplement")
+
     def test_arabic_filing_is_archived_without_duplicate_numeric_publication(self):
         english = SourceCandidate(
             self.aramco.company_id, "browser-issuer-reports", "english-twin",

@@ -13,6 +13,15 @@ from finengine.verification import ManifestVerifier
 
 
 class OcrGeometryTests(unittest.TestCase):
+    def test_mixed_thousands_separators_from_broken_pdf_font_are_integer(self):
+        from decimal import Decimal
+        from finengine.reading import _parse_number
+
+        self.assertEqual(_parse_number("99,227.318"), Decimal("99227318"))
+        self.assertEqual(_parse_number("(1,234.567)"), Decimal("-1234567"))
+        self.assertEqual(_parse_number("1,234.56"), Decimal("1234.56"))
+        self.assertEqual(_parse_number("1.234"), Decimal("1.234"))
+
     def test_ocr_line_is_split_into_coordinate_words(self):
         from finengine.reading import StatementReader
 
