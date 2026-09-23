@@ -138,6 +138,7 @@ LINE_MAP = {
     "net cash used in financing activities": ("financing_cash_flow", "fy"),
     "net cash from/(used in) financing activities": ("financing_cash_flow", "fy"),
     "purchase of property, plant and equipment": ("capex", "fy"),
+    "capital expenditures": ("capex", "fy"),
     "proceeds from sale of property, plant and equipment": ("proceeds_asset_sales", "fy"),
     "proceeds from debt": ("debt_issued", "fy"),
     "repayment of debt": ("debt_repaid", "fy"),
@@ -675,6 +676,8 @@ class StatementReader:
             heading = None if panels else self._heading_statement(page, words, page_text)
             if heading is None and not panels:
                 heading = self._continued_statement(doc, page, words, page_text, page_index)
+            if heading is None and not panels:
+                heading = self._summary_statement(words, columns, page_text, line_map)
             continuation = bool(
                 not panels and carry and page_index - carry_page == 1 and columns
                 and self._looks_tabular(words, columns)
@@ -891,6 +894,46 @@ class StatementReader:
                 if any(anchor in text for anchor in anchors):
                     return name
         return None
+
+    @staticmethod
+    def _summary_statement(words, columns, page_text: str,
+                           line_map: dict) -> str | None:
+        """Recognise compact, explicitly scaled financial-result tables."""
+        if len(columns) < 2 or not _SCALE_DECLARATION.search(page_text):
+            return None
+        scores = {name: 0 for name in ANCHORS}
+        for row in _rows([word for word in words if not _is_rule_token(word[4])], y_tol=6.0):
+            aligned = any(
+                _NUMBER.match(word[4]) and
+                any(abs((word[0] + word[2]) / 2 - column) < 45 for column in columns)
+                for word in row
+            )
+            if not aligned:
+                continue
+            label = " ".join(
+                word[4] for word in row
+                if (word[0] + word[2]) / 2 < min(columns) - 25
+                and not _NUMBER.match(word[4])
+            )
+            metric = _resolve_line(label, "income_statement", line_map)
+            if not metric:
+                metric = _resolve_line(label, "balance_sheet", line_map)
+            if not metric:
+                continue
+            if metric in {value[0] for value in line_map.values() if value[1] == "instant"}:
+                scores["balance_sheet"] += 1
+            elif metric in {
+                "operating_cash_flow", "investing_cash_flow", "financing_cash_flow",
+                "capex", "proceeds_asset_sales", "debt_issued", "debt_repaid",
+                "lease_payments", "dividends_paid", "dividends_noncontrolling",
+                "interest_received", "interest_paid", "taxes_paid", "cash_change",
+                "cash_beginning", "cash_end", "foreign_exchange_effect",
+            }:
+                scores["cash_flow"] += 1
+            else:
+                scores["income_statement"] += 1
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        return ranked[0][0] if ranked[0][1] >= 2 and ranked[0][1] - ranked[1][1] >= 2 else None
 
     def _continued_statement(self, doc, page, words, page_text: str,
                              page_index: int) -> str | None:

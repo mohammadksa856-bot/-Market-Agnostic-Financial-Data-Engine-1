@@ -540,6 +540,39 @@ class TwoPanelStatementTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class StatementReaderTests(unittest.TestCase):
+    def test_reads_explicitly_scaled_non_ifrs_results_table(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "non-ifrs.pdf"
+            doc = pymupdf.open()
+            page = doc.new_page(width=595, height=842)
+            page.insert_text((45, 55), "Non-IFRS financial measures", fontsize=13)
+            page.insert_text((45, 82), "All amounts in millions unless otherwise stated", fontsize=8)
+            page.insert_text((360, 105), "2025", fontsize=9)
+            page.insert_text((460, 105), "2024", fontsize=9)
+            rows = [
+                ("Net cash provided by operating activities", "285,297", "416,529"),
+                ("Capital expenditures", "(101,030)", "(122,882)"),
+                ("Net cash used in financing activities", "(180,000)", "(200,000)"),
+            ]
+            for index, (label, current, prior) in enumerate(rows):
+                y = 145 + index * 30
+                page.insert_text((45, y), label, fontsize=9)
+                page.insert_text((360, y), current, fontsize=9)
+                page.insert_text((460, y), prior, fontsize=9)
+            doc.save(pdf)
+            doc.close()
+
+            manifest = StatementReader(pdf, enable_ocr=False).read(
+                "SA", "2222", "SAR", "https://issuer.example/non-ifrs.pdf",
+                "2026-03-01", "2025-12-31", 2025,
+            )
+            values = {fact["metric"]: fact for fact in manifest["facts"]}
+            self.assertEqual(values["operating_cash_flow"]["value"], "285297")
+            self.assertEqual(values["capex"]["value"], "-101030")
+            self.assertEqual(values["operating_cash_flow"]["scale"], "1000000")
+
     def test_ocr_bank_caption_years_do_not_become_value_columns(self):
         from finengine.reading import StatementReader
 
