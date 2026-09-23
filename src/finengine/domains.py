@@ -71,6 +71,11 @@ GAP_RESOLUTION_PLAYBOOK = {
         "resolution": "Keep the metric unavailable with its reason and recalculate when the required positive denominator or growth rate becomes meaningful.",
         "solution_code": "recalculate_when_economically_meaningful",
     },
+    "not_applicable_sector_presentation_exemption": {
+        "reason": "A cited accounting-standard rule exempts this company's sector from presenting this field (for example IAS 1.63's order-of-liquidity presentation for banks).",
+        "resolution": "Keep the field documented_not_applicable with its rule_reference; do not extract or estimate a value for it.",
+        "solution_code": "close_not_applicable_sector_presentation",
+    },
 }
 
 
@@ -78,6 +83,42 @@ MANIFEST_DOMAIN_KEYS = (
     "company_attributes", "disclosures", "ownership_positions",
     "corporate_actions", "market_prices", "consensus_estimates",
 )
+
+
+# Fields that are genuinely inapplicable to every company in a sector under
+# the cited accounting-standard rule - not merely unreported. Keyed by
+# ``companies.sector`` (the same scope value the catalog itself already uses
+# for ``scope_type='sector'`` rows), so this is sector logic, never a
+# company-specific carve-out. Each excluded field is removed from that
+# sector's completeness denominator (a genuine, cited exclusion, not a score
+# adjustment) and recorded in ``company_field_availability`` with the same
+# rule_reference, so the exclusion is auditable rather than a silent "missing".
+SECTOR_FIELD_EXCLUSIONS: dict[str, dict[str, dict[str, str]]] = {
+    "Banks": {
+        "current_assets": {
+            "rule_reference": "IAS 1.63",
+            "reason": (
+                "IAS 1.63: an entity such as a bank that does not supply goods or "
+                "services within a clearly identifiable operating cycle presents "
+                "assets in order of liquidity rather than as current/non-current, "
+                "because that ordering is more relevant and reliable for a "
+                "financial institution's balance sheet."
+            ),
+        },
+        "current_liabilities": {
+            "rule_reference": "IAS 1.63",
+            "reason": (
+                "IAS 1.63: an entity such as a bank that does not supply goods or "
+                "services within a clearly identifiable operating cycle presents "
+                "liabilities in order of liquidity rather than as current/non-current, "
+                "because that ordering is more relevant and reliable for a "
+                "financial institution's balance sheet."
+            ),
+        },
+    },
+}
+
+SECTOR_FIELD_EXCLUSION_REASON_CODE = "not_applicable_sector_presentation_exemption"
 
 
 def has_extractable_facts(payload: dict) -> bool:
@@ -704,6 +745,27 @@ class CompanyDomainStore:
              (scope_type='company' AND scope_value=?))""",
             (company["market"], company["sector"] or "", company["industry"] or "", company_id),
         ).fetchall()
+        sector_exclusions = SECTOR_FIELD_EXCLUSIONS.get(company["sector"] or "", {})
+        if sector_exclusions:
+            excluded_keys = set(sector_exclusions)
+            expected_rows = [row for row in expected_rows if row["field_key"] not in excluded_keys]
+            for field_key, rule in sector_exclusions.items():
+                if not self.db.conn.execute(
+                    "SELECT 1 FROM data_catalog_fields WHERE field_key=? AND enabled=1", (field_key,)
+                ).fetchone():
+                    continue
+                try:
+                    self.db.upsert_field_availability(
+                        company_id, field_key, "not_applicable",
+                        reason_code=SECTOR_FIELD_EXCLUSION_REASON_CODE, reason=rule["reason"],
+                        assessed_by="system:sector_field_exclusions",
+                        rule_reference=rule["rule_reference"], expires_at=None,
+                    )
+                except (KeyError, ValueError):
+                    # Field not yet in the reviewed catalog for this build, or a
+                    # concurrent assessment already holds it - never let a
+                    # provenance write block the completeness measurement itself.
+                    pass
         available = {
             "data_points": {row["metric_key"] for row in self.db.conn.execute(
                 "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},

@@ -325,6 +325,84 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual(out["net_margin"].value, Decimal("0.1"))
         self.assertIn("IFRS 17", out["revenue"].calculation)
 
+    def test_bank_total_operating_income_supplies_universal_revenue(self):
+        """Generic bank-sector revenue analog: any company reporting
+        total_operating_income but no distinct revenue line gets a
+        calculated revenue alias, so the required-core-fields gate never
+        needs a bank-specific carve-out for this field."""
+        source = self.source()
+        facts = [
+            Fact(self.company.company_id, "total_operating_income", Decimal("5000"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+            Fact(self.company.company_id, "net_income", Decimal("1500"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+        ]
+        out = {fact.metric: fact for fact in Calculator().calculate(facts)}
+        self.assertEqual(out["revenue"].value, Decimal("5000"))
+        self.assertTrue(out["revenue"].is_calculated)
+        self.assertIn("total_operating_income", out["revenue"].calculation)
+
+    def test_bank_revenue_projection_never_overrides_a_reported_revenue_value(self):
+        """If a bank (unusually) also discloses an explicit revenue figure,
+        the reported value must win - the projection only fills a gap."""
+        source = self.source()
+        facts = [
+            Fact(self.company.company_id, "total_operating_income", Decimal("5000"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+            Fact(self.company.company_id, "revenue", Decimal("5200"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+        ]
+        calculated_metrics = {fact.metric for fact in Calculator().calculate(facts)}
+        self.assertNotIn("revenue", calculated_metrics)  # already reported, not recalculated
+
+    def test_bank_operating_income_is_total_operating_income_minus_expenses(self):
+        source = self.source()
+        facts = [
+            Fact(self.company.company_id, "total_operating_income", Decimal("5000"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+            Fact(self.company.company_id, "total_operating_expenses", Decimal("-1800"),
+                 "SAR", "SAR", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+        ]
+        out = {fact.metric: fact for fact in Calculator().calculate(facts)}
+        self.assertEqual(out["operating_income"].value, Decimal("3200"))
+        self.assertTrue(out["operating_income"].is_calculated)
+
+    def test_basic_eps_aliases_diluted_when_no_separate_basic_share_count(self):
+        """IAS 33: no distinct basic share count means no dilution, so basic
+        EPS equals the disclosed (diluted) EPS. Generic to any company."""
+        source = self.source()
+        facts = [
+            Fact(self.company.company_id, "eps_diluted", Decimal("2.15"),
+                 "SAR", "SAR/share", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+        ]
+        out = {fact.metric: fact for fact in Calculator().calculate(facts)}
+        self.assertEqual(out["basic_eps"].value, Decimal("2.15"))
+        self.assertTrue(out["basic_eps"].is_calculated)
+
+    def test_basic_eps_not_aliased_when_a_distinct_basic_share_count_exists(self):
+        """When weighted_average_shares_basic is separately disclosed, the
+        capital structure may actually be dilutive, so this generic engine
+        must not assume basic equals diluted - it stays unavailable rather
+        than guessing."""
+        source = self.source()
+        facts = [
+            Fact(self.company.company_id, "eps_diluted", Decimal("2.10"),
+                 "SAR", "SAR/share", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+            Fact(self.company.company_id, "weighted_average_shares_basic", Decimal("1000000"),
+                 "SAR", "shares", "2025-01-01", "2025-12-31", PeriodKind.FY,
+                 2025, None, source.source_key, source.source_url, source.filed_at),
+        ]
+        calculated_metrics = {fact.metric for fact in Calculator().calculate(facts)}
+        self.assertNotIn("basic_eps", calculated_metrics)
+
     def test_composite_scores_are_sector_aware(self):
         source = self.source()
 

@@ -93,6 +93,53 @@ class Calculator:
                         "insurance_revenue (IFRS 17 universal revenue alias)",
                         insurance_revenue, insurance_revenue.unit,
                         insurance_revenue.currency)
+                # Banks do not report a corporate-style "revenue" line: their
+                # top-line product is the net spread and fee/trading income
+                # they earn, which IFRS bank presentation totals as "total
+                # operating income". Equity research treats that total as the
+                # bank-sector analog of revenue (it is the numerator every
+                # bank margin/efficiency ratio is built on), so it is a
+                # genuine, generic definitional match - not a company-specific
+                # guess - whenever an issuer discloses total_operating_income
+                # but no separate "revenue" figure.
+                if "total_operating_income" in group and "revenue" not in group:
+                    top_line = group["total_operating_income"]
+                    add("revenue", top_line.value,
+                        "total_operating_income (bank-sector revenue analog: "
+                        "net interest/financing income + fee, trading and other "
+                        "operating income, per IFRS bank presentation)",
+                        top_line, top_line.unit, top_line.currency)
+                # A bank's income statement does not carry a line captioned
+                # "operating income" the way a corporate by-function statement
+                # does; the economically equivalent figure is operating
+                # income before credit-loss provisions: total operating
+                # income less total operating expenses (which explicitly
+                # excludes the provision_expense/impairment line under this
+                # catalog's banking_income group). Marked is_calculated so any
+                # future issuer-reported operating_income value still outranks
+                # it under the reported-over-calculated conflict rule.
+                if ("total_operating_income" in group and "total_operating_expenses" in group
+                        and "operating_income" not in group):
+                    top_line = group["total_operating_income"]
+                    add("operating_income",
+                        top_line.value - abs(group["total_operating_expenses"].value),
+                        "total_operating_income - abs(total_operating_expenses) "
+                        "(bank net operating income before credit-loss provisions)",
+                        top_line, top_line.unit, top_line.currency)
+                # IAS 33: diluted EPS equals basic EPS whenever there are no
+                # dilutive potential ordinary shares. An issuer that discloses
+                # only one EPS figure (no separate weighted_average_shares_basic
+                # from a distinct basic count) is, by construction, reporting a
+                # capital structure with no dilution - so its single EPS value
+                # is also its basic EPS. This holds for any company/sector, not
+                # just banks.
+                if ("eps_diluted" in group and "basic_eps" not in group
+                        and "weighted_average_shares_basic" not in group):
+                    diluted = group["eps_diluted"]
+                    add("basic_eps", diluted.value,
+                        "eps_diluted (no separately disclosed dilutive shares; "
+                        "basic EPS equals diluted EPS per IAS 33)",
+                        diluted, diluted.unit, diluted.currency)
                 if "operating_cash_flow" in group and "capex" in group:
                     add("free_cash_flow", group["operating_cash_flow"].value - abs(group["capex"].value),
                         "operating_cash_flow - abs(capex)", group["operating_cash_flow"],
