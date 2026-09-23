@@ -85,15 +85,17 @@ MANIFEST_DOMAIN_KEYS = (
 )
 
 
-# Fields that are genuinely inapplicable to every company in a sector under
-# the cited accounting-standard rule - not merely unreported. Keyed by
-# ``companies.sector`` (the same scope value the catalog itself already uses
-# for ``scope_type='sector'`` rows), so this is sector logic, never a
-# company-specific carve-out. Each excluded field is removed from that
-# sector's completeness denominator (a genuine, cited exclusion, not a score
-# adjustment) and recorded in ``company_field_availability`` with the same
-# rule_reference, so the exclusion is auditable rather than a silent "missing".
-SECTOR_FIELD_EXCLUSIONS: dict[str, dict[str, dict[str, str]]] = {
+# Fields that are genuinely inapplicable to every company in an industry
+# under the cited accounting-standard rule - not merely unreported. Keyed by
+# ``companies.industry`` - the same scope value the catalog itself already
+# uses for its ``scope_type='industry'`` banking/insurance/etc. field groups
+# (see catalog.py GROUPS, e.g. ("banking", ..., "industry", "Banks", ...)) -
+# so this is industry logic, never a company-specific carve-out. Each
+# excluded field is removed from that industry's completeness denominator (a
+# genuine, cited exclusion, not a score adjustment) and recorded in
+# ``company_field_availability`` with the same rule_reference, so the
+# exclusion is auditable rather than a silent "missing".
+INDUSTRY_FIELD_EXCLUSIONS: dict[str, dict[str, dict[str, str]]] = {
     "Banks": {
         "current_assets": {
             "rule_reference": "IAS 1.63",
@@ -118,7 +120,7 @@ SECTOR_FIELD_EXCLUSIONS: dict[str, dict[str, dict[str, str]]] = {
     },
 }
 
-SECTOR_FIELD_EXCLUSION_REASON_CODE = "not_applicable_sector_presentation_exemption"
+INDUSTRY_FIELD_EXCLUSION_REASON_CODE = "not_applicable_sector_presentation_exemption"
 
 
 def has_extractable_facts(payload: dict) -> bool:
@@ -745,11 +747,11 @@ class CompanyDomainStore:
              (scope_type='company' AND scope_value=?))""",
             (company["market"], company["sector"] or "", company["industry"] or "", company_id),
         ).fetchall()
-        sector_exclusions = SECTOR_FIELD_EXCLUSIONS.get(company["sector"] or "", {})
-        if sector_exclusions:
-            excluded_keys = set(sector_exclusions)
+        industry_exclusions = INDUSTRY_FIELD_EXCLUSIONS.get(company["industry"] or "", {})
+        if industry_exclusions:
+            excluded_keys = set(industry_exclusions)
             expected_rows = [row for row in expected_rows if row["field_key"] not in excluded_keys]
-            for field_key, rule in sector_exclusions.items():
+            for field_key, rule in industry_exclusions.items():
                 if not self.db.conn.execute(
                     "SELECT 1 FROM data_catalog_fields WHERE field_key=? AND enabled=1", (field_key,)
                 ).fetchone():
@@ -757,8 +759,8 @@ class CompanyDomainStore:
                 try:
                     self.db.upsert_field_availability(
                         company_id, field_key, "not_applicable",
-                        reason_code=SECTOR_FIELD_EXCLUSION_REASON_CODE, reason=rule["reason"],
-                        assessed_by="system:sector_field_exclusions",
+                        reason_code=INDUSTRY_FIELD_EXCLUSION_REASON_CODE, reason=rule["reason"],
+                        assessed_by="system:industry_field_exclusions",
                         rule_reference=rule["rule_reference"], expires_at=None,
                     )
                 except (KeyError, ValueError):
