@@ -633,7 +633,7 @@ class Database:
         is later. SEC/exchange structured sources sit between those tiers.
         """
         row = self.conn.execute(
-            "SELECT content_type,metadata_json FROM source_documents WHERE source_key=?",
+            "SELECT content_type,metadata_json,filing_type FROM source_documents WHERE source_key=?",
             (source_key,),
         ).fetchone()
         if not row:
@@ -645,7 +645,17 @@ class Database:
         if metadata.get("reviewed_manifest") is True or (
             source_key.startswith("file:") and row["content_type"] == "application/json"
         ):
-            return 100
+            # All reviewed manifests are human-reviewed and outrank automated
+            # extractions, but they are not all the same assurance level: an
+            # audited annual report and an investor presentation can both be
+            # "reviewed_manifest": True. Layer the generic filing-type tier
+            # (audited > reviewed > earnings_release > presentation > other)
+            # on top of the reviewed-manifest floor so two reviewed sources
+            # never tie purely by ingestion order.
+            from .conflict_resolution import assurance_tier
+
+            filing_type = row["filing_type"] or str(metadata.get("filing_type") or "")
+            return 100 + assurance_tier(filing_type)
         authority = str(metadata.get("source_authority") or "").casefold()
         connector = str(metadata.get("connector") or "").casefold()
         if authority in {"sec_edgar", "tadawul"} or connector in {"sec-edgar", "saudi-exchange"}:
@@ -658,14 +668,53 @@ class Database:
             return 65
         return 50
 
-    def _fact_row_precedence(self, row) -> tuple:
+    def _fact_precedence(self, *, source_key: str, metric_key: str, scope: str, value,
+                          is_calculated: bool, filed_at: str, quality_score,
+                          published_at: str = "", row_id: int = 0) -> tuple:
+        """Shared, generic conflict-resolution ranking for any candidate fact.
+
+        Applies (in order): source authority tier, period recency, consolidated-
+        over-segment for unified company-wide metrics, reported-over-calculated,
+        and decimal precision - mirroring ``conflict_resolution.resolve``. The
+        final ``published_at``/``id`` pair is a last-resort, non-substantive
+        tiebreak only reached when every principled rule ties.
+        """
+        from .conflict_resolution import UNIFIED_COMPANY_WIDE_METRICS, _precision
+
+        consolidated_over_segment = (
+            1 if metric_key in UNIFIED_COMPANY_WIDE_METRICS and scope == "consolidated" else 0
+        )
+        try:
+            precision = _precision(Decimal(str(value)))
+        except Exception:
+            precision = 0
         return (
-            self._source_priority(row["source_key"]),
-            row["filed_at"] or "",
-            Decimal(row["quality_score"] or "0"),
-            int(not row["is_calculated"]),
-            row["published_at"] or "",
-            int(row["id"]),
+            self._source_priority(source_key),
+            filed_at or "",
+            consolidated_over_segment,
+            int(not is_calculated),
+            precision,
+            Decimal(quality_score or "0"),
+            published_at or "",
+            int(row_id),
+        )
+
+    def _fact_row_precedence(self, row) -> tuple:
+        # ``data_points`` and the legacy ``observations`` table have slightly
+        # different column names/coverage (no ``scope`` or ``quality_score``
+        # on ``observations``); fall back to neutral defaults so this ranking
+        # works generically against either row shape.
+        keys = row.keys()
+        metric_key = row["metric_key"] if "metric_key" in keys else (row["metric"] if "metric" in keys else "")
+        scope = row["scope"] if "scope" in keys else "consolidated"
+        value = row["value_decimal"] if "value_decimal" in keys else row["value"] if "value" in keys else "0"
+        quality_score = row["quality_score"] if "quality_score" in keys else "1"
+        return self._fact_precedence(
+            source_key=row["source_key"], metric_key=metric_key, scope=scope,
+            value=value, is_calculated=row["is_calculated"],
+            filed_at=row["filed_at"], quality_score=quality_score,
+            published_at=row["published_at"] if "published_at" in keys else "",
+            row_id=row["id"] if "id" in keys else 0,
         )
 
     def _repair_current_fact_versions(self) -> None:
@@ -1442,11 +1491,11 @@ class Database:
                 self.conn.execute("UPDATE data_points SET is_current=0 WHERE " + where, args)
                 self.conn.execute("UPDATE data_points SET is_current=1 WHERE id=?", (old["id"],))
             return "duplicate"
-        incoming_precedence = (
-            self._source_priority(f.source_key), f.filed_at or "", f.quality_score,
-            int(not f.is_calculated), "", 0,
+        incoming_precedence = self._fact_precedence(
+            source_key=f.source_key, metric_key=f.metric, scope=f.scope, value=f.value,
+            is_calculated=f.is_calculated, filed_at=f.filed_at, quality_score=f.quality_score,
         )
-        if old and incoming_precedence[:4] < self._fact_row_precedence(old)[:4]:
+        if old and incoming_precedence[:6] < self._fact_row_precedence(old)[:6]:
             return "suppressed"
         historical = self.conn.execute(
             "SELECT COALESCE(max(version),0) FROM data_points WHERE " + where.replace(
@@ -1501,11 +1550,12 @@ class Database:
             if not rows:
                 continue
             strongest = max(rows, key=self._fact_row_precedence)
-            incoming = (
-                self._source_priority(fact.source_key), fact.filed_at or "", fact.quality_score,
-                int(not fact.is_calculated),
+            incoming = self._fact_precedence(
+                source_key=fact.source_key, metric_key=fact.metric, scope=fact.scope,
+                value=fact.value, is_calculated=fact.is_calculated,
+                filed_at=fact.filed_at, quality_score=fact.quality_score,
             )
-            if incoming < self._fact_row_precedence(strongest)[:4] and (
+            if incoming[:6] < self._fact_row_precedence(strongest)[:6] and (
                 strongest["value_decimal"] != str(fact.value)
             ):
                 conflicts.append({
