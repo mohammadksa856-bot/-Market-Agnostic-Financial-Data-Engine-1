@@ -28,6 +28,25 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn('--archive-index "$seed_raw/archive-index.json"', startup)
         self.assertIn('--backup-dir "$state_dir/pre-manifest-backups"', startup)
 
+    def test_api_boot_is_read_only_and_independent_of_writer_initialization(self):
+        compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        startup = (ROOT / "deploy" / "start-production.sh").read_text(encoding="utf-8")
+        self.assertIn('["finengine", "--db", "/app/state/financial.sqlite3", "serve"', compose)
+        self.assertIn("  writer:", compose)
+        self.assertIn('["/app/deploy/start-production.sh"]', compose)
+        self.assertNotIn(" understanding --all", startup)
+        self.assertNotIn(" run --host", startup)
+        self.assertIn('finengine --db "$database" worker --poll 10', startup)
+
+    def test_default_compose_has_only_one_sqlite_writer(self):
+        compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        self.assertIn('profiles: ["extra-writer"]', compose)
+        self.assertEqual(compose.count('profiles: ["maintenance"]'), 3)
+        self.assertIn('PRAGMA journal_mode=WAL', (ROOT / "src" / "finengine" / "database.py").read_text(encoding="utf-8"))
+        query = (ROOT / "src" / "finengine" / "query.py").read_text(encoding="utf-8")
+        self.assertIn("PRAGMA busy_timeout=30000", query)
+        self.assertIn("PRAGMA query_only=ON", query)
+
     def test_supabase_projection_is_read_only_for_clients(self):
         migration = (ROOT / "supabase" / "migrations" / "0001_financial_facts.sql").read_text(encoding="utf-8")
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")

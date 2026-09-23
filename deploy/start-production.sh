@@ -45,16 +45,7 @@ finengine --db "$database" sync-manifests \
 finengine --db "$database" configure-production --registry "$registry" \
     --raw-dir "$raw_dir" --every "$interval" --source-limit "$source_limit"
 
-# Rebuild the 18-category product readiness contract on every deploy. Individual
-# pipeline publications refresh their own company again after new facts arrive.
-finengine --db "$database" understanding --all
-
-factory_market="${FINENGINE_FACTORY_MARKET:-SA}"
-factory_limit="${FINENGINE_FACTORY_DISPATCH_LIMIT:-50}"
-
 if [ "${FINENGINE_BROWSER_HEADLESS:-false}" = "false" ] && command -v xvfb-run >/dev/null 2>&1; then
-    exec xvfb-run -a finengine --db "$database" run --host 0.0.0.0 --port 8000 --poll 10 \
-        --factory-market "$factory_market" --factory-dispatch-limit "$factory_limit"
+    exec xvfb-run -a finengine --db "$database" worker --poll 10
 fi
-exec finengine --db "$database" run --host 0.0.0.0 --port 8000 --poll 10 \
-    --factory-market "$factory_market" --factory-dispatch-limit "$factory_limit"
+exec finengine --db "$database" worker --poll 10

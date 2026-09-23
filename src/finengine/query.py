@@ -10,8 +10,10 @@ class FinancialQueryService:
     """Read-only facade suitable for an API or Telegram bot."""
 
     def __init__(self, db_path: str):
-        self.conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        self.conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30)
         self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA busy_timeout=30000")
+        self.conn.execute("PRAGMA query_only=ON")
 
     def close(self):
         self.conn.close()

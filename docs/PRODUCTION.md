@@ -104,7 +104,15 @@ new source documents, cursors, jobs, and exception state live under `/app/state`
 On the first boot only, the startup script builds a clean live database from the
 reviewed manifests. Later releases never replace an existing database.
 
-The engine startup script idempotently creates or updates one monitor schedule for
+The read-only API is a separate container and binds immediately; it never runs
+bootstrap, manifest synchronization, understanding refreshes, schedulers, or job
+handlers. A single default `writer` container owns initialization, routine
+monitoring, ingestion, validation, and publication. SQLite uses WAL mode with a
+30-second busy timeout, while API connections use `mode=ro` plus `query_only`.
+During a first-ever bootstrap, health is available immediately and data endpoints
+become available as soon as the writer creates the database.
+
+The writer startup script idempotently creates or updates one monitor schedule for
 every enabled registry company. It does not duplicate schedules after restarts and
 does not reset an existing next-run cursor. The worker uses durable jobs, leases,
 retries, dead-job visibility, source cursors, and publication exceptions. The
@@ -150,6 +158,12 @@ SQLite supports one publishing worker. Keep a single engine/publisher instance
 for this phase and move to PostgreSQL plus durable object storage before horizontal
 scaling. Also replicate backup bundles off-host; a disk attached only to the same
 server is not a disaster-recovery copy.
+
+The `maintenance` profile enables universe refresh, onboarding, and historical
+backfill services. They also write SQLite and therefore must be run only in a
+controlled maintenance window while the default writer is stopped. The
+`extra-writer` profile is reserved for a future PostgreSQL deployment; do not
+enable it against the shared SQLite file.
 
 The server makes collection, validation, publishing, API, bot, backups, and
 schedules independent of a laptop or an interactive AI session. It does not bypass

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sqlite3
 import tempfile
 import threading
 import unittest
@@ -37,6 +38,16 @@ class ServiceTests(unittest.TestCase):
         db.close()
 
     def tearDown(self): self.temp.cleanup()
+
+    def test_query_service_enforces_sqlite_query_only_mode(self):
+        query = FinancialQueryService(self.dbpath)
+        try:
+            self.assertEqual(query.conn.execute("PRAGMA query_only").fetchone()[0], 1)
+            self.assertEqual(query.conn.execute("PRAGMA busy_timeout").fetchone()[0], 30000)
+            with self.assertRaises(sqlite3.OperationalError):
+                query.conn.execute("CREATE TABLE accidental_write(value TEXT)")
+        finally:
+            query.close()
 
     def test_http_api_is_authenticated_and_read_only(self):
         server=create_api_server(self.dbpath,"127.0.0.1",0,"secret")
