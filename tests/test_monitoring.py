@@ -111,6 +111,10 @@ class MonitoringTests(unittest.TestCase):
         })
         with patch.dict(os.environ, {"FINENGINE_RAW_DIR": str(runtime_raw)}):
             result = _market_history_job_handler(self.db)(job)
+        self.assertEqual(
+            fetch.call_args.kwargs["archived_csv_dir"],
+            runtime_raw / "SA" / "2222" / "market",
+        )
         source = self.db.stored_source(result["source_key"])
         self.assertTrue(Path(source["local_path"]).is_relative_to(runtime_raw))
         self.assertTrue(Path(source["local_path"]).is_file())

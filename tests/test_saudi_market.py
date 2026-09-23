@@ -1,8 +1,12 @@
 import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from finengine.saudi_market import (
     _access_blocked,
+    fetch_saudi_market_history,
     normalize_saudi_market_rows,
     parse_saudi_history_csv,
 )
@@ -79,6 +83,56 @@ class SaudiMarketHistoryTests(unittest.TestCase):
         self.assertEqual(rows, [])
         self.assertEqual(len(excluded), 1)
         self.assertIn("sanity", excluded[0]["reason"])
+
+    @patch("finengine.saudi_market._fetch_saudi_market_history_browser")
+    def test_falls_back_to_listing_scoped_archived_official_csv(self, browser):
+        browser.side_effect = TimeoutError("#sectors did not initialize")
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "official-export.csv").write_text(
+                "2026-09-22,64.10,64.60,63.65,63.65,621,870,39,823,443.95,2,975\n"
+                "2026-09-23,-,-,-,-,-,-,-\n",
+                encoding="utf-8",
+            )
+            payload = json.loads(fetch_saudi_market_history(
+                "2222", "2026-09-01", "2026-09-30",
+                archived_csv_dir=directory,
+            ))
+        self.assertEqual(payload["acquisition_method"], "archived_official_csv")
+        self.assertEqual(payload["archive_files"], ["official-export.csv"])
+        self.assertEqual(payload["excluded_rows"], 1)
+        self.assertEqual(payload["market_prices"][0]["observed_at"], "2026-09-22")
+
+    @patch("finengine.saudi_market._fetch_saudi_market_history_browser")
+    def test_preserves_browser_failure_when_archive_has_no_requested_rows(self, browser):
+        browser.side_effect = TimeoutError("#sectors did not initialize")
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "official-export.csv").write_text(
+                "2025-09-22,64.10,64.60,63.65,63.65,621,870,39,823,443.95,2,975\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(TimeoutError, "#sectors"):
+                fetch_saudi_market_history(
+                    "2222", "2026-09-01", "2026-09-30",
+                    archived_csv_dir=directory,
+                )
+
+    @patch("finengine.saudi_market._fetch_saudi_market_history_browser")
+    def test_rejects_conflicting_archived_observations(self, browser):
+        browser.side_effect = TimeoutError("blocked")
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "first.csv").write_text(
+                "2026-09-22,64.10,64.60,63.65,63.65,621,870,39,823,443.95,2,975\n",
+                encoding="utf-8",
+            )
+            Path(directory, "second.csv").write_text(
+                "2026-09-22,64.10,64.60,63.65,64.00,621,870,39,823,443.95,2,975\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "conflicting archived"):
+                fetch_saudi_market_history(
+                    "2222", "2026-09-01", "2026-09-30",
+                    archived_csv_dir=directory,
+                )
 
 
 if __name__ == "__main__":

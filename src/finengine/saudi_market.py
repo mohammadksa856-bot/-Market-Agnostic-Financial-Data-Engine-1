@@ -13,6 +13,7 @@ import json
 import re
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from .fetching import _UA
 
@@ -245,7 +246,66 @@ def normalize_saudi_market_rows(rows: list[dict]) -> list[dict]:
     return normalized
 
 
-def fetch_saudi_market_history(
+def _archived_csv_payload(
+    symbol: str, start_date: str, end_date: str, archived_csv_dir: str | Path,
+    market_segment: str,
+) -> bytes | None:
+    """Build a source payload from previously archived official CSV exports.
+
+    The directory is scoped to one listing by the caller.  We deliberately do
+    not infer a symbol from CSV contents (the Exchange export has no symbol
+    column), and conflicting observations fail closed instead of choosing one.
+    Malformed and trading-halt rows are quarantined by
+    :func:`parse_saudi_history_csv`.
+    """
+    archive = Path(archived_csv_dir)
+    candidates = [archive] if archive.is_file() else sorted(archive.glob("*.csv"))
+    if not candidates:
+        return None
+
+    requested_start = date.fromisoformat(start_date)
+    requested_end = date.fromisoformat(end_date)
+    by_date: dict[str, dict] = {}
+    source_files: list[str] = []
+    excluded_count = 0
+    for candidate in candidates:
+        rows, excluded = parse_saudi_history_csv(
+            candidate.read_text(encoding="utf-8-sig", errors="strict"))
+        excluded_count += len(excluded)
+        accepted = False
+        for item in normalize_saudi_market_rows(rows):
+            observed = date.fromisoformat(item["observed_at"])
+            if not requested_start <= observed <= requested_end:
+                continue
+            previous = by_date.get(item["observed_at"])
+            if previous is not None and previous != item:
+                raise ValueError(
+                    "conflicting archived Saudi Exchange CSV observations for "
+                    f"{symbol} on {item['observed_at']}"
+                )
+            by_date[item["observed_at"]] = item
+            accepted = True
+        if accepted:
+            source_files.append(candidate.name)
+    if not by_date:
+        return None
+
+    return json.dumps({
+        "schema_version": 1,
+        "source_url": SAUDI_HISTORICAL_REPORTS_URL,
+        "symbol": symbol,
+        "market_segment": market_segment,
+        "sector_selector": None,
+        "requested_start": start_date,
+        "requested_end": end_date,
+        "acquisition_method": "archived_official_csv",
+        "archive_files": source_files,
+        "excluded_rows": excluded_count,
+        "market_prices": [by_date[key] for key in sorted(by_date)],
+    }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _fetch_saudi_market_history_browser(
     symbol: str, start_date: str, end_date: str, sector: str | None = None,
     market_segment: str = "Main Market", headless: bool = True,
     timeout_ms: int = 90000,
@@ -388,3 +448,30 @@ def fetch_saudi_market_history(
         "sector_selector": found_sector, "requested_start": start_date,
         "requested_end": end_date, "market_prices": prices,
     }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def fetch_saudi_market_history(
+    symbol: str, start_date: str, end_date: str, sector: str | None = None,
+    market_segment: str = "Main Market", headless: bool = True,
+    timeout_ms: int = 90000, archived_csv_dir: str | Path | None = None,
+) -> bytes:
+    """Fetch official history, falling back to an archived official CSV.
+
+    This specifically keeps scheduled ingestion working when the public page's
+    CDN blocks the worker or its dynamic sector selector never initializes.
+    The original browser error remains authoritative when no usable archive is
+    present.
+    """
+    try:
+        return _fetch_saudi_market_history_browser(
+            symbol, start_date, end_date, sector=sector,
+            market_segment=market_segment, headless=headless,
+            timeout_ms=timeout_ms,
+        )
+    except Exception:
+        if archived_csv_dir is not None:
+            archived = _archived_csv_payload(
+                symbol, start_date, end_date, archived_csv_dir, market_segment)
+            if archived is not None:
+                return archived
+        raise

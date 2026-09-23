@@ -747,6 +747,7 @@ def _market_history_job_handler(db: Database):
                 sector=payload.get("sector") or company.sector,
                 market_segment=payload.get("market_segment") or company.exchange or "Main Market",
                 headless=_browser_headless(),
+                archived_csv_dir=raw_dir / "SA" / company.symbol / "market",
             )
             stage = "archive"
             digest = hashlib.sha256(content).hexdigest()
