@@ -25,7 +25,22 @@ git pull --ff-only origin main
 
 compose="docker compose -f compose.yaml -f compose.production.yaml"
 $compose config --quiet
-$compose up -d --build --remove-orphans
+extra_workers="${FINENGINE_EXTRA_WORKERS:-0}"
+case "$extra_workers" in
+    ''|*[!0-9]*)
+        echo "FINENGINE_EXTRA_WORKERS must be a non-negative integer." >&2
+        exit 7
+        ;;
+esac
+if [ "$extra_workers" -gt 0 ]; then
+    # Extra workers use the queue's atomic leases and independent SQLite
+    # connections. Keep the count explicitly bounded by the operator instead of
+    # letting Compose or host CPU count choose an unsafe level automatically.
+    $compose --profile extra-writer up -d --build --remove-orphans \
+        --scale worker="$extra_workers"
+else
+    $compose up -d --build --remove-orphans
+fi
 
 container="$($compose ps -q engine)"
 attempt=0

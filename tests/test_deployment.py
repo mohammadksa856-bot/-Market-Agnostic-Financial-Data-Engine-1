@@ -126,10 +126,16 @@ class DeploymentContractTests(unittest.TestCase):
 
     def test_background_worker_adds_bounded_parallel_capacity(self):
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+        deploy = (ROOT / "deploy" / "update-server.sh").read_text(encoding="utf-8")
+        env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
         self.assertIn("  worker:", compose)
         self.assertIn("financial.sqlite3 worker --poll 10", compose)
         self.assertIn("xvfb-run -a", compose)
         self.assertIn("kill -0 1", compose)
+        self.assertIn("FINENGINE_EXTRA_WORKERS", deploy)
+        self.assertIn("--profile extra-writer", deploy)
+        self.assertIn('--scale worker="$extra_workers"', deploy)
+        self.assertIn("FINENGINE_EXTRA_WORKERS=0", env_example)
 
 
 if __name__ == "__main__":
