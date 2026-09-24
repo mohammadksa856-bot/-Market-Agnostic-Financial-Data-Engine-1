@@ -49,6 +49,7 @@ CLASSIFICATIONS = (
     "manifested_review_required",
     "duplicate_or_language_equivalent",
     "context_only_nonfinancial",
+    "market_data",
     "unsupported_format",
     "missing_manifest",
     "missing_binary",
@@ -90,6 +91,26 @@ def _looks_nonfinancial(source_url: str, metadata: dict) -> bool:
         json.dumps(metadata or {}, ensure_ascii=False),
     ]).casefold()
     return any(keyword in haystack for keyword in NONFINANCIAL_KEYWORDS)
+
+
+# A daily price/volume/turnover history is market data, not a financial
+# statement: it belongs to the market_data domain (see catalog.py) and is
+# published through the separate market-history connector
+# (saudi_market.py / finengine market-history), never through the
+# financial-statements manifest pipeline. The archive layout already
+# encodes this distinction structurally - every issuer's raw archive keeps
+# price exports under a dedicated ``.../market/`` directory, sibling to
+# ``.../documents/`` where statement PDFs/XLSX land - so this check reuses
+# that existing convention instead of inventing a new one. A CSV/JSON here
+# is out of the financial-statements package's coverage scope by
+# definition; it is never a "missing manifest" gap for that package,
+# whether or not it happens to already be linked to a published
+# market-history source.
+def _looks_like_market_data(local_path: str, content_type: str) -> bool:
+    if content_type not in {"text/csv", "application/json"}:
+        return False
+    parts = {part.lower() for part in Path(local_path).parts}
+    return "market" in parts
 
 
 def classify_company_artifacts(db, company_id: str, project_root: str | Path = ".") -> list[dict]:
@@ -163,6 +184,14 @@ def classify_company_artifacts(db, company_id: str, project_root: str | Path = "
         elif _looks_nonfinancial(row["source_url"], metadata):
             record["classification"] = "context_only_nonfinancial"
             record["evidence"] = "no manifest link; URL/metadata identify it as investor collateral"
+        elif _looks_like_market_data(row["local_path"], row["content_type"]):
+            record["classification"] = "market_data"
+            record["evidence"] = (
+                "no manifest link; archived under a market/ directory - a daily "
+                "price/volume history published through the separate market-history "
+                "connector, not the financial-statements manifest pipeline. Out of "
+                "this package's coverage scope, not an extraction gap."
+            )
         elif row["content_type"] not in SUPPORTED_CONTENT_TYPES:
             record["classification"] = "unsupported_format"
             record["evidence"] = f"no manifest link; content_type {row['content_type']!r} has no reader"

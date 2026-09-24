@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 """Generic proof that the Gap 3 raw-archive coverage audit classifies every
-archived document into exactly one of the eight categories, deduplicates by
-SHA-256 (not raw file count), and never treats a presentation/webcast as a
-financial statement.
+archived document into exactly one of the nine categories, deduplicates by
+SHA-256 (not raw file count), never treats a presentation/webcast as a
+financial statement, and never treats an unlinked market-price history
+(archived under a market/ directory) as a financial-statement extraction gap.
 """
 
 import tempfile
@@ -25,6 +26,8 @@ class CoverageAuditTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.docs_dir = self.root / "data" / "raw" / "SA" / "TST" / "documents"
         self.docs_dir.mkdir(parents=True)
+        self.market_dir = self.root / "data" / "raw" / "SA" / "TST" / "market"
+        self.market_dir.mkdir(parents=True)
         self.db = Database(str(self.root / "audit.sqlite3"))
         self.company = Company("sa:TST", Market.SA, "TST", "Test Co", "SAR")
         self.db.register_company(self.company)
@@ -32,8 +35,8 @@ class CoverageAuditTests(unittest.TestCase):
     def tearDown(self):
         self.db.close(); self.temp.cleanup()
 
-    def _write(self, name: str, content: bytes) -> tuple[str, str]:
-        path = self.docs_dir / name
+    def _write(self, name: str, content: bytes, directory: Path | None = None) -> tuple[str, str]:
+        path = (directory or self.docs_dir) / name
         path.write_bytes(content)
         import hashlib
         digest = hashlib.sha256(content).hexdigest()
@@ -49,7 +52,7 @@ class CoverageAuditTests(unittest.TestCase):
             local_path, content_type, 100, metadata or {},
         )
 
-    def test_classifies_all_eight_categories(self):
+    def test_classifies_all_nine_categories(self):
         # 1. manifested_and_published
         published_hash, published_path = self._write("published.pdf", b"published financial statements")
         self.db.save_source(
@@ -99,6 +102,14 @@ class CoverageAuditTests(unittest.TestCase):
         self._artifact("artifact:tampered", "0" * 64, mismatch_path,
                        "https://issuer.test/tampered.pdf")
 
+        # 9. market_data (an unlinked daily price/volume history, archived
+        # under a market/ directory - never a financial-statement gap)
+        price_hash, price_path = self._write(
+            "prices.csv", b"date,close,volume\n2025-01-01,10.0,1000\n", directory=self.market_dir,
+        )
+        self._artifact("artifact:prices", price_hash, price_path,
+                       "https://exchange.test/historical-reports", content_type="text/csv")
+
         records = classify_company_artifacts(self.db, self.company.company_id, str(self.root))
         by_key = {r["artifact_key"]: r["classification"] for r in records}
 
@@ -110,13 +121,34 @@ class CoverageAuditTests(unittest.TestCase):
         self.assertEqual(by_key["artifact:gap"], "missing_manifest")
         self.assertEqual(by_key["artifact:missing"], "missing_binary")
         self.assertEqual(by_key["artifact:tampered"], "hash_mismatch")
+        self.assertEqual(by_key["artifact:prices"], "market_data")
 
         summary = summarize(records)
-        self.assertEqual(summary["total_raw_artifacts"], 8)
+        self.assertEqual(summary["total_raw_artifacts"], 9)
         # unique_documents excludes the duplicate language copy.
-        self.assertEqual(summary["unique_documents"], 7)
+        self.assertEqual(summary["unique_documents"], 8)
         for key in CLASSIFICATIONS:
             self.assertIn(key, summary)
+
+    def test_market_data_still_manifested_when_already_linked(self):
+        """A market-history CSV that IS linked to a published source (e.g.
+        Aramco's, via a dedicated market-prices import) keeps reporting as
+        manifested_and_published - the market/ directory only reclassifies
+        an *unlinked* file away from missing_manifest, it never hides a real
+        publication."""
+        price_hash, price_path = self._write(
+            "prices.csv", b"date,close,volume\n2025-01-01,10.0,1000\n", directory=self.market_dir,
+        )
+        self.db.save_source(
+            SourceDocument(self.company.company_id, Market.SA, "https://exchange.test/historical-reports",
+                           "source:prices", "market-data", "2025-01-01", b""),
+            price_hash, price_path,
+        )
+        self.db.set_source_status("source:prices", "published")
+        self._artifact("artifact:prices", price_hash, price_path,
+                       "https://exchange.test/historical-reports", content_type="text/csv")
+        records = classify_company_artifacts(self.db, self.company.company_id, str(self.root))
+        self.assertEqual(records[0]["classification"], "manifested_and_published")
 
     def test_raw_file_count_is_not_treated_as_coverage(self):
         """Two byte-identical files (e.g. an EN/AR pair) must count as one
