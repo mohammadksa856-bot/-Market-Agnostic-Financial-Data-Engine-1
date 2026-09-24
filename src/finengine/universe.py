@@ -683,7 +683,25 @@ def enqueue_saudi_historical_backfill(
     ).fetchone()
     if not snapshot:
         raise ValueError("Saudi universe must be synchronized before historical backfill")
-    run_id = f"sa-historical:{snapshot['snapshot_id'].split(':')[-1][:16]}:v2"
+    base_run_id = f"sa-historical:{snapshot['snapshot_id'].split(':')[-1][:16]}:v2"
+    run_id = base_run_id
+    if force_new_run:
+        # A forced replay must have a fresh run/idempotency namespace even when
+        # the issuer-universe snapshot has not changed.  Otherwise DurableJobQueue
+        # returns the completed monitor jobs from the previous run and no source
+        # discovery is actually retried.
+        prior_run_ids = {
+            row["run_id"] for row in db.conn.execute(
+                """SELECT DISTINCT json_extract(payload_json,'$.backfill_run_id') AS run_id
+                FROM jobs
+                WHERE json_extract(payload_json,'$.backfill_run_id') LIKE ?""",
+                (f"{base_run_id}%",),
+            ).fetchall() if row["run_id"]
+        }
+        retry = 1
+        while f"{base_run_id}:retry-{retry}" in prior_run_ids:
+            retry += 1
+        run_id = f"{base_run_id}:retry-{retry}"
     with db.conn:
         db.conn.execute(
             """UPDATE jobs SET priority=CASE job_type
