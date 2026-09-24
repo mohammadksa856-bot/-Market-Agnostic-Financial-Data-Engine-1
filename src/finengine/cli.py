@@ -136,6 +136,9 @@ def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
             result = service.poll(
                 company, monitor, "fetch_document", fetch_payload, True,
                 job_priority=5 if common_payload.get("discovery_scope") == "historical" else 100,
+                force_discovery=common_payload.get("discovery_scope") == "historical",
+                requeue_existing=common_payload.get("discovery_scope") == "historical",
+                retry_key=common_payload.get("backfill_run_id"),
             )
         except Exception as error:
             errors.append({"source_index": source_index, "error": str(error)[:500]})

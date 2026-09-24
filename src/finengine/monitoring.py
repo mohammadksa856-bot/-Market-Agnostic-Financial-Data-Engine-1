@@ -20,25 +20,34 @@ class MonitorService:
 
     def poll(self, company: Company, monitor, job_type: str | None = None,
              job_payload: dict | None = None, enqueue_per_candidate: bool = False,
-             job_priority: int = 100) -> dict:
+             job_priority: int = 100, force_discovery: bool = False,
+             requeue_existing: bool = False, retry_key: str | None = None) -> dict:
         self.db.register_company(company)
         state = self.db.get_monitor_state(company.company_id, monitor.name)
         try:
-            result = monitor.discover(company, state.get("cursor"))
-            created_candidates: list[int] = []
+            result = monitor.discover(
+                company, None if force_discovery else state.get("cursor"))
+            created_candidates: list[tuple[int, bool]] = []
             for candidate in result.candidates:
                 candidate_id, created = self.db.save_source_candidate(candidate)
-                if created:
-                    created_candidates.append(candidate_id)
+                status = self.db.conn.execute(
+                    "SELECT status FROM source_candidates WHERE id=?",
+                    (candidate_id,),
+                ).fetchone()["status"]
+                if created or (requeue_existing and status in {"discovered", "error"}):
+                    created_candidates.append((candidate_id, created))
             jobs: list[str] = []
             if job_type and created_candidates:
                 if enqueue_per_candidate:
-                    for candidate_id in created_candidates:
+                    for candidate_id, candidate_created in created_candidates:
                         payload = dict(job_payload or {})
                         payload["candidate_id"] = candidate_id
+                        idempotency_key = f"candidate:{candidate_id}:{job_type}"
+                        if retry_key and not candidate_created:
+                            idempotency_key += f":retry:{retry_key}"
                         job_id, created = self.queue.enqueue(
                             job_type, payload, company.company_id,
-                            idempotency_key=f"candidate:{candidate_id}:{job_type}",
+                            idempotency_key=idempotency_key,
                             priority=job_priority,
                         )
                         if created:
@@ -46,7 +55,8 @@ class MonitorService:
                             self.db.set_source_candidate_status(candidate_id, "queued")
                 else:
                     payload = dict(job_payload or {})
-                    payload["candidate_ids"] = created_candidates
+                    payload["candidate_ids"] = [
+                        candidate_id for candidate_id, _ in created_candidates]
                     job_id, created = self.queue.enqueue(
                         job_type, payload, company.company_id,
                         idempotency_key=(
@@ -56,7 +66,7 @@ class MonitorService:
                     )
                     if created:
                         jobs.append(job_id)
-                        for candidate_id in created_candidates:
+                        for candidate_id, _ in created_candidates:
                             self.db.set_source_candidate_status(candidate_id, "queued")
             self.db.mark_monitor_success(company.company_id, monitor.name, result.cursor)
             return {

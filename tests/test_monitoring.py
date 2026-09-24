@@ -238,6 +238,34 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(row["status"], "queued")
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
 
+    def test_historical_retry_ignores_cursor_and_requeues_failed_candidate(self):
+        html = b"<a href='/media/annual-report.pdf'>Annual report 2025</a>"
+        monitor = IssuerReportsMonitor(self.aramco.sources[0], opener=opener_for(html))
+        service = MonitorService(self.db, DurableJobQueue(self.db))
+        first = service.poll(
+            self.aramco, monitor, "fetch_document", {"raw_dir": self.temp.name}, True,
+        )
+        candidate_id = self.db.conn.execute(
+            "SELECT id FROM source_candidates"
+        ).fetchone()[0]
+        self.db.set_source_candidate_status(candidate_id, "error")
+
+        retry = service.poll(
+            self.aramco, monitor, "fetch_document", {"raw_dir": self.temp.name}, True,
+            force_discovery=True, requeue_existing=True,
+            retry_key="sa-historical:new-run:v2",
+        )
+
+        self.assertEqual((first["new_candidates"], first["queued_jobs"]), (1, 1))
+        self.assertEqual((retry["new_candidates"], retry["queued_jobs"]), (1, 1))
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM jobs WHERE job_type='fetch_document'"
+        ).fetchone()[0], 2)
+        keys = [row[0] for row in self.db.conn.execute(
+            "SELECT idempotency_key FROM jobs ORDER BY created_at,idempotency_key"
+        )]
+        self.assertTrue(any(key.endswith(":retry:sa-historical:new-run:v2") for key in keys))
+
     def test_monitor_job_falls_back_across_registered_official_sources(self):
         fallback = "https://www.saudiexchange.sa/company/2222"
         with self.db.conn:
