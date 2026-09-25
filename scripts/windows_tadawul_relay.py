@@ -61,11 +61,25 @@ class LocalEdgeFetcher(BrowserFetcher):
         )
 
 
-def _run(command: list[str], attempts: int = 3) -> str:
+def _run(command: list[str], attempts: int = 3, timeout: int = 120) -> str:
     last_error = None
     for attempt in range(1, attempts + 1):
-        result = subprocess.run(command, capture_output=True, text=True,
-                                encoding="utf-8", errors="replace")
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            last_error = RuntimeError(
+                f"command timed out after {timeout}s: {' '.join(command[:2])}"
+            )
+            if attempt < attempts:
+                time.sleep(5 * attempt)
+            continue
         if result.returncode == 0:
             return result.stdout.strip()
         last_error = RuntimeError(
@@ -140,10 +154,16 @@ def _remote_publish(args, company: dict, candidate: dict,
     remote_host_path = f"/tmp/finengine-relay/{remote_name}"
     container_file = f"/tmp/{remote_name}"
     container_manifest = f"/tmp/{remote_name}.json"
-    ssh = ["ssh", "-i", str(args.ssh_key), "-o",
-           f"UserKnownHostsFile={args.known_hosts}", args.server]
-    scp = ["scp", "-i", str(args.ssh_key), "-o",
-           f"UserKnownHostsFile={args.known_hosts}"]
+    connection_options = [
+        "-o", f"UserKnownHostsFile={args.known_hosts}",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=15",
+        "-o", "ConnectionAttempts=1",
+        "-o", "ServerAliveInterval=15",
+        "-o", "ServerAliveCountMax=2",
+    ]
+    ssh = ["ssh", "-i", str(args.ssh_key), *connection_options, args.server]
+    scp = ["scp", "-i", str(args.ssh_key), *connection_options]
     _run(ssh + ["mkdir", "-p", "/tmp/finengine-relay"])
     _run(scp + [str(local_path), f"{args.server}:{remote_host_path}"])
     _run(ssh + ["docker", "cp", remote_host_path,
