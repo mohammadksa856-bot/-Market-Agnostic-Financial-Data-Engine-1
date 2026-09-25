@@ -217,6 +217,14 @@ def _remote_publish(args, company: dict, candidate: dict,
         "/app/state/financial.sqlite3", "ingest", "SA", str(company["symbol"]),
         "--file", container_manifest, "--raw-dir", "/app/state/raw",
     ], attempts=12)
+    try:
+        ingest_result = json.loads(ingest_output)
+    except json.JSONDecodeError:
+        ingest_result = {}
+    if ingest_result.get("status") in {
+        "exception", "failed", "quarantined", "review_required"
+    }:
+        return "review_required", f"{read_output}\n{ingest_output}".strip()
     return "published", f"{read_output}\n{ingest_output}".strip()
 
 
