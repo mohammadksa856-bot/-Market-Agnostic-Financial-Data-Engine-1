@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 import subprocess
+import time
 from datetime import date
 from pathlib import Path
 
@@ -60,10 +61,20 @@ class LocalEdgeFetcher(BrowserFetcher):
         )
 
 
-def _run(command: list[str]) -> str:
-    result = subprocess.run(command, check=True, capture_output=True, text=True,
-                            encoding="utf-8", errors="replace")
-    return result.stdout.strip()
+def _run(command: list[str], attempts: int = 3) -> str:
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        result = subprocess.run(command, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
+        if result.returncode == 0:
+            return result.stdout.strip()
+        last_error = RuntimeError(
+            f"command failed ({result.returncode}): {' '.join(command[:2])}: "
+            f"{(result.stderr + result.stdout).strip()[-2000:]}"
+        )
+        if attempt < attempts:
+            time.sleep(5 * attempt)
+    raise last_error
 
 
 def _load_json(path: Path, default):
@@ -121,7 +132,8 @@ def _period_end(title: str) -> str | None:
     return None
 
 
-def _remote_publish(args, company: dict, candidate: dict, local_path: Path) -> str:
+def _remote_publish(args, company: dict, candidate: dict,
+                    local_path: Path) -> tuple[str, str]:
     digest = hashlib.sha256(local_path.read_bytes()).hexdigest()
     suffix = local_path.suffix.lower()
     remote_name = f"{company['symbol']}-{digest}{suffix}"
@@ -136,6 +148,11 @@ def _remote_publish(args, company: dict, candidate: dict, local_path: Path) -> s
     _run(scp + [str(local_path), f"{args.server}:{remote_host_path}"])
     _run(ssh + ["docker", "cp", remote_host_path,
                 f"{args.worker}:{container_file}"])
+    archive_dir = f"/app/state/raw/SA/{company['symbol']}/documents"
+    archive_file = f"{archive_dir}/{digest}{suffix}"
+    _run(ssh + ["docker", "exec", args.worker, "mkdir", "-p", archive_dir])
+    _run(ssh + ["docker", "cp", remote_host_path,
+                f"{args.worker}:{archive_file}"])
 
     filed_at = _published_at_from_url(candidate["url"]) or date.today().isoformat()
     filing_type = BrowserIssuerMonitor._document_type(
@@ -154,13 +171,20 @@ def _remote_publish(args, company: dict, candidate: dict, local_path: Path) -> s
     period = _period_end(candidate["title"])
     if period:
         read += ["--period-end", period, "--fiscal-year", period[:4]]
-    read_output = _run(read)
+    try:
+        read_output = _run(read, attempts=1)
+    except RuntimeError as error:
+        detail = str(error)
+        if ("verify ok=False" in detail or "wrote 0 facts" in detail or
+                "could not infer the reporting year" in detail):
+            return "review_required", detail
+        raise
     ingest_output = _run(ssh + [
         "docker", "exec", args.worker, "finengine", "--db",
         "/app/state/financial.sqlite3", "ingest", "SA", str(company["symbol"]),
         "--file", container_manifest, "--raw-dir", "/app/state/raw",
-    ])
-    return f"{read_output}\n{ingest_output}".strip()
+    ], attempts=12)
+    return "published", f"{read_output}\n{ingest_output}".strip()
 
 
 def main() -> int:
@@ -184,11 +208,20 @@ def main() -> int:
                  if item.get("market") == "SA" and str(item.get("symbol") or "").isdigit()]
     if not companies:
         raise SystemExit("No Saudi companies found in registry")
-    state = _load_json(args.state, {"cursor": 0, "seen": {}})
+    state = _load_json(args.state, {"cursor": 0, "seen": {}, "retry_symbols": []})
     cursor = int(state.get("cursor") or 0) % len(companies)
     seen = state.setdefault("seen", {})
-    batch = [companies[(cursor + offset) % len(companies)]
-             for offset in range(min(max(args.batch_size, 1), len(companies)))]
+    by_symbol = {str(item["symbol"]): item for item in companies}
+    retry_set = {str(symbol) for symbol in state.get("retry_symbols", [])
+                 if str(symbol) in by_symbol}
+    batch = [by_symbol[symbol] for symbol in sorted(retry_set)]
+    fresh_count = 0
+    target_size = min(max(args.batch_size, 1), len(companies))
+    while len(batch) < target_size and fresh_count < len(companies):
+        company = companies[(cursor + fresh_count) % len(companies)]
+        fresh_count += 1
+        if str(company["symbol"]) not in {str(item["symbol"]) for item in batch}:
+            batch.append(company)
     fetcher = LocalEdgeFetcher(args.archive, edge=args.edge, timeout_ms=90_000)
     summary = {"companies": 0, "candidates": 0, "published": 0,
                "duplicates": 0, "failures": 0}
@@ -214,17 +247,27 @@ def main() -> int:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if not target.exists():
                     target.write_bytes(content)
-                output = _remote_publish(args, company, candidate, target)
-                seen[candidate["url"]] = {"sha256": digest, "published_at": date.today().isoformat()}
-                summary["published"] += 1
-                _log(args.log, {"status": "published", "symbol": company["symbol"],
+                status, output = _remote_publish(args, company, candidate, target)
+                seen[candidate["url"]] = {
+                    "sha256": digest, "published_at": date.today().isoformat(),
+                    "status": status,
+                }
+                if status == "published":
+                    summary["published"] += 1
+                else:
+                    summary.setdefault("review_required", 0)
+                    summary["review_required"] += 1
+                _log(args.log, {"status": status, "symbol": company["symbol"],
                                 "url": candidate["url"], "sha256": digest,
                                 "detail": output[-2000:]})
+            retry_set.discard(str(company["symbol"]))
         except Exception as error:
             summary["failures"] += 1
+            retry_set.add(str(company["symbol"]))
             _log(args.log, {"status": "failed", "symbol": company["symbol"],
                             "error": f"{type(error).__name__}: {error}"})
-    state["cursor"] = (cursor + len(batch)) % len(companies)
+    state["cursor"] = (cursor + fresh_count) % len(companies)
+    state["retry_symbols"] = sorted(retry_set)
     state["last_run"] = date.today().isoformat()
     state["last_summary"] = summary
     _save_state(args.state, state)
