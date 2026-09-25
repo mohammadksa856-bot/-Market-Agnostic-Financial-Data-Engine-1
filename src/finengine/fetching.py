@@ -20,7 +20,7 @@ import hashlib
 import re
 from datetime import date
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, unquote, urljoin, urlparse, urlunparse
 from urllib.request import Request, urlopen
 
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -34,6 +34,18 @@ _KEYWORDS = ("financial statement", "financial results", "interim", "annual repo
              "النتائج المالية", "التقرير السنوي", "تقارير سنوية", "ربع سنوي",
              "مرحلية", "الركيزة الثالثة")
 _SAUDI_EXCHANGE_HOST = "www.saudiexchange.sa"
+_SAUDI_MAIN_PROFILE = (
+    "https://www.saudiexchange.sa/wps/portal/saudiexchange/hidden/"
+    "company-profile-main/!ut/p/z1/"
+    "04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz83d2MXA0C3SydAl1c3Q0NvE30I4E"
+    "KzBEKDMKcTQzMDPxN3H19LAzdTU31w8syU8v1wwkpK8hOMgUA-oskdg!!/"
+)
+_SAUDI_NOMU_PROFILE = (
+    "https://www.saudiexchange.sa/wps/portal/saudiexchange/hidden/"
+    "company-profile-nomu-parallel/!ut/p/z1/"
+    "04_Sj9CPykssy0xPLMnMz0vMAfIjo8ziTR3NDIw8LAz8_R0tzQ0C3byc3D19HI1dA030I4E"
+    "KzBEKDMKcTQzMDPxN3H19LAzdTUz1w8syU8v1wwkpK8hOMgUAK239Tg!!/"
+)
 _XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _PDF_LABEL = re.compile(
     r"(?:\bpdf\b|download\s+(?:the\s+)?(?:full\s+)?report|view\s+pdf|"
@@ -240,6 +252,32 @@ def _saudi_financial_announcement_links(index_url: str, rows: list[dict],
     return found
 
 
+def _current_saudi_profile_url(index_url: str) -> str | None:
+    """Return the current Exchange profile route for a legacy profile URL.
+
+    Saudi Exchange periodically changes the WebSphere portal-state token in
+    issuer profile URLs.  The old URL then returns an HTTP 404 even though the
+    issuer and its filings still exist.  The company symbol is the stable key;
+    preserve it and rebuild the route using the currently published main/Nomu
+    profile endpoints.  Non-profile URLs deliberately receive no fallback.
+    """
+    parsed = urlparse(index_url)
+    if parsed.hostname != _SAUDI_EXCHANGE_HOST:
+        return None
+    query = parse_qs(parsed.query)
+    symbol = (query.get("companySymbol") or [""])[0].strip()
+    if not symbol or not symbol.isdigit():
+        return None
+    path = parsed.path.lower()
+    if "company-profile-nomu" in path:
+        base = _SAUDI_NOMU_PROFILE
+    elif "company-profile-main" in path:
+        base = _SAUDI_MAIN_PROFILE
+    else:
+        return None
+    return f"{base}?companySymbol={symbol}"
+
+
 def _official_issuer_websites(index_url: str, links: list[list[str]]) -> list[str]:
     """Select company websites explicitly labelled as their own hostname.
 
@@ -292,14 +330,15 @@ class BrowserFetcher:
         """Render an investor-relations page and return candidate filing links."""
         max_documents = max(1, min(int(max_documents), 200))
         import contextlib
-        host = urlparse(index_url).hostname or ""
+        discovery_url = _current_saudi_profile_url(index_url) or index_url
+        host = urlparse(discovery_url).hostname or ""
         allowed_hosts = {host}
         trusted_documents: set[str] = set()
         referers: dict[str, str] = {}
         with contextlib.ExitStack() as stack:
             context = self._context(stack)
             page = context.new_page()
-            _goto_with_partial_dom(page, index_url, self.timeout_ms)
+            _goto_with_partial_dom(page, discovery_url, self.timeout_ms)
             # give client-rendered link lists a moment; do not wait for networkidle -
             # corporate sites keep long-poll / analytics connections open forever.
             with contextlib.suppress(Exception):
@@ -343,7 +382,7 @@ class BrowserFetcher:
                     "text:(e.textContent||'').trim()}))",
                 )
                 announcements = _saudi_financial_announcement_links(
-                    index_url, cards, keywords
+                    page.url, cards, keywords
                 )[:max_documents]
                 detail = context.new_page()
                 for announcement in announcements:
@@ -366,7 +405,7 @@ class BrowserFetcher:
                 # issuer's own website. Crawl a bounded set of investor/report
                 # pages there to find full annual and interim statements, which
                 # are often not attached to Exchange announcements.
-                for issuer_site in _official_issuer_websites(index_url, raw)[:1]:
+                for issuer_site in _official_issuer_websites(page.url, raw)[:1]:
                     issuer_host = urlparse(issuer_site).hostname or ""
                     allowed_hosts.add(issuer_host)
                     issuer_page = context.new_page()
@@ -385,7 +424,7 @@ class BrowserFetcher:
                     )
         seen, out = set(), []
         for href, text in raw:
-            full = urljoin(index_url, href)
+            full = urljoin(discovery_url, href)
             parsed = urlparse(full)
             content_type = _document_content_type(full, text)
             if parsed.scheme != "https" or not content_type:

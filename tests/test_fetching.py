@@ -4,7 +4,7 @@ from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
     _direct_document_bytes, _document_content_type, _goto_with_partial_dom,
     _is_dedicated_filing_index, _is_report_page, _matches_filing_keywords,
-    _published_at_from_url,
+    _published_at_from_url, _current_saudi_profile_url,
     _request_document_bytes,
     _saudi_financial_announcement_links, _slug, SourceAccessBlocked,
     _validate_document_bytes,
@@ -169,6 +169,34 @@ class FetchAgentUnitTests(unittest.TestCase):
                     "?anId=97060&cs=2010"),
             "title": "SABIC announces its Interim Financial Results for Q2 2026",
         }])
+
+    def test_stale_saudi_profile_route_is_rebuilt_from_stable_symbol(self):
+        stale = (
+            "https://www.saudiexchange.sa/wps/portal/saudiexchange/hidden/"
+            "company-profile-main/!ut/p/z1/STALE_TOKEN/"
+            "?companySymbol=2222&locale=en"
+        )
+        current = _current_saudi_profile_url(stale)
+        self.assertIsNotNone(current)
+        self.assertIn("company-profile-main", current)
+        self.assertTrue(current.endswith("?companySymbol=2222"))
+        self.assertNotIn("STALE_TOKEN", current)
+
+    def test_nomu_profile_route_remains_nomu(self):
+        stale = (
+            "https://www.saudiexchange.sa/wps/portal/saudiexchange/hidden/"
+            "company-profile-nomu-parallel/!ut/p/z1/OLD/"
+            "?companySymbol=9542"
+        )
+        current = _current_saudi_profile_url(stale)
+        self.assertIn("company-profile-nomu-parallel", current)
+        self.assertTrue(current.endswith("?companySymbol=9542"))
+
+    def test_non_profile_exchange_url_is_not_rewritten(self):
+        self.assertIsNone(_current_saudi_profile_url(
+            "https://www.saudiexchange.sa/wps/portal/saudiexchange/"
+            "newsandreports/issuer-news?companySymbol=2222"
+        ))
 
     def test_browser_monitor_classifies_interim_and_annual_reports(self):
         self.assertEqual(
