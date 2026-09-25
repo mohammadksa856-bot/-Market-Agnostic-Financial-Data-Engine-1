@@ -880,6 +880,9 @@ def _market_history_job_handler(db: Database):
     return handle
 
 
+from .xlsx_classifier import MappingSelectionError, select_mapping
+
+
 def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = None):
     def handle(job):
         source_key=job.payload["source_key"]; row=db.stored_source(source_key)
@@ -896,21 +899,24 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                 company,StoredDocumentConnector(document),job.job_id,
             )
         if row["content_type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-            mapping_path = Path("config") / "supplements" / f"{company.symbol}.json"
-            if not mapping_path.is_file():
+            # The reviewed row map is chosen from the workbook's own structure
+            # (sheet names, period headers, row labels), never from the issuer.
+            xlsx_evidence=None
+            try:
+                chosen=select_mapping(path,Path("config")/"supplements",document_company_id=company.company_id)
+            except MappingSelectionError as error:
                 manifest=None; report=None; reader_source="xlsx-supplement"
-                read_error=f"reviewed issuer mapping is missing: {mapping_path}"
-                code="xlsx_mapping_required"
+                read_error=str(error); code=error.code; xlsx_evidence=error.evidence
             else:
                 try:
-                    manifest,report=_read_xlsx_manifest(path,company,row,mapping_path)
+                    manifest,report=_read_xlsx_manifest(path,company,row,chosen["mapping_path"])
+                    manifest["mapping_selection"]=chosen["selection"]
                 except Exception as error:
                     manifest=None; report=None; read_error=str(error)
-                    reader_source="xlsx-supplement"
-                    code="xlsx_extraction_failed"
+                    xlsx_evidence=chosen["selection"]
                 else:
-                    reader_source="xlsx-supplement"; read_error=None
-                    code="xlsx_extraction_failed"
+                    read_error=None
+                reader_source="xlsx-supplement"; code="xlsx_extraction_failed"
         elif row["content_type"] == "application/pdf":
             equivalent_source = _published_language_equivalent(db, row)
             if equivalent_source:
@@ -1031,7 +1037,8 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                 "The reader agent could not produce a manifest that passes verify.",
                 {"content_type":row["content_type"],"local_path":row["local_path"],
                  "reader":reader_source,"read_error":read_error,
-                 "verify_failures":report["failures"] if report else None},
+                 "verify_failures":report["failures"] if report else None,
+                 **({"xlsx_evidence":xlsx_evidence} if row["content_type"].endswith("spreadsheetml.sheet") and xlsx_evidence else {})},
             )
         else:
             db.exception(company.company_id,source_key,"extraction",code,
@@ -1322,10 +1329,17 @@ def main():
         from .verification import ManifestVerifier
         from .reading_xlsx import SupplementReader
         company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
-        mapping=a.mapping or f"config/supplements/{a.symbol}.json"
+        selection=None
+        if a.mapping: mapping=a.mapping
+        else:
+            try: chosen=select_mapping(a.xlsx,Path("config")/"supplements",tuple(a.period_kinds.split(",")),document_company_id=company.company_id)
+            except MappingSelectionError as error:
+                print(json.dumps({"code":error.code,"message":str(error),"evidence":error.evidence},indent=2,ensure_ascii=False,default=str)); raise SystemExit(2)
+            mapping=chosen["mapping_path"]; selection=chosen["selection"]
         manifest=SupplementReader(a.xlsx,mapping).read(
             market=a.market,symbol=a.symbol,currency=company.currency,filed_at=a.filed_at,
             filing_type=a.filing_type,period_kinds=tuple(a.period_kinds.split(",")))
+        if selection: manifest["mapping_selection"]=selection
         with tempfile.TemporaryDirectory() as directory:
             Path(directory,"m.json").write_text(json.dumps(manifest),encoding="utf-8")
             verification=ManifestVerifier(directory).verify()

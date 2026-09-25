@@ -24,6 +24,11 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 _PERIOD = re.compile(r"^\s*(FY|1Q|2Q|3Q|4Q|1H|9M|H1|Q1|Q2|Q3|Q4)[\s\-]*(20\d{2})\s*$", re.I)
+_TAGS = r"(FY|1Q|2Q|3Q|4Q|1H|9M|H1|Q1|Q2|Q3|Q4)"
+# Same tags, other common header spellings: two-digit year ("1Q25", "Q1'25",
+# "FY 25") and year-first ("2025 Q1", "2025-FY").
+_PERIOD_SHORT = re.compile(rf"^\s*{_TAGS}[\s\-]*['’]?(\d{{2}})\s*$", re.I)
+_PERIOD_YEAR_FIRST = re.compile(rf"^\s*(20\d{{2}})[\s\-]*{_TAGS}\s*$", re.I)
 _QUARTER_END = {"1Q": "03-31", "2Q": "06-30", "3Q": "09-30", "4Q": "12-31",
                 "Q1": "03-31", "Q2": "06-30", "Q3": "09-30", "Q4": "12-31"}
 _CUMULATIVE_END = {"1h": "06-30", "h1": "06-30", "9m": "09-30"}
@@ -65,9 +70,14 @@ def _column_period(text: str):
     # identity, so accept it without weakening the anchored period parser.
     cleaned = re.sub(r"[\s*¹²³⁴]+$", "", text or "")
     match = _PERIOD.match(cleaned)
-    if not match:
+    if match:
+        tag, year = match.group(1).upper(), int(match.group(2))
+    elif (match := _PERIOD_SHORT.match(cleaned)):
+        tag, year = match.group(1).upper(), 2000 + int(match.group(2))
+    elif (match := _PERIOD_YEAR_FIRST.match(cleaned)):
+        tag, year = match.group(2).upper(), int(match.group(1))
+    else:
         return None
-    tag, year = match.group(1).upper(), int(match.group(2))
     if tag == "FY":
         return "fy", year, f"{year}-12-31"
     if tag in _QUARTER_END:

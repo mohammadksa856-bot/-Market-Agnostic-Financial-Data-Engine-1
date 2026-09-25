@@ -746,6 +746,48 @@ class MonitoringTests(unittest.TestCase):
             "SELECT code FROM exceptions ORDER BY id DESC LIMIT 1"
         ).fetchone()
         self.assertEqual(exception["code"], "xlsx_mapping_required")
+        payload = json.loads(self.db.conn.execute(
+            "SELECT payload_json FROM exceptions ORDER BY id DESC LIMIT 1"
+        ).fetchone()["payload_json"])
+        self.assertTrue(payload["xlsx_evidence"]["unreadable"])
+
+    def test_readable_workbook_without_structural_match_carries_evidence(self):
+        try:
+            import openpyxl
+        except ImportError:
+            self.skipTest("openpyxl is not installed")
+        unmapped = Company("sa:1060", Market.SA, "1060", "Unmapped Bank", "SAR")
+        self.db.register_company(unmapped)
+        workbook = openpyxl.Workbook()
+        workbook.active.title = "Quarterly P&L"
+        workbook.active.append(["SAR mn", "Mar-25", "Jun-25"])
+        workbook.active.append(["Net income", 1, 2])
+        stream = io.BytesIO()
+        workbook.save(stream)
+        candidate = SourceCandidate(
+            unmapped.company_id, "browser-issuer-reports", "xlsx-new-layout",
+            "https://issuer.example/new-layout.xlsx", "Q2 Data Supplement",
+            "data-supplement", "2026-08-01",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(stream.getvalue()),
+        ).fetch(candidate_id)
+        job = type("Job", (), {
+            "payload": {"source_key": archived["source_key"]}, "job_id": "xlsx-evidence",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["status"], "review_required")
+        self.assertEqual(result["code"], "xlsx_mapping_required")
+        self.assertEqual(result["published"], 0)
+        payload = json.loads(self.db.conn.execute(
+            "SELECT payload_json FROM exceptions WHERE source_key=?", (archived["source_key"],)
+        ).fetchone()["payload_json"])
+        evidence = payload["xlsx_evidence"]
+        self.assertEqual(evidence["sheet_names"], ["Quarterly P&L"])
+        self.assertEqual(len(evidence["sha256"]), 64)
+        self.assertEqual(self.db.source_status(archived["source_key"]), "review_required")
 
     def test_reviewed_bank_xlsx_is_extracted_and_published(self):
         try:
@@ -757,11 +799,18 @@ class MonitoringTests(unittest.TestCase):
             industry="Banks",
         )
         self.db.register_company(bank)
+        # The workbook carries the full row layout of the reviewed map (labels
+        # only - structure is what selects a map) with values on one line.
+        mapping = json.loads((Path(__file__).resolve().parents[1] / "config"
+                              / "supplements" / "1120.json").read_text(encoding="utf-8"))
         workbook = openpyxl.Workbook()
-        sheet = workbook.active
-        sheet.title = "1. Income Statement"
-        sheet.append(["SAR mn", "FY 2025", "1Q 2026"])
-        sheet.append(["Net income for the period after Zakat", 21000, 6000])
+        workbook.remove(workbook.active)
+        for sheet_name, rows in mapping["sheets"].items():
+            sheet = workbook.create_sheet(sheet_name)
+            sheet.append(["SAR mn", "FY 2025", "1Q 2026"])
+            for label in rows:
+                value = 21000 if label.lower().startswith("net income for the period after") else None
+                sheet.append([label, value, value and 6000])
         stream = io.BytesIO()
         workbook.save(stream)
         workbook.close()
