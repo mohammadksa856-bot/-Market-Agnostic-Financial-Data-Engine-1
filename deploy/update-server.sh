@@ -38,6 +38,13 @@ if [ "$extra_workers" -gt 0 ]; then
     # letting Compose or host CPU count choose an unsafe level automatically.
     $compose --profile extra-writer up -d --build --remove-orphans \
         --scale worker="$extra_workers"
+    # Compose can leave scaled worker containers on their previous service
+    # image when only the default services caused a rebuild.  Workers execute
+    # the fetch/extract code, so explicitly rebuild and recreate that service
+    # on every deploy instead of reporting a healthy but stale fleet.
+    $compose --profile extra-writer build worker
+    $compose --profile extra-writer up -d --no-deps --force-recreate \
+        --scale worker="$extra_workers" worker
 else
     $compose up -d --build --remove-orphans
 fi
