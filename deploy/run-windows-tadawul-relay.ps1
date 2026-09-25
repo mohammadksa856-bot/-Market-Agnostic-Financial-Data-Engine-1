@@ -12,5 +12,5 @@ if (-not (Test-Path $Python)) {
 if (-not (Test-Path $SshKey)) {
     throw "Local relay SSH key is missing: $SshKey"
 }
-& $Python $Script --batch-size 8 --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
+& $Python $Script --batch-size 8 --max-documents 10 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
 exit $LASTEXITCODE

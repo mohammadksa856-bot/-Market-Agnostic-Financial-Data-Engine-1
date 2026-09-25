@@ -211,6 +211,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--max-documents", type=int, default=5)
+    parser.add_argument(
+        "--crawl-issuer-site",
+        action="store_true",
+        help="Follow the official company website linked by Saudi Exchange.",
+    )
     parser.add_argument("--registry", type=Path, default=PROJECT / "config" / "companies.json")
     parser.add_argument("--state", type=Path, default=DEFAULT_STATE)
     parser.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
@@ -250,7 +255,7 @@ def main() -> int:
         try:
             candidates = fetcher.discover(
                 _profile_url(company), max_documents=args.max_documents,
-                crawl_issuer_site=False,
+                crawl_issuer_site=args.crawl_issuer_site,
             )
             summary["candidates"] += len(candidates)
             for candidate in candidates:
