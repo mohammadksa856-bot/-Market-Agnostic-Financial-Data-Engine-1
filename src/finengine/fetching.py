@@ -266,6 +266,13 @@ def _current_saudi_profile_url(index_url: str) -> str | None:
         return None
     query = parse_qs(parsed.query)
     symbol = (query.get("companySymbol") or [""])[0].strip()
+    if not symbol:
+        # Older issuer-directory exports embedded the stable public parameter
+        # inside the WebSphere state path instead of the query string.
+        path_symbol = re.search(r"/companySymbol/(\d+)(?:/|$)", parsed.path,
+                                flags=re.IGNORECASE)
+        if path_symbol:
+            symbol = path_symbol.group(1)
     if not symbol or not symbol.isdigit():
         return None
     path = parsed.path.lower()
@@ -344,6 +351,16 @@ class BrowserFetcher:
             with contextlib.suppress(Exception):
                 page.wait_for_load_state("load", timeout=8000)
             page.wait_for_timeout(2500)
+            if host == _SAUDI_EXCHANGE_HOST:
+                title = (page.title() or "").strip().lower()
+                body = ""
+                with contextlib.suppress(Exception):
+                    body = page.locator("body").inner_text(timeout=3000).strip().lower()
+                if title == "access denied" or body.startswith("access denied"):
+                    raise SourceAccessBlocked(
+                        "Saudi Exchange denied the browser host; run this source "
+                        "through an allowed residential/browser relay"
+                    )
             raw = page.eval_on_selector_all(
                 "a[href]", "els => els.map(e => { "
                 "const label=(e.textContent||'').trim(); let node=e.parentElement; "
@@ -387,9 +404,17 @@ class BrowserFetcher:
                 detail = context.new_page()
                 for announcement in announcements:
                     try:
-                        detail.goto(announcement["url"], timeout=self.timeout_ms,
-                                    wait_until="domcontentloaded")
-                        detail.wait_for_timeout(500)
+                        _goto_with_partial_dom(
+                            detail, announcement["url"], self.timeout_ms
+                        )
+                        # Announcement attachments are filled by a client-side
+                        # portlet after DOMContentLoaded.  Half a second was
+                        # enough locally but routinely read an empty list from
+                        # the production host; use the same bounded render wait
+                        # as the profile page.
+                        with contextlib.suppress(Exception):
+                            detail.wait_for_load_state("load", timeout=8000)
+                        detail.wait_for_timeout(2500)
                         attachments = detail.eval_on_selector_all(
                             "a[href]", "els => els.map(e => e.href)")
                     except Exception:

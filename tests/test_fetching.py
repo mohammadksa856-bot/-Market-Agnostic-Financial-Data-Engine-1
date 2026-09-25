@@ -192,6 +192,16 @@ class FetchAgentUnitTests(unittest.TestCase):
         self.assertIn("company-profile-nomu-parallel", current)
         self.assertTrue(current.endswith("?companySymbol=9542"))
 
+    def test_symbol_embedded_in_legacy_portal_path_is_recovered(self):
+        stale = (
+            "https://www.saudiexchange.sa/wps/portal/saudiexchange/hidden/"
+            "company-profile-main/!ut/p/z1/OLD_STATE/view/normal/global/"
+            "http:%0%0tadawul%0/companySymbol/2222/en!!/"
+        )
+        current = _current_saudi_profile_url(stale)
+        self.assertIsNotNone(current)
+        self.assertTrue(current.endswith("?companySymbol=2222"))
+
     def test_non_profile_exchange_url_is_not_rewritten(self):
         self.assertIsNone(_current_saudi_profile_url(
             "https://www.saudiexchange.sa/wps/portal/saudiexchange/"
