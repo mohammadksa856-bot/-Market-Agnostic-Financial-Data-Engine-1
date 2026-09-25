@@ -196,7 +196,8 @@ def main() -> int:
         summary["companies"] += 1
         try:
             candidates = fetcher.discover(
-                _profile_url(company), max_documents=args.max_documents
+                _profile_url(company), max_documents=args.max_documents,
+                crawl_issuer_site=False,
             )
             summary["candidates"] += len(candidates)
             for candidate in candidates:

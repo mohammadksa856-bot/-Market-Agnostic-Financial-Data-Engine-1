@@ -333,7 +333,8 @@ class BrowserFetcher:
                                    locale="en-US", ignore_https_errors=True)
 
     def discover(self, index_url: str, keywords: tuple[str, ...] = _KEYWORDS,
-                 max_documents: int = 20) -> list[dict]:
+                 max_documents: int = 20,
+                 crawl_issuer_site: bool = True) -> list[dict]:
         """Render an investor-relations page and return candidate filing links."""
         max_documents = max(1, min(int(max_documents), 200))
         import contextlib
@@ -430,7 +431,11 @@ class BrowserFetcher:
                 # issuer's own website. Crawl a bounded set of investor/report
                 # pages there to find full annual and interim statements, which
                 # are often not attached to Exchange announcements.
-                for issuer_site in _official_issuer_websites(page.url, raw)[:1]:
+                issuer_sites = (
+                    _official_issuer_websites(page.url, raw)[:1]
+                    if crawl_issuer_site else []
+                )
+                for issuer_site in issuer_sites:
                     issuer_host = urlparse(issuer_site).hostname or ""
                     allowed_hosts.add(issuer_host)
                     issuer_page = context.new_page()
