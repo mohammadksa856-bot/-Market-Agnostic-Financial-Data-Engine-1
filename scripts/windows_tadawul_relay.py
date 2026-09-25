@@ -123,6 +123,19 @@ def _profile_url(company: dict) -> str:
     )
 
 
+def _discovery_urls(company: dict, include_issuer_sources: bool) -> list[str]:
+    urls: list[str] = []
+    if include_issuer_sources:
+        for source in company.get("sources") or []:
+            url = source.get("url") if isinstance(source, dict) else source
+            if isinstance(url, str) and url.startswith("https://") and url not in urls:
+                urls.append(url)
+    profile = _profile_url(company)
+    if profile not in urls:
+        urls.append(profile)
+    return urls
+
+
 def _period_end(title: str) -> str | None:
     match = re.search(r"\b(20\d{2})-(\d{2})-(\d{2})\b", title)
     if match:
@@ -253,10 +266,37 @@ def main() -> int:
     for company in batch:
         summary["companies"] += 1
         try:
-            candidates = fetcher.discover(
-                _profile_url(company), max_documents=args.max_documents,
-                crawl_issuer_site=args.crawl_issuer_site,
-            )
+            candidates: list[dict] = []
+            candidate_urls: set[str] = set()
+            discovery_errors: list[Exception] = []
+            for source_url in _discovery_urls(company, args.crawl_issuer_site):
+                remaining = args.max_documents - len(candidates)
+                if remaining <= 0:
+                    break
+                try:
+                    discovered = fetcher.discover(
+                        source_url,
+                        max_documents=remaining,
+                        crawl_issuer_site=False,
+                    )
+                except Exception as error:
+                    discovery_errors.append(error)
+                    _log(args.log, {
+                        "status": "source_failed",
+                        "symbol": company["symbol"],
+                        "source_url": source_url,
+                        "error": f"{type(error).__name__}: {error}",
+                    })
+                    continue
+                for candidate in discovered:
+                    if candidate["url"] in candidate_urls:
+                        continue
+                    candidate_urls.add(candidate["url"])
+                    candidates.append(candidate)
+                    if len(candidates) >= args.max_documents:
+                        break
+            if not candidates and discovery_errors:
+                raise discovery_errors[-1]
             summary["candidates"] += len(candidates)
             for candidate in candidates:
                 if candidate["url"] in seen:
