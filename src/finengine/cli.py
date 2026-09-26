@@ -1374,7 +1374,11 @@ def main():
         if not verification["ok"]: raise SystemExit(1)
         return
     if a.cmd=="relay-enqueue":
-        db=Database(a.db); reg=CompanyRegistry.combined(db.conn,a.registry)
+        # Deployment owns schema migration and catalog backfills.  The relay is
+        # a hot-path writer that may run alongside several extraction workers;
+        # reopening it in initialization mode needlessly competes for SQLite's
+        # schema/write lock for every downloaded document.
+        db=Database(a.db,initialize=False); reg=CompanyRegistry.combined(db.conn,a.registry)
         company=reg.resolve(a.market,a.symbol); db.register_company(company)
         path=Path(a.file); content=path.read_bytes(); digest=hashlib.sha256(content).hexdigest()
         content_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
