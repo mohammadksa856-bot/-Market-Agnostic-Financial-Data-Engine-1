@@ -61,6 +61,13 @@ _REPORT_PAGE_TERMS = (
     "performance-financial", "investor-relations", "/investors", "/reports",
     "علاقات المستثمرين", "التقارير السنوية", "القوائم المالية", "النتائج المالية",
 )
+_LOAD_MORE_CONTROL = re.compile(
+    r"^(?:load|show|view)\s+more(?:\s+(?:reports?|results?|items?))?$|"
+    r"^(?:more\s+(?:reports?|results?))$|"
+    r"^(?:عرض|تحميل)\s+المزيد$|^المزيد$",
+    re.I,
+)
+_LOAD_MORE_SELECTOR = "button, [role='button'], a[href]"
 
 
 class SourceAccessBlocked(RuntimeError):
@@ -129,6 +136,74 @@ def _goto_with_partial_dom(page, url: str, timeout_ms: int) -> None:
             raise
 
 
+def _expand_load_more(page, max_actions: int = 6, wait_ms: int = 750) -> int:
+    """Click bounded in-place archive expansion controls until they stop growing.
+
+    Navigation-style pagination is handled by the report-page BFS below.  This
+    helper intentionally accepts only controls that stay on the current page,
+    avoiding broad clicks on unrelated issuer navigation.
+    """
+    max_actions = max(0, min(int(max_actions), 12))
+    clicked = 0
+    seen_signatures: set[tuple] = set()
+    while clicked < max_actions:
+        try:
+            listing = page.eval_on_selector_all(
+                "a[href], [onclick*='document.location.href']",
+                "els => els.map(e => e.href || e.getAttribute('onclick') || '')",
+            )
+            controls = page.eval_on_selector_all(
+                _LOAD_MORE_SELECTOR,
+                "els => els.map((e,index) => ({index, "
+                "text:(e.textContent||'').trim(), "
+                "aria:(e.getAttribute('aria-label')||'').trim(), "
+                "title:(e.getAttribute('title')||'').trim(), "
+                "href:e.href||'', disabled:!!e.disabled || "
+                "e.getAttribute('aria-disabled')==='true', "
+                "hidden:!e.getClientRects().length || "
+                "getComputedStyle(e).visibility==='hidden'}))",
+            )
+        except Exception:
+            break
+        signature = (
+            str(getattr(page, "url", "")),
+            tuple(str(item) for item in listing),
+            tuple(
+                (str(item.get("text") or ""), str(item.get("href") or ""),
+                 bool(item.get("disabled")), bool(item.get("hidden")))
+                for item in controls
+            ),
+        )
+        if signature in seen_signatures:
+            break
+        seen_signatures.add(signature)
+        current = str(getattr(page, "url", ""))
+        chosen = None
+        for control in controls:
+            label = " ".join(str(
+                control.get("text") or control.get("aria") or control.get("title") or ""
+            ).split())
+            if (control.get("disabled") or control.get("hidden") or
+                    not _LOAD_MORE_CONTROL.search(label)):
+                continue
+            href = str(control.get("href") or "").strip()
+            if href and not href.lower().startswith(("javascript:", "#")):
+                destination = urljoin(current, href)
+                if destination.split("#", 1)[0] != current.split("#", 1)[0]:
+                    continue
+            chosen = int(control["index"])
+            break
+        if chosen is None:
+            break
+        try:
+            page.locator(_LOAD_MORE_SELECTOR).nth(chosen).click(timeout=5000)
+            page.wait_for_timeout(wait_ms)
+        except Exception:
+            break
+        clicked += 1
+    return clicked
+
+
 def _validate_document_bytes(content: bytes, url: str, content_type: str) -> None:
     if content_type == "application/pdf" and not content.startswith(b"%PDF"):
         raise RuntimeError(f"downloaded content is not a PDF: {url}")
@@ -191,16 +266,35 @@ def _is_report_page(url: str, label: str, parent_url: str = "") -> bool:
     parsed = urlparse(url)
     if parsed.scheme != "https" or not parsed.hostname:
         return False
+    parent_parsed = urlparse(parent_url)
+    if (parent_parsed.hostname and
+            parsed.hostname.lower() != parent_parsed.hostname.lower()):
+        return False
     lowered = f"{label} {unquote(parsed.path)} {parsed.query}".lower()
     if any(extension in parsed.path.lower() for extension in (".pdf", ".xlsx")):
         return False
     if any(term in lowered for term in _REPORT_PAGE_TERMS):
         return True
     parent = unquote(urlparse(parent_url).path).lower()
-    return bool(
+    if bool(
         any(term.strip("/") in parent for term in _REPORT_PAGE_TERMS)
         and re.search(r"(?:^|[/=_-])20(?:0\d|1\d|2\d)(?:$|[/=&_-])", lowered)
+    ):
+        return True
+    # Follow explicit archive pagination only from a report page and only on
+    # the same official host.  The BFS page limit remains the hard bound.
+    same_host = bool(
+        parent_parsed.hostname and parsed.hostname == parent_parsed.hostname
     )
+    parent_is_report_page = any(
+        term.strip("/") in unquote(parent_parsed.path).lower()
+        for term in _REPORT_PAGE_TERMS
+    )
+    pagination = re.search(
+        r"(?:[?&](?:page|p|pageno)=\d+|/page/\d+(?:/|$))",
+        unquote(url).lower(),
+    )
+    return bool(same_host and parent_is_report_page and pagination)
 
 
 def _is_dedicated_filing_index(url: str) -> bool:
@@ -352,6 +446,9 @@ class BrowserFetcher:
             with contextlib.suppress(Exception):
                 page.wait_for_load_state("load", timeout=8000)
             page.wait_for_timeout(2500)
+            if (host == _SAUDI_EXCHANGE_HOST or
+                    _is_dedicated_filing_index(index_url)):
+                _expand_load_more(page, max_actions=min(6, max_documents))
             if host == _SAUDI_EXCHANGE_HOST:
                 title = (page.title() or "").strip().lower()
                 body = ""
@@ -514,6 +611,7 @@ class BrowserFetcher:
             try:
                 _goto_with_partial_dom(page, report_url, self.timeout_ms)
                 page.wait_for_timeout(1500)
+                _expand_load_more(page, max_actions=6)
                 links = page.eval_on_selector_all(
                     "a[href]", "els => els.map(e => { "
                     "const label=(e.textContent||'').trim(); let node=e.parentElement; "

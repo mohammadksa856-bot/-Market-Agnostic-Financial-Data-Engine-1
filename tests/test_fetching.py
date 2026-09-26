@@ -3,6 +3,7 @@ import unittest
 from finengine.fetching import (
     BrowserFetcher, BrowserIssuerMonitor, _official_issuer_websites,
     _direct_document_bytes, _document_content_type, _goto_with_partial_dom,
+    _expand_load_more,
     _is_dedicated_filing_index, _is_report_page, _matches_filing_keywords,
     _published_at_from_url, _current_saudi_profile_url,
     _request_document_bytes,
@@ -137,6 +138,45 @@ class FetchAgentUnitTests(unittest.TestCase):
             "https://issuer.example/careers/2021", "Careers",
             "https://issuer.example/",
         ))
+
+    def test_report_archive_pagination_is_same_host_and_bounded_by_bfs(self):
+        reports = "https://issuer.example/investors/annual-reports"
+        self.assertTrue(_is_report_page(
+            "https://issuer.example/investors/annual-reports?page=2",
+            "Next", reports,
+        ))
+        self.assertTrue(_is_report_page(
+            "https://issuer.example/investors/annual-reports/page/3/",
+            "3", reports,
+        ))
+        self.assertFalse(_is_report_page(
+            "https://other.example/investors/annual-reports?page=2",
+            "Next", reports,
+        ))
+
+    def test_load_more_expansion_stops_at_action_bound(self):
+        class Button:
+            def __init__(self, page): self.page = page
+            def click(self, **_kwargs): self.page.items.append(f"item-{len(self.page.items)}")
+
+        class Locator:
+            def __init__(self, page): self.page = page
+            def nth(self, _index): return Button(self.page)
+
+        class Page:
+            url = "https://issuer.example/investors/annual-reports"
+            def __init__(self): self.items = ["item-0"]
+            def eval_on_selector_all(self, selector, _script):
+                if selector.startswith("a[href], [onclick"):
+                    return list(self.items)
+                return [{"index": 0, "text": "Load more", "aria": "",
+                         "title": "", "href": "", "disabled": False}]
+            def locator(self, _selector): return Locator(self)
+            def wait_for_timeout(self, _milliseconds): return None
+
+        page = Page()
+        self.assertEqual(_expand_load_more(page, max_actions=3, wait_ms=0), 3)
+        self.assertEqual(len(page.items), 4)
 
     def test_slug_is_filesystem_safe(self):
         self.assertEqual(

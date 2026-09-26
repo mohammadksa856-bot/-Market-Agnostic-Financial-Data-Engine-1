@@ -28,6 +28,11 @@ from finengine.fetching import (
     _published_at_from_url,
     _validate_document_bytes,
 )
+from finengine.relay_discovery import (
+    DEFAULT_DISCOVERY_LIMIT_PER_SOURCE,
+    gather_company_candidates,
+    select_upload_candidates,
+)
 from build_sa_market_registry import (
     DEFAULT_OUTPUT as DEFAULT_MARKET_REGISTRY,
     DEFAULT_OVERRIDES as DEFAULT_COMPANY_OVERRIDES,
@@ -728,40 +733,31 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
         summary["companies"] += 1
         company_failed = symbol in failed_symbols
         try:
-            candidates: list[dict] = []
-            candidate_urls: set[str] = set()
-            discovery_errors: list[Exception] = []
-            for source_url in _discovery_urls(company, args.crawl_issuer_site):
-                remaining = args.max_documents - len(candidates)
-                if remaining <= 0:
-                    break
-                try:
-                    discovered = fetcher.discover(
-                        source_url,
-                        max_documents=remaining,
-                        crawl_issuer_site=False,
-                    )
-                except Exception as error:
-                    discovery_errors.append(error)
-                    company_failed = True
-                    summary["source_failures"] += 1
-                    _log(args.log, {
-                        "status": "source_failed",
-                        "symbol": symbol,
-                        "source_url": source_url,
-                        "error": f"{type(error).__name__}: {error}",
-                    })
-                    continue
-                for candidate in discovered:
-                    url = str(candidate["url"])
-                    if url in candidate_urls:
-                        continue
-                    candidate_urls.add(url)
-                    candidates.append(candidate)
-                    if len(candidates) >= args.max_documents:
-                        break
-            if not candidates and discovery_errors:
-                raise discovery_errors[-1]
+            discovery = gather_company_candidates(
+                fetcher,
+                company,
+                _profile_url(company),
+                args.crawl_issuer_site,
+                max_candidates_per_source=args.max_discovered_per_source,
+            )
+            for failure in discovery.source_failures:
+                _log(args.log, {
+                    "status": "source_failed",
+                    "symbol": symbol,
+                    "source_url": failure.source_url,
+                    "error": f"{type(failure.error).__name__}: {failure.error}",
+                })
+            summary["discovered"] = (
+                summary.get("discovered", 0) + len(discovery.candidates)
+            )
+            summary["source_failures"] += len(discovery.source_failures)
+            candidates = select_upload_candidates(
+                discovery.candidates,
+                args.max_documents,
+                seen=seen,
+                outbox=outbox,
+            )
+            company_failed = company_failed or discovery.needs_retry
             summary["candidates"] += len(candidates)
             for candidate in candidates:
                 url = str(candidate["url"])
@@ -909,6 +905,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--max-documents", type=int, default=5)
+    parser.add_argument(
+        "--max-discovered-per-source",
+        type=int,
+        default=DEFAULT_DISCOVERY_LIMIT_PER_SOURCE,
+        help="Bounded scan depth per official source before upload selection.",
+    )
     parser.add_argument(
         "--enqueue-limit", type=int, default=200,
         help="Maximum pending outbox entries attempted by one enqueue stage (0=all).",
