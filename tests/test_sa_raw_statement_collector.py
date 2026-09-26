@@ -128,6 +128,41 @@ class RejectionTests(unittest.TestCase):
         self.assertIsNone(raw.normalize_website("-"))
 
 
+class SupportingAndFilenameTests(unittest.TestCase):
+    def test_supporting_buckets(self):
+        self.assertEqual(raw.classify_bucket("Pillar 3 Disclosures Q2 2024"), ("supporting", "pillar3"))
+        self.assertEqual(raw.classify_bucket("BSF-Leverage Q1-2022"), ("supporting", "pillar3"))
+        self.assertEqual(raw.classify_bucket("BSFDataSupplement4Q2025"), ("supporting", "data_supplement"))
+        self.assertEqual(raw.classify_bucket("Fact Sheet 2023"), ("supporting", "factsheet"))
+        self.assertEqual(raw.classify_bucket("Q1 earnings call transcript"), ("rejected", "presentation"))
+        self.assertEqual(raw.classify_bucket("Q1 2024 earnings release")[0], "rejected")
+
+    def test_filename_codes(self):
+        for text, slot, fy in [("baj fs 2q13 final english", "H1", 2013),
+                               ("baj english signed fs q22015", "H1", 2015),
+                               ("bajsignedfs1q14english", "Q1", 2014),
+                               ("2019 Q3 statements", "9M", 2019),
+                               ("fy2020 financials", "FY", 2020)]:
+            r = raw.classify_period(text)
+            self.assertEqual((r["period_slot"], r["fiscal_year"]), (slot, fy), text)
+
+    def test_cumulative_period_end_wins(self):
+        r = raw.classify_period("financial statements for the three month and nine month "
+                                "periods ended 30 September 2024")
+        self.assertEqual((r["period_slot"], r["fiscal_year"]), ("9M", 2024))
+
+    def test_supporting_never_in_matrix(self):
+        led = raw.Ledger("1")
+        led.add_doc({"content_hash": "s", "fiscal_year": 2024, "period_slot": "Q1",
+                     "document_type": "supporting_pillar3", "bucket": "supporting",
+                     "supporting_type": "pillar3"})
+        self.assertEqual(led.coverage(), {})
+        self.assertEqual(led.counts()["Q1"], 0)
+        self.assertEqual(led.supporting_counts()["pillar3"], 1)
+        p = raw.archive_path(Path("R"), "1", "h", "pdf", "supporting")
+        self.assertEqual(p.parts[-2:], ("supporting", "h.pdf"))
+
+
 class LedgerTests(unittest.TestCase):
     def doc(self, fy, slot, h, typ="financial_statement"):
         return {"content_hash": h, "fiscal_year": fy, "period_slot": slot,

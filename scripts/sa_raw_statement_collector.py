@@ -52,6 +52,7 @@ LOAD_MORE = re.compile(
 NEXT = re.compile(r"^\s*(next|›|»|>|التالي)\s*$", re.I)
 FIN_RESULT_TITLE = re.compile(
     r"financial results|financial statements|النتائج المالية|القوائم المالية", re.I)
+RULES_VERSION = 2
 NOW = lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")  # noqa: E731
 
 
@@ -318,63 +319,61 @@ class IssuerCrawler:
                 pass
         return rows
 
+    CLICK_JS = r"""(re)=>{
+      const rx=new RegExp(re,'i');
+      const els=[...document.querySelectorAll('button,a,[role=button],li.next,.pagination *')];
+      for(const e of els){
+        if(e.dataset.rawClicked) continue;
+        const t=(e.innerText||e.value||e.getAttribute('aria-label')||'').trim();
+        if(!t||t.length>40||!rx.test(t)) continue;
+        const r=e.getBoundingClientRect();
+        if(!(r.width||r.height)||e.disabled||e.getAttribute('aria-disabled')==='true') continue;
+        const h=e.getAttribute('href')||'';
+        if(h && !h.startsWith('#') && !h.startsWith('javascript') && e.tagName==='A' && !/page|offset|start/i.test(h)) continue;
+        e.dataset.rawClicked='1'; e.click(); return t;
+      }
+      return null;}"""
+    TOGGLE_JS = r"""async()=>{
+      let n=0;
+      const els=[...document.querySelectorAll('[role=tab],.nav-tabs a,.accordion-button,summary,[aria-expanded=false],[data-toggle=tab],[data-bs-toggle=tab],[data-toggle=collapse],[data-bs-toggle=collapse]')].slice(0,80);
+      for(const e of els){
+        if(e.dataset.rawClicked) continue;
+        const h=e.getAttribute('href')||'';
+        if(h && !h.startsWith('#') && !h.startsWith('javascript')) continue;
+        try{e.dataset.rawClicked='1'; e.click(); n++; await new Promise(r=>setTimeout(r,120));}catch(x){}
+      }
+      for(const sel of [...document.querySelectorAll('select')].slice(0,6)){
+        const opts=[...sel.options].filter(o=>/(19|20)\d{2}/.test(o.text)).slice(0,40);
+        if(opts.length<2) continue;
+        for(const o of opts){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true}));
+          n++; await new Promise(r=>setTimeout(r,250)); window.__rawHarvest&&window.__rawHarvest(); }
+      }
+      return n;}"""
+
     def _expand(self, seen_links: dict):
-        """Click Load-more / Next / tabs / accordions until nothing new appears."""
+        """Click Load-more / Next / tabs / accordions / year selects until exhausted."""
         def harvest():
             for href, text, ctx in self._links():
                 seen_links.setdefault(href, (text, ctx))
         harvest()
-        clicks = 0
-        for _ in range(60):
+        for _ in range(80):
             before = len(seen_links)
-            target = None
-            for loc in (self.page.get_by_role("button"), self.page.locator("a")):
-                try:
-                    n = min(loc.count(), 120)
-                except Exception:
-                    continue
-                for i in range(n):
-                    el = loc.nth(i)
-                    try:
-                        label = (el.inner_text(timeout=300) or "").strip()
-                        if (LOAD_MORE.search(label) or NEXT.match(label)) and el.is_visible():
-                            target = el
-                            break
-                    except Exception:
-                        continue
-                if target:
-                    break
-            if not target:
-                break
             try:
-                target.click(timeout=3000)
-                self.page.wait_for_timeout(1200)
-                clicks += 1
+                clicked = self.page.evaluate(self.CLICK_JS, LOAD_MORE.pattern + "|^(next|›|»|التالي)$")
             except Exception:
                 break
+            if not clicked:
+                break
+            self.page.wait_for_timeout(900)
             harvest()
-            if len(seen_links) == before and clicks > 3:
+            if len(seen_links) == before and _ > 8:
                 break
-        # tabs / accordions / year selectors (bounded)
-        toggles = self.page.locator(
-            "[role=tab], .nav-tabs a, .accordion-button, .accordion-header, "
-            "summary, [aria-expanded=false], [data-toggle=tab], [data-bs-toggle=tab]")
         try:
-            n = min(toggles.count(), 60)
+            self.page.evaluate(self.TOGGLE_JS)
+            self.page.wait_for_timeout(500)
         except Exception:
-            n = 0
-        for i in range(n):
-            try:
-                el = toggles.nth(i)
-                if el.is_visible():
-                    href = el.get_attribute("href") or ""
-                    if href and not href.startswith(("#", "javascript")):
-                        continue
-                    el.click(timeout=1500)
-                    self.page.wait_for_timeout(500)
-                    harvest()
-            except Exception:
-                continue
+            pass
+        harvest()
 
     def crawl(self, seeds: list[dict]) -> dict:
         """Return {"docs": {url: (text, ctx, page_url)}, "status": ..., "pages": n}."""
@@ -441,10 +440,24 @@ class IssuerCrawler:
 
 
 class Downloader:
-    def __init__(self, context, log):
+    def __init__(self, context, log, se_page=None):
         self.context = context
         self.log = log
+        self.se_page = se_page
         self.last = 0.0
+
+    def _se_get(self, url: str) -> bytes:
+        """Saudi Exchange files 403 for out-of-page requests; fetch in-page."""
+        import base64
+        res = self.se_page.evaluate(
+            """async(u)=>{const r=await fetch(u,{credentials:'include'});
+            if(!r.ok) return {status:r.status};
+            const b=new Uint8Array(await r.arrayBuffer()); let s='';
+            for(let i=0;i<b.length;i+=32768) s+=String.fromCharCode.apply(null,b.subarray(i,i+32768));
+            return {status:200,data:btoa(s)};}""", url)
+        if res.get("status") != 200:
+            raise RuntimeError(f"HTTP {res.get('status')}")
+        return base64.b64decode(res["data"])
 
     def get(self, url: str, referer: str | None) -> bytes:
         wait = self.last + 1.0 - time.time()
@@ -452,16 +465,18 @@ class Downloader:
             time.sleep(wait)
         self.last = time.time()
         err = None
-        for attempt in range(3):
+        for attempt in range(2):
             try:
-                opts = {"timeout": 90000}
+                if self.se_page is not None and "saudiexchange.sa" in url:
+                    return self._se_get(url)
+                opts = {"timeout": 60000}
                 if referer:
                     opts["headers"] = {"Referer": referer}
                 r = self.context.request.get(url, **opts)
                 if r.ok:
                     return r.body()
                 err = RuntimeError(f"HTTP {r.status}")
-                if r.status in (403, 401):
+                if r.status in (403, 401, 404, 410):
                     break
             except Exception as exc:
                 err = exc
@@ -505,29 +520,28 @@ class CompanyRun:
             self.state["failures"].append(rec)
         self.log({"event": "failure", "symbol": self.symbol, **rec})
 
+    def _evidence(self, own: str, head: str) -> str:
+        return " ".join(f"{own} || {head}".split())[:600]
+
     def handle_candidate(self, dl: Downloader, url: str, title: str, ctx: str,
                          index_url: str, source: str, fy_end_month: int):
         seen = self.state["seen_urls"]
         if url in seen:
             return
-        basis = f"{title} {title_from_url(url)} {ctx}"
-        dtype, reason = raw.classify_document_type(basis)
-        # Row context can be noisy (a whole list row); only reject on
-        # title/filename evidence, use context to help classify.
         own = f"{title} {title_from_url(url)}"
-        dtype_own, reason_own = raw.classify_document_type(own)
-        if reason_own and reason_own != "not_financial":
-            rec = {"url": url, "title": title[:150], "reason": reason_own,
+        bucket, sub = raw.classify_bucket(own)
+        if bucket == "rejected" and sub == "not_financial":
+            # weak title: allow a row-context statement hint to trigger download
+            b2, s2 = raw.classify_bucket(f"{own} {ctx}")
+            if b2 == "statement" and re.search(
+                    r"financial statements?|القوائم المالية", ctx, re.I):
+                bucket, sub = "statement", s2
+        if bucket == "rejected":
+            rec = {"url": url, "title": title[:150], "reason": sub,
                    "index_url": index_url}
             self.state["rejected"].append(rec)
-            seen[url] = {"status": "rejected", "reason": reason_own}
+            seen[url] = {"status": "rejected", "reason": sub}
             self.log({"event": "rejected", "symbol": self.symbol, **rec})
-            return
-        if dtype is None and dtype_own is None:
-            rec = {"url": url, "title": title[:150], "reason": "not_financial",
-                   "index_url": index_url}
-            self.state["rejected"].append(rec)
-            seen[url] = {"status": "rejected", "reason": "not_financial"}
             return
         try:
             content = dl.get(url, index_url)
@@ -545,64 +559,145 @@ class CompanyRun:
                       f"{len(content)} bytes, not PDF/XLSX", url)
             return
         digest = raw.sha256_bytes(content)
-        target = raw.archive_path(self.root, self.symbol, digest, kind)
         if any(d["content_hash"] == digest for d in self.state["docs"]):
             seen[url] = {"status": "duplicate", "sha256": digest}
             self.log({"event": "duplicate", "symbol": self.symbol, "url": url,
                       "sha256": digest})
             return
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(content)
-        text = first_page_text(target, kind)
+        tmp = self.root / "tmp" / f"{self.symbol}-{digest}.{kind}"
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_bytes(content)
+        text = first_page_text(tmp, kind)
         scanned = kind == "pdf" and len(text.strip()) < 40
-        # Reclassify with first-page text; reject strong non-financial docs.
         head = " ".join(text.split())[:1500]
-        dtype2, reason2 = raw.classify_document_type(f"{own} {head}") if head else (dtype, reason)
-        strong = {"presentation", "board_report", "sustainability", "prospectus",
-                  "credit_rating", "general_assembly", "governance"}
-        if reason2 in strong and dtype_own not in ("statement", "annual_statement"):
-            target.unlink(missing_ok=True)
-            rec = {"url": url, "title": title[:150], "reason": reason2,
-                   "index_url": index_url, "sha256": digest, "stage": "first_page"}
-            self.state["rejected"].append(rec)
-            seen[url] = {"status": "rejected", "reason": reason2, "sha256": digest}
-            return
-        doc_type = "annual_report" if (dtype_own or dtype2) == "annual_report" else "financial_statement"
-        per = raw.classify_period(own, fy_end_month)
-        if not per["period_slot"] and head:
-            per2 = raw.classify_period(head, fy_end_month)
-            if per2["period_slot"]:
-                per = per2
-        if not per["period_slot"] or not per["fiscal_year"]:
-            per_text = raw.classify_period(f"{own} {ctx}", fy_end_month)
-            if per_text["period_slot"] and per_text["fiscal_year"]:
-                per = per_text
+        supporting = None
+        if bucket == "statement" and head:
+            b2, s2 = raw.classify_bucket(f"{own} {head[:400]}")
+            if b2 == "rejected" and s2 in {"presentation", "board_report",
+                                          "sustainability", "prospectus",
+                                          "credit_rating", "transcript"}:
+                tmp.unlink(missing_ok=True)
+                rec = {"url": url, "title": title[:150], "reason": s2,
+                       "index_url": index_url, "sha256": digest,
+                       "stage": "first_page"}
+                self.state["rejected"].append(rec)
+                seen[url] = {"status": "rejected", "reason": s2, "sha256": digest}
+                return
+        doc_bucket = "supporting" if bucket == "supporting" else "statement"
+        target = raw.archive_path(self.root, self.symbol, digest, kind, doc_bucket)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp.replace(target)
+        if doc_bucket == "supporting":
+            supporting = sub
+            doc_type = "supporting_" + sub
+        else:
+            doc_type = "annual_report" if sub == "annual_report" else "financial_statement"
+            if sub != "annual_report" and re.search(
+                    r"annual report|التقرير السنوي", own, re.I) and not re.search(
+                    r"financial statements?", own, re.I):
+                doc_type = "annual_report"
+        per = self._period(own, head, ctx, fy_end_month)
         doc = {
             "company_id": self.state["company_id"], "symbol": self.symbol,
             "source_url": url, "index_url": index_url, "source": source,
+            "bucket": doc_bucket, "supporting_type": supporting,
             "document_type": doc_type, "fiscal_year": per["fiscal_year"],
             "period_slot": per["period_slot"], "period_end": per["period_end"],
-            "language": raw.detect_language(f"{title} {head}"),
+            "language": raw.detect_language(f"{title} {head}") if head else
+            raw.detect_language(title),
             "downloaded_at": NOW(), "content_hash": digest, "file_kind": kind,
             "bytes": len(content), "title": title[:200],
             "scanned": scanned, "local_path": str(target),
             "classification_method": per["method"],
+            "evidence": self._evidence(own, head),
+            **raw.variant_flags(f"{own} {head[:300]}"),
         }
         self.state["docs"].append(doc)
         seen[url] = {"status": "collected", "sha256": digest}
         self.new_files += 1
-        if not (per["period_slot"] and per["fiscal_year"]):
-            rec = {"url": url, "sha256": digest, "title": title[:150],
-                   "reason": "unclassified"}
-            self.state["unclassified"].append(rec)
+        if doc_bucket == "statement" and not (per["period_slot"] and per["fiscal_year"]):
+            self.state["unclassified"].append(
+                {"url": url, "sha256": digest, "title": title[:150],
+                 "reason": "unclassified"})
         if scanned:
             self.fail("scanned", "image-only pdf archived", url)
         jlog(self.root / "logs" / "documents.jsonl", doc)
         jlog(self.root / "outbox" / "pending_upload.jsonl",
-             raw.outbox_row(self.symbol, target, digest, kind))
+             raw.outbox_row(self.symbol, target, digest, kind, doc_bucket))
         self.log({"event": "collected", "symbol": self.symbol, "url": url,
-                  "slot": per["period_slot"], "fy": per["fiscal_year"],
-                  "type": doc_type, "sha256": digest})
+                  "bucket": doc_bucket, "slot": per["period_slot"],
+                  "fy": per["fiscal_year"], "type": doc_type, "sha256": digest})
+
+    @staticmethod
+    def _period(own: str, head: str, ctx: str, fy_end_month: int) -> dict:
+        best = raw.classify_period(own, fy_end_month)
+        if best["period_slot"] and best["fiscal_year"]:
+            return best
+        for extra in (head, f"{own} {head}", f"{own} {ctx}"):
+            if not extra:
+                continue
+            cand = raw.classify_period(extra, fy_end_month)
+            if cand["period_slot"] and cand["fiscal_year"]:
+                return cand
+            if cand["period_slot"] and not best["period_slot"]:
+                best = cand
+        return best
+
+
+def reclassify_doc(root: Path, doc: dict, fy_end_month: int) -> None:
+    """Re-derive bucket/period/variant of an archived file from stored metadata
+    plus the file's own first page.  Never deletes or re-downloads."""
+    own = f"{doc.get('title', '')} {title_from_url(doc['source_url'])}"
+    path = Path(doc["local_path"])
+    head = ""
+    if path.exists():
+        head = " ".join(first_page_text(path, doc["file_kind"]).split())[:1500]
+    if not head:
+        head = doc.get("evidence", "").split("||", 1)[-1].strip()
+    bucket, sub = raw.classify_bucket(own)
+    if bucket == "rejected" and sub == "not_financial":
+        bucket, sub = "statement", "statement"
+    if bucket == "statement" and head:
+        b2, s2 = raw.classify_bucket(f"{own} {head[:400]}")
+        if b2 == "rejected" and s2 in {"presentation", "board_report", "sustainability",
+                                      "prospectus", "credit_rating", "transcript"}:
+            bucket, sub = "rejected", s2
+    doc["excluded_reason"] = None
+    if bucket == "rejected":
+        doc["bucket"], doc["excluded_reason"] = "excluded", sub
+        doc["supporting_type"] = None
+    elif bucket == "supporting":
+        doc["bucket"], doc["supporting_type"] = "supporting", sub
+        doc["document_type"] = "supporting_" + sub
+        target = raw.archive_path(root, doc["symbol"], doc["content_hash"],
+                                  doc["file_kind"], "supporting")
+        if path.exists() and path != target:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            path.replace(target)
+            doc["local_path"] = str(target)
+    else:
+        doc["bucket"], doc["supporting_type"] = "statement", None
+        if sub == "annual_report" or (re.search(r"annual report|التقرير السنوي", own, re.I)
+                                      and not re.search(r"financial statements?", own, re.I)):
+            doc["document_type"] = "annual_report"
+        else:
+            doc["document_type"] = "financial_statement"
+    per = CompanyRun._period(own, head, "", fy_end_month)
+    doc["fiscal_year"], doc["period_slot"] = per["fiscal_year"], per["period_slot"]
+    doc["period_end"], doc["classification_method"] = per["period_end"], per["method"]
+    doc["language"] = raw.detect_language(f"{doc.get('title', '')} {head}") if head else doc.get("language")
+    doc["evidence"] = " ".join(f"{own} || {head}".split())[:600]
+    doc.update(raw.variant_flags(f"{own} {head[:300]}"))
+
+
+def reclassify_state(root: Path, st: dict) -> None:
+    fy = st.get("fy_end_month", 12)
+    for d in st["docs"]:
+        reclassify_doc(root, d, fy)
+    st["unclassified"] = [
+        {"url": d["source_url"], "sha256": d["content_hash"], "title": d.get("title", "")[:150],
+         "reason": "unclassified"} for d in st["docs"]
+        if d["bucket"] == "statement" and not (d["period_slot"] and d["fiscal_year"])]
 
 
 def infer_fy_end_month(anns: list[dict]) -> int:
@@ -624,6 +719,16 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
                     force: bool = False, se_sample_only: bool = True) -> dict:
     run = CompanyRun(root, company, batch, log)
     st = run.state
+    if st.get("rules_version") != RULES_VERSION:
+        # Newer classification rules: re-evaluate previously rejected URLs
+        # (no re-download of files that are already archived).
+        st["seen_urls"] = {u: v for u, v in st["seen_urls"].items()
+                           if v.get("status") in ("collected", "duplicate")}
+        reclassify_state(root, st)
+        st["rejected"] = []
+        st["failures"] = [f for f in st["failures"] if f["reason"] == "scanned"]
+        st["status"] = "redo"
+        st["rules_version"] = RULES_VERSION
     if st.get("status") == "done" and not force:
         log({"event": "skip_done", "symbol": run.symbol})
         return st
@@ -737,6 +842,7 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
             f"{det};issuer_site:{reason}" if reason else f"{det};not_found_on_issuer_pages")
     st["coverage"] = {str(y): row for y, row in run.ledger.coverage().items()}
     st["counts"] = run.ledger.counts()
+    st["supporting_counts"] = run.ledger.supporting_counts()
     st["status"] = "done"
     st["finished_at"] = NOW()
     run.save()
@@ -793,7 +899,7 @@ def cmd_run(args) -> int:
             with browser() as ctx:
                 se = SaudiExchange(ctx, log)
                 crawler = IssuerCrawler(ctx, log)
-                dl = Downloader(ctx, log)
+                dl = Downloader(ctx, log, se.detail)
                 for c in chunk:
                     t = time.time()
                     try:
@@ -815,6 +921,31 @@ def cmd_run(args) -> int:
     log({"event": "finished", "worker": name, "processed": done})
     if args.upload:
         return cmd_upload(args)
+    return 0
+
+
+def cmd_recompute(args) -> int:
+    """Offline: re-run classification over the archive; no network."""
+    root = Path(args.root)
+    for f in sorted((root / "state" / "companies").glob("*.json")):
+        st = jload(f, {})
+        reclassify_state(root, st)
+        if st.get("expected") is not None:
+            led = raw.Ledger(st["symbol"])
+            led.docs = st["docs"]
+            exp = {tuple([int(k.split("|")[0]), k.split("|")[1]]): v
+                   for k, v in st["expected"].items()}
+            led.expected = exp
+            reason = st.get("issuer", {}).get("status")
+            for k in exp:
+                led.slot_reasons[k] = "se_announcement_has_no_attachment;" + (
+                    "issuer_site:" + reason if reason not in (None, "ok")
+                    else "not_found_on_issuer_pages")
+            st["coverage"] = {str(y): r for y, r in led.coverage().items()}
+            st["counts"] = led.counts()
+            st["supporting_counts"] = led.supporting_counts()
+        jsave(f, st)
+    print("recomputed")
     return 0
 
 
@@ -872,6 +1003,8 @@ def cmd_merge(args) -> int:
     rows, agg = [], {"companies": len(companies), "finished": 0,
                      "counts": {s: 0 for s in raw.SLOTS},
                      "fy_via_annual_report": 0, "unclassified": 0, "files": 0,
+                     "supporting": {"pillar3": 0, "data_supplement": 0, "factsheet": 0},
+                     "excluded_after_download": 0,
                      "failures": {}, "rejected": {}}
     detail = []
     pending = {}
@@ -896,6 +1029,10 @@ def cmd_merge(args) -> int:
         agg["fy_via_annual_report"] += cnt["fy_via_annual_report"]
         agg["unclassified"] += cnt["unclassified"]
         agg["files"] += len(st["docs"])
+        sc = led.supporting_counts()
+        for k, v in sc.items():
+            agg["supporting"][k] = agg["supporting"].get(k, 0) + v
+        agg["excluded_after_download"] += sum(1 for d in st["docs"] if d.get("bucket") == "excluded")
         for f in st["failures"]:
             agg["failures"][f["reason"]] = agg["failures"].get(f["reason"], 0) + 1
         for r in st["rejected"]:
@@ -907,7 +1044,11 @@ def cmd_merge(args) -> int:
                 rows.append({
                     "symbol": c["symbol"], "name": c["name"], "fiscal_year": year,
                     "slot": slot, "status": cell["status"],
-                    "content_hash": cell.get("hash", ""), "reason": cell.get("reason", "")})
+                    "content_hash": cell.get("hash", ""),
+                    "distinct_files": cell.get("distinct_files", ""),
+                    "same_language_extras": cell.get("same_language_extras", ""),
+                    "variant_hashes": ";".join(v["hash"][:12] + ":" + str(v.get("language")) + ":" + str(v.get("scope")) + (":amended" if v.get("amended") else "") for v in cell.get("variants", [])),
+                    "reason": cell.get("reason", "")})
         exp = st.get("expected", {})
         got = sum(1 for y, r in cov.items() for s in raw.SLOTS
                   if r[s]["status"] == "collected")
@@ -920,7 +1061,7 @@ def cmd_merge(args) -> int:
             "files": len(st["docs"]), "Q1": cnt["Q1"], "H1": cnt["H1"],
             "9M": cnt["9M"], "FY": cnt["FY"],
             "fy_via_annual_report": cnt["fy_via_annual_report"],
-            "unclassified": cnt["unclassified"],
+            "unclassified": cnt["unclassified"], "supporting": sc,
             "years": sorted(cov), "issuer_status": st.get("issuer", {}).get("status"),
             "se_results_announcements": st.get("se", {}).get("results_announcements"),
             "se_detail_pages_with_files": st.get("se", {}).get("detail_pages_with_files"),
@@ -934,7 +1075,7 @@ def cmd_merge(args) -> int:
     import csv
     with (out / "sa-raw-statements-odd-coverage.csv").open("w", newline="", encoding="utf-8-sig") as fh:
         w = csv.DictWriter(fh, fieldnames=["symbol", "name", "fiscal_year", "slot",
-                                           "status", "content_hash", "reason"])
+                                           "status", "content_hash", "distinct_files", "same_language_extras", "variant_hashes", "reason"])
         w.writeheader()
         w.writerows(rows)
     jsave(out / "sa-raw-statements-odd-coverage.json",
@@ -946,7 +1087,7 @@ def cmd_merge(args) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("run", "launch", "merge", "upload"):
+    for name in ("run", "launch", "merge", "upload", "recompute"):
         p = sub.add_parser(name)
         p.add_argument("--root", default=str(DEFAULT_ROOT))
         p.add_argument("--workers", type=int, default=4)
@@ -964,7 +1105,7 @@ def main(argv=None) -> int:
         p.add_argument("--out", default=str(PROJECT / "docs" / "data"))
     args = ap.parse_args(argv)
     return {"run": cmd_run, "launch": cmd_launch, "merge": cmd_merge,
-            "upload": cmd_upload}[args.cmd](args)
+            "upload": cmd_upload, "recompute": cmd_recompute}[args.cmd](args)
 
 
 if __name__ == "__main__":
