@@ -13,6 +13,7 @@ import contextlib
 import hashlib
 import json
 import re
+import shlex
 import subprocess
 import time
 from datetime import date
@@ -191,13 +192,17 @@ def _remote_publish(args, company: dict, candidate: dict,
     filing_type = BrowserIssuerMonitor._document_type(
         f"{candidate['title']} {candidate['url']}"
     )
-    enqueue_output = _run(ssh + [
+    enqueue_command = [
         "docker", "exec", args.worker, "finengine", "--db",
         "/app/state/financial.sqlite3", "relay-enqueue", archive_file,
         "SA", str(company["symbol"]), "--source-url", candidate["url"],
         "--filed-at", filed_at, "--filing-type", filing_type,
         "--title", candidate["title"], "--raw-dir", "/app/state/raw",
-    ])
+    ]
+    # OpenSSH joins all arguments following the host into a remote shell
+    # command.  Quote every value so issuer titles and URLs containing spaces,
+    # ampersands, or parentheses remain a single CLI argument.
+    enqueue_output = _run(ssh + [shlex.join(enqueue_command)])
     try:
         enqueue_result = json.loads(enqueue_output)
     except json.JSONDecodeError:
