@@ -307,36 +307,53 @@ def main() -> int:
             if not candidates and discovery_errors:
                 raise discovery_errors[-1]
             summary["candidates"] += len(candidates)
+            document_failures = 0
             for candidate in candidates:
                 if candidate["url"] in seen:
                     summary["duplicates"] += 1
                     continue
-                content = fetcher.download_bytes(
-                    candidate["url"], candidate.get("referer"),
-                    candidate["content_type"],
+                try:
+                    content = fetcher.download_bytes(
+                        candidate["url"], candidate.get("referer"),
+                        candidate["content_type"],
+                    )
+                    digest = hashlib.sha256(content).hexdigest()
+                    suffix = ".xlsx" if "spreadsheet" in candidate["content_type"] else ".pdf"
+                    target = args.archive / "SA" / str(company["symbol"]) / f"{digest}{suffix}"
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if not target.exists():
+                        target.write_bytes(content)
+                    status, output = _remote_publish(args, company, candidate, target)
+                    seen[candidate["url"]] = {
+                        "sha256": digest, "published_at": date.today().isoformat(),
+                        "status": status,
+                    }
+                    if status == "queued":
+                        summary["queued"] += 1
+                    elif status == "duplicate":
+                        summary["duplicates"] += 1
+                    else:
+                        summary.setdefault("review_required", 0)
+                        summary["review_required"] += 1
+                    _log(args.log, {"status": status, "symbol": company["symbol"],
+                                    "url": candidate["url"], "sha256": digest,
+                                    "detail": output[-2000:]})
+                except Exception as error:
+                    document_failures += 1
+                    _log(args.log, {
+                        "status": "document_failed",
+                        "symbol": company["symbol"],
+                        "url": candidate["url"],
+                        "error": f"{type(error).__name__}: {error}",
+                    })
+            if document_failures:
+                summary["failures"] += 1
+                summary["document_failures"] = (
+                    summary.get("document_failures", 0) + document_failures
                 )
-                digest = hashlib.sha256(content).hexdigest()
-                suffix = ".xlsx" if "spreadsheet" in candidate["content_type"] else ".pdf"
-                target = args.archive / "SA" / str(company["symbol"]) / f"{digest}{suffix}"
-                target.parent.mkdir(parents=True, exist_ok=True)
-                if not target.exists():
-                    target.write_bytes(content)
-                status, output = _remote_publish(args, company, candidate, target)
-                seen[candidate["url"]] = {
-                    "sha256": digest, "published_at": date.today().isoformat(),
-                    "status": status,
-                }
-                if status == "queued":
-                    summary["queued"] += 1
-                elif status == "duplicate":
-                    summary["duplicates"] += 1
-                else:
-                    summary.setdefault("review_required", 0)
-                    summary["review_required"] += 1
-                _log(args.log, {"status": status, "symbol": company["symbol"],
-                                "url": candidate["url"], "sha256": digest,
-                                "detail": output[-2000:]})
-            retry_set.discard(str(company["symbol"]))
+                retry_set.add(str(company["symbol"]))
+            else:
+                retry_set.discard(str(company["symbol"]))
         except Exception as error:
             summary["failures"] += 1
             retry_set.add(str(company["symbol"]))
