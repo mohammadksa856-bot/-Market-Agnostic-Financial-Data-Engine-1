@@ -495,10 +495,12 @@ def title_from_url(url: str) -> str:
 
 
 class CompanyRun:
-    def __init__(self, root: Path, company: dict, batch: dict | None, log):
+    def __init__(self, root: Path, company: dict, batch: dict | None, log,
+                 part: str = "issuer"):
         self.root, self.company, self.batch, self.log = root, company, batch, log
         self.symbol = str(company["symbol"])
-        self.path = root / "state" / "companies" / f"{self.symbol}.json"
+        self.part = part
+        self.path = root / "state" / part / f"{self.symbol}.json"
         self.state = jload(self.path, {})
         self.state.setdefault("symbol", self.symbol)
         self.state.setdefault("company_id", company.get("company_id", f"sa:{self.symbol}"))
@@ -714,14 +716,8 @@ def infer_fy_end_month(anns: list[dict]) -> int:
     return max(set(months), key=months.count)
 
 
-def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExchange,
-                    crawler: IssuerCrawler, dl: Downloader, log,
-                    force: bool = False, se_sample_only: bool = True) -> dict:
-    run = CompanyRun(root, company, batch, log)
-    st = run.state
+def _rules_upgrade(root: Path, st: dict) -> None:
     if st.get("rules_version") != RULES_VERSION:
-        # Newer classification rules: re-evaluate previously rejected URLs
-        # (no re-download of files that are already archived).
         st["seen_urls"] = {u: v for u, v in st["seen_urls"].items()
                            if v.get("status") in ("collected", "duplicate")}
         reclassify_state(root, st)
@@ -729,20 +725,51 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
         st["failures"] = [f for f in st["failures"] if f["reason"] == "scanned"]
         st["status"] = "redo"
         st["rules_version"] = RULES_VERSION
-    if st.get("status") == "done" and "se_ok" not in st:
-        st["status"] = "redo"       # finished by an older build without se_ok
-    if st.get("status") == "done" and not force:
-        log({"event": "skip_done", "symbol": run.symbol})
+
+
+def _finish(run: CompanyRun, ok: bool, transient_reason: str | None) -> None:
+    st = run.state
+    st["attempts"] = st.get("attempts", 0) + 1
+    if ok and not transient_reason:
+        st["status"] = "done"
+    elif st["attempts"] >= 3:
+        st["status"] = "done"
+        st["gave_up_after_attempts"] = st["attempts"]
+    else:
+        st["status"] = "incomplete"
+    st["finished_at"] = NOW()
+    run.save()
+
+
+def se_phase(root: Path, company: dict, batch: dict | None, se: SaudiExchange,
+             dl: Downloader, log, profile_only: bool = False,
+             se_sample_only: bool = True) -> dict:
+    """Saudi Exchange: announcements (period anchor), attachments, profile site."""
+    run = CompanyRun(root, company, batch, log, part="se")
+    st = run.state
+    _rules_upgrade(root, st)
+    if profile_only:
+        if st.get("profile_checked") or company.get("sources") or batch:
+            return st
+        prof = se.profile_website(run.symbol)
+        st["profile_website"] = prof
+        st["profile_checked"] = prof is not None
+        run.save()
+        return st
+    if st.get("status") == "done":
         return st
     st["started_at"] = NOW()
-    # ---- Saudi Exchange
-    se_ok = True
+    ok = True
     try:
         anns = se.announcements(run.symbol)
     except Exception as exc:
-        anns = []
-        se_ok = False
+        anns, ok = [], False
         run.fail(classify_error(exc), f"saudi_exchange announcements: {exc}")
+    if not ok:
+        st["se"] = {"total_announcements": None}
+        _finish(run, False, "se_unreachable")
+        time.sleep(90)          # cool down before the next company
+        return st
     st["se"] = {"total_announcements": len(anns)}
     fy_end = infer_fy_end_month(anns)
     st["fy_end_month"] = fy_end
@@ -768,55 +795,68 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
         if r["period_slot"] and r["fiscal_year"]:
             st["se"]["results_by_slot"].setdefault(
                 f"{r['fiscal_year']}|{r['period_slot']}", []).append(r["id"])
-    # detail pages: newest 6 + oldest 4 + 4 spread; stop early if none has files
-    checked, with_files = [], 0
+    checked, with_files, detail_fail = [], 0, 0
+
+    def visit(r):
+        nonlocal with_files, detail_fail
+        try:
+            files = se.detail_files(run.symbol, {"announcementUrl": r["url"].replace(SE, "")})
+        except Exception as exc:
+            detail_fail += 1
+            run.fail(classify_error(exc), f"se detail {r['id']}: {exc}", r["url"])
+            return
+        checked.append(r["id"])
+        for f in files:
+            with_files += 1
+            run.handle_candidate(dl, f, r["title"], "", r["url"], "saudi_exchange", fy_end)
+
     if results:
         idx = list(range(len(results)))
-        order = idx[:6] + idx[-4:] + idx[6:-4:max(1, (len(idx) - 10) // 4 or 1)][:4]
-        if not se_sample_only:
-            order = idx
+        order = idx if not se_sample_only else (
+            idx[:6] + idx[-4:] + idx[6:-4:max(1, (len(idx) - 10) // 4 or 1)][:4])
         for i in dict.fromkeys(order):
-            r = results[i]
-            try:
-                files = se.detail_files(run.symbol, {"announcementUrl": r["url"].replace(SE, "")})
-            except Exception as exc:
-                run.fail(classify_error(exc), f"se detail {r['id']}: {exc}", r["url"])
-                continue
-            checked.append(r["id"])
-            for f in files:
-                with_files += 1
-                run.handle_candidate(dl, f, r["title"], "", r["url"],
-                                     "saudi_exchange", fy_end)
-        # if any detail page had files, check the remainder too (attachments
-        # exist for this issuer, so history is worth completing).
+            visit(results[i])
         if with_files and se_sample_only:
             for r in results:
-                if r["id"] in checked:
-                    continue
-                try:
-                    files = se.detail_files(run.symbol, {"announcementUrl": r["url"].replace(SE, "")})
-                except Exception as exc:
-                    run.fail(classify_error(exc), f"se detail {r['id']}: {exc}", r["url"])
-                    continue
-                checked.append(r["id"])
-                for f in files:
-                    run.handle_candidate(dl, f, r["title"], "", r["url"],
-                                         "saudi_exchange", fy_end)
+                if r["id"] not in checked:
+                    visit(r)
     st["se"]["detail_pages_checked"] = len(checked)
     st["se"]["detail_pages_with_files"] = with_files
+    st["se"]["detail_page_failures"] = detail_fail
     jsave(root / "logs" / "se" / f"{run.symbol}-announcements.json",
           [{"id": a["PRESS_REL_ID"], "date": a["PR_DATE"], "title": a["SHORT_DESC"]}
            for a in anns])
-    run.save()
-    # ---- issuer site
-    site = batch.get("official_website") if batch else None
+    _finish(run, True, "se_detail_failures" if detail_fail > 4 else None)
+    return st
+
+
+def issuer_phase(root: Path, company: dict, batch: dict | None,
+                 crawler: IssuerCrawler, dl: Downloader, log) -> dict | None:
+    """Issuer site (priority 2/3).  Returns None when waiting for the SE profile."""
+    run = CompanyRun(root, company, batch, log, part="issuer")
+    st = run.state
+    _rules_upgrade(root, st)
+    if st.get("status") == "done" and "se_ok" not in st:
+        pass
+    if st.get("status") == "done":
+        return st
     prof = None
     if not (company.get("sources") or batch):
-        prof = se.profile_website(run.symbol)
-        if prof is None:
-            se_ok = False   # cannot tell "no website" from "profile unreachable"
+        sest = jload(root / "state" / "se" / f"{run.symbol}.json", {})
+        if not sest.get("profile_checked"):
+            if st.get("attempts_waiting", 0) >= 12:
+                pass        # SE profile never resolved: proceed as no_source
+            else:
+                st["attempts_waiting"] = st.get("attempts_waiting", 0) + 1
+                run.save()
+                return None
+        prof = sest.get("profile_website")
+    fy_end = jload(root / "state" / "se" / f"{run.symbol}.json", {}).get("fy_end_month", 12)
+    st["fy_end_month"] = fy_end
     seeds = seeds_for(company, batch, prof)
     st["issuer"] = {"seeds": seeds, "profile_website": prof}
+    transient = {"timeout", "blocked", "tls_error", "unreachable", "error"}
+    reason = None
     if not seeds:
         st["issuer"].update(status="no_source", pages=0)
         run.fail("no_source", "no registry source and no Saudi Exchange website")
@@ -830,35 +870,53 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
                             doc_links=len(res["docs"]), errors=res["errors"])
         if res["status"] != "ok":
             run.fail(res["status"], "; ".join(res["errors"]))
+        if res["status"] in transient:
+            reason = res["status"]
         for url, (text, ctx, page_url) in res["docs"].items():
             run.handle_candidate(dl, url, text, ctx, page_url, "issuer_site", fy_end)
             if run.new_files and run.new_files % 20 == 0:
                 run.save()
-    # ---- ledger
-    run.ledger.docs = st["docs"]
-    run.ledger.expected = expected
-    reason = None
-    if st["issuer"].get("status") == "no_source":
-        reason = "no_source"
-    elif st["issuer"].get("status") != "ok":
-        reason = st["issuer"]["status"]
-    for (y, s) in expected:
-        det = "se_announcement_has_no_attachment"
-        run.ledger.slot_reasons[(y, s)] = (
-            f"{det};issuer_site:{reason}" if reason else f"{det};not_found_on_issuer_pages")
-    st["coverage"] = {str(y): row for y, row in run.ledger.coverage().items()}
-    st["counts"] = run.ledger.counts()
-    st["supporting_counts"] = run.ledger.supporting_counts()
-    st["se_ok"] = se_ok
-    transient = {"timeout", "blocked", "tls_error", "unreachable", "error"}
-    st["status"] = "done" if (se_ok and st["issuer"].get("status") not in transient)         else "incomplete"
-    st["attempts"] = st.get("attempts", 0) + 1
-    if st["attempts"] >= 3 and st["status"] == "incomplete":
-        st["status"] = "done"          # give up: reasons stay in failures/ledger
-        st["gave_up_after_attempts"] = st["attempts"]
-    st["finished_at"] = NOW()
-    run.save()
+    st["se_ok"] = True
+    _finish(run, True, reason)
     return st
+
+
+def load_combined(root: Path, symbol: str) -> dict:
+    """Merge the se/ and issuer/ state parts (docs de-duplicated by hash)."""
+    se_s = jload(root / "state" / "se" / f"{symbol}.json", {})
+    is_s = jload(root / "state" / "issuer" / f"{symbol}.json", {})
+    docs, seen = [], set()
+    for part in (is_s, se_s):
+        for d in part.get("docs", []):
+            if d["content_hash"] not in seen:
+                seen.add(d["content_hash"])
+                docs.append(d)
+    fy = se_s.get("fy_end_month", is_s.get("fy_end_month", 12))
+    expected = {(int(k.split("|")[0]), k.split("|")[1]): v
+                for k, v in se_s.get("expected", {}).items()}
+    led = raw.Ledger(symbol)
+    led.docs, led.expected = docs, expected
+    iss = is_s.get("issuer", {})
+    reason = "no_source" if iss.get("status") == "no_source" else (
+        iss.get("status") if iss.get("status") not in (None, "ok") else None)
+    for k in expected:
+        led.slot_reasons[k] = "se_announcement_has_no_attachment;" + (
+            "issuer_site:" + reason if reason else "not_found_on_issuer_pages")
+    se_done = se_s.get("status") == "done" and se_s.get("se", {}).get("total_announcements") is not None
+    if not expected and not se_done:
+        for _ in ():
+            pass
+    return {
+        "symbol": symbol, "docs": docs, "fy_end_month": fy, "expected": expected,
+        "se": se_s.get("se", {}), "se_status": se_s.get("status"),
+        "issuer": iss, "issuer_status": is_s.get("status"),
+        "failures": is_s.get("failures", []) + se_s.get("failures", []),
+        "rejected": is_s.get("rejected", []) + se_s.get("rejected", []),
+        "coverage": {str(y): r for y, r in led.coverage().items()},
+        "counts": led.counts(), "supporting_counts": led.supporting_counts(),
+        "finished": is_s.get("status") == "done" and se_s.get("status") == "done",
+        "ledger": led,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -895,51 +953,79 @@ def cmd_run(args) -> int:
             print(f"symbols not in odd shard (refusing): {sorted(missing)}")
             return 2
         name = args.name or "custom"
+    elif args.phase == "se":
+        name = "se-worker"
     else:
         parts = raw.split_workers(companies, args.workers)
         companies = parts[args.worker_index]
-        name = f"worker-{args.worker_index}"
+        name = f"issuer-{args.worker_index}"
     logf = root / "logs" / f"{name}.jsonl"
     log = lambda ev: jlog(logf, ev)  # noqa: E731
     sources = load_sources()
+    log({"event": "start", "worker": name, "phase": args.phase,
+         "companies": len(companies)})
     done = 0
-    log({"event": "start", "worker": name, "companies": len(companies)})
-    batch_size = 12
-    todo = list(companies)
-    for pass_no in range(3):
-      if pass_no:
-          todo = [c for c in companies if jload(
-              root / "state" / "companies" / f"{c['symbol']}.json", {}).get("status") != "done"]
-          if not todo:
-              break
-          log({"event": "retry_pass", "pass": pass_no, "companies": len(todo)})
-          time.sleep(60)
-      for start in range(0, len(todo), batch_size):
-        chunk = todo[start:start + batch_size]
-        try:
-            with browser() as ctx:
-                se = SaudiExchange(ctx, log)
-                crawler = IssuerCrawler(ctx, log)
-                dl = Downloader(ctx, log, se.detail)
-                for c in chunk:
-                    t = time.time()
-                    try:
-                        st = process_company(root, c, sources.get(c["symbol"]), se,
-                                             crawler, dl, log, force=args.force,
-                                             se_sample_only=not args.se_full)
-                        print(f"[{name}] {c['symbol']} docs={len(st['docs'])} "
-                              f"exp={len(st.get('expected', {}))} "
-                              f"{round(time.time() - t)}s", flush=True)
-                    except Exception as exc:
-                        log({"event": "company_error", "symbol": c["symbol"],
-                             "error": str(exc)[:300]})
-                        print(f"[{name}] {c['symbol']} ERROR {exc}", flush=True)
-                    done += 1
-        except Exception as exc:
-            log({"event": "browser_error", "error": str(exc)[:300]})
-            print(f"[{name}] browser error: {exc}", flush=True)
-            time.sleep(10)
+
+    def state_status(c, part):
+        return jload(root / "state" / part / f"{c['symbol']}.json", {}).get("status")
+
+    for pass_no in range(6 if args.phase != "se" else 4):
+        if args.phase == "se":
+            todo = [c for c in companies if state_status(c, "se") != "done"]
+        else:
+            todo = [c for c in companies if state_status(c, "issuer") != "done"]
+        if not todo:
+            break
+        if pass_no:
+            log({"event": "retry_pass", "pass": pass_no, "companies": len(todo)})
+            time.sleep(120)
+        waiting = 0
+        for start in range(0, len(todo), 10):
+            chunk = todo[start:start + 10]
+            try:
+                with browser() as ctx:
+                    se = SaudiExchange(ctx, log)
+                    crawler = IssuerCrawler(ctx, log)
+                    dl = Downloader(ctx, log, se.detail)
+                    for c in chunk:
+                        t = time.time()
+                        try:
+                            if args.phase == "se":
+                                if pass_no == 0 and start == 0 and c is chunk[0]:
+                                    # first: profile websites for no-source companies
+                                    for c2 in companies:
+                                        try:
+                                            se_phase(root, c2, sources.get(c2["symbol"]),
+                                                     se, dl, log, profile_only=True)
+                                        except Exception as exc:
+                                            log({"event": "profile_error",
+                                                 "symbol": c2["symbol"], "error": str(exc)[:200]})
+                                st = se_phase(root, c, sources.get(c["symbol"]), se, dl, log,
+                                              se_sample_only=not args.se_full)
+                                print(f"[{name}] {c['symbol']} se={st.get('status')} "
+                                      f"anns={st.get('se', {}).get('total_announcements')} "
+                                      f"docs={len(st['docs'])} {round(time.time() - t)}s",
+                                      flush=True)
+                            else:
+                                st = issuer_phase(root, c, sources.get(c["symbol"]),
+                                                  crawler, dl, log)
+                                if st is None:
+                                    waiting += 1
+                                    continue
+                                print(f"[{name}] {c['symbol']} {st.get('status')} "
+                                      f"docs={len(st['docs'])} "
+                                      f"{round(time.time() - t)}s", flush=True)
+                        except Exception as exc:
+                            log({"event": "company_error", "symbol": c["symbol"],
+                                 "error": str(exc)[:300]})
+                            print(f"[{name}] {c['symbol']} ERROR {exc}", flush=True)
+                        done += 1
+            except Exception as exc:
+                log({"event": "browser_error", "error": str(exc)[:300]})
+                print(f"[{name}] browser error: {exc}", flush=True)
+                time.sleep(10)
     log({"event": "finished", "worker": name, "processed": done})
+    print(f"[{name}] FINISHED processed={done}", flush=True)
     if args.upload:
         return cmd_upload(args)
     return 0
@@ -948,24 +1034,15 @@ def cmd_run(args) -> int:
 def cmd_recompute(args) -> int:
     """Offline: re-run classification over the archive; no network."""
     root = Path(args.root)
-    for f in sorted((root / "state" / "companies").glob("*.json")):
-        st = jload(f, {})
-        reclassify_state(root, st)
-        if st.get("expected") is not None:
-            led = raw.Ledger(st["symbol"])
-            led.docs = st["docs"]
-            exp = {tuple([int(k.split("|")[0]), k.split("|")[1]]): v
-                   for k, v in st["expected"].items()}
-            led.expected = exp
-            reason = st.get("issuer", {}).get("status")
-            for k in exp:
-                led.slot_reasons[k] = "se_announcement_has_no_attachment;" + (
-                    "issuer_site:" + reason if reason not in (None, "ok")
-                    else "not_found_on_issuer_pages")
-            st["coverage"] = {str(y): r for y, r in led.coverage().items()}
-            st["counts"] = led.counts()
-            st["supporting_counts"] = led.supporting_counts()
-        jsave(f, st)
+    for part in ("se", "issuer"):
+        for f in sorted((root / "state" / part).glob("*.json")):
+            st = jload(f, {})
+            if not st.get("docs"):
+                continue
+            st["fy_end_month"] = jload(root / "state" / "se" / f.name, {}).get(
+                "fy_end_month", st.get("fy_end_month", 12))
+            reclassify_state(root, st)
+            jsave(f, st)
     print("recomputed")
     return 0
 
@@ -1006,15 +1083,17 @@ def cmd_upload(args) -> int:
 def cmd_launch(args) -> int:
     root = Path(args.root)
     (root / "logs").mkdir(parents=True, exist_ok=True)
-    for i in range(args.workers):
-        out = open(root / "logs" / f"worker-{i}.out", "ab")
+    jobs = [("se-worker", ["--phase", "se"])] + [
+        (f"issuer-{i}", ["--phase", "issuer", "--workers", str(args.workers),
+                         "--worker-index", str(i)]) for i in range(args.workers)]
+    for name, extra in jobs:
+        out = open(root / "logs" / f"{name}.out", "ab")
         flags = 0x00000008 | 0x00000200 if os.name == "nt" else 0  # DETACHED|NEW_GROUP
         cmd = [sys.executable, "-B", "-u", str(Path(__file__).resolve()), "run",
-               "--root", str(root), "--workers", str(args.workers),
-               "--worker-index", str(i)]
+               "--root", str(root), *extra]
         subprocess.Popen(cmd, stdout=out, stderr=out, stdin=subprocess.DEVNULL,
                          creationflags=flags, cwd=str(PROJECT), close_fds=True)
-        print("launched worker", i)
+        print("launched", name)
     return 0
 
 
@@ -1037,14 +1116,13 @@ def cmd_merge(args) -> int:
                 r = json.loads(line)
                 pending[r["sha256"]] = r
     for c in companies:
-        st = jload(root / "state" / "companies" / f"{c['symbol']}.json", None)
-        if not st or st.get("status") != "done":
+        st = load_combined(root, c["symbol"])
+        if not st["finished"]:
             detail.append({"symbol": c["symbol"], "name": c["name"], "status": "not_finished"})
             continue
         agg["finished"] += 1
-        led = raw.Ledger(c["symbol"])
-        led.docs = st["docs"]
-        cnt = led.counts()
+        led = st["ledger"]
+        cnt = st["counts"]
         for s in raw.SLOTS:
             agg["counts"][s] += cnt[s]
         agg["fy_via_annual_report"] += cnt["fy_via_annual_report"]
@@ -1084,6 +1162,7 @@ def cmd_merge(args) -> int:
             "fy_via_annual_report": cnt["fy_via_annual_report"],
             "unclassified": cnt["unclassified"], "supporting": sc,
             "years": sorted(cov), "issuer_status": st.get("issuer", {}).get("status"),
+            "gave_up": bool(jload(root / "state" / "se" / f"{c['symbol']}.json", {}).get("gave_up_after_attempts")),
             "se_results_announcements": st.get("se", {}).get("results_announcements"),
             "se_detail_pages_with_files": st.get("se", {}).get("detail_pages_with_files"),
             "failures": sorted({f["reason"] for f in st["failures"]}),
@@ -1115,6 +1194,7 @@ def main(argv=None) -> int:
         p.add_argument("--worker-index", type=int, default=0)
         p.add_argument("--symbols")
         p.add_argument("--name")
+        p.add_argument("--phase", choices=["se", "issuer"], default="issuer")
         p.add_argument("--force", action="store_true")
         p.add_argument("--se-full", action="store_true",
                        help="open every results announcement detail page")

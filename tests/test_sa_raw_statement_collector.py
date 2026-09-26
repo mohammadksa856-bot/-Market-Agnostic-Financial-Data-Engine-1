@@ -242,7 +242,7 @@ class IdempotencyTests(unittest.TestCase):
                 run.save()
             # first pass: 1 download, 1 duplicate download; presentation rejected
             self.assertEqual(DL.calls, 2)
-            st = json.loads((root / "state" / "companies" / "1020.json").read_text())
+            st = json.loads((root / "state" / "issuer" / "1020.json").read_text())
             self.assertEqual(len(st["docs"]), 1)
             self.assertEqual(st["docs"][0]["period_slot"], "Q1")
             self.assertEqual(st["docs"][0]["fiscal_year"], 2024)
