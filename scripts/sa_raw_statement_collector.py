@@ -169,7 +169,7 @@ class SaudiExchange:
         last = None
         for attempt in range(4):
             try:
-                self.page.goto(SE_ANN_PAGE, wait_until="domcontentloaded",
+                self.page.goto(SE_ANN_PAGE, wait_until="commit",
                                timeout=60000)
             except Exception as exc:  # partial load is fine if the call fired
                 last = exc
@@ -729,15 +729,19 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
         st["failures"] = [f for f in st["failures"] if f["reason"] == "scanned"]
         st["status"] = "redo"
         st["rules_version"] = RULES_VERSION
+    if st.get("status") == "done" and "se_ok" not in st:
+        st["status"] = "redo"       # finished by an older build without se_ok
     if st.get("status") == "done" and not force:
         log({"event": "skip_done", "symbol": run.symbol})
         return st
     st["started_at"] = NOW()
     # ---- Saudi Exchange
+    se_ok = True
     try:
         anns = se.announcements(run.symbol)
     except Exception as exc:
         anns = []
+        se_ok = False
         run.fail(classify_error(exc), f"saudi_exchange announcements: {exc}")
     st["se"] = {"total_announcements": len(anns)}
     fy_end = infer_fy_end_month(anns)
@@ -809,6 +813,8 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
     prof = None
     if not (company.get("sources") or batch):
         prof = se.profile_website(run.symbol)
+        if prof is None:
+            se_ok = False   # cannot tell "no website" from "profile unreachable"
     seeds = seeds_for(company, batch, prof)
     st["issuer"] = {"seeds": seeds, "profile_website": prof}
     if not seeds:
@@ -843,7 +849,13 @@ def process_company(root: Path, company: dict, batch: dict | None, se: SaudiExch
     st["coverage"] = {str(y): row for y, row in run.ledger.coverage().items()}
     st["counts"] = run.ledger.counts()
     st["supporting_counts"] = run.ledger.supporting_counts()
-    st["status"] = "done"
+    st["se_ok"] = se_ok
+    transient = {"timeout", "blocked", "tls_error", "unreachable", "error"}
+    st["status"] = "done" if (se_ok and st["issuer"].get("status") not in transient)         else "incomplete"
+    st["attempts"] = st.get("attempts", 0) + 1
+    if st["attempts"] >= 3 and st["status"] == "incomplete":
+        st["status"] = "done"          # give up: reasons stay in failures/ledger
+        st["gave_up_after_attempts"] = st["attempts"]
     st["finished_at"] = NOW()
     run.save()
     return st
@@ -893,8 +905,17 @@ def cmd_run(args) -> int:
     done = 0
     log({"event": "start", "worker": name, "companies": len(companies)})
     batch_size = 12
-    for start in range(0, len(companies), batch_size):
-        chunk = companies[start:start + batch_size]
+    todo = list(companies)
+    for pass_no in range(3):
+      if pass_no:
+          todo = [c for c in companies if jload(
+              root / "state" / "companies" / f"{c['symbol']}.json", {}).get("status") != "done"]
+          if not todo:
+              break
+          log({"event": "retry_pass", "pass": pass_no, "companies": len(todo)})
+          time.sleep(60)
+      for start in range(0, len(todo), batch_size):
+        chunk = todo[start:start + batch_size]
         try:
             with browser() as ctx:
                 se = SaudiExchange(ctx, log)
