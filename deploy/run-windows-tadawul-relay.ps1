@@ -16,5 +16,9 @@ if (-not (Test-Path $SshKey)) {
 # atomically from the complete market seed, companies.json and reviewed source
 # registry batches, so newly researched issuer pages enter the next run without
 # copying an untracked snapshot by hand.
-& $Python $Script --batch-size 20 --max-documents 40 --timeout-seconds 20 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
+# `all` is a durable two-stage run.  Raw documents reach local and AWS
+# content-addressed storage before the independent enqueue stage touches
+# SQLite.  A DB failure therefore remains in outbox.json for the next run and
+# never causes a second download or upload.
+& $Python $Script --stage all --batch-size 20 --max-documents 40 --timeout-seconds 20 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
 exit $LASTEXITCODE
