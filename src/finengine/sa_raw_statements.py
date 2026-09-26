@@ -143,8 +143,8 @@ def classify_document_type(text: str) -> tuple[str | None, str | None]:
 
 _SUPPORTING = [
     ("pillar3", r"pillar ?(?:3|iii)|basel|بازل|الركيزة الثالثة|risk disclosures?|"
-                r"leverage ratio|capital adequacy|liquidity coverage|\blcr\b|nsfr"),
-    ("data_supplement", r"data supplement|financial supplement|financial data pack|"
+                r"leverage|capital adequacy|liquidity coverage|\blcr\b|nsfr"),
+    ("data_supplement", r"data ?supplement|financial ?supplement|financial data pack|"
                         r"ملحق البيانات|ملحق مالي"),
     ("factsheet", r"fact ?sheet|ملخص مالي|ورقة حقائق"),
 ]
@@ -296,12 +296,21 @@ def classify_period(text: str, fy_end_month: int = 12,
     pe = period_end or period_end_from_text(t)
     months = None
     best = None
+    found: set = set()
     for pattern, n in _MONTH_COUNT:
         m = re.search(pattern, t, re.I)
         # The earliest phrase wins: comparatives ("... and year ended ...")
         # come after the primary period in statement titles.
+        if m:
+            found.add(n)
         if m and (best is None or m.start() < best):
             best, months = m.start(), n
+    if pe and found:
+        # The period-end month is authoritative when the text also names
+        # that cumulative length ("three months and nine months ... 30 Sep").
+        derived = _months_from_fiscal_start(pe, fy_end_month)
+        if derived in found:
+            months = derived
     method = "text"
     if months is None and _Q4.search(t):
         return {"period_slot": None, "fiscal_year": pe.year if pe else None,
@@ -312,11 +321,11 @@ def classify_period(text: str, fy_end_month: int = 12,
         months = n if n in (3, 6, 9, 12) else None
         method = "period_end_month"
     slot = {3: "Q1", 6: "H1", 9: "9M", 12: "FY"}.get(months)
-    fn_year = None
-    if slot is None:
-        slot, fn_year = period_from_filename(t)
-        if slot:
-            method = "filename_code"
+    fn_slot, fn_year = period_from_filename(t)
+    if slot is None and fn_slot:
+        slot, method = fn_slot, "filename_code"
+    if slot is not None and fn_slot not in (None, slot):
+        fn_year = None      # conflicting code: do not borrow its year
     fiscal_year = None
     if pe:
         fiscal_year = fiscal_year_of(pe, fy_end_month)
@@ -400,6 +409,8 @@ class Ledger:
                         bool(self._doc(h).get("amended")), h))
                     row[s] = {"status": "collected", "hash": hs[0],
                               "distinct_files": len(hs),
+                              "same_language_extras": len(hs) - len(
+                                  {self._doc(h).get("language") for h in hs}),
                               "variants": [self._variant(h) for h in hs]}
                 elif key in via_ar:
                     row[s] = {"status": "collected_via_annual_report",
