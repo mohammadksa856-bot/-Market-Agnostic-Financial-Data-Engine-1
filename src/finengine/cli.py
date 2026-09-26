@@ -1524,7 +1524,10 @@ def main():
         DurableScheduler(db).upsert(f"{a.mode}:{a.market}:{a.symbol}",f"{a.mode.title()} {a.market}:{a.symbol}",a.mode,a.every,payload,company.company_id)
         db.close(); print(f"scheduled {a.mode} for {a.market}:{a.symbol} every {a.every} seconds"); return
     if a.cmd=="worker":
-        db=Database(a.db); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
+        # Production startup performs migrations, catalog seeds and backfills
+        # once. Extra workers must only open the already-initialized WAL DB;
+        # otherwise every replica becomes a heavyweight startup writer.
+        db=Database(a.db,initialize=False); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
         worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
         handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
                   "fetch_document":_fetch_document_job_handler(db,queue),

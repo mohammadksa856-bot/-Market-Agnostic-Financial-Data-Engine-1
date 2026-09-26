@@ -533,13 +533,29 @@ def _typed_value(value, value_type: ValueType) -> tuple[str | None, str | None, 
 
 
 class Database:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, initialize: bool = True):
+        """Open the engine database.
+
+        ``initialize`` is intentionally false for long-running queue workers.
+        Schema migration, catalog seeding and legacy backfills are deployment
+        responsibilities; repeating them in every worker turns a lightweight
+        process restart into several competing SQLite writers.  Runtime mode
+        still validates that a deployment initialized the database before a
+        worker is allowed to consume jobs.
+        """
         self.path = str(path)
         self.conn = sqlite3.connect(self.path, timeout=30)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA busy_timeout=30000")
-        if self.path != ":memory:":
+        self.conn.execute("PRAGMA foreign_keys=ON")
+        if self.path != ":memory:" and initialize:
+            # Changing journal mode needs a write lock.  Only the initializer
+            # may do it; runtime workers inherit the persisted WAL mode.
             self.conn.execute("PRAGMA journal_mode=WAL")
+            self.conn.execute("PRAGMA synchronous=NORMAL")
+        if not initialize:
+            self._validate_runtime_schema()
+            return
         self.conn.executescript(SCHEMA)
         self._migrate_legacy_schema()
         self._seed_metric_catalog()
@@ -553,6 +569,31 @@ class Database:
         seed_reviewed_peer_sets(self.conn)
         self._backfill_data_points()
         self._backfill_company_entities()
+
+    def _validate_runtime_schema(self) -> None:
+        """Fail fast without mutating an absent or stale production DB."""
+        required = {"schema_migrations", "jobs", "job_attempts", "workers"}
+        present = {
+            row["name"] for row in self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        missing = sorted(required - present)
+        if missing:
+            self.close()
+            raise RuntimeError(
+                "database is not initialized for worker runtime; missing tables: "
+                + ", ".join(missing)
+            )
+        version = self.conn.execute(
+            "SELECT MAX(version) AS version FROM schema_migrations"
+        ).fetchone()["version"]
+        if version != SCHEMA_VERSION:
+            self.close()
+            raise RuntimeError(
+                f"database schema version {version!r} does not match runtime {SCHEMA_VERSION}; "
+                "run the deployment initializer first"
+            )
 
     def _columns(self, table: str) -> set[str]:
         return {row["name"] for row in self.conn.execute(f"PRAGMA table_info({table})")}

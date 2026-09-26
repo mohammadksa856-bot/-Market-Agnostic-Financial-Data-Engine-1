@@ -170,6 +170,68 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertEqual((row["status"], row["attempts"]), ("succeeded", 1))
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM job_attempts").fetchone()[0], 1)
 
+    def test_runtime_database_open_is_read_only_during_worker_startup(self):
+        before = self.db.conn.total_changes
+        runtime = Database(self.path, initialize=False)
+        try:
+            self.assertEqual(runtime.conn.total_changes, 0)
+            self.assertEqual(runtime.conn.execute("PRAGMA journal_mode").fetchone()[0], "wal")
+            self.assertEqual(runtime.conn.execute("PRAGMA busy_timeout").fetchone()[0], 30000)
+        finally:
+            runtime.close()
+        self.assertEqual(self.db.conn.total_changes, before)
+
+    def test_runtime_database_rejects_an_uninitialized_file(self):
+        path = str(Path(self.temp.name) / "uninitialized.sqlite3")
+        with self.assertRaisesRegex(RuntimeError, "not initialized for worker runtime"):
+            Database(path, initialize=False)
+
+    def test_three_runtime_workers_claim_and_complete_without_lock_errors(self):
+        queue = DurableJobQueue(self.db)
+        total_jobs = 18
+        for index in range(total_jobs):
+            queue.enqueue(
+                "parallel", {"index": index}, self.company.company_id,
+                idempotency_key=f"parallel:{index}",
+            )
+
+        barrier = threading.Barrier(3)
+        errors = []
+        completed = []
+        lock = threading.Lock()
+
+        def consume(worker_number):
+            runtime = Database(self.path, initialize=False)
+            runtime_queue = DurableJobQueue(runtime)
+            try:
+                barrier.wait(timeout=5)
+                while True:
+                    job = runtime_queue.claim(f"worker-{worker_number}", ("parallel",))
+                    if job is None:
+                        break
+                    runtime_queue.complete(job, {"worker": worker_number})
+                    with lock:
+                        completed.append(job.job_id)
+            except Exception as error:
+                with lock:
+                    errors.append(error)
+            finally:
+                runtime.close()
+
+        threads = [threading.Thread(target=consume, args=(index,)) for index in range(3)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=20)
+
+        self.assertFalse(any(thread.is_alive() for thread in threads))
+        self.assertEqual(errors, [])
+        self.assertEqual(len(completed), total_jobs)
+        self.assertEqual(len(set(completed)), total_jobs)
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM jobs WHERE status='succeeded'"
+        ).fetchone()[0], total_jobs)
+
     def test_claim_recovers_from_a_stale_attempt_counter(self):
         queue = DurableJobQueue(self.db)
         job_id, _ = queue.enqueue(
