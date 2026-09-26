@@ -2,7 +2,10 @@ import unittest
 
 from finengine.relay_discovery import (
     discovery_sources,
+    financial_statement_slot,
     gather_company_candidates,
+    missing_financial_statement_slots,
+    select_financial_statement_candidates,
     select_upload_candidates,
 )
 
@@ -28,6 +31,55 @@ class FakeFetcher:
 
 
 class RelayDiscoveryTests(unittest.TestCase):
+    def test_financial_statement_slots_cover_all_years_without_fixed_horizon(self):
+        reports = []
+        for year in range(2010, 2026):
+            for token, label in (
+                ("q1", "Q1"), ("h1", "H1 six months"),
+                ("9m", "Q3 nine months"), ("fy", "audited"),
+            ):
+                reports.append(candidate(
+                    f"https://issuer.example/{year}-{token}-financial-statements.pdf",
+                    f"{label} financial statements {year}",
+                ))
+        selected = select_financial_statement_candidates(reports, 200)
+        self.assertEqual(len(selected), 16 * 4)
+        self.assertEqual(financial_statement_slot(selected[0]), (2025, "Q1"))
+        self.assertEqual(financial_statement_slot(selected[-1]), (2010, "FY"))
+
+    def test_non_statement_documents_never_fill_statement_slots(self):
+        excluded = (
+            candidate("https://issuer.example/annual-2025.pdf", "Annual report 2025"),
+            candidate("https://issuer.example/bod-2025.pdf", "Board of Directors Report 2025"),
+            candidate("https://issuer.example/BOD-2025.pdf", "Financial Statements and Reports Download"),
+            candidate("https://issuer.example/deck-2025.pdf", "Investor presentation financial results 2025"),
+            candidate("https://issuer.example/pillar-2025.pdf", "Pillar 3 financial disclosure 2025"),
+            candidate("https://issuer.example/supplement-2025.xlsx", "Data Supplement financials 2025"),
+        )
+        self.assertTrue(all(financial_statement_slot(item) is None for item in excluded))
+        self.assertEqual(select_financial_statement_candidates(excluded, 200), [])
+
+    def test_statement_end_dates_map_to_the_four_slots(self):
+        expected = (("31 March", "Q1"), ("30 June", "Q2"),
+                    ("30 September", "Q3"), ("31 December", "FY"))
+        for end_date, slot in expected:
+            filing = candidate(
+                f"https://issuer.example/statement-{end_date.replace(' ', '-')}-2024.pdf",
+                f"Financial statements for period ended {end_date} 2024",
+            )
+            self.assertEqual(financial_statement_slot(filing), (2024, slot))
+
+    def test_missing_slots_are_reported_for_each_discovered_year(self):
+        reports = [
+            candidate("https://issuer.example/q1-2025-financial.pdf", "Q1 financial statements 2025"),
+            candidate("https://issuer.example/fy-2025-financial.pdf", "Audited financial statements 2025"),
+            candidate("https://issuer.example/h1-2024-financial.pdf", "H1 financial statements 2024"),
+        ]
+        self.assertEqual(missing_financial_statement_slots(reports), {
+            2025: ["Q2", "Q3"],
+            2024: ["Q1", "Q3", "FY"],
+        })
+
     def test_all_configured_sources_and_profile_are_planned_before_budget(self):
         company = {
             "sources": [

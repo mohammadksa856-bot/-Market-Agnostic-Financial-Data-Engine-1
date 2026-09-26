@@ -20,6 +20,35 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(relay)
 
 
+class WindowsRelayShardTests(unittest.TestCase):
+    def test_even_and_odd_shards_are_disjoint_and_exhaust_sorted_registry(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            registry = Path(temporary) / "registry.json"
+            rows = [
+                {"market": "SA", "symbol": symbol}
+                for symbol in ("4000", "1010", "3000", "2000", "5000")
+            ]
+            registry.write_text(json.dumps(rows), encoding="utf-8")
+
+            def load(shard):
+                args = SimpleNamespace(
+                    registry=registry, symbols=None, shard=shard,
+                    registry_seed=Path(temporary) / "seed.json",
+                    registry_overrides=Path(temporary) / "overrides.json",
+                )
+                with mock.patch.object(relay, "validate_registry"):
+                    return [item["symbol"] for item in relay._load_companies(args)]
+
+            all_symbols = load("all")
+            even = load("even")
+            odd = load("odd")
+            self.assertEqual(all_symbols, ["1010", "2000", "3000", "4000", "5000"])
+            self.assertEqual(even, ["1010", "3000", "5000"])
+            self.assertEqual(odd, ["2000", "4000"])
+            self.assertFalse(set(even) & set(odd))
+            self.assertEqual(set(even) | set(odd), set(all_symbols))
+
+
 class FakeFetcher:
     def __init__(self, candidate, content=b"%PDF-1.7\nverified filing"):
         self.candidate = candidate

@@ -32,6 +32,8 @@ from finengine.relay_discovery import (
     DEFAULT_DISCOVERY_LIMIT_PER_SOURCE,
     eligible_candidates,
     gather_company_candidates,
+    missing_financial_statement_slots,
+    select_financial_statement_candidates,
     select_upload_candidates,
 )
 from build_sa_market_registry import (
@@ -690,6 +692,14 @@ def _load_companies(args) -> list[dict]:
         item for item in loaded_registry
         if item.get("market") == "SA" and str(item.get("symbol") or "").isdigit()
     ]
+    companies.sort(key=lambda item: (int(str(item["symbol"])), str(item["symbol"])))
+    shard = str(getattr(args, "shard", "all") or "all")
+    if shard != "all":
+        parity = 0 if shard == "even" else 1
+        companies = [
+            company for index, company in enumerate(companies)
+            if index % 2 == parity
+        ]
     requested_symbols = {
         value.strip() for value in str(args.symbols or "").split(",")
         if value.strip()
@@ -759,10 +769,18 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
             summary["already_archived"] += (
                 len(discovery.candidates) - len(eligible)
             )
-            candidates = select_upload_candidates(
-                eligible,
-                args.max_documents,
-            )
+            if getattr(args, "financial_statements_only", False):
+                candidates = select_financial_statement_candidates(
+                    eligible, args.max_documents
+                )
+                summary.setdefault("missing_slots", {})[symbol] = (
+                    missing_financial_statement_slots(discovery.candidates)
+                )
+            else:
+                candidates = select_upload_candidates(
+                    eligible,
+                    args.max_documents,
+                )
             company_failed = company_failed or discovery.needs_retry
             summary["candidates"] += len(candidates)
             for candidate in candidates:
@@ -925,6 +943,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--symbols",
         help="Comma-separated Saudi symbols for a bounded pilot run.",
+    )
+    parser.add_argument(
+        "--shard", choices=("all", "even", "odd"), default="all",
+        help=("Deterministic half-market partition after numeric symbol sorting; "
+              "Codex uses even and Claude uses odd."),
+    )
+    parser.add_argument(
+        "--financial-statements-only", action="store_true",
+        help=("Archive only Q1, H1/Q2, 9M/Q3 and FY statements for every "
+              "historical year; exclude reports, presentations and supplements."),
     )
     parser.add_argument(
         "--crawl-issuer-site",

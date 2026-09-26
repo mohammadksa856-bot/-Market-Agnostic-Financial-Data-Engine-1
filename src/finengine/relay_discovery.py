@@ -20,6 +20,20 @@ DEFAULT_DISCOVERY_LIMIT_PER_SOURCE = 200
 ANNUAL_COVERAGE_TARGET = 5
 QUARTER_COVERAGE_TARGET = 12
 
+_NON_STATEMENT_PATTERN = re.compile(
+    r"board\s+of\s+directors?|directors?\s+report|(?:^|[^a-z])bod(?:[^a-z]|$)|annual\s+report|"
+    r"integrated\s+report|investor\s+presentation|presentation|factsheet|"
+    r"pillar\s*3|basel|data\s+supplement|earnings\s+release|"
+    r"تقرير\s+مجلس\s+الإدارة|تقرير\s+سنوي|عرض\s+المستثمرين",
+    re.I,
+)
+_STATEMENT_PATTERN = re.compile(
+    r"financials?|financial\s+statements?|consolidated\s+financial|"
+    r"(?:^|[^a-z])e\s*f\s*s(?:[^a-z]|$)|القوائم\s+المالية|"
+    r"البيانات\s+المالية",
+    re.I,
+)
+
 _OUTBOX_STATUSES = {
     "pending_archive",
     "pending_enqueue",
@@ -227,6 +241,93 @@ def _candidate_period(candidate: Mapping) -> tuple[str, str]:
     if year is not None and _FINANCIAL_PATTERN.search(lowered):
         return "annual", str(year)
     return "other", str(candidate.get("url") or "")
+
+
+def financial_statement_slot(candidate: Mapping) -> tuple[int, str] | None:
+    """Classify one *statement* into the four issuer filing slots for a year.
+
+    The raw backfill deliberately excludes annual/board reports, presentations,
+    supplements and regulatory disclosures even when their surrounding page is
+    labelled "financial reports".  This prevents a download budget from being
+    spent on documents outside the first 18-category foundation item.
+    """
+    text = " ".join(
+        str(candidate.get(key) or "")
+        for key in ("title", "url", "document_type", "filing_type")
+    )
+    text = unquote(text).replace("_", " ").replace("-", " ")
+    if _NON_STATEMENT_PATTERN.search(text) or not _STATEMENT_PATTERN.search(text):
+        return None
+    years = [int(value) for value in _YEAR_PATTERN.findall(text)]
+    if not years:
+        return None
+    # Prefer the final explicit year in the label/file name.  Directory years
+    # are commonly publication years and appear earlier in the URL.
+    year = years[-1]
+    for quarter, pattern in _QUARTER_PATTERNS:
+        if pattern.search(text):
+            return year, {1: "Q1", 2: "Q2", 3: "Q3", 4: "FY"}[quarter]
+    lowered = text.lower()
+    if re.search(r"(?:31|end(?:ed|ing)?)[^a-z0-9]{0,5}march|march[^a-z0-9]{0,5}31", lowered):
+        return year, "Q1"
+    if re.search(r"(?:30|end(?:ed|ing)?)[^a-z0-9]{0,5}june|june[^a-z0-9]{0,5}30", lowered):
+        return year, "Q2"
+    if re.search(r"(?:30|end(?:ed|ing)?)[^a-z0-9]{0,5}september|september[^a-z0-9]{0,5}30", lowered):
+        return year, "Q3"
+    if re.search(r"(?:31|end(?:ed|ing)?)[^a-z0-9]{0,5}december|december[^a-z0-9]{0,5}31", lowered):
+        return year, "FY"
+    if re.search(r"\b(?:h\s*1|half[- ]?year|six\s+months?)\b|النصف\s+الأول", lowered):
+        return year, "Q2"
+    if re.search(r"\b(?:9\s*m|nine\s+months?)\b|تسعة\s+أشهر", lowered):
+        return year, "Q3"
+    # A year-labelled statement with no interim marker is the audited/full-year
+    # statement.  We intentionally do not infer FY for generic annual reports.
+    return year, "FY"
+
+
+def select_financial_statement_candidates(
+    candidates: Iterable[Mapping],
+    upload_budget: int,
+    *,
+    seen: Mapping | Iterable | None = None,
+    outbox: Mapping | Iterable | None = None,
+) -> list[dict]:
+    """Select at most one raw statement for every available year/slot.
+
+    There is no five-year/twelve-quarter completion cap here: all historical
+    years exposed by the official sources remain eligible.  ``upload_budget``
+    is only a per-run safety bound; later idempotent runs continue deeper.
+    """
+    eligible = eligible_candidates(candidates, seen, outbox)
+    by_slot: dict[tuple[int, str], dict] = {}
+    for candidate in eligible:
+        slot = financial_statement_slot(candidate)
+        if slot is not None:
+            by_slot.setdefault(slot, candidate)
+    slot_order = {"Q1": 0, "Q2": 1, "Q3": 2, "FY": 3}
+    selected = [
+        by_slot[key]
+        for key in sorted(by_slot, key=lambda item: (-item[0], slot_order[item[1]]))
+    ]
+    budget = max(0, int(upload_budget))
+    return selected[:budget] if budget else []
+
+
+def missing_financial_statement_slots(
+    candidates: Iterable[Mapping],
+) -> dict[int, list[str]]:
+    """Return missing Q1/Q2/Q3/FY slots for every year discovered."""
+    found: dict[int, set[str]] = {}
+    for candidate in candidates:
+        slot = financial_statement_slot(candidate)
+        if slot is not None:
+            found.setdefault(slot[0], set()).add(slot[1])
+    expected = ("Q1", "Q2", "Q3", "FY")
+    return {
+        year: [slot for slot in expected if slot not in slots]
+        for year, slots in sorted(found.items(), reverse=True)
+        if any(slot not in slots for slot in expected)
+    }
 
 
 def select_upload_candidates(
