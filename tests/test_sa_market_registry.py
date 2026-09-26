@@ -30,6 +30,18 @@ class SaudiMarketRegistryTests(unittest.TestCase):
         self.assertIn("sector", by_symbol["2222"])
         self.assertEqual(by_symbol["8220"]["sources"], [])
 
+    def test_researched_source_pages_feed_the_relay_registry(self):
+        by_symbol = {item["symbol"]: item for item in registry_builder.build_registry()}
+        self.assertIn(
+            "https://www.tasnee.com/en/investor-relations/financials",
+            by_symbol["2060"]["sources"],
+        )
+        self.assertIn(
+            "https://shlfinance.com/en/financial-statements_and_Reports",
+            by_symbol["1183"]["sources"],
+        )
+        self.assertEqual(len(by_symbol), 439)
+
     def test_duplicate_seed_symbol_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

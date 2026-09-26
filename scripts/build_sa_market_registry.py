@@ -11,7 +11,13 @@ from typing import Any
 PROJECT = Path(__file__).resolve().parents[1]
 DEFAULT_SEED = PROJECT / "scripts" / "seed-data" / "sa-manual-seed-2026-09-13.json"
 DEFAULT_OVERRIDES = PROJECT / "config" / "companies.json"
+DEFAULT_SOURCE_REGISTRY = PROJECT / "config" / "source-registry"
 DEFAULT_OUTPUT = PROJECT / "config" / "sa-market-registry.json"
+SOURCE_URL_FIELDS = (
+    "investor_relations_url", "annual_reports_url", "quarterly_results_url",
+    "financial_statements_url", "data_supplements_url", "disclosures_url",
+    "financial_results_url",
+)
 REQUIRED_FIELDS = (
     "company_id", "market", "symbol", "name", "currency", "exchange",
     "country", "timezone", "active", "sources",
@@ -70,8 +76,26 @@ def validate_registry(records: list[dict[str, Any]]) -> None:
             raise RegistryError(f"registry symbol {symbol} sources must be a list")
 
 
+def _source_pages(directory: Path) -> dict[str, list[str]]:
+    pages: dict[str, list[str]] = {}
+    if not directory.exists():
+        return pages
+    for path in sorted(directory.glob("sa-*.json")):
+        records = _read_json(path)
+        if not isinstance(records, list):
+            raise RegistryError(f"{path} must contain an array")
+        for symbol, record in _by_symbol(records, str(path)).items():
+            urls = pages.setdefault(symbol, [])
+            for field in SOURCE_URL_FIELDS:
+                url = record.get(field)
+                if isinstance(url, str) and url.startswith("https://") and url not in urls:
+                    urls.append(url)
+    return pages
+
+
 def build_registry(seed_path: Path = DEFAULT_SEED,
-                   overrides_path: Path = DEFAULT_OVERRIDES) -> list[dict[str, Any]]:
+                   overrides_path: Path = DEFAULT_OVERRIDES,
+                   source_registry: Path = DEFAULT_SOURCE_REGISTRY) -> list[dict[str, Any]]:
     seed_document = _read_json(seed_path)
     seed_records = seed_document.get("data") if isinstance(seed_document, dict) else None
     if not isinstance(seed_records, list):
@@ -85,17 +109,27 @@ def build_registry(seed_path: Path = DEFAULT_SEED,
         [record for record in override_records if record.get("market") == "SA"],
         "companies",
     )
+    source_pages = _source_pages(source_registry)
 
     unknown_overrides = sorted(set(overrides) - set(seed), key=int)
     if unknown_overrides:
         raise RegistryError(
             "Saudi company overrides absent from seed: " + ", ".join(unknown_overrides)
         )
+    unknown_sources = sorted(set(source_pages) - set(seed), key=int)
+    if unknown_sources:
+        raise RegistryError(
+            "Saudi source records absent from seed: " + ", ".join(unknown_sources)
+        )
 
     registry: list[dict[str, Any]] = []
     for symbol in sorted(seed, key=lambda value: (int(value), value)):
         raw = seed[symbol]
         rich = overrides.get(symbol, {})
+        sources = list(rich.get("sources") or [])
+        for url in source_pages.get(symbol, []):
+            if url not in sources:
+                sources.append(url)
         record = {
             "company_id": f"sa:{symbol}",
             "market": "SA",
@@ -106,7 +140,7 @@ def build_registry(seed_path: Path = DEFAULT_SEED,
             "country": str(rich.get("country") or "SA"),
             "timezone": str(rich.get("timezone") or "Asia/Riyadh"),
             "active": _boolean(raw.get("active", True)),
-            "sources": list(rich.get("sources") or []),
+            "sources": sources,
         }
         for field in ("isin", "sector", "industry", "cik", "fiscal_year_end"):
             if rich.get(field) not in (None, ""):
@@ -123,8 +157,9 @@ def render_registry(records: list[dict[str, Any]]) -> str:
 def ensure_registry(output_path: Path = DEFAULT_OUTPUT,
                     seed_path: Path = DEFAULT_SEED,
                     overrides_path: Path = DEFAULT_OVERRIDES,
+                    source_registry: Path = DEFAULT_SOURCE_REGISTRY,
                     *, check: bool = False) -> bool:
-    rendered = render_registry(build_registry(seed_path, overrides_path))
+    rendered = render_registry(build_registry(seed_path, overrides_path, source_registry))
     current = output_path.read_text(encoding="utf-8") if output_path.exists() else None
     if current == rendered:
         return False
@@ -141,12 +176,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=Path, default=DEFAULT_SEED)
     parser.add_argument("--overrides", type=Path, default=DEFAULT_OVERRIDES)
+    parser.add_argument("--source-registry", type=Path, default=DEFAULT_SOURCE_REGISTRY)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    changed = ensure_registry(args.output, args.seed, args.overrides, check=args.check)
+    changed = ensure_registry(
+        args.output, args.seed, args.overrides, args.source_registry, check=args.check
+    )
     print(json.dumps({"registry": str(args.output), "changed": changed,
-                      "companies": len(build_registry(args.seed, args.overrides))}))
+                      "companies": len(build_registry(
+                          args.seed, args.overrides, args.source_registry
+                      ))}))
     return 0
 
 

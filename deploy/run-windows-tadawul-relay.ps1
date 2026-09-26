@@ -4,7 +4,6 @@ $Python = Join-Path $Project "output\local-relay-venv\Scripts\python.exe"
 $Script = Join-Path $Project "scripts\windows_tadawul_relay.py"
 $LogDir = Join-Path $Project "output\local-relay"
 $SshKey = Join-Path $LogDir "deploy-key"
-$Registry = Join-Path $LogDir "sa-market-registry.json"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
 if (-not (Test-Path $Python)) {
@@ -13,8 +12,9 @@ if (-not (Test-Path $Python)) {
 if (-not (Test-Path $SshKey)) {
     throw "Local relay SSH key is missing: $SshKey"
 }
-if (-not (Test-Path $Registry)) {
-    throw "Saudi market relay registry is missing: $Registry"
-}
-& $Python $Script --batch-size 12 --max-documents 10 --timeout-seconds 30 --crawl-issuer-site --registry $Registry --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
+# Let the relay use the tracked registry.  At startup it regenerates that file
+# atomically from the complete market seed, companies.json and reviewed source
+# registry batches, so newly researched issuer pages enter the next run without
+# copying an untracked snapshot by hand.
+& $Python $Script --batch-size 12 --max-documents 10 --timeout-seconds 30 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
 exit $LASTEXITCODE

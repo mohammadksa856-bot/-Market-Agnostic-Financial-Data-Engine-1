@@ -4,6 +4,7 @@ The Windows relay universe is generated from two tracked inputs:
 
 - `scripts/seed-data/sa-manual-seed-2026-09-13.json`: the complete 439-symbol universe.
 - `config/companies.json`: richer metadata and official source pages for known companies.
+- `config/source-registry/sa-*.json`: reviewed official issuer source batches.
 
 Run `python scripts/build_sa_market_registry.py` to update
 `config/sa-market-registry.json`, or add `--check` in CI to fail when the tracked
