@@ -15,3 +15,7 @@ unknown Saudi overrides, missing required fields, and inconsistent identities.
 starting a relay run it regenerates the file atomically when either tracked input
 changes, then validates the complete registry. A custom `--registry` is never
 rewritten, but it is still validated before network activity begins.
+
+The Windows scheduled task runs a 20-company batch every 15 minutes. Its
+`IgnoreNew` multiple-instance policy makes this effectively continuous without
+overlapping Edge sessions when a batch takes longer than the trigger interval.
