@@ -24,6 +24,14 @@ from finengine.fetching import (
     BrowserIssuerMonitor,
     _published_at_from_url,
 )
+from build_sa_market_registry import (
+    DEFAULT_OUTPUT as DEFAULT_MARKET_REGISTRY,
+    DEFAULT_OVERRIDES as DEFAULT_COMPANY_OVERRIDES,
+    DEFAULT_SEED as DEFAULT_MARKET_SEED,
+    RegistryError,
+    ensure_registry,
+    validate_registry,
+)
 
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -229,7 +237,10 @@ def main() -> int:
         action="store_true",
         help="Follow the official company website linked by Saudi Exchange.",
     )
-    parser.add_argument("--registry", type=Path, default=PROJECT / "config" / "companies.json")
+    parser.add_argument("--registry", type=Path, default=DEFAULT_MARKET_REGISTRY)
+    parser.add_argument("--registry-seed", type=Path, default=DEFAULT_MARKET_SEED)
+    parser.add_argument("--registry-overrides", type=Path,
+                        default=DEFAULT_COMPANY_OVERRIDES)
     parser.add_argument("--state", type=Path, default=DEFAULT_STATE)
     parser.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
     parser.add_argument("--log", type=Path, default=DEFAULT_LOG)
@@ -242,7 +253,17 @@ def main() -> int:
     parser.add_argument("--worker", default="repo-worker-1")
     args = parser.parse_args()
 
-    companies = [item for item in _load_json(args.registry, [])
+    if args.registry.resolve() == DEFAULT_MARKET_REGISTRY.resolve():
+        try:
+            ensure_registry(args.registry, args.registry_seed, args.registry_overrides)
+        except RegistryError as error:
+            raise SystemExit(f"Invalid Saudi relay registry: {error}") from error
+    loaded_registry = _load_json(args.registry, [])
+    try:
+        validate_registry(loaded_registry)
+    except RegistryError as error:
+        raise SystemExit(f"Invalid Saudi relay registry: {error}") from error
+    companies = [item for item in loaded_registry
                  if item.get("market") == "SA" and str(item.get("symbol") or "").isdigit()]
     requested_symbols = {
         value.strip() for value in str(args.symbols or "").split(",") if value.strip()

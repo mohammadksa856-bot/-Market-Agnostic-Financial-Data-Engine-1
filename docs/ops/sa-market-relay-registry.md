@@ -1,0 +1,16 @@
+# Saudi market relay registry
+
+The Windows relay universe is generated from two tracked inputs:
+
+- `scripts/seed-data/sa-manual-seed-2026-09-13.json`: the complete 439-symbol universe.
+- `config/companies.json`: richer metadata and official source pages for known companies.
+
+Run `python scripts/build_sa_market_registry.py` to update
+`config/sa-market-registry.json`, or add `--check` in CI to fail when the tracked
+output is stale. The builder rejects duplicate symbols, malformed activity flags,
+unknown Saudi overrides, missing required fields, and inconsistent identities.
+
+`scripts/windows_tadawul_relay.py` uses the generated registry by default. Before
+starting a relay run it regenerates the file atomically when either tracked input
+changes, then validates the complete registry. A custom `--registry` is never
+rewritten, but it is still validated before network activity begins.
