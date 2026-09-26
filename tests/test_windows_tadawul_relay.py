@@ -243,6 +243,29 @@ class WindowsRelayOutboxTests(unittest.TestCase):
         self.assertEqual(final_record["status"], "pending_enqueue")
         self.assertEqual(final_record["archive_attempts"], 2)
 
+    def test_local_only_archives_without_touching_ssh(self):
+        self.args.local_only = True
+        fetcher = FakeFetcher(self.candidate)
+        remote_archive = mock.Mock(side_effect=AssertionError("SSH was called"))
+        outbox = {"version": relay.OUTBOX_VERSION, "documents": {}}
+        state = {"cursor": 0, "seen": {}, "retry_symbols": []}
+        summary = relay._new_summary()
+
+        with mock.patch.object(relay, "_remote_archive", remote_archive):
+            relay._archive_companies(
+                self.args, [self.company], state, outbox, fetcher, summary,
+            )
+
+        self.assertEqual(summary["downloads"], 1)
+        self.assertEqual(summary["local_archived"], 1)
+        self.assertEqual(summary["local_only_pending"], 1)
+        self.assertEqual(summary["archive_failures"], 0)
+        remote_archive.assert_not_called()
+        saved = relay._load_outbox(self.args.outbox)
+        record = next(iter(saved["documents"].values()))
+        self.assertEqual(record["status"], "pending_archive")
+        self.assertTrue(Path(record["local_path"]).is_file())
+
     def test_duplicate_job_is_terminal_but_not_counted_as_created(self):
         content = b"%PDF-1.7\nduplicate"
         digest = relay.hashlib.sha256(content).hexdigest()

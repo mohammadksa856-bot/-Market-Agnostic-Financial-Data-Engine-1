@@ -562,6 +562,7 @@ def _new_summary() -> dict:
         "needs_source_research": 0,
         "download_failures": 0,
         "local_archive_failures": 0,
+        "local_only_pending": 0,
         "archive_failures": 0,
         "enqueue_failures": 0,
         "company_failures": 0,
@@ -621,6 +622,8 @@ def _attempt_remote_archive(args, outbox: dict, entry_id: str,
 
 def _retry_pending_archives(args, outbox: dict, summary: dict,
                             state: dict | None = None) -> set[str]:
+    if bool(getattr(args, "local_only", False)):
+        return set()
     failed_symbols: set[str] = set()
     for entry_id in sorted(outbox["documents"]):
         record = outbox["documents"][entry_id]
@@ -886,7 +889,9 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
                     _save_outbox(args.outbox, outbox)
                     summary["content_duplicates"] += 1
                     if existing.get("status") == "pending_archive":
-                        if not _attempt_remote_archive(
+                        if bool(getattr(args, "local_only", False)):
+                            summary["local_only_pending"] += 1
+                        elif not _attempt_remote_archive(
                                 args, outbox, entry_id, summary, state):
                             company_failed = True
                     elif existing.get("status") in {
@@ -903,7 +908,16 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
                 # are now durable even if SSH/AWS is unavailable immediately.
                 _save_outbox(args.outbox, outbox)
                 _save_state(args.state, state)
-                if not _attempt_remote_archive(
+                if bool(getattr(args, "local_only", False)):
+                    summary["local_only_pending"] += 1
+                    _log(args.log, {
+                        "status": "local_raw_archived",
+                        "symbol": symbol,
+                        "url": url,
+                        "sha256": digest,
+                        "local_path": str(target.resolve()),
+                    })
+                elif not _attempt_remote_archive(
                         args, outbox, entry_id, summary, state):
                     company_failed = True
             if company_failed:
@@ -1004,6 +1018,11 @@ def _parser() -> argparse.ArgumentParser:
         "--financial-statements-only", action="store_true",
         help=("Archive only Q1, H1/Q2, 9M/Q3 and FY statements for every "
               "historical year; exclude reports, presentations and supplements."),
+    )
+    parser.add_argument(
+        "--local-only", action="store_true",
+        help=("Archive verified raw files locally and leave them in the durable "
+              "pending_archive outbox without requiring SSH/AWS."),
     )
     parser.add_argument(
         "--crawl-issuer-site",
