@@ -354,6 +354,11 @@ def main() -> int:
                         "sha256": digest, "published_at": date.today().isoformat(),
                         "status": status,
                     }
+                    # Historical issuer pages can yield dozens of filings.  Save
+                    # every completed document immediately so a laptop/network
+                    # interruption resumes from the remaining URLs instead of
+                    # uploading the whole company again.
+                    _save_state(args.state, state)
                     if status == "queued":
                         summary["queued"] += 1
                     elif status == "duplicate":

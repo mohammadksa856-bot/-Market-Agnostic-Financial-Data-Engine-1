@@ -16,5 +16,5 @@ if (-not (Test-Path $SshKey)) {
 # atomically from the complete market seed, companies.json and reviewed source
 # registry batches, so newly researched issuer pages enter the next run without
 # copying an untracked snapshot by hand.
-& $Python $Script --batch-size 20 --max-documents 10 --timeout-seconds 20 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
+& $Python $Script --batch-size 20 --max-documents 40 --timeout-seconds 20 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
 exit $LASTEXITCODE
