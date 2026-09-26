@@ -219,6 +219,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--max-documents", type=int, default=5)
+    parser.add_argument("--timeout-seconds", type=int, default=90)
     parser.add_argument(
         "--symbols",
         help="Comma-separated Saudi symbols for a bounded pilot run.",
@@ -269,7 +270,11 @@ def main() -> int:
         fresh_count += 1
         if str(company["symbol"]) not in {str(item["symbol"]) for item in batch}:
             batch.append(company)
-    fetcher = LocalEdgeFetcher(args.archive, edge=args.edge, timeout_ms=90_000)
+    fetcher = LocalEdgeFetcher(
+        args.archive,
+        edge=args.edge,
+        timeout_ms=max(args.timeout_seconds, 5) * 1000,
+    )
     summary = {"companies": 0, "candidates": 0, "queued": 0,
                "duplicates": 0, "failures": 0}
     for company in batch:
