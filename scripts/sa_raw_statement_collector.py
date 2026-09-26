@@ -813,7 +813,7 @@ def se_phase(root: Path, company: dict, batch: dict | None, se: SaudiExchange,
     if results:
         idx = list(range(len(results)))
         order = idx if not se_sample_only else (
-            idx[:6] + idx[-4:] + idx[6:-4:max(1, (len(idx) - 10) // 4 or 1)][:4])
+            idx[:2] + idx[-2:] + idx[2:-2:max(1, (len(idx) - 4) // 2 or 1)][:2])
         for i in dict.fromkeys(order):
             visit(results[i])
         if with_files and se_sample_only:
@@ -954,7 +954,8 @@ def cmd_run(args) -> int:
             return 2
         name = args.name or "custom"
     elif args.phase == "se":
-        name = "se-worker"
+        companies = raw.split_workers(companies, args.workers)[args.worker_index]
+        name = f"se-worker-{args.worker_index}"
     else:
         parts = raw.split_workers(companies, args.workers)
         companies = parts[args.worker_index]
@@ -1083,7 +1084,8 @@ def cmd_upload(args) -> int:
 def cmd_launch(args) -> int:
     root = Path(args.root)
     (root / "logs").mkdir(parents=True, exist_ok=True)
-    jobs = [("se-worker", ["--phase", "se"])] + [
+    jobs = [(f"se-worker-{i}", ["--phase", "se", "--workers", "3", "--worker-index", str(i)])
+            for i in range(3)] + [
         (f"issuer-{i}", ["--phase", "issuer", "--workers", str(args.workers),
                          "--worker-index", str(i)]) for i in range(args.workers)]
     for name, extra in jobs:
