@@ -3,7 +3,7 @@ $Project = Split-Path -Parent $PSScriptRoot
 $Python = Join-Path $Project "output\local-relay-venv\Scripts\python.exe"
 $Script = Join-Path $Project "scripts\windows_tadawul_relay.py"
 $LogDir = Join-Path $Project "output\local-relay"
-$SshKey = Join-Path $Project "output\github-actions-finengine-deploy"
+$SshKey = Join-Path $env:USERPROFILE ".ssh\marefa-finengine-deploy"
 $State = Join-Path $LogDir "codex-even-state.json"
 $Log = Join-Path $LogDir "codex-even.jsonl"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null

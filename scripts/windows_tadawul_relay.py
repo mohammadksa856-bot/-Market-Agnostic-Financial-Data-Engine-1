@@ -728,10 +728,32 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
         str(symbol) for symbol in state.get("retry_symbols", [])
         if str(symbol) in by_symbol
     }
-    retry_set.update(symbol for symbol in failed_symbols if symbol in by_symbol)
-    batch = [by_symbol[symbol] for symbol in sorted(retry_set)]
-    fresh_count = 0
     target_size = min(max(args.batch_size, 1), len(companies))
+    retry_set.update(symbol for symbol in failed_symbols if symbol in by_symbol)
+    retry_pool = sorted(retry_set, key=lambda value: (int(value), value))
+    # A permanently blocked issuer must not starve the market-wide cursor.
+    # Reserve at most 25% of each normal batch for rotating source retries and
+    # keep the rest for companies not yet visited in this pass.
+    max_retry_slots = target_size if len(companies) == 1 else max(
+        0, target_size - 1
+    )
+    retry_budget = min(
+        len(retry_pool), max(1, target_size // 4), max_retry_slots
+    )
+    retry_cursor = int(state.get("retry_cursor") or 0)
+    selected_retries = []
+    if retry_pool and retry_budget:
+        selected_retries = [
+            retry_pool[(retry_cursor + offset) % len(retry_pool)]
+            for offset in range(retry_budget)
+        ]
+        state["retry_cursor"] = (
+            retry_cursor + retry_budget
+        ) % len(retry_pool)
+    else:
+        state["retry_cursor"] = 0
+    batch = [by_symbol[symbol] for symbol in selected_retries]
+    fresh_count = 0
     while len(batch) < target_size and fresh_count < len(companies):
         company = companies[(cursor + fresh_count) % len(companies)]
         fresh_count += 1

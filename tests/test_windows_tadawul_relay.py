@@ -48,6 +48,46 @@ class WindowsRelayShardTests(unittest.TestCase):
             self.assertFalse(set(even) & set(odd))
             self.assertEqual(set(even) | set(odd), set(all_symbols))
 
+    def test_retry_backlog_cannot_starve_fresh_company_cursor(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            companies = [
+                {"market": "SA", "symbol": str(1000 + index), "sources": []}
+                for index in range(50)
+            ]
+            args = SimpleNamespace(
+                batch_size=20, max_documents=200,
+                max_discovered_per_source=200,
+                crawl_issuer_site=False, financial_statements_only=False,
+                archive=root / "archive", outbox=root / "outbox.json",
+                state=root / "state.json", log=root / "relay.jsonl",
+                ssh_key=root / "key", known_hosts=root / "known-hosts",
+                server="relay@example.test", worker="worker-1",
+            )
+            state = {
+                "cursor": 25,
+                "seen": {},
+                "retry_symbols": [str(1000 + index) for index in range(25)],
+            }
+            visited = []
+
+            def gather(_fetcher, company, *_args, **_kwargs):
+                visited.append(company["symbol"])
+                return SimpleNamespace(candidates=[], source_failures=[])
+
+            with mock.patch.object(relay, "gather_company_candidates", gather):
+                relay._archive_companies(
+                    args, companies, state,
+                    {"version": relay.OUTBOX_VERSION, "documents": {}},
+                    object(), relay._new_summary(),
+                )
+
+            self.assertEqual(len(visited), 20)
+            self.assertEqual(visited[:5], [str(1000 + i) for i in range(5)])
+            self.assertEqual(visited[5:], [str(1000 + i) for i in range(25, 40)])
+            self.assertEqual(state["cursor"], 40)
+            self.assertEqual(state["retry_cursor"], 5)
+
 
 class FakeFetcher:
     def __init__(self, candidate, content=b"%PDF-1.7\nverified filing"):
