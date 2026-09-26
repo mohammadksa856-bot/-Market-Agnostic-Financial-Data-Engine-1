@@ -191,41 +191,23 @@ def _remote_publish(args, company: dict, candidate: dict,
     filing_type = BrowserIssuerMonitor._document_type(
         f"{candidate['title']} {candidate['url']}"
     )
-    profile = "bank" if "bank" in str(company.get("industry") or "").lower() else (
-        "insurance" if "insurance" in str(company.get("industry") or "").lower()
-        else "corporate"
-    )
-    read = ssh + [
-        "docker", "exec", args.worker, "finengine", "read", container_file,
+    enqueue_output = _run(ssh + [
+        "docker", "exec", args.worker, "finengine", "--db",
+        "/app/state/financial.sqlite3", "relay-enqueue", archive_file,
         "SA", str(company["symbol"]), "--source-url", candidate["url"],
         "--filed-at", filed_at, "--filing-type", filing_type,
-        "--profile", profile, "--out", container_manifest,
-    ]
-    period = _period_end(candidate["title"])
-    if period:
-        read += ["--period-end", period, "--fiscal-year", period[:4]]
+        "--title", candidate["title"], "--raw-dir", "/app/state/raw",
+    ])
     try:
-        read_output = _run(read, attempts=1)
-    except RuntimeError as error:
-        detail = str(error)
-        if ("verify ok=False" in detail or "wrote 0 facts" in detail or
-                "could not infer the reporting year" in detail):
-            return "review_required", detail
-        raise
-    ingest_output = _run(ssh + [
-        "docker", "exec", args.worker, "finengine", "--db",
-        "/app/state/financial.sqlite3", "ingest", "SA", str(company["symbol"]),
-        "--file", container_manifest, "--raw-dir", "/app/state/raw",
-    ], attempts=12)
-    try:
-        ingest_result = json.loads(ingest_output)
+        enqueue_result = json.loads(enqueue_output)
     except json.JSONDecodeError:
-        ingest_result = {}
-    if ingest_result.get("status") in {
-        "exception", "failed", "quarantined", "review_required"
-    }:
-        return "review_required", f"{read_output}\n{ingest_output}".strip()
-    return "published", f"{read_output}\n{ingest_output}".strip()
+        enqueue_result = {}
+    status = str(enqueue_result.get("status") or "")
+    if status in {"queued", "duplicate_job"}:
+        return "queued", enqueue_output
+    if status == "duplicate":
+        return "duplicate", enqueue_output
+    raise RuntimeError(f"unexpected relay enqueue result: {enqueue_output[-2000:]}")
 
 
 def main() -> int:
@@ -269,7 +251,7 @@ def main() -> int:
         if str(company["symbol"]) not in {str(item["symbol"]) for item in batch}:
             batch.append(company)
     fetcher = LocalEdgeFetcher(args.archive, edge=args.edge, timeout_ms=90_000)
-    summary = {"companies": 0, "candidates": 0, "published": 0,
+    summary = {"companies": 0, "candidates": 0, "queued": 0,
                "duplicates": 0, "failures": 0}
     for company in batch:
         summary["companies"] += 1
@@ -325,8 +307,10 @@ def main() -> int:
                     "sha256": digest, "published_at": date.today().isoformat(),
                     "status": status,
                 }
-                if status == "published":
-                    summary["published"] += 1
+                if status == "queued":
+                    summary["queued"] += 1
+                elif status == "duplicate":
+                    summary["duplicates"] += 1
                 else:
                     summary.setdefault("review_required", 0)
                     summary["review_required"] += 1

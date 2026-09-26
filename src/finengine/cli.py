@@ -1081,6 +1081,7 @@ def main():
     audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
     verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
     read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank","insurance"])
+    relay_enqueue=sub.add_parser("relay-enqueue"); relay_enqueue.add_argument("file"); relay_enqueue.add_argument("market",choices=["SA","US"]); relay_enqueue.add_argument("symbol"); relay_enqueue.add_argument("--registry",default="config/companies.json"); relay_enqueue.add_argument("--raw-dir",default="/app/state/raw"); relay_enqueue.add_argument("--source-url",required=True); relay_enqueue.add_argument("--filed-at",required=True); relay_enqueue.add_argument("--filing-type",default="financial-statements"); relay_enqueue.add_argument("--title",default="")
     readprofile=sub.add_parser("read-profile"); readprofile.add_argument("pdf"); readprofile.add_argument("market",choices=["SA","US"]); readprofile.add_argument("symbol"); readprofile.add_argument("--source-url",required=True); readprofile.add_argument("--filed-at",required=True); readprofile.add_argument("--pages",help="comma-separated page numbers to read, e.g. 10,11,25,224,225; omit to read the whole document"); readprofile.add_argument("--model",default="claude-opus-5"); readprofile.add_argument("--out")
     popprofile=sub.add_parser("populate-profile"); popprofile.add_argument("pdf"); popprofile.add_argument("market",choices=["SA","US"]); popprofile.add_argument("symbol"); popprofile.add_argument("--source-url",required=True); popprofile.add_argument("--filed-at",required=True); popprofile.add_argument("--period-end"); popprofile.add_argument("--company-id"); popprofile.add_argument("--max-pages",type=int,default=40); popprofile.add_argument("--model",default="claude-opus-5"); popprofile.add_argument("--out",required=True,help="writes <out>.json (manifest) and <out>.review-queue.json")
     newssearch=sub.add_parser("news-search"); newssearch.add_argument("company_name"); newssearch.add_argument("market",choices=["SA","US"]); newssearch.add_argument("symbol"); newssearch.add_argument("--model",default="claude-haiku-4-5-20251001"); newssearch.add_argument("--out")
@@ -1372,6 +1373,45 @@ def main():
             _print_utf8(output)
         if not verification["ok"]: raise SystemExit(1)
         return
+    if a.cmd=="relay-enqueue":
+        db=Database(a.db); reg=CompanyRegistry.combined(db.conn,a.registry)
+        company=reg.resolve(a.market,a.symbol); db.register_company(company)
+        path=Path(a.file); content=path.read_bytes(); digest=hashlib.sha256(content).hexdigest()
+        content_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      if path.suffix.lower()==".xlsx" else "application/pdf")
+        existing=db.conn.execute(
+            """SELECT source_key,status FROM source_documents
+               WHERE company_id=? AND content_hash=? ORDER BY created_at LIMIT 1""",
+            (company.company_id,digest),
+        ).fetchone()
+        source_key=(existing["source_key"] if existing else
+                    f"document:{company.company_id}:{digest}")
+        document=SourceDocument(
+            company.company_id,company.market,a.source_url,source_key,a.filing_type,
+            a.filed_at,content,content_type,
+            {"title":a.title,"connector":"windows_tadawul_relay",
+             "source_role":"official_document","authority_tier":"configured_official_source",
+             "numeric_authority":True},
+        )
+        db.save_source(document,digest,str(path))
+        db.save_source_artifact(
+            f"artifact:{digest}",company.company_id,a.source_url,digest,str(path),
+            content_type,len(content),document.metadata,
+        )
+        if existing and existing["status"]=="published":
+            result={"status":"duplicate","source_key":source_key,"queued":False}
+        else:
+            db.set_source_status(source_key,"awaiting_extraction")
+            job_id,created=DurableJobQueue(db).enqueue(
+                "extract_document",
+                {"source_key":source_key,"raw_dir":a.raw_dir,"registry":a.registry,
+                 "llm":False,"discovery_scope":"historical"},
+                company.company_id,source_key,
+                idempotency_key=f"extract:{source_key}",priority=1,max_attempts=4,
+            )
+            result={"status":"queued" if created else "duplicate_job",
+                    "source_key":source_key,"job_id":job_id,"queued":created}
+        db.close(); print(json.dumps(result,indent=2)); return
     if a.cmd=="read-profile":
         from .reading_qualitative import qualitative_read
         pages=[int(p) for p in a.pages.split(",")] if a.pages else None
