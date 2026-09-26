@@ -220,6 +220,10 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--max-documents", type=int, default=5)
     parser.add_argument(
+        "--symbols",
+        help="Comma-separated Saudi symbols for a bounded pilot run.",
+    )
+    parser.add_argument(
         "--crawl-issuer-site",
         action="store_true",
         help="Follow the official company website linked by Saudi Exchange.",
@@ -239,6 +243,16 @@ def main() -> int:
 
     companies = [item for item in _load_json(args.registry, [])
                  if item.get("market") == "SA" and str(item.get("symbol") or "").isdigit()]
+    requested_symbols = {
+        value.strip() for value in str(args.symbols or "").split(",") if value.strip()
+    }
+    if requested_symbols:
+        companies = [
+            item for item in companies if str(item.get("symbol")) in requested_symbols
+        ]
+        missing = requested_symbols - {str(item["symbol"]) for item in companies}
+        if missing:
+            raise SystemExit(f"Unknown Saudi symbols: {', '.join(sorted(missing))}")
     if not companies:
         raise SystemExit("No Saudi companies found in registry")
     state = _load_json(args.state, {"cursor": 0, "seen": {}, "retry_symbols": []})
