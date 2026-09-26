@@ -157,6 +157,22 @@ class ManifestVerificationTests(unittest.TestCase):
             self.assertTrue(report["ok"], report["detail"])
             self.assertEqual(report["failures"], 0)
 
+    def test_disposal_group_lines_complete_balance_sheet_subtotals(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            _write(directory, "ifrs5-2025-fy.json", [
+                _instant("current_assets", 40),
+                _instant("noncurrent_assets", 150),
+                _instant("assets_held_for_sale", 10),
+                _instant("total_assets", 200),
+                _instant("current_liabilities", 50),
+                _instant("noncurrent_liabilities", 45),
+                _instant("liabilities_held_for_sale", 5),
+                _instant("total_liabilities", 100),
+            ])
+            report = ManifestVerifier(directory).verify()
+            self.assertTrue(report["ok"], report["detail"])
+
     def test_loss_year_with_zakat_expense_skips_effective_tax_bound(self):
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)

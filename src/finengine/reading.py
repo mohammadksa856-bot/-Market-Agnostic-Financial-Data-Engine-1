@@ -108,6 +108,7 @@ LINE_MAP = {
     "trade receivables": ("accounts_receivable", "instant"),
     "short-term investments": ("short_term_investments", "instant"),
     "assets held for sale": ("assets_held_for_sale", "instant"),
+    "assets classified as held for sale": ("assets_held_for_sale", "instant"),
     "inventories": ("inventory", "instant"),
     "share capital": ("share_capital", "instant"),
     "retained earnings": ("retained_earnings", "instant"),
@@ -118,6 +119,7 @@ LINE_MAP = {
     "deferred tax liabilities": ("deferred_tax_liabilities", "instant"),
     "trade payables": ("accounts_payable", "instant"),
     "liabilities directly associated with assets held for sale": ("liabilities_held_for_sale", "instant"),
+    "liabilities relating to assets classified as held for sale": ("liabilities_held_for_sale", "instant"),
     # cash flow
     "operating income before changes in operating assets and liabilities":
         ("operating_profit_before_working_capital_changes", "fy"),
@@ -431,6 +433,20 @@ def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> s
     wants_instant = statement == "balance_sheet"
     # Typographic apostrophes ("Customers’ deposits") are the same caption.
     norm = " ".join(label.lower().replace("’", "'").replace("‘", "'").split())
+    # OCR engines occasionally confuse the initial lower-case ``l`` in
+    # "liabilities" with ``i``. Correct the complete token only: this is a
+    # deterministic typography repair, not fuzzy matching of arbitrary labels.
+    norm = re.sub(r"\biabilities\b", "liabilities", norm)
+    # The same OCR failure can lose one or both leading characters and can
+    # retain a spurious hyphen. Resolve only the unmistakable statement total
+    # before substring matching would misclassify it as ``total_equity``.
+    if re.search(r"\btotal equity and\s*-?\s*(?:li)?abilities\b", norm):
+        return "total_liabilities_equity" if wants_instant else None
+    # Notes sometimes use "... interests of the Group" as a table caption.
+    # It is not the primary-statement NCI balance and must not fill that fact
+    # when the statement's own row was unreadable.
+    if wants_instant and re.search(r"\bnon[- ]controlling interests of the group\b", norm):
+        return None
     best = None
     for phrase, (metric, kind) in (line_map or LINE_MAP).items():
         compatible = (kind == "instant") == wants_instant
@@ -650,10 +666,22 @@ class StatementReader:
         seen: set[tuple[str, str]] = set()
         carry: str | None = None
         carry_page = -99
+        notes_section = False
         ocr_budget = [self.ocr_page_limit]
         for page_index in range(doc.page_count):
             page = doc[page_index]
             words, page_text = self._page_content(page, page_index, ocr_budget)
+            if facts and re.search(
+                    r"\bnotes to the (?:interim condensed )?consolidated financial statements\b|"
+                    r"^\s*(?:1\s*[-.]\s*)?status and nature of activities\b",
+                    page_text[:700], re.I):
+                notes_section = True
+            # Once the filing enters its notes, later KPI/segment tables must
+            # not be rediscovered as abbreviated primary statements. Their
+            # captions can contain the same labels but different scopes.
+            if notes_section:
+                carry = None
+                continue
             blocks = self._column_blocks(page, words)
             columns = blocks[0] if blocks else []
             panels: list[tuple[str, list[tuple], list[list[float]]]] = []
@@ -837,7 +865,8 @@ class StatementReader:
         NCI.  A label that explicitly says net income/profit remains eligible.
         """
         return (
-            "statement of comprehensive income" in page_text.lower()
+            ("statement of comprehensive income" in page_text.lower()
+             or re.search(r"\bcomprehensive (?:income|loss).*attributable\b", label, re.I))
             and metric in {"net_income_parent", "net_income_noncontrolling"}
             and not re.search(r"\b(?:net\s+income|net\s+profit|profit\s+for)\b", label, re.I)
         )

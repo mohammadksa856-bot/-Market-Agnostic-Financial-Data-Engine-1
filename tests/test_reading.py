@@ -957,6 +957,39 @@ class BankInterimStatementTests(unittest.TestCase):
             "operating_profit_before_working_capital_changes",
         )
 
+    def test_ocr_liabilities_typo_does_not_overwrite_total_equity(self):
+        from finengine.reading import LINE_MAP, _resolve_line
+
+        for caption in (
+            "Total equity and iabilities",
+            "Total equity and -liabilities",
+            "Total equity and abilities",
+        ):
+            self.assertEqual(
+                _resolve_line(caption, "balance_sheet", LINE_MAP),
+                "total_liabilities_equity",
+            )
+
+    def test_ifrs5_disposal_group_captions_are_mapped(self):
+        from finengine.reading import LINE_MAP, _resolve_line
+
+        self.assertEqual(_resolve_line(
+            "Assets classified as held for sale", "balance_sheet", LINE_MAP,
+        ), "assets_held_for_sale")
+        self.assertEqual(_resolve_line(
+            "Liabilities relating to assets classified as held for sale",
+            "balance_sheet", LINE_MAP,
+        ), "liabilities_held_for_sale")
+
+    def test_comprehensive_loss_attribution_is_not_net_income(self):
+        from finengine.reading import StatementReader
+
+        self.assertTrue(StatementReader._is_comprehensive_attribution(
+            "segment note",
+            "Total comprehensive loss attributable to the non-controlling interests",
+            "net_income_noncontrolling",
+        ))
+
     def test_box_drawing_rules_are_not_caption_text(self):
         from finengine.reading import _is_rule_token
 

@@ -250,10 +250,30 @@ class ManifestVerifier:
                     and "discontinued_operations_income" in metrics
                 ):
                     present.append("discontinued_operations_income")
+                # IFRS 5 permits a disposal group to be presented separately
+                # from the current/non-current subtotals. Include those
+                # explicitly reported lines in the corresponding identity.
+                if name == "balance_sheet: assets = current + non-current" and \
+                        "assets_held_for_sale" in metrics:
+                    present.append("assets_held_for_sale")
+                if name == "balance_sheet: liabilities = current + non-current" and \
+                        "liabilities_held_for_sale" in metrics:
+                    present.append("liabilities_held_for_sale")
                 if len(present) < 2:
                     continue
                 result = self._one(metrics[result_metric])
                 total = sum((self._one(metrics[c]) for c in present), Decimal(0))
+                optional = {"assets_held_for_sale", "liabilities_held_for_sale"}
+                base_present = [c for c in present if c not in optional]
+                if len(base_present) != len(present):
+                    base_total = sum(
+                        (self._one(metrics[c]) for c in base_present), Decimal(0)
+                    )
+                    # Issuers differ on whether their printed current subtotal
+                    # already includes an IFRS 5 disposal group. Both layouts
+                    # are valid; retain the identity that matches the filing.
+                    if abs(result - base_total) < abs(result - total):
+                        present, total = base_present, base_total
                 delta = abs(result - total)
                 out.append({
                     "status": "pass" if delta <= _tolerance(result) else "fail",
