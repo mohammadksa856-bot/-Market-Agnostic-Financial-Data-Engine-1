@@ -16,9 +16,8 @@ if (-not (Test-Path $SshKey)) {
 # atomically from the complete market seed, companies.json and reviewed source
 # registry batches, so newly researched issuer pages enter the next run without
 # copying an untracked snapshot by hand.
-# `all` is a durable two-stage run.  Raw documents reach local and AWS
-# content-addressed storage before the independent enqueue stage touches
-# SQLite.  A DB failure therefore remains in outbox.json for the next run and
-# never causes a second download or upload.
-& $Python $Script --stage all --batch-size 20 --max-documents 40 --timeout-seconds 20 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
+# The market-wide foundation pass is deliberately raw-only.  Extraction and
+# database enqueue consume the durable outbox later, independently, so neither
+# reader failures nor SQLite can slow or invalidate source collection.
+& $Python $Script --stage archive --batch-size 20 --max-documents 40 --timeout-seconds 20 --crawl-issuer-site --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
 exit $LASTEXITCODE

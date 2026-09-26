@@ -30,6 +30,7 @@ from finengine.fetching import (
 )
 from finengine.relay_discovery import (
     DEFAULT_DISCOVERY_LIMIT_PER_SOURCE,
+    eligible_candidates,
     gather_company_candidates,
     select_upload_candidates,
 )
@@ -738,7 +739,10 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
                 company,
                 _profile_url(company),
                 args.crawl_issuer_site,
-                max_candidates_per_source=args.max_discovered_per_source,
+                max_candidates_per_source=getattr(
+                    args, "max_discovered_per_source",
+                    DEFAULT_DISCOVERY_LIMIT_PER_SOURCE,
+                ),
             )
             for failure in discovery.source_failures:
                 _log(args.log, {
@@ -751,11 +755,13 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
                 summary.get("discovered", 0) + len(discovery.candidates)
             )
             summary["source_failures"] += len(discovery.source_failures)
+            eligible = eligible_candidates(discovery.candidates, seen, outbox)
+            summary["already_archived"] += (
+                len(discovery.candidates) - len(eligible)
+            )
             candidates = select_upload_candidates(
-                discovery.candidates,
+                eligible,
                 args.max_documents,
-                seen=seen,
-                outbox=outbox,
             )
             company_failed = company_failed or discovery.needs_retry
             summary["candidates"] += len(candidates)
