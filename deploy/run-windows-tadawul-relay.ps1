@@ -23,6 +23,6 @@ if (-not (Test-Path $SshKey)) {
 # reader failures nor SQLite can slow or invalidate source collection.
 & $Python $Script --stage archive --shard even --financial-statements-only `
     --batch-size 20 --max-documents 200 --max-discovered-per-source 200 `
-    --timeout-seconds 30 --crawl-issuer-site --state $State --log $Log `
+    --timeout-seconds 90 --crawl-issuer-site --state $State --log $Log `
     --ssh-key $SshKey *>> (Join-Path $LogDir "scheduler.log")
 exit $LASTEXITCODE
