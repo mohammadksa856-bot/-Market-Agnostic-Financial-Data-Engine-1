@@ -90,11 +90,13 @@ def discovery_sources(
     profile_url: str,
     crawl_profile_issuer_site: bool,
 ) -> tuple[DiscoverySource, ...]:
-    """Build a de-duplicated source plan, always ending with the Exchange profile.
+    """Build a de-duplicated plan from reviewed sources or the Exchange bridge.
 
     Configured issuer pages are already the trusted pages to crawl, so recursive
-    issuer-site discovery is disabled for them.  Only the Saudi Exchange profile
-    is allowed to use its labelled official-company-site bridge.
+    issuer-site discovery is disabled for them.  The Saudi Exchange profile is
+    only a fallback for an issuer that has no reviewed source: the Exchange is
+    hostile to automation and must not make a healthy issuer archive look
+    failed or add a 20-second timeout to every company.
     """
     urls: list[str] = []
     # Reviewed source-registry pages are direct discovery inputs.  The command
@@ -104,7 +106,7 @@ def discovery_sources(
         url = source.get("url") if isinstance(source, Mapping) else source
         if isinstance(url, str) and url.startswith("https://") and url not in urls:
             urls.append(url)
-    if profile_url not in urls:
+    if not urls and profile_url not in urls:
         urls.append(profile_url)
     return tuple(
         DiscoverySource(

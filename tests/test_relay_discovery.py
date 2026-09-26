@@ -80,7 +80,7 @@ class RelayDiscoveryTests(unittest.TestCase):
             2024: ["Q1", "Q3", "FY"],
         })
 
-    def test_all_configured_sources_and_profile_are_planned_before_budget(self):
+    def test_configured_sources_avoid_unreliable_exchange_profile(self):
         company = {
             "sources": [
                 "https://issuer.example/annual-reports",
@@ -93,14 +93,13 @@ class RelayDiscoveryTests(unittest.TestCase):
             [
                 "https://issuer.example/annual-reports",
                 "https://issuer.example/quarterly-results",
-                PROFILE,
             ],
         )
         self.assertFalse(any(item.crawl_issuer_site for item in without_bridge))
 
         with_bridge = discovery_sources(company, PROFILE, True)
         self.assertEqual(
-            [item.crawl_issuer_site for item in with_bridge], [False, False, True]
+            [item.crawl_issuer_site for item in with_bridge], [False, False]
         )
 
     def test_twenty_five_links_advance_to_eleven_through_twenty_next_run(self):
@@ -158,9 +157,7 @@ class RelayDiscoveryTests(unittest.TestCase):
             [(failure.source_url, str(failure.error)) for failure in result.source_failures],
             [(failed, "issuer annual archive timed out")],
         )
-        self.assertEqual(
-            [call[0] for call in fetcher.calls], [failed, working, PROFILE]
-        )
+        self.assertEqual([call[0] for call in fetcher.calls], [failed, working])
 
     def test_annual_source_cannot_starve_quarterly_coverage(self):
         annual_source = "https://issuer.example/annual-reports"

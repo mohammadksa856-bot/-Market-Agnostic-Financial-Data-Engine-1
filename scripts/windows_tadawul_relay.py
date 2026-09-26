@@ -559,6 +559,7 @@ def _new_summary() -> dict:
         "duplicate_job": 0,
         "published_duplicate": 0,
         "source_failures": 0,
+        "needs_source_research": 0,
         "download_failures": 0,
         "local_archive_failures": 0,
         "archive_failures": 0,
@@ -730,6 +731,10 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
     }
     target_size = min(max(args.batch_size, 1), len(companies))
     retry_set.update(symbol for symbol in failed_symbols if symbol in by_symbol)
+    source_research_set = {
+        str(symbol) for symbol in state.get("source_research_symbols", [])
+        if str(symbol) in by_symbol
+    }
     retry_pool = sorted(retry_set, key=lambda value: (int(value), value))
     # A permanently blocked issuer must not starve the market-wide cursor.
     # Reserve at most 25% of each normal batch for rotating source retries and
@@ -766,6 +771,11 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
         summary["companies"] += 1
         company_failed = symbol in failed_symbols
         try:
+            configured_sources = [
+                source for source in (company.get("sources") or [])
+                if ((source.get("url") if isinstance(source, dict) else source)
+                    or "").startswith("https://")
+            ]
             discovery = gather_company_candidates(
                 fetcher,
                 company,
@@ -803,7 +813,23 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
                     eligible,
                     args.max_documents,
                 )
-            company_failed = company_failed or discovery.needs_retry
+            if (not configured_sources and not discovery.candidates and
+                    discovery.source_failures):
+                source_research_set.add(symbol)
+                summary["needs_source_research"] += 1
+                _log(args.log, {
+                    "status": "needs_source_research",
+                    "symbol": symbol,
+                    "reason": "no reviewed issuer source and Exchange fallback failed",
+                })
+            else:
+                source_research_set.discard(symbol)
+            # Failures of reviewed issuer sources deserve bounded retries.
+            # A source-less company instead advances the market cursor and is
+            # exported to the source-research queue above.
+            company_failed = company_failed or bool(
+                configured_sources and discovery.needs_retry
+            )
             summary["candidates"] += len(candidates)
             for candidate in candidates:
                 url = str(candidate["url"])
@@ -898,6 +924,9 @@ def _archive_companies(args, companies: list[dict], state: dict, outbox: dict,
     summary["company_failures"] = len(failed_symbols)
     state["cursor"] = (cursor + fresh_count) % len(companies)
     state["retry_symbols"] = sorted(retry_set)
+    state["source_research_symbols"] = sorted(
+        source_research_set, key=lambda value: (int(value), value)
+    )
     state["last_run"] = _utc_now()
     state["last_archive_summary"] = summary.copy()
     _save_state(args.state, state)
