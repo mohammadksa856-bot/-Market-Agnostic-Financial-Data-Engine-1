@@ -1024,6 +1024,9 @@ HARD_COMPANY_TIMEOUT = 1800  # seconds: last-resort guard for when the whole
 _watchdog_state = {"symbol": None, "part": None, "deadline": None, "root": None}
 
 
+_SETUP_SENTINEL = "<browser-setup>"
+
+
 def _company_watchdog() -> None:
     while True:
         time.sleep(10)
@@ -1032,6 +1035,18 @@ def _company_watchdog() -> None:
             continue
         root, part, symbol = (_watchdog_state["root"], _watchdog_state["part"],
                               _watchdog_state["symbol"])
+        if symbol == _SETUP_SENTINEL:
+            # Nothing per-company to mark - this fired while still inside
+            # browser()/new_page() setup, before any company was reached at
+            # all (seen in production: workers sat here with zero CPU and
+            # zero logged companies for 35+ minutes). Just log and kill.
+            try:
+                jlog(Path(root) / "logs" / "watchdog.jsonl",
+                    {"event": "setup_timeout", "worker": part,
+                     "detail": "browser/context/page setup exceeded its deadline"})
+            except Exception:
+                pass
+            os._exit(88)
         try:
             path = Path(root) / "state" / part / f"{symbol}.json"
             st = jload(path, {"symbol": symbol, "docs": [], "seen_urls": {},
@@ -1100,10 +1115,20 @@ def cmd_run(args) -> int:
         for start in range(0, len(todo), 10):
             chunk = todo[start:start + 10]
             try:
+                # Browser/context/page setup itself can wedge (seen in
+                # production: 3 of 4 issuer workers sat here with zero CPU
+                # and zero logged companies for 35+ minutes after a
+                # simultaneous relaunch) and none of that was covered by the
+                # per-company deadline below, which is only set once inside
+                # the "for c in chunk" loop. Cover the setup too so it can
+                # never hang unbounded either.
+                _watchdog_state.update(symbol=_SETUP_SENTINEL, part=name,
+                                       deadline=time.time() + 300)
                 with browser() as ctx:
                     se = SaudiExchange(ctx, log)
                     crawler = IssuerCrawler(ctx, log)
                     dl = Downloader(ctx, log, se.detail)
+                    _watchdog_state["deadline"] = None
                     for c in chunk:
                         t = time.time()
                         try:
