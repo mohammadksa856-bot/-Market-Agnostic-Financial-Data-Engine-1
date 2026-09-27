@@ -1255,6 +1255,13 @@ def cmd_launch(args) -> int:
         subprocess.Popen(cmd, stdout=out, stderr=out, stdin=subprocess.DEVNULL,
                          creationflags=flags, cwd=str(PROJECT), close_fds=True)
         print("launched", name, "(supervised)")
+        # Stagger: launching several Edge instances at the exact same instant
+        # has correlated with workers sitting at zero CPU indefinitely right
+        # after a simultaneous fleet-wide relaunch (seen in production; not
+        # reproducible when each worker's setup is tested one at a time).
+        # A few seconds between launches is cheap insurance against whatever
+        # that contention is.
+        time.sleep(4)
     return 0
 
 
