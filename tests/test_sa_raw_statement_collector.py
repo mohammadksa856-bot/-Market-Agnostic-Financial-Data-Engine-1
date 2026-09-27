@@ -86,6 +86,47 @@ class PeriodTests(unittest.TestCase):
     def test_unclassifiable(self):
         self.assertIsNone(self.cp("Financial statements")["period_slot"])
 
+
+class PublicationContractTests(unittest.TestCase):
+    def test_interim_metadata_carries_explicit_period(self):
+        document = {
+            "document_type": "financial_statement", "period_slot": "H1",
+            "period_end": "2025-06-30", "downloaded_at": "2026-09-27T01:00:00+03:00",
+            "source_url": "https://issuer.test/report.pdf", "title": "Interim results",
+        }
+        metadata = raw.publication_metadata(document)
+        self.assertEqual(metadata["filing_type"], "interim-report")
+        self.assertTrue(metadata["title"].startswith("2025-06-30 "))
+
+    def test_missing_period_end_is_derived_from_fiscal_calendar(self):
+        document = {
+            "document_type": "financial_statement", "period_slot": "H1",
+            "fiscal_year": 2009, "fy_end_month": 12,
+            "downloaded_at": "2026-09-27T01:00:00+03:00",
+            "source_url": "https://issuer.test/2q09.pdf", "title": "Q2",
+        }
+        self.assertTrue(raw.publication_metadata(document)["title"].startswith("2009-06-30 "))
+
+    def test_saudi_exchange_url_supplies_filing_date(self):
+        document = {
+            "document_type": "financial_statement", "period_slot": "FY",
+            "downloaded_at": "2026-09-27T01:00:00+03:00",
+            "source_url": "https://exchange.test/12_0_2024-03-17_15-01-01_En.pdf",
+            "title": "Annual statements",
+        }
+        self.assertEqual(raw.publication_metadata(document)["filed_at"], "2024-03-17")
+
+    def test_enqueue_command_forces_production_database(self):
+        metadata = {"source_url": "https://issuer.test/a.pdf", "filed_at": "2025-03-01",
+                    "filing_type": "financial-statements", "title": "FY 2024"}
+        command = raw.relay_enqueue_command(
+            "repo-worker-1", "/app/state/raw/SA/2000/documents/a.pdf", "2000",
+            metadata, database="/app/state/financial.sqlite3",
+            registry="/app/state/sa-market-registry.json",
+        )
+        self.assertEqual(command[4:6], ["--db", "/app/state/financial.sqlite3"])
+        self.assertIn("relay-enqueue", command)
+
     def test_expected_slots(self):
         exp = raw.expected_slots([date(2025, 3, 31), date(2025, 12, 31), date(2025, 5, 5)])
         self.assertEqual(set(exp), {(2025, "Q1"), (2025, "FY")})

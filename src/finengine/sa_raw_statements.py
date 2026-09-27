@@ -12,6 +12,7 @@ import hashlib
 import json
 import re
 import shlex
+import calendar
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
@@ -514,6 +515,71 @@ def upload_commands(server: str, worker: str, ssh_key, known_hosts,
 
 def commands_are_raw_only(commands: list[list[str]]) -> bool:
     return not any("relay-enqueue" in " ".join(c) for c in commands)
+
+
+def publication_metadata(document: dict) -> dict:
+    """Translate collector metadata into the production relay contract.
+
+    The period end is deliberately included in the title.  The production
+    reader uses explicit source metadata to distinguish quarter-only columns
+    from cumulative interim columns; dropping it would route valid interim
+    statements to manual review.
+    """
+    slot = str(document.get("period_slot") or "").upper()
+    document_type = str(document.get("document_type") or "")
+    if document_type == "annual_report":
+        filing_type = "annual-report"
+    elif slot in {"Q1", "H1", "9M"}:
+        filing_type = "interim-report"
+    else:
+        filing_type = "financial-statements"
+    downloaded = str(document.get("downloaded_at") or "")
+    filed_at = downloaded[:10] if re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", downloaded) else ""
+    source_url = str(document.get("source_url") or "")
+    match = re.search(r"(?<!\d)(20\d{2})[-_/](\d{2})[-_/](\d{2})(?!\d)", source_url)
+    if match:
+        try:
+            filed_at = date(*(int(value) for value in match.groups())).isoformat()
+        except ValueError:
+            pass
+    period_end = str(document.get("period_end") or "").strip()
+    if not period_end and slot in SLOTS and document.get("fiscal_year"):
+        fiscal_year = int(document["fiscal_year"])
+        fiscal_end_month = int(document.get("fy_end_month") or 12)
+        offset = {"Q1": 9, "H1": 6, "9M": 3, "FY": 0}[slot]
+        month = (fiscal_end_month - offset - 1) % 12 + 1
+        year = fiscal_year - (1 if month > fiscal_end_month else 0)
+        day = calendar.monthrange(year, month)[1]
+        period_end = date(year, month, day).isoformat()
+    title = str(document.get("title") or "Financial statements").strip()
+    if period_end and period_end not in title:
+        title = f"{period_end} {title}"
+    return {
+        "source_url": source_url,
+        "filed_at": filed_at,
+        "filing_type": filing_type,
+        "title": title,
+    }
+
+
+def relay_enqueue_command(worker: str, remote_path: str, symbol: str,
+                          metadata: dict, *, database: str,
+                          registry: str, raw_dir: str = "/app/state/raw") -> list[str]:
+    """Return an argv-safe production enqueue command.
+
+    Keeping the database argument explicit prevents the easy-to-miss failure
+    mode where ``finengine`` writes into the image's demo database instead of
+    the shared production volume.
+    """
+    return [
+        "docker", "exec", worker, "finengine", "--db", database,
+        "relay-enqueue", remote_path, "SA", str(symbol),
+        "--registry", registry, "--raw-dir", raw_dir,
+        "--source-url", metadata["source_url"],
+        "--filed-at", metadata["filed_at"],
+        "--filing-type", metadata["filing_type"],
+        "--title", metadata["title"],
+    ]
 
 
 def normalize_website(value: str | None) -> str | None:

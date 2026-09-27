@@ -12,12 +12,16 @@ Sub-commands: run | launch | merge | status
 from __future__ import annotations
 
 import argparse
+import base64
+import concurrent.futures
 import contextlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1081,6 +1085,167 @@ def cmd_upload(args) -> int:
     return 0
 
 
+def _collector_documents(root: Path) -> list[dict]:
+    """Return one best collector record per immutable content hash."""
+    documents = {}
+    for part in ("se", "issuer"):
+        for path in sorted((root / "state" / part).glob("*.json")):
+            state = jload(path, {})
+            for document in state.get("docs", []):
+                document = dict(document)
+                document.setdefault("fy_end_month", state.get("fy_end_month", 12))
+                digest = document.get("content_hash")
+                if not digest:
+                    continue
+                previous = documents.get(digest)
+                # A primary statement record is more useful than a later
+                # supporting/excluded classification of the same bytes.
+                if previous is None or (previous.get("bucket") != "statement" and
+                                        document.get("bucket") == "statement"):
+                    documents[digest] = document
+    return list(documents.values())
+
+
+def _ssh_prefix(args) -> list[str]:
+    return [
+        "ssh", "-i", str(args.ssh_key),
+        "-o", f"UserKnownHostsFile={args.known_hosts}",
+        "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
+        args.server,
+    ]
+
+
+def _remote_hashes(args) -> set[str]:
+    code = (
+        "import sqlite3,json;"
+        f"c=sqlite3.connect({args.database!r});"
+        "print(json.dumps([r[0] for r in c.execute("
+        "'select content_hash from source_documents where content_hash is not null')]))"
+    )
+    encoded = base64.b64encode(code.encode("utf-8")).decode("ascii")
+    runner = f"import base64;exec(base64.b64decode({encoded!r}))"
+    remote = shlex.join(["docker", "exec", args.worker, "python", "-c", runner])
+    result = subprocess.run(_ssh_prefix(args) + [remote], capture_output=True,
+                            text=True, timeout=90)
+    if result.returncode:
+        raise RuntimeError(result.stderr[-500:])
+    return set(json.loads(result.stdout))
+
+
+def _install_remote_registry(args) -> None:
+    host_path = "/tmp/sa-market-registry.json"
+    options = ["-o", f"UserKnownHostsFile={args.known_hosts}",
+               "-o", "BatchMode=yes", "-o", "ConnectTimeout=15"]
+    market = jload(Path(args.registry), [])
+    detailed = jload(PROJECT / "config" / "companies.json", [])
+    merged = {row["company_id"]: dict(row) for row in market}
+    for row in detailed:
+        base = merged.get(row["company_id"], {})
+        base.update(row)
+        merged[row["company_id"]] = base
+    temporary = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", encoding="utf-8", delete=False,
+    )
+    try:
+        json.dump(list(merged.values()), temporary, ensure_ascii=False, indent=2)
+        temporary.write("\n")
+        temporary.close()
+        copy = ["scp", "-i", str(args.ssh_key), *options, temporary.name,
+                f"{args.server}:{host_path}"]
+        result = subprocess.run(copy, capture_output=True, text=True, timeout=120)
+    finally:
+        Path(temporary.name).unlink(missing_ok=True)
+    if result.returncode:
+        raise RuntimeError(result.stderr[-500:])
+    command = _ssh_prefix(args) + [
+        "docker", "cp", host_path, f"{args.worker}:{args.remote_registry}",
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=90)
+    if result.returncode:
+        raise RuntimeError(result.stderr[-500:])
+
+
+def _publish_one(args, document: dict) -> dict:
+    digest = document["content_hash"]
+    local_path = Path(document["local_path"])
+    if not local_path.is_file():
+        return {"sha256": digest, "status": "missing_local_file"}
+    if raw.sha256_bytes(local_path.read_bytes()) != digest:
+        return {"sha256": digest, "status": "hash_mismatch"}
+    kind = local_path.suffix.lower().lstrip(".")
+    bucket = document.get("bucket", "statement")
+    commands = raw.upload_commands(
+        args.server, args.worker, args.ssh_key, args.known_hosts,
+        document["symbol"], local_path, digest, kind, bucket,
+    )
+    try:
+        for command in commands:
+            result = subprocess.run(command, capture_output=True, text=True,
+                                    timeout=args.command_timeout)
+            if result.returncode:
+                raise RuntimeError((result.stderr or result.stdout)[-500:])
+        remote_path = raw.remote_target(document["symbol"], digest, kind, bucket)
+        metadata = raw.publication_metadata(document)
+        if not metadata["filed_at"]:
+            raise RuntimeError("collector record has no defensible filed_at date")
+        enqueue_argv = raw.relay_enqueue_command(
+            args.worker, remote_path, document["symbol"], metadata,
+            database=args.database, registry=args.remote_registry,
+        )
+        enqueue = _ssh_prefix(args) + [shlex.join(enqueue_argv)]
+        result = subprocess.run(enqueue, capture_output=True, text=True,
+                                timeout=args.command_timeout)
+        if result.returncode:
+            raise RuntimeError((result.stderr or result.stdout)[-500:])
+        payload = json.loads(result.stdout)
+        return {"sha256": digest, "status": payload.get("status", "queued"),
+                "result": payload, "symbol": document["symbol"]}
+    except Exception as exc:
+        return {"sha256": digest, "status": "failed", "error": str(exc),
+                "symbol": document.get("symbol")}
+
+
+def cmd_publish(args) -> int:
+    """Upload new primary statements and enqueue deterministic extraction."""
+    root = Path(args.root)
+    if not (Path(args.ssh_key).is_file() and Path(args.known_hosts).is_file()):
+        raise SystemExit("publish requires --ssh-key and --known-hosts")
+    _install_remote_registry(args)
+    remote = _remote_hashes(args)
+    checkpoint_path = root / "state" / "published.json"
+    checkpoint = jload(checkpoint_path, {})
+    documents = [d for d in _collector_documents(root)
+                 if d.get("bucket") == "statement" and d.get("content_hash") not in remote]
+    documents = [d for d in documents if not checkpoint.get(d["content_hash"], {}).get("done")]
+    if args.symbols:
+        selected_symbols = {value.strip() for value in args.symbols.split(",") if value.strip()}
+        documents = [d for d in documents if str(d.get("symbol")) in selected_symbols]
+    if args.min_year:
+        documents = [d for d in documents if int(d.get("fiscal_year") or 0) >= args.min_year]
+    if args.language:
+        documents = [d for d in documents if str(d.get("language") or "") == args.language]
+    documents.sort(key=lambda d: (str(d.get("symbol")), str(d.get("fiscal_year") or ""),
+                                  str(d.get("period_slot") or ""), d["content_hash"]))
+    if args.limit:
+        documents = documents[:args.limit]
+    summary = {"selected": len(documents), "queued": 0, "duplicate_job": 0,
+               "duplicate": 0, "failed": 0}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.publish_workers) as pool:
+        futures = {pool.submit(_publish_one, args, document): document
+                   for document in documents}
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            status = result["status"]
+            key = status if status in summary else "failed"
+            summary[key] += 1
+            done = status not in {"failed", "missing_local_file", "hash_mismatch"}
+            checkpoint[result["sha256"]] = {"done": done, "at": NOW(), **result}
+            jsave(checkpoint_path, checkpoint)
+            print(json.dumps(result, ensure_ascii=False), flush=True)
+    print(json.dumps(summary, indent=2))
+    return 1 if summary["failed"] else 0
+
+
 def cmd_launch(args) -> int:
     root = Path(args.root)
     (root / "logs").mkdir(parents=True, exist_ok=True)
@@ -1189,7 +1354,7 @@ def cmd_merge(args) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("run", "launch", "merge", "upload", "recompute"):
+    for name in ("run", "launch", "merge", "upload", "publish", "recompute"):
         p = sub.add_parser(name)
         p.add_argument("--root", default=str(DEFAULT_ROOT))
         p.add_argument("--workers", type=int, default=4)
@@ -1206,9 +1371,18 @@ def main(argv=None) -> int:
         p.add_argument("--server", default="ubuntu@13.60.3.12")
         p.add_argument("--worker", default="repo-worker-1")
         p.add_argument("--out", default=str(PROJECT / "docs" / "data"))
+        p.add_argument("--registry", default=str(REGISTRY))
+        p.add_argument("--remote-registry", default="/app/state/sa-market-registry.json")
+        p.add_argument("--database", default="/app/state/financial.sqlite3")
+        p.add_argument("--publish-workers", type=int, default=3)
+        p.add_argument("--command-timeout", type=int, default=240)
+        p.add_argument("--limit", type=int, default=0)
+        p.add_argument("--min-year", type=int, default=0)
+        p.add_argument("--language", choices=["en", "ar", "bilingual"])
     args = ap.parse_args(argv)
     return {"run": cmd_run, "launch": cmd_launch, "merge": cmd_merge,
-            "upload": cmd_upload, "recompute": cmd_recompute}[args.cmd](args)
+            "upload": cmd_upload, "publish": cmd_publish,
+            "recompute": cmd_recompute}[args.cmd](args)
 
 
 if __name__ == "__main__":
