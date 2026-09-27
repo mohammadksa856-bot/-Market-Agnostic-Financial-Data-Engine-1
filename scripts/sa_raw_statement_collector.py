@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -295,6 +296,12 @@ LINK_JS = """()=>{
  doc(document); return out;}"""
 
 
+PAGE_STALL_TIMEOUT = 480  # seconds: a single page step (goto+expand) must not
+                          # exceed this even though a whole company's crawl
+                          # legitimately can (some issuers have hundreds of
+                          # report pages and take hours to fully page through).
+
+
 class IssuerCrawler:
     def __init__(self, context, log, max_pages=70, max_depth=3, delay=1.5):
         self.context = context
@@ -302,6 +309,44 @@ class IssuerCrawler:
         self.log = log
         self.max_pages, self.max_depth, self.delay = max_pages, max_depth, delay
         self.last_host_time: dict[str, float] = {}
+        self.page_started_at = None
+        self.current_symbol = None
+        self.current_url = None
+        self.stalled = False
+        self._stop = threading.Event()
+        self._watchdog = threading.Thread(target=self._watch, daemon=True)
+        self._watchdog.start()
+
+    def close(self):
+        self._stop.set()
+
+    def _watch(self):
+        """Hard wall-clock guard against a single stuck page.goto/evaluate.
+
+        Playwright's page.evaluate() has NO built-in timeout: an async JS
+        function that never resolves (e.g. a fetch against a site that
+        accepted the connection but never answers) hangs the call forever,
+        even though page.goto() itself has an explicit timeout. This is what
+        wedged issuer-1 on eastpipes.com. Force-closing the page from this
+        watchdog thread makes the in-flight call raise, which the existing
+        try/except in crawl()/_expand() already catches and recovers from.
+        """
+        while not self._stop.wait(15):
+            started = self.page_started_at
+            if started and time.time() - started > PAGE_STALL_TIMEOUT:
+                self.stalled = True
+                self.log({"event": "page_stall_killed", "symbol": self.current_symbol,
+                          "url": self.current_url,
+                          "stuck_seconds": round(time.time() - started)})
+                try:
+                    self.page.close()
+                except Exception:
+                    pass
+                try:
+                    self.page = self.context.new_page()
+                except Exception:
+                    pass
+                self.page_started_at = None
 
     def _polite(self, url):
         host = urlparse(url).hostname or ""
@@ -358,30 +403,36 @@ class IssuerCrawler:
         harvest()
         for _ in range(80):
             before = len(seen_links)
+            self.page_started_at = time.time()
             try:
                 clicked = self.page.evaluate(self.CLICK_JS, LOAD_MORE.pattern + "|^(next|›|»|التالي)$")
             except Exception:
+                self.page_started_at = None
                 break
+            self.page_started_at = None
             if not clicked:
                 break
             self.page.wait_for_timeout(900)
             harvest()
             if len(seen_links) == before and _ > 8:
                 break
+        self.page_started_at = time.time()
         try:
             self.page.evaluate(self.TOGGLE_JS)
             self.page.wait_for_timeout(500)
         except Exception:
             pass
+        self.page_started_at = None
         harvest()
 
-    def crawl(self, seeds: list[dict]) -> dict:
+    def crawl(self, seeds: list[dict], symbol: str | None = None) -> dict:
         """Return {"docs": {url: (text, ctx, page_url)}, "status": ..., "pages": n}."""
         docs: dict[str, tuple] = {}
         queue = [(s["url"], 0) for s in seeds]
         seen_pages: set[str] = set()
         allowed = {_registrable(urlparse(s["url"]).hostname or "") for s in seeds}
         pages, statuses = 0, []
+        self.current_symbol = symbol
         while queue and pages < self.max_pages:
             url, depth = queue.pop(0)
             key = url.split("#")[0].rstrip("/")
@@ -389,8 +440,11 @@ class IssuerCrawler:
                 continue
             seen_pages.add(key)
             self._polite(url)
+            self.current_url, self.current_symbol = url, symbol
             ok = False
             for attempt in range(2):
+                self.page_started_at = time.time()
+                self.stalled = False
                 try:
                     try:
                         self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
@@ -403,8 +457,10 @@ class IssuerCrawler:
                     ok = True
                     break
                 except Exception as exc:
-                    last = classify_error(exc)
+                    last = "worker_timeout" if self.stalled else classify_error(exc)
                     time.sleep(2 * (attempt + 1))
+                finally:
+                    self.page_started_at = None
             pages += 1
             if not ok:
                 statuses.append(last)
@@ -855,14 +911,14 @@ def issuer_phase(root: Path, company: dict, batch: dict | None,
     st["fy_end_month"] = fy_end
     seeds = seeds_for(company, batch, prof)
     st["issuer"] = {"seeds": seeds, "profile_website": prof}
-    transient = {"timeout", "blocked", "tls_error", "unreachable", "error"}
+    transient = {"timeout", "blocked", "tls_error", "unreachable", "error", "worker_timeout"}
     reason = None
     if not seeds:
         st["issuer"].update(status="no_source", pages=0)
         run.fail("no_source", "no registry source and no Saudi Exchange website")
     else:
         try:
-            res = crawler.crawl(seeds)
+            res = crawler.crawl(seeds, run.symbol)
         except Exception as exc:
             res = {"docs": {}, "status": classify_error(exc), "pages": 0,
                    "errors": [str(exc)[:200]]}
