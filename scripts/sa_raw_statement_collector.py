@@ -1143,6 +1143,12 @@ def cmd_run(args) -> int:
                 time.sleep(10)
     log({"event": "finished", "worker": name, "processed": done})
     print(f"[{name}] FINISHED processed={done}", flush=True)
+    if not (args.symbols or todo):
+        # Nothing left in this worker's assigned slice across every retry
+        # pass: tell the supervisor not to keep respawning it (a clean exit
+        # here is completion, not a crash to recover from).
+        (root / "state" / f"finished_{name}").write_text(NOW(), encoding="utf-8")
+        print(f"[{name}] slice fully done, no more work", flush=True)
     if args.upload:
         return cmd_upload(args)
     return 0

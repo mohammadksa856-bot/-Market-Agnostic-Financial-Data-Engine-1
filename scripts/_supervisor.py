@@ -22,15 +22,30 @@ from pathlib import Path
 
 name, root, *worker_cmd = sys.argv[1:]
 stop_flag = Path(root) / "state" / f"stop_{name}"
+finished_flag = Path(root) / "state" / f"finished_{name}"
 restarts = 0
-while not stop_flag.exists():
+fast_fail_streak = 0
+while not stop_flag.exists() and not finished_flag.exists():
     started = time.time()
     proc = subprocess.run(worker_cmd)
+    elapsed = time.time() - started
     restarts += 1
     print(f"[_supervisor] {name} exited code={proc.returncode} "
-          f"after {round(time.time() - started)}s (restart #{restarts})",
-          flush=True)
-    if stop_flag.exists():
+          f"after {round(elapsed)}s (restart #{restarts})", flush=True)
+    if stop_flag.exists() or finished_flag.exists():
         break
-    time.sleep(5)
-print(f"[_supervisor] {name} stopping (stop flag present)", flush=True)
+    if elapsed < 30:
+        # A near-instant exit (crashed or a clean "nothing to do" loop) is
+        # never worth retrying every 5s: on this machine, launching Edge for
+        # every worker again immediately after a crash can itself fail
+        # (STATUS_DLL_INIT_FAILED) under memory/handle pressure, turning one
+        # bad launch into a tight, resource-hungry crash loop across the
+        # whole fleet. Back off, and harder the more it keeps happening.
+        fast_fail_streak += 1
+        wait = min(30 * (2 ** (fast_fail_streak - 1)), 600)
+    else:
+        fast_fail_streak = 0
+        wait = 5
+    time.sleep(wait)
+print(f"[_supervisor] {name} stopping "
+      f"({'stop flag' if stop_flag.exists() else 'slice finished'})", flush=True)
