@@ -80,6 +80,8 @@ def sync_once(args, state: dict) -> dict:
         save(Path(args.state), state)
         return {"status": "server_check_failed", "new": len(candidates)}
 
+    for stale in (root / "state").glob("sa-delta-*.tar"):
+        stale.unlink(missing_ok=True)
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     archive = root / "state" / f"sa-delta-{batch_id}.tar"
     result = bundle.build(root, archive, done)
@@ -87,6 +89,11 @@ def sync_once(args, state: dict) -> dict:
         return {"status": "idle", "new": 0}
 
     remote_file = "/tmp/sa-delta-current.tar"
+    prepare = ssh_command(args, f"touch {remote_file}")
+    if prepare.returncode:
+        state["last_error"] = (prepare.stderr or prepare.stdout)[-1000:]
+        save(Path(args.state), state)
+        return {"status": "upload_prepare_failed", "new": result["documents"]}
     with tempfile.NamedTemporaryFile("w", suffix=".sftp", encoding="utf-8",
                                      delete=False) as batch:
         batch.write(f'reput "{archive.as_posix()}" {remote_file}\n')
