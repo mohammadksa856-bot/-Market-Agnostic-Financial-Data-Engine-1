@@ -236,6 +236,30 @@ class LedgerTests(unittest.TestCase):
 
 
 class UploadTests(unittest.TestCase):
+    def test_transport_retries_timeout_then_succeeds(self):
+        import subprocess
+        from unittest.mock import Mock, patch
+        import sa_raw_statement_collector as col
+
+        success = Mock(returncode=0, stdout="ok", stderr="")
+        with patch.object(col.subprocess, "run", side_effect=[
+                subprocess.TimeoutExpired(["ssh"], 1), success,
+        ]) as run, patch.object(col.time, "sleep"):
+            result = col._run_transport(["ssh"], timeout=1)
+        self.assertIs(result, success)
+        self.assertEqual(run.call_count, 2)
+
+    def test_transport_stops_after_bounded_failures(self):
+        from unittest.mock import Mock, patch
+        import sa_raw_statement_collector as col
+
+        failed = Mock(returncode=255, stdout="", stderr="unreachable")
+        with patch.object(col.subprocess, "run", return_value=failed) as run, \
+                patch.object(col.time, "sleep"):
+            with self.assertRaisesRegex(RuntimeError, "unreachable"):
+                col._run_transport(["ssh"], timeout=1, attempts=3)
+        self.assertEqual(run.call_count, 3)
+
     def test_commands_are_raw_only_and_not_executed(self):
         cmds = raw.upload_commands("ubuntu@13.60.3.12", "repo-worker-1", "K", "H",
                                    "1020", "C:/x/abc.pdf", "abc", "pdf")

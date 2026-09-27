@@ -1165,6 +1165,31 @@ def _install_remote_registry(args) -> None:
         raise RuntimeError(result.stderr[-500:])
 
 
+def _run_transport(command: list[str], *, timeout: int, attempts: int = 3):
+    """Run an idempotent SSH/SCP transport step with bounded retries.
+
+    EC2's SSH endpoint can briefly stop accepting connections while several
+    large PDFs are copied concurrently.  Every transport operation used by
+    the publisher is safe to repeat: copies overwrite the same hash-addressed
+    path and relay enqueue is idempotent by source key.
+    """
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, timeout=timeout,
+            )
+            if not result.returncode:
+                return result
+            last_error = RuntimeError((result.stderr or result.stdout)[-500:])
+        except subprocess.TimeoutExpired as exc:
+            last_error = exc
+        if attempt < attempts:
+            time.sleep(min(15, 3 * attempt))
+    assert last_error is not None
+    raise last_error
+
+
 def _publish_one(args, document: dict) -> dict:
     digest = document["content_hash"]
     local_path = Path(document["local_path"])
@@ -1180,10 +1205,7 @@ def _publish_one(args, document: dict) -> dict:
     )
     try:
         for command in commands:
-            result = subprocess.run(command, capture_output=True, text=True,
-                                    timeout=args.command_timeout)
-            if result.returncode:
-                raise RuntimeError((result.stderr or result.stdout)[-500:])
+            _run_transport(command, timeout=args.command_timeout)
         remote_path = raw.remote_target(document["symbol"], digest, kind, bucket)
         metadata = raw.publication_metadata(document)
         if not metadata["filed_at"]:
@@ -1193,10 +1215,7 @@ def _publish_one(args, document: dict) -> dict:
             database=args.database, registry=args.remote_registry,
         )
         enqueue = _ssh_prefix(args) + [shlex.join(enqueue_argv)]
-        result = subprocess.run(enqueue, capture_output=True, text=True,
-                                timeout=args.command_timeout)
-        if result.returncode:
-            raise RuntimeError((result.stderr or result.stdout)[-500:])
+        result = _run_transport(enqueue, timeout=args.command_timeout)
         payload = json.loads(result.stdout)
         return {"sha256": digest, "status": payload.get("status", "queued"),
                 "result": payload, "symbol": document["symbol"]}
@@ -1374,7 +1393,7 @@ def main(argv=None) -> int:
         p.add_argument("--registry", default=str(REGISTRY))
         p.add_argument("--remote-registry", default="/app/state/sa-market-registry.json")
         p.add_argument("--database", default="/app/state/financial.sqlite3")
-        p.add_argument("--publish-workers", type=int, default=3)
+        p.add_argument("--publish-workers", type=int, default=1)
         p.add_argument("--command-timeout", type=int, default=240)
         p.add_argument("--limit", type=int, default=0)
         p.add_argument("--min-year", type=int, default=0)
