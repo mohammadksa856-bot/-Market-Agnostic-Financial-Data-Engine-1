@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
 import subprocess
 from datetime import datetime, timezone
@@ -29,6 +30,11 @@ def main() -> int:
     parser.add_argument("--database", default="/app/state/financial.sqlite3")
     parser.add_argument("--registry", default="/app/state/sa-bulk/registry.json")
     args = parser.parse_args()
+
+    lock_path = args.checkpoint.with_suffix(".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_file = lock_path.open("w")
+    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
 
     checkpoint = load_json(args.checkpoint, {})
     summary = {"selected": 0, "queued": 0, "duplicate": 0, "failed": 0}
