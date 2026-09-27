@@ -998,24 +998,41 @@ def shard(registry_path=REGISTRY):
     return raw.odd_shard(raw.load_registry(registry_path))
 
 
+def full_market(registry_path=REGISTRY):
+    """All Saudi entities in the registry, not just the odd-index shard.
+
+    The odd/even split existed only to keep two parallel raw-collection
+    agents from touching the same companies. Raw collection is now this
+    agent's sole, exclusive responsibility across the whole market, so the
+    shard functions above stay (and stay tested) purely as historical
+    partitioning logic; company selection for a run now defaults to the
+    full registry.
+    """
+    return raw.sorted_companies(raw.load_registry(registry_path))
+
+
+def companies_for_scope(scope: str) -> list[dict]:
+    return full_market() if scope == "full" else shard()
+
+
 def cmd_run(args) -> int:
     root = Path(args.root)
-    companies = shard()
+    companies = companies_for_scope(args.scope)
     if args.symbols:
         wanted = set(args.symbols.split(","))
         companies = [c for c in companies if c["symbol"] in wanted]
         missing = wanted - {c["symbol"] for c in companies}
         if missing:
-            print(f"symbols not in odd shard (refusing): {sorted(missing)}")
+            print(f"symbols not in scope '{args.scope}' (refusing): {sorted(missing)}")
             return 2
         name = args.name or "custom"
     elif args.phase == "se":
         companies = raw.split_workers(companies, args.workers)[args.worker_index]
-        name = f"se-worker-{args.worker_index}"
+        name = f"se-worker-{args.scope}-{args.worker_index}"
     else:
         parts = raw.split_workers(companies, args.workers)
         companies = parts[args.worker_index]
-        name = f"issuer-{args.worker_index}"
+        name = f"issuer-{args.scope}-{args.worker_index}"
     logf = root / "logs" / f"{name}.jsonl"
     log = lambda ev: jlog(logf, ev)  # noqa: E731
     sources = load_sources()
@@ -1140,10 +1157,13 @@ def cmd_upload(args) -> int:
 def cmd_launch(args) -> int:
     root = Path(args.root)
     (root / "logs").mkdir(parents=True, exist_ok=True)
-    jobs = [(f"se-worker-{i}", ["--phase", "se", "--workers", "3", "--worker-index", str(i)])
-            for i in range(3)] + [
-        (f"issuer-{i}", ["--phase", "issuer", "--workers", str(args.workers),
-                         "--worker-index", str(i)]) for i in range(args.workers)]
+    se_n = getattr(args, "se_workers", 3)
+    jobs = [(f"se-worker-{args.scope}-{i}",
+             ["--phase", "se", "--workers", str(se_n), "--worker-index", str(i),
+              "--scope", args.scope]) for i in range(se_n)] + [
+        (f"issuer-{args.scope}-{i}",
+         ["--phase", "issuer", "--workers", str(args.workers), "--worker-index", str(i),
+          "--scope", args.scope]) for i in range(args.workers)]
     for name, extra in jobs:
         out = open(root / "logs" / f"{name}.out", "ab")
         flags = 0x00000008 | 0x00000200 if os.name == "nt" else 0  # DETACHED|NEW_GROUP
@@ -1157,14 +1177,17 @@ def cmd_launch(args) -> int:
 
 def cmd_merge(args) -> int:
     root = Path(args.root)
-    companies = shard()
+    companies = companies_for_scope(args.scope)
     rows, agg = [], {"companies": len(companies), "finished": 0,
+                     "companies_with_any_files": 0, "unique_files": 0,
+                     "total_bytes": 0, "locally_missing_files": 0,
                      "counts": {s: 0 for s in raw.SLOTS},
                      "fy_via_annual_report": 0, "unclassified": 0, "files": 0,
                      "supporting": {"pillar3": 0, "data_supplement": 0, "factsheet": 0},
                      "excluded_after_download": 0,
                      "failures": {}, "rejected": {}}
     detail = []
+    zero_file = []
     pending = {}
     outbox = root / "outbox" / "pending_upload.jsonl"
     uploaded = jload(root / "state" / "uploaded.json", {})
@@ -1173,12 +1196,13 @@ def cmd_merge(args) -> int:
             if line.strip():
                 r = json.loads(line)
                 pending[r["sha256"]] = r
+    seen_hashes = set()
     for c in companies:
         st = load_combined(root, c["symbol"])
-        if not st["finished"]:
-            detail.append({"symbol": c["symbol"], "name": c["name"], "status": "not_finished"})
-            continue
-        agg["finished"] += 1
+        # Count files/sizes for EVERY company with any progress, not only
+        # ones both phases have finished (a full-market run stays "in
+        # progress" for most companies for a long time; the archive itself
+        # should never be under-reported while collection continues).
         led = st["ledger"]
         cnt = st["counts"]
         for s in raw.SLOTS:
@@ -1186,6 +1210,23 @@ def cmd_merge(args) -> int:
         agg["fy_via_annual_report"] += cnt["fy_via_annual_report"]
         agg["unclassified"] += cnt["unclassified"]
         agg["files"] += len(st["docs"])
+        if st["docs"]:
+            agg["companies_with_any_files"] += 1
+        else:
+            zero_file.append({"symbol": c["symbol"], "name": c["name"],
+                              "se_status": st.get("se_status"),
+                              "issuer_status": st.get("issuer_status"),
+                              "reason": (st.get("issuer", {}).get("status") or
+                                        ("no_se_data" if not st.get("se") else "no_documents_found"))})
+        for d in st["docs"]:
+            if d["content_hash"] not in seen_hashes:
+                seen_hashes.add(d["content_hash"])
+                agg["unique_files"] += 1
+                agg["total_bytes"] += d.get("bytes", 0)
+            if not Path(d["local_path"]).exists():
+                agg["locally_missing_files"] += 1
+        if st["finished"]:
+            agg["finished"] += 1
         sc = led.supporting_counts()
         for k, v in sc.items():
             agg["supporting"][k] = agg["supporting"].get(k, 0) + v
@@ -1194,6 +1235,11 @@ def cmd_merge(args) -> int:
             agg["failures"][f["reason"]] = agg["failures"].get(f["reason"], 0) + 1
         for r in st["rejected"]:
             agg["rejected"][r["reason"]] = agg["rejected"].get(r["reason"], 0) + 1
+        if not st["finished"]:
+            detail.append({"symbol": c["symbol"], "name": c["name"], "status": "in_progress",
+                          "se_status": st.get("se_status"), "issuer_status": st.get("issuer_status"),
+                          "files_so_far": len(st["docs"])})
+            continue
         cov = st.get("coverage", {})
         for year, row in sorted(cov.items()):
             for slot in raw.SLOTS:
@@ -1228,6 +1274,7 @@ def cmd_merge(args) -> int:
     agg["aws_uploaded"] = sum(1 for h in pending if uploaded.get(h))
     agg["pending_upload"] = sum(1 for h in pending if not uploaded.get(h))
     agg["remaining"] = agg["companies"] - agg["finished"]
+    agg["zero_file_companies"] = len(zero_file)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     import csv
@@ -1237,7 +1284,8 @@ def cmd_merge(args) -> int:
         w.writeheader()
         w.writerows(rows)
     jsave(out / "sa-raw-statements-odd-coverage.json",
-          {"generated_at": NOW(), "summary": agg, "companies": detail})
+          {"generated_at": NOW(), "summary": agg, "companies": detail,
+           "zero_file_companies": zero_file})
     print(json.dumps(agg, indent=1))
     return 0
 
@@ -1249,8 +1297,14 @@ def main(argv=None) -> int:
         p = sub.add_parser(name)
         p.add_argument("--root", default=str(DEFAULT_ROOT))
         p.add_argument("--workers", type=int, default=4)
+        p.add_argument("--se-workers", type=int, default=3)
         p.add_argument("--worker-index", type=int, default=0)
         p.add_argument("--symbols")
+        p.add_argument("--scope", choices=["odd", "full"], default="full",
+                       help="'full' = whole registry (current default; raw "
+                            "collection is now this agent's sole "
+                            "responsibility across the whole SA market). "
+                            "'odd' = the original odd-index shard.")
         p.add_argument("--name")
         p.add_argument("--phase", choices=["se", "issuer"], default="issuer")
         p.add_argument("--force", action="store_true")
