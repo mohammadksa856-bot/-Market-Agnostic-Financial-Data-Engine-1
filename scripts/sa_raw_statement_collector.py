@@ -1074,7 +1074,10 @@ def _company_watchdog() -> None:
 def cmd_run(args) -> int:
     root = Path(args.root)
     _watchdog_state["root"] = args.root
-    threading.Thread(target=_company_watchdog, daemon=True).start()
+    watchdog_thread = threading.Thread(target=_company_watchdog, daemon=True)
+    watchdog_thread.start()
+    print(f"[startup] pid={os.getpid()} watchdog_alive={watchdog_thread.is_alive()}",
+          flush=True)
     companies = companies_for_scope(args.scope)
     if args.symbols:
         wanted = set(args.symbols.split(","))
@@ -1124,11 +1127,15 @@ def cmd_run(args) -> int:
                 # never hang unbounded either.
                 _watchdog_state.update(symbol=_SETUP_SENTINEL, part=name,
                                        deadline=time.time() + 300)
+                print(f"[{name}] entering browser setup", flush=True)
                 with browser() as ctx:
+                    print(f"[{name}] browser launched, opening pages", flush=True)
                     se = SaudiExchange(ctx, log)
                     crawler = IssuerCrawler(ctx, log)
                     dl = Downloader(ctx, log, se.detail)
                     _watchdog_state["deadline"] = None
+                    print(f"[{name}] setup complete, processing {len(chunk)} companies",
+                          flush=True)
                     for c in chunk:
                         t = time.time()
                         try:
