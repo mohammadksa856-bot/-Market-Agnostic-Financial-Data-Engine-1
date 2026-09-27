@@ -1015,8 +1015,51 @@ def companies_for_scope(scope: str) -> list[dict]:
     return full_market() if scope == "full" else shard()
 
 
+HARD_COMPANY_TIMEOUT = 1800  # seconds: last-resort guard for when the whole
+                             # browser/context is wedged, not just one page,
+                             # so even the page-level watchdog's own remedial
+                             # page.close()/new_page() calls would also block
+                             # (both go through the same stuck IPC channel).
+                             # Only an OS-level process kill is reliable then.
+_watchdog_state = {"symbol": None, "part": None, "deadline": None, "root": None}
+
+
+def _company_watchdog() -> None:
+    while True:
+        time.sleep(10)
+        deadline = _watchdog_state["deadline"]
+        if deadline is None or time.time() <= deadline:
+            continue
+        root, part, symbol = (_watchdog_state["root"], _watchdog_state["part"],
+                              _watchdog_state["symbol"])
+        try:
+            path = Path(root) / "state" / part / f"{symbol}.json"
+            st = jload(path, {"symbol": symbol, "docs": [], "seen_urls": {},
+                              "rejected": [], "unclassified": [], "failures": []})
+            st.setdefault("failures", []).append(
+                {"reason": "worker_timeout",
+                 "detail": f"whole browser context unresponsive for over "
+                          f"{HARD_COMPANY_TIMEOUT}s (page-level watchdog could "
+                          f"not recover it either); process self-terminated "
+                          f"for the launcher to relaunch"})
+            attempts = st.get("attempts", 0) + 1
+            st["attempts"] = attempts
+            st["status"] = "done" if attempts >= 3 else "incomplete"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(st, ensure_ascii=False, indent=1),
+                            encoding="utf-8")
+        except Exception:
+            pass
+        # A wedged browser can also make a graceful shutdown hang, so this is
+        # a hard process kill by design: the launcher (or a supervisor loop
+        # around it) relaunches, resuming from the state just written above.
+        os._exit(87)
+
+
 def cmd_run(args) -> int:
     root = Path(args.root)
+    _watchdog_state["root"] = args.root
+    threading.Thread(target=_company_watchdog, daemon=True).start()
     companies = companies_for_scope(args.scope)
     if args.symbols:
         wanted = set(args.symbols.split(","))
@@ -1164,14 +1207,16 @@ def cmd_launch(args) -> int:
         (f"issuer-{args.scope}-{i}",
          ["--phase", "issuer", "--workers", str(args.workers), "--worker-index", str(i),
           "--scope", args.scope]) for i in range(args.workers)]
+    supervisor = str(Path(__file__).resolve().with_name("_supervisor.py"))
     for name, extra in jobs:
         out = open(root / "logs" / f"{name}.out", "ab")
         flags = 0x00000008 | 0x00000200 if os.name == "nt" else 0  # DETACHED|NEW_GROUP
-        cmd = [sys.executable, "-B", "-u", str(Path(__file__).resolve()), "run",
-               "--root", str(root), *extra]
+        worker_cmd = [sys.executable, "-B", "-u", str(Path(__file__).resolve()), "run",
+                     "--root", str(root), *extra]
+        cmd = [sys.executable, "-B", "-u", supervisor, name, str(root)] + worker_cmd
         subprocess.Popen(cmd, stdout=out, stderr=out, stdin=subprocess.DEVNULL,
                          creationflags=flags, cwd=str(PROJECT), close_fds=True)
-        print("launched", name)
+        print("launched", name, "(supervised)")
     return 0
 
 
