@@ -772,6 +772,13 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(_source_period(q3, self.aramco), ("2024-09-30", 2024))
         self.assertEqual(_source_period(h1, self.aramco), ("2025-06-30", 2025))
         self.assertEqual(_source_period(nine_months, self.aramco), ("2019-09-30", 2019))
+        h1_compact = {
+            "metadata_json": json.dumps({"title": "Interim report"}),
+            "source_url": "https://issuer.example/reports/sab-1h20-interim.pdf",
+            "filing_type": "interim-report",
+            "filed_at": "2026-09-10",
+        }
+        self.assertEqual(_source_period(h1_compact, self.aramco), ("2020-06-30", 2020))
 
     def test_source_period_handles_issuer_archive_quarter_and_year_variants(self):
         compact_quarter = {

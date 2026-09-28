@@ -340,6 +340,16 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     # banks also retain typographic en/em dashes in filenames.  Decode all of
     # those before applying the conservative period tokens below.
     period_text = f"{title} {unquote_plus(source_url)}"
+    compact_cumulative = re.search(
+        r"(?<![A-Za-z0-9])(?:(H1|1H)|(9M))[-_ ]?(\d{2}|20\d{2})(?!\d)",
+        period_text, re.I,
+    )
+    if compact_cumulative:
+        fiscal_year = int(compact_cumulative.group(3))
+        if fiscal_year < 100:
+            fiscal_year += 2000
+        month, day = ((6, 30) if compact_cumulative.group(1) else (9, 30))
+        return date(fiscal_year, month, day).isoformat(), fiscal_year
     quarter = re.search(
         r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])|"
         r"(?<![A-Za-z0-9])([1-4])Q(?![A-Za-z0-9])",
@@ -425,7 +435,7 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
         # Saudi interim statements are filed after the most recent fiscal
         # quarter end.  Accept this fallback only within 75 days and only for
         # documents explicitly classified as interim, never annual reports.
-        if document_type == "interim-report":
+        if document_type == "interim-report" and year_match is None:
             try:
                 filed = date.fromisoformat(str(row["filed_at"] or "")[:10])
                 fiscal_end_month, fiscal_end_day = (

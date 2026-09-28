@@ -411,7 +411,8 @@ _SCALE_PATTERNS = (
 )
 _SCALE_DECLARATION = re.compile(
     r"\b(?:all\s+)?amounts?\s+(?:are\s+)?(?:presented\s+)?in\b|"
-    r"['‘’]000['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات",
+    r"['‘’]000['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات|"
+    r"مليون\s+(?:ريال|لاير)|(?:ألف|الف)\s+(?:ريال|لاير)",
     re.I,
 )
 _NON_PRIMARY_STATEMENT = re.compile(
@@ -491,6 +492,12 @@ def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> s
     wants_instant = statement == "balance_sheet"
     # Typographic apostrophes ("Customers’ deposits") are the same caption.
     norm = " ".join(label.lower().replace("’", "'").replace("‘", "'").split())
+    # Margins, spreads and yields repeat the underlying income caption but are
+    # ratios, not monetary statement lines.  Keeping them would publish 2.7 as
+    # SAR merely because the words "net special commission income" occur in
+    # "net special commission income spread".
+    if re.search(r"\b(?:margin|spread|yield)\b|هامش|فارق|عائد", norm):
+        return None
     # OCR engines occasionally confuse the initial lower-case ``l`` in
     # "liabilities" with ``i``. Correct the complete token only: this is a
     # deterministic typography repair, not fuzzy matching of arbitrary labels.

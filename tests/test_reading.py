@@ -1007,6 +1007,12 @@ class BankInterimStatementTests(unittest.TestCase):
                                         "income_statement", LINE_MAP))
         self.assertEqual(_resolve_line("Total non-current assets", "balance_sheet", LINE_MAP),
                          "noncurrent_assets")
+        self.assertIsNone(_resolve_line(
+            "Net special commission income spread", "income_statement", bank,
+        ))
+        self.assertIsNone(_resolve_line(
+            "فارق صافي دخل العمولات الخاصة", "income_statement", bank,
+        ))
 
     def test_cash_flow_operating_subtotal_has_its_own_metric(self):
         from finengine.reading import LINE_MAP, _resolve_line
