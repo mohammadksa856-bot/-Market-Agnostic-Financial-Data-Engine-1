@@ -33,6 +33,15 @@ class FakeResponse:
     def __exit__(self, *_):
         return False
 
+    def read(self, size=-1):
+        if size is None or size < 0:
+            result = self.content[self.position:]
+            self.position = len(self.content)
+            return result
+        result = self.content[self.position:self.position + size]
+        self.position += len(result)
+        return result
+
 
 class DocumentClassificationTests(unittest.TestCase):
     def test_financial_highlights_are_context_not_failed_statements(self):
@@ -46,16 +55,6 @@ class DocumentClassificationTests(unittest.TestCase):
             "Investor presentation. Statement of financial position. "
             "Forward-looking statements."
         ))
-
-    def read(self, size=-1):
-        if size is None or size < 0:
-            result = self.content[self.position:]
-            self.position = len(self.content)
-            return result
-        result = self.content[self.position:self.position + size]
-        self.position += len(result)
-        return result
-
 
 def opener_for(content: bytes):
     return lambda request, timeout=0: FakeResponse(content)
