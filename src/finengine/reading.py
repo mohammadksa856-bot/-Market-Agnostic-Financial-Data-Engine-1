@@ -714,16 +714,32 @@ class StatementReader:
             heading = None if panels else self._heading_statement(page, words, page_text)
             if heading is None and not panels:
                 heading = self._continued_statement(doc, page, words, page_text, page_index)
-            if heading is None and not panels:
-                heading = self._summary_statement(words, columns, page_text, line_map)
+            summary_heading = None
+            if (heading is None and not panels
+                    and "annual" not in filing_type.lower()):
+                # An annual report normally prints its audited primary
+                # statements later in the same document.  Five-year analysis
+                # and ratio pages near the front reuse the same captions but
+                # may add percentage/change columns; accepting those first
+                # makes ``seen`` suppress the authoritative statement rows.
+                # Compact summary recognition remains available for earnings
+                # releases and interim result PDFs that have no later audited
+                # statement section.
+                summary_heading = self._summary_statement(
+                    words, columns, page_text, line_map
+                )
+                heading = summary_heading
             continuation = bool(
                 not panels and carry and page_index - carry_page == 1 and columns
                 and self._looks_tabular(words, columns)
                 and not _NON_PRIMARY_STATEMENT.search(page_text))
             if panels:
                 carry = None
-            elif heading:
+            elif heading and summary_heading is None:
                 panels = [(heading, words, blocks)]
+            elif summary_heading:
+                panels = [(summary_heading, words, blocks)]
+                carry = None
             elif continuation:
                 panels = [(carry, words, blocks)]  # page after a statement heading
             else:

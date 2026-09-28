@@ -466,6 +466,61 @@ class BankStatementTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class TwoPanelStatementTests(unittest.TestCase):
+    def test_annual_report_uses_primary_statement_not_earlier_highlights(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "annual-report.pdf"
+            doc = pymupdf.open()
+            highlights = doc.new_page(width=612, height=792)
+            highlights.insert_text((45, 55), "Five Year Financial Highlights", fontsize=12)
+            highlights.insert_text((45, 80), "Amounts in SAR '000", fontsize=9)
+            highlights.insert_text((430, 105), "2025", fontsize=9)
+            highlights.insert_text((510, 105), "2024", fontsize=9)
+            for index, (label, current, prior) in enumerate((
+                ("Current assets", "10", "9"),
+                ("Non-current assets", "20", "18"),
+                ("Total assets", "30", "27"),
+                ("Total liabilities", "15", "14"),
+                ("Total equity", "15", "13"),
+                ("Total liabilities and equity", "30", "27"),
+            )):
+                y = 140 + index * 28
+                highlights.insert_text((45, y), label, fontsize=9)
+                highlights.insert_text((430, y), current, fontsize=9)
+                highlights.insert_text((510, y), prior, fontsize=9)
+            statement = doc.new_page(width=612, height=792)
+            statement.insert_text(
+                (45, 55), "Consolidated Statement of Financial Position", fontsize=12
+            )
+            statement.insert_text((430, 90), "2025", fontsize=9)
+            statement.insert_text((510, 90), "2024", fontsize=9)
+            for index, (label, current, prior) in enumerate((
+                ("Current assets", "400", "350"),
+                ("Non-current assets", "600", "550"),
+                ("Total assets", "1000", "900"),
+                ("Total liabilities", "650", "590"),
+                ("Total equity", "350", "310"),
+                ("Total liabilities and equity", "1000", "900"),
+            )):
+                y = 130 + index * 28
+                statement.insert_text((45, y), label, fontsize=9)
+                statement.insert_text((430, y), current, fontsize=9)
+                statement.insert_text((510, y), prior, fontsize=9)
+            doc.save(pdf)
+            doc.close()
+
+            manifest = StatementReader(pdf).read(
+                market="SA", symbol="9999", currency="SAR",
+                source_url="https://example.test/annual.pdf", filed_at="2026-03-01",
+                period_end="2025-12-31", fiscal_year=2025,
+                filing_type="annual-report",
+            )
+            values = {fact["metric"]: fact["value"] for fact in manifest["facts"]}
+            self.assertEqual(values["total_assets"], "1000")
+            self.assertEqual(values["total_liabilities"], "650")
+            self.assertEqual(values["total_equity"], "350")
+
     def test_left_and_right_panels_do_not_cross_contaminate(self):
         from finengine.reading import StatementReader
 
