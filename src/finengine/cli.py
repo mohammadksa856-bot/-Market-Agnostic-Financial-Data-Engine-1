@@ -418,6 +418,37 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
             except (AttributeError, TypeError, ValueError):
                 return date(fiscal_year, 12, 31).isoformat(), fiscal_year
     if quarter_number is None or not year_match:
+        # Some issuer indexes expose only a generic "interim report" label.
+        # The official filing timestamp still bounds the period deterministically:
+        # Saudi interim statements are filed after the most recent fiscal
+        # quarter end.  Accept this fallback only within 75 days and only for
+        # documents explicitly classified as interim, never annual reports.
+        if document_type == "interim-report":
+            try:
+                filed = date.fromisoformat(str(row["filed_at"] or "")[:10])
+                fiscal_end_month, fiscal_end_day = (
+                    int(value) for value in company.fiscal_year_end.split("-")
+                )
+            except (KeyError, TypeError, IndexError, AttributeError, ValueError):
+                return None
+            candidates = []
+            for fiscal_year in range(filed.year - 1, filed.year + 2):
+                for fiscal_quarter in range(1, 5):
+                    month_index = (
+                        fiscal_year * 12 + fiscal_end_month - 1
+                        - (4 - fiscal_quarter) * 3
+                    )
+                    year, month = divmod(month_index, 12)
+                    month += 1
+                    day = min(fiscal_end_day, calendar.monthrange(year, month)[1])
+                    quarter_end = date(year, month, day)
+                    age = (filed - quarter_end).days
+                    if 1 <= age <= 75:
+                        candidates.append((quarter_end, fiscal_year))
+            if not candidates:
+                return None
+            quarter_end, fiscal_year = max(candidates)
+            return quarter_end.isoformat(), fiscal_year
         return None
     fiscal_year, fiscal_quarter = int(year_match.group(1)), quarter_number
     if fiscal_year < 100:
@@ -551,7 +582,11 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
     source_period = _source_period(row, company)
     if source_period:
         kwargs["period_end"], kwargs["fiscal_year"] = source_period
-    reader = StatementReader(pdf_path)
+    # Eight OCR pages were insufficient for scanned interim filings with a
+    # cover, review report and notes before the three primary statements.  A
+    # bounded 24-page budget still prevents unbounded work while covering a
+    # complete ordinary interim filing.
+    reader = StatementReader(pdf_path, ocr_page_limit=24)
     manifest = reader.read(**kwargs)
     report = verify(manifest)
     if not report["ok"]:

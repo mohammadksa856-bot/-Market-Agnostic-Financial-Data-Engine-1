@@ -68,19 +68,17 @@ class Pipeline:
         facts,validation=self.validator.validate(facts,history_for_validation)
         self.db.save_validation(doc.source_key,company.company_id,validation)
         for e in validation: self.db.exception(company.company_id,doc.source_key,"validation",e["code"],e["code"],e)
-        quarantined_ids=[]
-        # SEC Company Facts is a long-lived feed, not a single filing.  One
-        # inconsistent historical period must not suppress thousands of valid
-        # observations.  Keep the anomaly in staging/the exception queue and
-        # publish only the facts outside the failing reconciliation group.
-        if doc.source_key.startswith("sec:"):
-            facts,normalized_ids,quarantined_ids=self._quarantine_reconciliation_anomalies(
-                facts,normalized_ids,validation,
-            )
-            self.db.set_normalized_status(quarantined_ids,"rejected")
+        # A failed accounting identity identifies a small reconciliation
+        # group, not an unsafe document.  Keep that group in staging and the
+        # exception queue, while publishing unrelated statement facts.  This
+        # applies equally to SEC feeds and issuer PDFs: blocking a whole signed
+        # filing because one PDF subtotal was misread discarded hundreds of
+        # otherwise source-faithful facts.
+        facts,normalized_ids,quarantined_ids=self._quarantine_reconciliation_anomalies(
+            facts,normalized_ids,validation,
+        )
+        self.db.set_normalized_status(quarantined_ids,"rejected")
         fatal={"required_field","invalid_period","invalid_fiscal_quarter","missing_period_start"}
-        if not doc.source_key.startswith("sec:"):
-            fatal.update({"balance_sheet_unbalanced","period_rollforward_mismatch"})
         if any(e["code"] in fatal for e in validation):
             self.db.set_normalized_status(normalized_ids,"rejected"); self.db.set_source_status(doc.source_key,"review_required"); self.db.publication_batch(doc.source_key,company.company_id,"blocked",len(facts)+len(quarantined_ids),0)
             return {"status":"exception","source_key":doc.source_key,"published":0,"exceptions":len(validation),"stage":"validation"}
@@ -92,11 +90,10 @@ class Pipeline:
         publishable_ids = list(normalized_ids)
         if source_conflicts:
             self.db.save_validation(doc.source_key, company.company_id, source_conflicts)
-            for conflict in source_conflicts:
-                self.db.exception(
-                    company.company_id, doc.source_key, "validation", conflict["code"],
-                    conflict["message"], conflict, severity="warning",
-                )
+            # Suppression by a stronger reviewed source is a successful safety
+            # decision, not an exception requiring human repair.  The complete
+            # comparison remains in validation_results and the rejected
+            # normalized fact remains in staging for auditability.
             conflict_keys = {
                 (
                     item["metric"], item["period_end"], item["period_kind"],
@@ -159,7 +156,7 @@ class Pipeline:
     def _quarantine_reconciliation_anomalies(
         facts: list, normalized_ids: list[int], validation: list[dict],
     ) -> tuple[list,list[int],list[int]]:
-        """Remove only SEC facts belonging to a failed reconciliation group."""
+        """Remove only facts belonging to a failed reconciliation group."""
         balance_groups={
             (error.get("period"),error.get("scope","consolidated"),
              tuple(sorted(error.get("dimensions",{}).items())))

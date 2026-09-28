@@ -164,6 +164,42 @@ LINE_MAP = {
     "effect of exchange rate changes on cash": ("foreign_exchange_effect", "fy"),
     "net foreign exchange gain (loss) on cash and cash equivalents": ("foreign_exchange_effect", "fy"),
     "net foreign exchange difference": ("foreign_exchange_effect", "fy"),
+
+    # Arabic primary-statement captions.  These are exact accounting labels,
+    # not translated guesses; accepting them lets the deterministic reader use
+    # the issuer's Arabic filing when no English twin is available.
+    "الإيرادات": ("revenue", "fy"),
+    "المبيعات": ("revenue", "fy"),
+    "تكلفة الإيرادات": ("cost_of_revenue", "fy"),
+    "تكلفة المبيعات": ("cost_of_revenue", "fy"),
+    "إجمالي الربح": ("gross_profit", "fy"),
+    "الربح التشغيلي": ("operating_income", "fy"),
+    "الربح من العمليات": ("operating_income", "fy"),
+    "الربح قبل الزكاة وضريبة الدخل": ("income_before_income_taxes_and_zakat", "fy"),
+    "صافي الربح": ("net_income", "fy"),
+    "ربح السنة": ("net_income", "fy"),
+    "ربح الفترة": ("net_income", "fy"),
+    "ربحية السهم المخفضة": ("eps_diluted", "fy"),
+    "إجمالي الأصول": ("total_assets", "instant"),
+    "إجمالي الموجودات": ("total_assets", "instant"),
+    "الأصول المتداولة": ("current_assets", "instant"),
+    "الموجودات المتداولة": ("current_assets", "instant"),
+    "الأصول غير المتداولة": ("noncurrent_assets", "instant"),
+    "الموجودات غير المتداولة": ("noncurrent_assets", "instant"),
+    "إجمالي الالتزامات": ("total_liabilities", "instant"),
+    "إجمالي المطلوبات": ("total_liabilities", "instant"),
+    "الالتزامات المتداولة": ("current_liabilities", "instant"),
+    "المطلوبات المتداولة": ("current_liabilities", "instant"),
+    "الالتزامات غير المتداولة": ("noncurrent_liabilities", "instant"),
+    "المطلوبات غير المتداولة": ("noncurrent_liabilities", "instant"),
+    "إجمالي حقوق الملكية": ("total_equity", "instant"),
+    "النقد وما في حكمه": ("cash", "instant"),
+    "رأس المال": ("share_capital", "instant"),
+    "الأرباح المبقاة": ("retained_earnings", "instant"),
+    "صافي النقد من الأنشطة التشغيلية": ("operating_cash_flow", "fy"),
+    "صافي النقد المستخدم في الأنشطة الاستثمارية": ("investing_cash_flow", "fy"),
+    "صافي النقد من الأنشطة التمويلية": ("financing_cash_flow", "fy"),
+    "صافي التغير في النقد وما في حكمه": ("cash_change", "fy"),
 }
 
 # Banks often present expense lines as unsigned positive magnitudes and rely on
@@ -910,14 +946,17 @@ class StatementReader:
     # table titled the same way usually does not carry all of them.
     _SIGNATURE = {
         "income_statement": (("revenue", "sales", "turnover", "financing income",
-                              "total operating income"),
-                             ("profit for the", "net income", "net profit", "loss for the")),
+                              "total operating income", "الإيرادات", "المبيعات"),
+                             ("profit for the", "net income", "net profit", "loss for the",
+                              "صافي الربح", "ربح السنة", "ربح الفترة")),
         # Interim position statements are commonly split across two pages:
         # assets on the first, equity/liabilities on the next. The exact
         # statement heading plus either side's total is sufficient evidence.
         "balance_sheet": (("total assets", "total equity", "total liabilities",
-                           "equity and liabilities"),),
-        "cash_flow": (("operating activities",), ("financing activities",)),
+                           "equity and liabilities", "إجمالي الأصول", "إجمالي الموجودات",
+                           "إجمالي الالتزامات", "إجمالي المطلوبات", "إجمالي حقوق الملكية"),),
+        "cash_flow": (("operating activities", "الأنشطة التشغيلية"),
+                      ("financing activities", "الأنشطة التمويلية")),
     }
 
     _HEADING_PREFIX = re.compile(

@@ -747,6 +747,15 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(_source_period(named, self.aramco), ("2026-06-30", 2026))
         self.assertIsNone(_source_period(unknown, self.aramco))
 
+    def test_interim_period_falls_back_to_recent_official_filing_date(self):
+        row = {
+            "metadata_json": json.dumps({"title": "Interim results"}),
+            "source_url": "https://issuer.example/report.pdf",
+            "filing_type": "interim-report",
+            "filed_at": "2026-05-12",
+        }
+        self.assertEqual(_source_period(row, self.aramco), ("2026-03-31", 2026))
+
     def test_interim_period_can_use_explicit_official_url_tokens(self):
         q3 = {
             "metadata_json": json.dumps({"title": "Q3 interim report"}),

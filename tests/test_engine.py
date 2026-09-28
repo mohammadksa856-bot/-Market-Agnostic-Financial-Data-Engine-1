@@ -65,9 +65,12 @@ class EngineTests(unittest.TestCase):
     def test_restatement_versions(self):
         p=Pipeline(self.db,Path(self.t.name)/"raw"); p.run(self.c,FakeConnector(sa_payload(),"fixture:1")); r=p.run(self.c,FakeConnector(sa_payload(1100),"fixture:2")); self.assertGreater(r["restated"],0)
         rows=self.db.conn.execute("SELECT value,version,is_current FROM observations WHERE metric='revenue' ORDER BY version").fetchall(); self.assertEqual([(x["value"],x["version"],x["is_current"]) for x in rows],[("1000",1,0),("1100",2,1)])
-    def test_validation_blocks_unbalanced(self):
+    def test_validation_quarantines_unbalanced_group_and_publishes_rest(self):
         payload=sa_payload(); payload["facts"][4]["value"]=1000
-        r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload)); self.assertEqual(r["status"],"exception"); self.assertEqual(self.db.conn.execute("SELECT count(*) FROM exceptions").fetchone()[0],1)
+        r=Pipeline(self.db,Path(self.t.name)/"raw").run(self.c,FakeConnector(payload))
+        self.assertEqual(r["status"],"published")
+        self.assertEqual(r["quarantined"],3)
+        self.assertEqual(self.db.conn.execute("SELECT count(*) FROM exceptions").fetchone()[0],1)
     def test_sec_feed_quarantines_bad_balance_group_and_publishes_valid_history(self):
         payload=sa_payload(); payload["facts"][4]["value"]=1000
         payload["facts"].append({"metric":"revenue","value":900,"period_start":"2023-01-01",
@@ -141,7 +144,7 @@ class EngineTests(unittest.TestCase):
         _, errors = Validator().validate(facts)
         self.assertFalse([error for error in errors if error["code"] == "balance_sheet_unbalanced"])
 
-    def test_ytd_rollforward_mismatch_is_blocked(self):
+    def test_ytd_rollforward_mismatch_quarantines_total_only(self):
         q1={"facts":[
             {"metric":"revenue","value":10,"period_start":"2026-01-01","period_end":"2026-03-31","period_kind":"quarter","fiscal_year":2026,"fiscal_quarter":1}]}
         q2={"facts":[
@@ -150,7 +153,8 @@ class EngineTests(unittest.TestCase):
         pipeline=Pipeline(self.db,Path(self.t.name)/"raw")
         self.assertEqual(pipeline.run(self.c,FakeConnector(q1,"fixture:q1"))["status"],"published")
         result=pipeline.run(self.c,FakeConnector(q2,"fixture:q2"))
-        self.assertEqual((result["status"],result["stage"]),("exception","validation"))
+        self.assertEqual(result["status"],"published")
+        self.assertEqual(result["quarantined"],1)
         self.assertEqual(self.db.conn.execute("SELECT code FROM exceptions").fetchone()[0],"period_rollforward_mismatch")
 
     def test_calculations_keep_quarter_and_ytd_separate_on_same_date(self):
@@ -177,7 +181,11 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(self.db.source_status("fixture:review"),"fetched")
 
     def test_all_source_exceptions_can_be_resolved_for_engine_fix(self):
-        payload=sa_payload(); payload["facts"][4]["value"]=1000
+        payload={"facts":[{
+            "metric":"revenue","value":10,"period_start":"2026-01-01",
+            "period_end":"2026-03-31","period_kind":"quarter",
+            "fiscal_year":2026,"fiscal_quarter":5,
+        }]}
         result=Pipeline(self.db,Path(self.t.name)/"raw").run(
             self.c,FakeConnector(payload,"fixture:bulk-review"))
         self.assertEqual(result["status"],"exception")
