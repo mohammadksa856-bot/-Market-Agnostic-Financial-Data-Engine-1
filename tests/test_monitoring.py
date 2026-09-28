@@ -821,6 +821,9 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(_source_period(row(
             base + "SAB%20Financial%20Statements%20%2030%20June%202025%20English.pdf",
             "interim-report", "Financial statements"), self.aramco), ("2025-06-30", 2025))
+        self.assertEqual(_source_period(row(
+            base + "Jun+%E2%80%93+2016+Interim+Condensed+Statements.pdf",
+            "interim-report", "View"), self.aramco), ("2016-06-30", 2016))
         # A publication month in an annual report title is not its period.
         self.assertEqual(_source_period(row(
             base + "annual-report.pdf", "annual-report", "Annual Report 2025 - March 2026"),

@@ -334,9 +334,12 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
     # Official issuer filenames and directory paths are durable source
     # metadata too.  Many report indexes label a document merely "Q1 interim
     # report" while the URL carries the otherwise missing year.
-    from urllib.parse import unquote
+    from urllib.parse import unquote_plus
 
-    period_text = f"{title} {unquote(source_url)}"
+    # Issuer CMS links use both percent escapes and HTML-form ``+`` spaces;
+    # banks also retain typographic en/em dashes in filenames.  Decode all of
+    # those before applying the conservative period tokens below.
+    period_text = f"{title} {unquote_plus(source_url)}"
     quarter = re.search(
         r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])|"
         r"(?<![A-Za-z0-9])([1-4])Q(?![A-Za-z0-9])",
@@ -368,13 +371,12 @@ def _source_period(row: dict, company) -> tuple[str, int] | None:
         )
         month_named = re.search(
             r"(?<![A-Za-z])(Mar|Jun|Sep|Dec)[a-z]*"
-            r"(?:[\s_]+(20\d{2})|[-’'‘_](20\d{2}|\d{2}))(?![0-9A-Za-z])",
+            r"[\s_+\-–—’'‘]+(20\d{2}|\d{2})(?![0-9A-Za-z])",
             period_text, re.I,
         )
         if day_named or month_named:
             month_text = day_named.group(2) if day_named else month_named.group(1)
-            year_text = (day_named.group(3) if day_named
-                         else month_named.group(2) or month_named.group(3))
+            year_text = day_named.group(3) if day_named else month_named.group(2)
             month = {"mar": 3, "jun": 6, "sep": 9, "dec": 12}[month_text[:3].lower()]
             year = int(year_text) + (2000 if len(year_text) == 2 else 0)
             last_day = calendar.monthrange(year, month)[1]
