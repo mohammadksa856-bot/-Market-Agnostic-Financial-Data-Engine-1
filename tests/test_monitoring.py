@@ -13,7 +13,7 @@ from finengine.cli import (
     _monitor_once, _profile_document_job_handler, _profile_scan_job_handler,
     _queue_profile_extraction, _understanding_refresh_job_handler,
     _market_history_job_handler,
-    _quarantine_failed_identity_facts, _retry_source, _source_period,
+    _presentation_text, _quarantine_failed_identity_facts, _retry_source, _source_period,
 )
 from finengine.fetching import SourceAccessBlocked
 from finengine.database import Database
@@ -32,6 +32,20 @@ class FakeResponse:
 
     def __exit__(self, *_):
         return False
+
+
+class DocumentClassificationTests(unittest.TestCase):
+    def test_financial_highlights_are_context_not_failed_statements(self):
+        self.assertTrue(_presentation_text(
+            "SASCO Financial Highlights Q2. Forward-looking statements. "
+            "IR Contacts. Provided for informational purposes only."
+        ))
+
+    def test_signed_primary_statement_is_never_downgraded_to_context(self):
+        self.assertFalse(_presentation_text(
+            "Investor presentation. Statement of financial position. "
+            "Forward-looking statements."
+        ))
 
     def read(self, size=-1):
         if size is None or size < 0:

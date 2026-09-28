@@ -490,6 +490,38 @@ def _is_annual_pdf(row: dict) -> bool:
     )) or bool(re.search(r"(?:^|[-_/])ara[-_/]?20\d{2}(?:[-_/]|\.)", text))
 
 
+def _presentation_text(text: str) -> bool:
+    """Conservatively distinguish an IR presentation from signed statements."""
+    lowered = " ".join(text.lower().split())
+    primary = (
+        "statement of financial position", "statement of profit or loss",
+        "statement of income", "statement of cash flows",
+        "قائمة المركز المالي", "قائمة الدخل", "قائمة التدفقات النقدية",
+    )
+    if any(token in lowered for token in primary):
+        return False
+    evidence = (
+        "financial highlight", "financial highlights", "investor presentation",
+        "earnings presentation", "ir contacts", "forward-looking statements",
+        "provided for informational purposes only", "عرض المستثمرين",
+        "أبرز النتائج المالية", "إخالء المسؤولية",
+    )
+    return sum(token in lowered for token in evidence) >= 2
+
+
+def _is_financial_presentation(path: Path) -> bool:
+    try:
+        import pymupdf
+        document = pymupdf.open(path)
+        try:
+            text = "\n".join(page.get_text() or "" for page in document)
+        finally:
+            document.close()
+    except Exception:
+        return False
+    return _presentation_text(text)
+
+
 _VERIFIER_IDENTITY_METRICS = {
     "income_statement: revenue + other income": {
         "revenue_and_other_income_related_to_sales", "revenue",
@@ -1143,6 +1175,20 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                 if queue:
                     result.update(_queue_profile_extraction(db, queue, job, row))
                 return result
+            if (row["content_type"] == "application/pdf" and manifest is not None
+                    and not manifest.get("facts") and _is_financial_presentation(path)):
+                db.set_source_status(source_key, "context_only")
+                db.resolve_source_exceptions(
+                    source_key,
+                    "Archived as an investor/earnings presentation; it contains no signed primary financial statements.",
+                    "document-classifier",
+                )
+                db.complete_backlog_item(f"extraction:{source_key}")
+                return {
+                    "status": "context_only", "stage": "classification",
+                    "source_key": source_key, "published": 0,
+                    "reader": "presentation-classifier",
+                }
             if row["content_type"] == "application/pdf":
                 if row["filing_type"] == "data-supplement":
                     code="pdf_supplement_mapping_required"
