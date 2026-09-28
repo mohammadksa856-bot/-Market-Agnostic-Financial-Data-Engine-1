@@ -346,6 +346,28 @@ BANK_LINE_MAP = {
     "non-controlling interests": ("noncontrolling_interests", "instant"),
     "total liabilities and equity": ("total_liabilities_equity", "instant"),
     "total liabilities and shareholders' equity": ("total_liabilities_equity", "instant"),
+    # Arabic bank statements.  PDF engines return Arabic words in visual
+    # right-to-left order; ``_statement_facts`` restores their logical order
+    # before these exact captions are matched.
+    "دخل العمولات الخاصة": ("financing_income", "fy"),
+    "مصاريف العمولات الخاصة": ("financing_expense", "fy"),
+    "صافي دخل العمولات الخاصة": ("net_financing_income", "fy"),
+    "دخل أتعاب وعمولات صافي": ("net_fee_income", "fy"),
+    "إجمالي دخل العمليات": ("total_operating_income", "fy"),
+    "اجمالي دخل العمليات": ("total_operating_income", "fy"),
+    "إجمالي مصاريف العمليات": ("total_operating_expenses", "fy"),
+    "اجمالي مصاريف العمليات": ("total_operating_expenses", "fy"),
+    "مخصص خسائر الائتمان المتوقعة صافي": ("provision_expense", "fy"),
+    "صافي الدخل بعد الزكاة وضريبة الدخل": ("net_income", "fy"),
+    "صافي الخسارة بعد الزكاة وضريبة الدخل": ("net_income", "fy"),
+    "نقدية وأرصدة لدى مؤسسة النقد العربي السعودي":
+        ("cash_and_balances_with_central_bank", "instant"),
+    "أرصدة لدى البنوك والمؤسسات المالية الأخرى": ("due_from_banks", "instant"),
+    "استثمارات صافي": ("bank_investments", "instant"),
+    "قروض وسلف صافي": ("net_loans", "instant"),
+    "ودائع العملاء": ("customer_deposits", "instant"),
+    "أرصدة للبنوك والمؤسسات المالية الأخرى": ("due_to_banks", "instant"),
+    "سندات دين مصدرة": ("debt_securities_issued", "instant"),
     # cash flow lines are the same wording as LINE_MAP; it is used as the fallback
 }
 
@@ -721,6 +743,13 @@ class StatementReader:
                 carry = None
                 continue
             blocks = self._column_blocks(page, words)
+            arabic_characters = sum("\u0600" <= char <= "\u06ff" for char in page_text)
+            latin_characters = sum("a" <= char.lower() <= "z" for char in page_text)
+            if arabic_characters > latin_characters:
+                # Arabic statements print the current period at the visual
+                # right.  Geometry is still left-to-right, so reverse only the
+                # period order inside each panel (panel boundaries are kept).
+                blocks = [list(reversed(block)) for block in blocks]
             columns = blocks[0] if blocks else []
             panels: list[tuple[str, list[tuple], list[list[float]]]] = []
             if len(blocks) > 1:
@@ -946,9 +975,11 @@ class StatementReader:
     # table titled the same way usually does not carry all of them.
     _SIGNATURE = {
         "income_statement": (("revenue", "sales", "turnover", "financing income",
-                              "total operating income", "الإيرادات", "المبيعات"),
+                              "total operating income", "الإيرادات", "المبيعات",
+                              "إجمالي دخل العمليات", "اجمالي دخل العمليات"),
                              ("profit for the", "net income", "net profit", "loss for the",
-                              "صافي الربح", "ربح السنة", "ربح الفترة")),
+                              "صافي الربح", "ربح السنة", "ربح الفترة",
+                              "الزكاة وضريبة الدخل")),
         # Interim position statements are commonly split across two pages:
         # assets on the first, equity/liabilities on the next. The exact
         # statement heading plus either side's total is sufficient evidence.
@@ -967,6 +998,17 @@ class StatementReader:
     def _heading_statement(self, page, words, page_text: str | None = None) -> str | None:
         top = (page.rect.height or 1000) * 0.42
         page_text = (page.get_text() if page_text is None else page_text).lower()
+        # PyMuPDF commonly exposes Arabic words in visual order, so rebuilding
+        # a heading from x-sorted words reverses it.  The native page text keeps
+        # the logical phrase; require the same statement signature before
+        # accepting it to avoid matching a table of contents.
+        for name, anchors in ANCHORS.items():
+            signature = self._SIGNATURE[name]
+            if (any(any("\u0600" <= char <= "\u06ff" for char in anchor)
+                    and anchor in page_text for anchor in anchors)
+                    and all(any(term in page_text for term in group)
+                            for group in signature)):
+                return name
         for row in _rows([w for w in words if w[1] < top]):
             text = " ".join(w[4] for w in row).lower().strip()
             # Investor releases often print a small section number immediately
@@ -991,6 +1033,11 @@ class StatementReader:
     def _heading_anchor(self, page, words, page_text: str) -> str | None:
         """The statement a page's heading row names, ignoring its signature."""
         top = (page.rect.height or 1000) * 0.42
+        lowered = page_text.lower()
+        for name, anchors in ANCHORS.items():
+            if any(any("\u0600" <= char <= "\u06ff" for char in anchor)
+                   and anchor in lowered for anchor in anchors):
+                return name
         for row in _rows([word for word in words if word[1] < top]):
             text = " ".join(word[4] for word in row).lower().strip()
             text = re.sub(r"^\d+\s+", "", text)
@@ -1252,6 +1299,9 @@ class StatementReader:
                 # overwrite the source-faithful primary-statement fact.
                 if any(_NUMBER.match(token) for token in text_tokens):
                     continue
+                if sum(any("\u0600" <= char <= "\u06ff" for char in token)
+                       for token in text_tokens) > len(text_tokens) / 2:
+                    text_tokens.reverse()
                 label = " ".join(text_tokens).strip(" :.-")
                 words_in_label = label.split()
                 if not 1 <= len(words_in_label) <= 13 or "%" in label or _YEAR.search(label):
