@@ -54,6 +54,13 @@ class OcrGeometryTests(unittest.TestCase):
             "Notes to the statements\nAmounts in SAR ‘000",
         ]), 1000)
 
+    def test_standalone_currency_columns_declare_unit_at_ones(self):
+        from finengine.reading import StatementReader
+
+        self.assertEqual(StatementReader._declared_scale(
+            "Statement of financial position\n2025\n2024\nSR\nSR"
+        ), 1)
+
     def test_narrative_amount_does_not_declare_document_scale(self):
         from finengine.reading import StatementReader
 

@@ -664,6 +664,8 @@ class StatementReader:
         )
         facts: list[dict] = []
         seen: set[tuple[str, str]] = set()
+        fact_positions: dict[tuple[str, str], int] = {}
+        annual_prefer_later = "annual" in filing_type.lower()
         carry: str | None = None
         carry_page = -99
         notes_section = False
@@ -781,7 +783,7 @@ class StatementReader:
                         value = -value
                     monetary = metric != "eps_diluted"
                     key = (metric, kind)
-                    if key in seen:
+                    if key in seen and not annual_prefer_later:
                         continue
                     fact = {
                         "metric": metric, "source_label": label.strip(), "value": str(value),
@@ -805,7 +807,11 @@ class StatementReader:
             # continuation of one); a single new mapped line is enough to keep it,
             # and keeps `carry` alive for the rest of a multi-page statement.
             for key, fact in page_facts.items():
+                if key in seen and annual_prefer_later:
+                    facts[fact_positions[key]] = fact
+                    continue
                 seen.add(key)
+                fact_positions[key] = len(facts)
                 facts.append(fact)
         doc.close()
         if not facts and self.ocr_unavailable:
@@ -855,11 +861,19 @@ class StatementReader:
 
     @classmethod
     def _declared_scale(cls, page_text: str) -> Decimal | None:
-        for line in page_text.splitlines():
+        lines = page_text.splitlines()
+        for line in lines:
             if _SCALE_DECLARATION.search(line):
                 scale = cls._scale(line.lower())
                 if scale != 1:
                     return scale
+        # An audited statement can label each period column with a standalone
+        # currency token instead of saying "amounts in SAR".  This explicitly
+        # means unit-at-ones and overrides a thousands declaration found on an
+        # earlier highlights page in the same annual report.
+        if sum(bool(re.fullmatch(r"\s*(?:SR|SAR|USD)\s*", line, re.I))
+               for line in lines) >= 2:
+            return Decimal(1)
         return None
 
     @classmethod
