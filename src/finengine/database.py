@@ -1736,6 +1736,24 @@ class Database:
 
     def exception(self, company_id: str, source_key: str, stage: str, code: str, message: str,
                   payload: dict | None = None, severity: str = "error"):
+        # A document retry is another attempt at the same extraction problem,
+        # not a new review item.  Coalesce only extraction-stage exceptions;
+        # validation may legitimately emit the same rule code for many
+        # different metrics and periods in one source.
+        if stage == "extraction":
+            existing = self.conn.execute(
+                """SELECT id FROM exceptions WHERE source_key=? AND stage=? AND code=?
+                AND status='open' ORDER BY id DESC LIMIT 1""",
+                (source_key, stage, code),
+            ).fetchone()
+            if existing:
+                self.conn.execute(
+                    """UPDATE exceptions SET company_id=?,message=?,payload_json=?,severity=?,
+                    retry_count=retry_count+1,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                    (company_id, message, _json(payload or {}), severity, existing["id"]),
+                )
+                self.conn.commit()
+                return
         self.conn.execute(
             """INSERT INTO exceptions(company_id,source_key,stage,code,message,payload_json,severity,updated_at)
             VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",

@@ -83,6 +83,25 @@ class StorageAndJobsTests(unittest.TestCase):
         ).fetchone()
         self.assertEqual(link["artifact_key"], "artifact:first")
 
+    def test_extraction_retry_updates_one_open_exception(self):
+        source = self.source("source:retry-exception")
+        self.db.exception(
+            self.company.company_id, source.source_key, "extraction",
+            "pdf_extraction_failed", "first attempt", {"verify_failures": 1},
+        )
+        self.db.exception(
+            self.company.company_id, source.source_key, "extraction",
+            "pdf_extraction_failed", "second attempt", {"verify_failures": 2},
+        )
+        rows = self.db.conn.execute(
+            "SELECT message,payload_json,retry_count FROM exceptions WHERE source_key=?",
+            (source.source_key,),
+        ).fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["message"], rows[0]["retry_count"]),
+                         ("second attempt", 1))
+        self.assertIn('"verify_failures":2', rows[0]["payload_json"])
+
     def test_dimensions_allow_multiple_segments_for_same_metric(self):
         source = self.source()
         states = self.db.publish_batch([
