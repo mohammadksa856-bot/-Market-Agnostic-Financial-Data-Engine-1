@@ -13,7 +13,7 @@ from finengine.cli import (
     _monitor_once, _profile_document_job_handler, _profile_scan_job_handler,
     _queue_profile_extraction, _understanding_refresh_job_handler,
     _market_history_job_handler,
-    _source_period,
+    _quarantine_failed_identity_facts, _retry_source, _source_period,
 )
 from finengine.fetching import SourceAccessBlocked
 from finengine.database import Database
@@ -553,8 +553,84 @@ class MonitoringTests(unittest.TestCase):
             "payload": {"source_key": archived["source_key"]},
             "job_id": "interim-unreadable-test",
         })()
-        result = _extract_document_job_handler(self.db)(job)
+        verifier = {
+            "ok": False, "failures": 1,
+            "detail": [{
+                "status": "fail", "check": "manifest contains source facts",
+                "file": "manifest.json",
+            }],
+            "unmapped_labels": [{"file": "manifest.json", "label": "Mystery line"}],
+        }
+        with patch("finengine.cli._read_pdf_manifest",
+                   return_value=({"facts": []}, verifier, "deterministic")):
+            result = _extract_document_job_handler(self.db)(job)
         self.assertEqual(result["code"], "pdf_extraction_failed")
+        exception = self.db.conn.execute(
+            "SELECT payload_json FROM exceptions ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        payload = json.loads(exception["payload_json"])
+        self.assertEqual(payload["verify_detail"][0]["check"],
+                         "manifest contains source facts")
+        self.assertEqual(payload["unmapped_labels"][0]["label"], "Mystery line")
+
+    def test_failed_identity_is_quarantined_without_losing_unrelated_facts(self):
+        facts = [
+            {"metric": "revenue", "value": "500", "period_end": "2025-12-31",
+             "period_kind": "fy"},
+            {"metric": "total_assets", "value": "100", "period_end": "2025-12-31",
+             "period_kind": "instant"},
+            {"metric": "total_liabilities", "value": "80", "period_end": "2025-12-31",
+             "period_kind": "instant"},
+            {"metric": "total_equity", "value": "30", "period_end": "2025-12-31",
+             "period_kind": "instant"},
+        ]
+        report = {"ok": False, "detail": [{
+            "status": "fail", "check": "balance_sheet: assets = liabilities + equity",
+            "period": "2025-12-31 instant",
+        }]}
+        verify = unittest.mock.Mock(return_value={"ok": True, "detail": []})
+        repaired, repaired_report = _quarantine_failed_identity_facts(
+            {"facts": facts}, report, verify,
+        )
+        self.assertTrue(repaired_report["ok"])
+        self.assertEqual([fact["metric"] for fact in repaired["facts"]], ["revenue"])
+        self.assertEqual(
+            {fact["metric"] for fact in repaired["excluded_facts"]},
+            {"total_assets", "total_liabilities", "total_equity"},
+        )
+        self.assertTrue(all(
+            fact["exclusion_reason"] == "failed_accounting_identity"
+            for fact in repaired["excluded_facts"]
+        ))
+
+    def test_retry_source_routes_pdf_back_through_document_reader(self):
+        candidate = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "retry-pdf",
+            "https://issuer.example/annual-2025.pdf", "Annual report 2025",
+            "annual-report", "2026-03-01", "application/pdf",
+        )
+        candidate_id, _ = self.db.save_source_candidate(candidate)
+        archived = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-retry"),
+        ).fetch(candidate_id)
+        self.db.set_source_status(archived["source_key"], "review_required")
+        self.db.exception(
+            self.aramco.company_id, archived["source_key"], "extraction",
+            "pdf_extraction_failed", "old reader failed",
+        )
+        expected = {"status": "published", "source_key": archived["source_key"]}
+        handler = unittest.mock.Mock(return_value=expected)
+        with patch("finengine.cli._extract_document_job_handler",
+                   return_value=handler):
+            result = _retry_source(
+                self.db, archived["source_key"],
+                str(Path(self.temp.name) / "missing-registry.json"),
+                str(Path(self.temp.name) / "pipeline-raw"),
+            )
+        self.assertEqual(result, expected)
+        handler.assert_called_once()
+        self.assertEqual(handler.call_args.args[0].payload["source_key"],
+                         archived["source_key"])
 
     def test_pdf_data_supplement_is_not_sent_to_statement_reader(self):
         candidate = SourceCandidate(
@@ -618,6 +694,34 @@ class MonitoringTests(unittest.TestCase):
             "SELECT count(*) FROM exceptions WHERE source_key=? AND status='open'",
             (arabic_doc["source_key"],),
         ).fetchone()[0], 0)
+
+    def test_url_encoded_arabic_language_twin_is_context_only(self):
+        english = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "english-encoded",
+            "https://issuer.example/Q3_2024_%28En%29.pdf", "Q3 2024 English",
+            "interim-report", "2024-10-31", "application/pdf",
+        )
+        english_id, _ = self.db.save_source_candidate(english)
+        english_doc = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-en"),
+        ).fetch(english_id)
+        self.db.set_source_status(english_doc["source_key"], "published")
+        arabic = SourceCandidate(
+            self.aramco.company_id, "browser-issuer-reports", "arabic-encoded",
+            "https://issuer.example/Q3_2024_%28Ar%29.pdf", "Q3 2024 عربي",
+            "interim-report", "2024-10-31", "application/pdf",
+        )
+        arabic_id, _ = self.db.save_source_candidate(arabic)
+        arabic_doc = DocumentArchiver(
+            self.db, Path(self.temp.name) / "raw", opener=opener_for(b"%PDF-ar"),
+        ).fetch(arabic_id)
+        job = type("Job", (), {
+            "payload": {"source_key": arabic_doc["source_key"]},
+            "job_id": "encoded-language-equivalence-test",
+        })()
+        result = _extract_document_job_handler(self.db)(job)
+        self.assertEqual(result["status"], "context_only")
+        self.assertEqual(result["equivalent_source_key"], english_doc["source_key"])
 
     def test_interim_period_is_derived_only_from_explicit_source_title(self):
         explicit = {"metadata_json": json.dumps({

@@ -1367,18 +1367,36 @@ class Database:
         local_path: str, content_type: str, byte_size: int, metadata: dict | None = None,
     ) -> None:
         """Register one immutable raw filing independently from its reviewed manifest."""
+        # ``source_artifacts`` has two valid identities: the explicit artifact
+        # key and the immutable (company, URL, digest) tuple.  A retry may be
+        # assigned a new artifact key while still referring to the exact same
+        # archived bytes.  ``ON CONFLICT(artifact_key)`` alone used to raise on
+        # that second unique constraint and left an otherwise healthy bulk run
+        # with one failed document.
         self.conn.execute(
-            """INSERT INTO source_artifacts(artifact_key,company_id,source_url,content_hash,
-            local_path,content_type,byte_size,metadata_json) VALUES(?,?,?,?,?,?,?,?)
-            ON CONFLICT(artifact_key) DO UPDATE SET local_path=excluded.local_path,
-            status='archived',metadata_json=excluded.metadata_json""",
+            """INSERT OR IGNORE INTO source_artifacts(artifact_key,company_id,source_url,content_hash,
+            local_path,content_type,byte_size,metadata_json) VALUES(?,?,?,?,?,?,?,?)""",
             (artifact_key, company_id, source_url, content_hash, local_path, content_type,
              byte_size, _json(metadata or {})),
+        )
+        stored = self.conn.execute(
+            """SELECT artifact_key FROM source_artifacts
+            WHERE artifact_key=? OR (company_id=? AND source_url=? AND content_hash=?)
+            ORDER BY CASE WHEN artifact_key=? THEN 0 ELSE 1 END LIMIT 1""",
+            (artifact_key, company_id, source_url, content_hash, artifact_key),
+        ).fetchone()
+        if stored is None:  # Defensive: INSERT OR IGNORE must match one identity.
+            raise RuntimeError(f"source artifact was neither inserted nor found: {artifact_key}")
+        stored_key = stored["artifact_key"]
+        self.conn.execute(
+            """UPDATE source_artifacts SET local_path=?,status='archived',metadata_json=?
+            WHERE artifact_key=?""",
+            (local_path, _json(metadata or {}), stored_key),
         )
         self.conn.execute(
             """INSERT OR IGNORE INTO source_artifact_links(source_key,artifact_key)
             SELECT source_key,? FROM source_documents WHERE company_id=? AND source_url=?""",
-            (artifact_key, company_id, source_url),
+            (stored_key, company_id, source_url),
         )
         self.conn.commit()
 

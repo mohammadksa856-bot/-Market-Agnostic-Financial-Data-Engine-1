@@ -1,6 +1,7 @@
 import argparse, calendar, hashlib, json, os, re, socket, sqlite3, threading, time
 from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from .connectors import (
     IssuerReportsMonitor, LocalFileConnector, SecCompanyFactsConnector,
     SecFilingsMonitor, SaudiManifestConnector, StoredDocumentConnector,
@@ -272,8 +273,11 @@ def _published_language_equivalent(db: Database, row: dict) -> str | None:
     """
     url = str(row["source_url"] or "")
     alternatives = {
-        re.sub(r"-arabic(?=\.pdf(?:\?|$))", "-english", url, flags=re.I),
-        re.sub(r"-ar(?=\.pdf(?:\?|$))", "-en", url, flags=re.I),
+        # Language tokens occur before the extension, between underscores,
+        # and inside URL-encoded parentheses (``%28Ar%29``). Letter
+        # boundaries cover all three without rewriting letters inside words.
+        re.sub(r"(?<![a-z])arabic(?![a-z])", "english", url, flags=re.I),
+        re.sub(r"(?<![a-z])ar(?![a-z])", "en", url, flags=re.I),
     }
     alternatives.discard(url)
     for alternative in alternatives:
@@ -443,6 +447,79 @@ def _is_annual_pdf(row: dict) -> bool:
     )) or bool(re.search(r"(?:^|[-_/])ara[-_/]?20\d{2}(?:[-_/]|\.)", text))
 
 
+_VERIFIER_IDENTITY_METRICS = {
+    "income_statement: revenue + other income": {
+        "revenue_and_other_income_related_to_sales", "revenue",
+        "other_income_related_to_sales",
+    },
+    "income_statement: pre-tax income - tax = net income": {
+        "net_income", "income_before_income_taxes_and_zakat",
+        "income_taxes_and_zakat",
+    },
+    "income_statement: net income = continuing + discontinued operations": {
+        "net_income", "continuing_operations_income",
+        "discontinued_operations_income",
+    },
+    "income_statement: net income = owners + non-controlling": {
+        "net_income", "net_income_parent", "net_income_noncontrolling",
+    },
+    "balance_sheet: assets = liabilities + equity": {
+        "total_assets", "total_liabilities", "total_equity",
+    },
+    "balance_sheet: assets = current + non-current": {
+        "total_assets", "current_assets", "noncurrent_assets",
+    },
+    "balance_sheet: liabilities = current + non-current": {
+        "total_liabilities", "current_liabilities", "noncurrent_liabilities",
+    },
+    "balance_sheet: equity = owners + non-controlling": {
+        "total_equity", "equity_parent", "noncontrolling_interests",
+    },
+    "balance_sheet: liabilities + equity total": {
+        "total_liabilities_equity", "total_liabilities", "total_equity",
+    },
+}
+
+
+def _quarantine_failed_identity_facts(manifest: dict, report: dict, verify):
+    """Keep sound statement facts when one accounting identity is corrupt.
+
+    A malformed PDF text layer can attach a number to the wrong subtotal.  It
+    is safer to quarantine every member of that failed identity than to block
+    unrelated income-statement and cash-flow facts from the same signed filing.
+    The reduced manifest is accepted only if it independently passes verify.
+    """
+    failures = [item for item in report.get("detail", [])
+                if item.get("status") == "fail"]
+    if not failures:
+        return manifest, report
+    targets: set[tuple[str, str, str]] = set()
+    for failure in failures:
+        metrics = _VERIFIER_IDENTITY_METRICS.get(failure.get("check"))
+        period = str(failure.get("period") or "")
+        if not metrics or " " not in period:
+            return manifest, report
+        period_end, period_kind = period.rsplit(" ", 1)
+        targets.update((metric, period_end, period_kind) for metric in metrics)
+    kept, excluded = [], []
+    for fact in manifest.get("facts", []):
+        identity = (fact.get("metric"), fact.get("period_end"), fact.get("period_kind"))
+        if identity not in targets:
+            kept.append(fact)
+            continue
+        rejected = dict(fact)
+        rejected["exclusion_reason"] = "failed_accounting_identity"
+        excluded.append(rejected)
+    if not excluded or not kept:
+        return manifest, report
+    candidate = dict(manifest)
+    candidate["facts"] = kept
+    candidate["excluded_facts"] = [*manifest.get("excluded_facts", []), *excluded]
+    candidate_report = verify(candidate)
+    return ((candidate, candidate_report) if candidate_report.get("ok")
+            else (manifest, report))
+
+
 def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tuple[dict, dict, str]:
     """Read deterministically; use the LLM only when explicitly enabled."""
     import tempfile
@@ -477,6 +554,8 @@ def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tup
     reader = StatementReader(pdf_path)
     manifest = reader.read(**kwargs)
     report = verify(manifest)
+    if not report["ok"]:
+        manifest, report = _quarantine_failed_identity_facts(manifest, report, verify)
     reader_source = "deterministic+ocr" if reader.used_ocr else "deterministic"
     if not report["ok"] and use_llm and os.environ.get("ANTHROPIC_API_KEY"):
         from .reading_llm import llm_read
@@ -1031,7 +1110,16 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
                 "The reader agent could not produce a manifest that passes verify.",
                 {"content_type":row["content_type"],"local_path":row["local_path"],
                  "reader":reader_source,"read_error":read_error,
-                 "verify_failures":report["failures"] if report else None},
+                 "verify_failures":report["failures"] if report else None,
+                 # Keep the actual failed rules.  Recording only the count made
+                 # thousands of distinct reader outcomes look like the same
+                 # generic PDF failure and prevented deterministic repair.
+                 "verify_detail":[
+                     detail for detail in (report.get("detail",[]) if report else [])
+                     if detail.get("status") in {"fail","warn"}
+                 ][:25],
+                 "unmapped_labels":(report.get("unmapped_labels",[])[:25]
+                                    if report else [])},
             )
         else:
             db.exception(company.company_id,source_key,"extraction",code,
@@ -1051,6 +1139,42 @@ def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = 
         return {"status":"review_required","stage":"extraction","source_key":source_key,
                 "code":code,"published":0}
     return handle
+
+
+def _retry_source(db: Database, source_key: str, registry_path: str,
+                  raw_dir: str) -> dict:
+    """Retry a stored source through the extractor appropriate to its type.
+
+    ``retry-source`` historically sent every source directly to ``Pipeline``.
+    That is correct for a reviewed JSON manifest, but a PDF/XLSX is not JSON
+    and therefore could never be repaired by the command intended to retry it.
+    """
+    row = db.stored_source(source_key)
+    registry = CompanyRegistry.combined(db.conn, registry_path)
+    company = registry.get(row["company_id"])
+    path = Path(row["local_path"] or "")
+    if not path.is_file():
+        raise FileNotFoundError(f"archived source is missing: {path}")
+    if row["content_type"] != "application/json":
+        # The document handler deliberately keeps the previous exceptions open
+        # until a new manifest passes verification and publication, then
+        # resolves exactly those prior ids.  Do not pre-resolve evidence merely
+        # to make a retry possible.
+        retry_job = SimpleNamespace(
+            payload={
+                "source_key": source_key, "registry": registry_path,
+                "raw_dir": raw_dir,
+            },
+            job_id=f"retry:{source_key}",
+        )
+        return _extract_document_job_handler(db)(retry_job)
+    db.reopen_source_for_retry(source_key)
+    document = SourceDocument(
+        row["company_id"], company.market, row["source_url"], row["source_key"],
+        row["filing_type"], row["filed_at"], path.read_bytes(), row["content_type"],
+        json.loads(row["metadata_json"]),
+    )
+    return Pipeline(db, raw_dir).run(company, StoredDocumentConnector(document))
 
 def main():
     p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
@@ -1700,12 +1824,10 @@ def main():
     if a.cmd=="resolve-source-exceptions":
         db=Database(a.db); result=db.resolve_source_exceptions(a.source_key,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
     if a.cmd=="retry-source":
-        db=Database(a.db); row=db.stored_source(a.source_key); reg=CompanyRegistry.combined(db.conn,a.registry); company=reg.get(row["company_id"])
-        path=Path(row["local_path"] or "")
-        if not path.is_file(): db.close(); raise FileNotFoundError(f"archived source is missing: {path}")
-        document=SourceDocument(row["company_id"],company.market,row["source_url"],row["source_key"],row["filing_type"],row["filed_at"],path.read_bytes(),row["content_type"],json.loads(row["metadata_json"]))
-        db.reopen_source_for_retry(a.source_key)
-        result=Pipeline(db,a.raw_dir).run(company,StoredDocumentConnector(document)); db.close(); print(json.dumps(result,indent=2)); return
+        db=Database(a.db)
+        try: result=_retry_source(db,a.source_key,a.registry,a.raw_dir)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
     if a.cmd=="facts":
         q=FinancialQueryService(a.db); print(json.dumps(q.facts(a.market,a.symbol,a.category,a.period_kind,a.limit),indent=2)); q.close(); return
     if a.cmd=="dossier":

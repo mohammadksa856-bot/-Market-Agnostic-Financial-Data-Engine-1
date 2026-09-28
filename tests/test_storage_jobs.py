@@ -51,6 +51,38 @@ class StorageAndJobsTests(unittest.TestCase):
             self.db.stored_source(document.source_key)["local_path"], str(repaired),
         )
 
+    def test_artifact_retry_with_new_key_reuses_immutable_identity(self):
+        document = SourceDocument(
+            self.company.company_id, self.company.market,
+            "https://example.test/annual.pdf", "source:artifact-retry",
+            "annual-report", "2026-03-01", b"pdf", "application/pdf",
+        )
+        self.db.save_source(document, "same-digest", "/raw/original.pdf")
+        self.db.save_source_artifact(
+            "artifact:first", self.company.company_id, document.source_url,
+            "same-digest", "/raw/original.pdf", "application/pdf", 3,
+            {"attempt": 1},
+        )
+        # A retry can derive a different key for the same immutable bytes.  It
+        # must update/relink the existing artifact instead of violating the
+        # composite UNIQUE constraint.
+        self.db.save_source_artifact(
+            "artifact:retry", self.company.company_id, document.source_url,
+            "same-digest", "/raw/recovered.pdf", "application/pdf", 3,
+            {"attempt": 2},
+        )
+        rows = self.db.conn.execute(
+            "SELECT artifact_key,local_path,metadata_json FROM source_artifacts"
+        ).fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["artifact_key"], rows[0]["local_path"]),
+                         ("artifact:first", "/raw/recovered.pdf"))
+        link = self.db.conn.execute(
+            "SELECT artifact_key FROM source_artifact_links WHERE source_key=?",
+            (document.source_key,),
+        ).fetchone()
+        self.assertEqual(link["artifact_key"], "artifact:first")
+
     def test_dimensions_allow_multiple_segments_for_same_metric(self):
         source = self.source()
         states = self.db.publish_batch([
