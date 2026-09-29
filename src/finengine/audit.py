@@ -13,6 +13,13 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     conn = sqlite3.connect(f"file:{Path(db_path).resolve()}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     checks = []
+    digest_cache: dict[Path, str] = {}
+
+    def file_digest(path: Path) -> str:
+        resolved = path.resolve()
+        if resolved not in digest_cache:
+            digest_cache[resolved] = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        return digest_cache[resolved]
 
     def add(name: str, status: str, detail):
         checks.append({"name": name, "status": status, "detail": detail})
@@ -150,9 +157,7 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
             artifact_path = Path(artifact["local_path"])
             if not artifact_path.is_absolute():
                 artifact_path = root / artifact_path
-            if artifact_path.is_file() and hashlib.sha256(
-                artifact_path.read_bytes()
-            ).hexdigest() == content_hash:
+            if artifact_path.is_file() and file_digest(artifact_path) == content_hash:
                 return True
         return False
 
@@ -168,7 +173,7 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
             if not verified_artifact(row["content_hash"]):
                 missing_files.append(row["source_key"])
             continue
-        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+        if file_digest(path) != row["content_hash"]:
             if not verified_artifact(row["content_hash"]):
                 hash_mismatches.append(row["source_key"])
     add("source_archive_present", "pass" if not missing_files else "fail", missing_files)
@@ -185,7 +190,7 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
             path = root / path
         if not path.is_file():
             missing_artifacts.append(row["artifact_key"]); continue
-        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+        if file_digest(path) != row["content_hash"]:
             artifact_hash_mismatches.append(row["artifact_key"])
     add("raw_artifacts_present", "pass" if not missing_artifacts else "fail", missing_artifacts)
     add("raw_artifact_hashes", "pass" if not artifact_hash_mismatches else "fail", artifact_hash_mismatches)
@@ -200,7 +205,7 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
             path = root / path
         if not path.is_file():
             missing_universe.append(row["snapshot_id"]); continue
-        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+        if file_digest(path) != row["content_hash"]:
             universe_hash_mismatches.append(row["snapshot_id"])
     add("universe_snapshots_present", "pass" if not missing_universe else "fail", missing_universe)
     add("universe_snapshot_hashes", "pass" if not universe_hash_mismatches else "fail",
@@ -216,7 +221,7 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
             path = root / path
         if not path.is_file():
             missing_profiles.append(row["issuer_id"]); continue
-        if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
+        if file_digest(path) != row["content_hash"]:
             profile_hash_mismatches.append(row["issuer_id"])
     add("universe_profiles_present", "pass" if not missing_profiles else "fail",
         missing_profiles)
