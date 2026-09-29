@@ -269,6 +269,47 @@ class ServiceTests(unittest.TestCase):
         self.assertFalse(result["ready"])
         self.assertEqual(next(check for check in result["checks"] if check["name"]=="source_archive_hashes")["status"],"fail")
 
+    def test_release_audit_uses_verified_immutable_artifact_for_changed_seed(self):
+        archived = Path(self.temp.name) / "archived-source.json"
+        archived.write_bytes(b"{}")
+        digest = hashlib.sha256(b"{}").hexdigest()
+        db = Database(self.dbpath)
+        db.save_source_artifact(
+            f"artifact:sa:TST:{digest}", "sa:TST", "https://example.test/report",
+            digest, str(archived), "application/json", 2,
+        )
+        db.close()
+        self.raw.write_bytes(b"reviewed seed changed")
+        result = audit_release(self.dbpath)
+        self.assertTrue(result["ready"])
+        self.assertEqual(
+            next(check for check in result["checks"] if check["name"] == "source_archive_hashes")["status"],
+            "pass",
+        )
+
+    def test_release_audit_does_not_treat_superseded_artifact_as_current_archive(self):
+        stale = Path(self.temp.name) / "superseded.json"
+        stale.write_bytes(b"overwritten historical staging bytes")
+        db = Database(self.dbpath)
+        db.conn.execute(
+            """INSERT INTO source_artifacts(
+            artifact_key,company_id,source_url,content_hash,local_path,content_type,
+            byte_size,status,metadata_json
+            ) VALUES(?,?,?,?,?,?,?,'superseded','{}')""",
+            (
+                "artifact:sa:TST:lost", "sa:TST", "https://example.test/old",
+                "0" * 64, str(stale), "application/json", stale.stat().st_size,
+            ),
+        )
+        db.conn.commit()
+        db.close()
+        result = audit_release(self.dbpath)
+        self.assertTrue(result["ready"])
+        self.assertEqual(
+            next(check for check in result["checks"] if check["name"] == "raw_artifact_hashes")["status"],
+            "pass",
+        )
+
     def test_online_backup_is_integrity_checked_and_retained(self):
         output=Path(self.temp.name)/"backups"
         first=backup_database(self.dbpath,output,keep=1)

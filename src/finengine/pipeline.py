@@ -67,7 +67,16 @@ class Pipeline:
         history_for_validation=self.db.validation_history(company.company_id,self.validator.FLOW_METRICS)
         facts,validation=self.validator.validate(facts,history_for_validation)
         self.db.save_validation(doc.source_key,company.company_id,validation)
-        for e in validation: self.db.exception(company.company_id,doc.source_key,"validation",e["code"],e["code"],e)
+        quarantinable = {"balance_sheet_unbalanced", "period_rollforward_mismatch"}
+        for e in validation:
+            # These reconciliation failures are removed from the publishable
+            # batch below.  They remain visible as warnings and in validation
+            # history, but they are not unresolved production errors because
+            # the unsafe facts never become current.
+            self.db.exception(
+                company.company_id, doc.source_key, "validation", e["code"], e["code"], e,
+                severity="warning" if e["code"] in quarantinable else "error",
+            )
         # A failed accounting identity identifies a small reconciliation
         # group, not an unsafe document.  Keep that group in staging and the
         # exception queue, while publishing unrelated statement facts.  This

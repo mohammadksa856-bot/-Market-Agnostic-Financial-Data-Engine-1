@@ -133,6 +133,29 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
     add("master_schema_packs", "pass" if not undersized and not scope_violations else "fail",
         {"counts": pack_counts, "undersized": undersized, "scope_violations": scope_violations[:20]})
 
+    def verified_artifact(content_hash: str) -> bool:
+        """Return whether an immutable archived copy still proves these bytes.
+
+        Reviewed seed manifests can move or be revised after publication.  The
+        source document deliberately keeps the digest of the version that was
+        published, while ``source_artifacts`` keeps that exact immutable copy.
+        Treat the verified archive as the source of truth instead of requiring
+        a mutable checkout path to retain historical bytes forever.
+        """
+        for artifact in conn.execute(
+            """SELECT local_path FROM source_artifacts
+            WHERE content_hash=? AND status='archived'""",
+            (content_hash,),
+        ):
+            artifact_path = Path(artifact["local_path"])
+            if not artifact_path.is_absolute():
+                artifact_path = root / artifact_path
+            if artifact_path.is_file() and hashlib.sha256(
+                artifact_path.read_bytes()
+            ).hexdigest() == content_hash:
+                return True
+        return False
+
     missing_files = []
     hash_mismatches = []
     for row in conn.execute("SELECT source_key,local_path,content_hash FROM source_documents"):
@@ -142,15 +165,21 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
         if not path.is_absolute():
             path = root / path
         if not path.is_file():
-            missing_files.append(row["source_key"]); continue
+            if not verified_artifact(row["content_hash"]):
+                missing_files.append(row["source_key"])
+            continue
         if hashlib.sha256(path.read_bytes()).hexdigest() != row["content_hash"]:
-            hash_mismatches.append(row["source_key"])
+            if not verified_artifact(row["content_hash"]):
+                hash_mismatches.append(row["source_key"])
     add("source_archive_present", "pass" if not missing_files else "fail", missing_files)
     add("source_archive_hashes", "pass" if not hash_mismatches else "fail", hash_mismatches)
 
     missing_artifacts = []
     artifact_hash_mismatches = []
-    for row in conn.execute("SELECT artifact_key,local_path,content_hash FROM source_artifacts"):
+    for row in conn.execute(
+        """SELECT artifact_key,local_path,content_hash FROM source_artifacts
+        WHERE status='archived'"""
+    ):
         path = Path(row["local_path"])
         if not path.is_absolute():
             path = root / path

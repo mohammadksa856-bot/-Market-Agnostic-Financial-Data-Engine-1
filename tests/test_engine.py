@@ -71,6 +71,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(r["status"],"published")
         self.assertEqual(r["quarantined"],3)
         self.assertEqual(self.db.conn.execute("SELECT count(*) FROM exceptions").fetchone()[0],1)
+        self.assertEqual(self.db.conn.execute("SELECT severity FROM exceptions").fetchone()[0],"warning")
     def test_sec_feed_quarantines_bad_balance_group_and_publishes_valid_history(self):
         payload=sa_payload(); payload["facts"][4]["value"]=1000
         payload["facts"].append({"metric":"revenue","value":900,"period_start":"2023-01-01",
@@ -156,6 +157,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(result["status"],"published")
         self.assertEqual(result["quarantined"],1)
         self.assertEqual(self.db.conn.execute("SELECT code FROM exceptions").fetchone()[0],"period_rollforward_mismatch")
+        self.assertEqual(self.db.conn.execute("SELECT severity FROM exceptions").fetchone()[0],"warning")
 
     def test_calculations_keep_quarter_and_ytd_separate_on_same_date(self):
         payload={"facts":[
