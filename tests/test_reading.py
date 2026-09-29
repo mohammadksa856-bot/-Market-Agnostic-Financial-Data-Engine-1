@@ -1107,6 +1107,64 @@ class BankInterimStatementTests(unittest.TestCase):
         self.assertFalse(_is_rule_token("-"))
         self.assertFalse(_is_rule_token("(454,872)"))
 
+    @unittest.skipUnless(HAVE_PYMUPDF, "pymupdf is optional")
+    def test_earnings_release_statement_with_quarter_headers_is_read(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quarterly-release.pdf"
+            document = pymupdf.open()
+            page = document.new_page(width=595, height=842)
+            page.insert_text((45, 60), "Profit & Loss Statement", fontsize=12)
+            page.insert_text((350, 90), "Q1-FY27", fontsize=9)
+            page.insert_text((450, 90), "Q1-FY26", fontsize=9)
+            rows = (
+                ("Revenue", "111,040,957", "88,240,593"),
+                ("Cost of revenue", "-90,218,086", "-66,654,015"),
+                ("Gross profit", "20,822,871", "21,586,578"),
+                ("Operating profit", "12,000,000", "11,000,000"),
+                ("Finance costs", "-1,200,000", "-1,100,000"),
+                ("Profit before zakat and income tax", "9,835,707", "10,802,645"),
+                ("Net profit", "8,500,000", "9,400,000"),
+            )
+            for index, (label, current, prior) in enumerate(rows):
+                y = 125 + index * 22
+                page.insert_text((45, y), label, fontsize=9)
+                page.insert_text((350, y), current, fontsize=9)
+                page.insert_text((450, y), prior, fontsize=9)
+            balance = document.new_page(width=595, height=842)
+            balance.insert_text((45, 60), "SAR", fontsize=9)
+            balance.insert_text((350, 90), "30-Jun-26", fontsize=9)
+            balance.insert_text((450, 90), "31-Mar-26", fontsize=9)
+            balance_rows = (
+                ("Inventories", "80,269,289", "74,893,727"),
+                ("Trade receivables", "69,901,074", "75,110,454"),
+                ("Cash and cash equivalents", "71,056,299", "87,736,101"),
+                ("Total current assets", "306,600,000", "286,400,000"),
+                ("Total assets", "356,800,000", "336,800,000"),
+                ("Total current liabilities", "120,000,000", "105,000,000"),
+                ("Total liabilities", "149,500,000", "136,700,000"),
+                ("Total equity", "207,300,000", "200,100,000"),
+            )
+            for index, (label, current, prior) in enumerate(balance_rows):
+                y = 125 + index * 22
+                balance.insert_text((45, y), label, fontsize=9)
+                balance.insert_text((350, y), current, fontsize=9)
+                balance.insert_text((450, y), prior, fontsize=9)
+            document.save(path)
+            document.close()
+
+            manifest = StatementReader(path).read(
+                "SA", "4147", "SAR", "https://example.test/q1.pdf",
+                "2026-08-10", period_end="2026-06-30", fiscal_year=2027,
+                filing_type="interim-report",
+            )
+            facts = {fact["metric"]: fact for fact in manifest["facts"]}
+            self.assertEqual(facts["revenue"]["value"], "111040957")
+            self.assertEqual(facts["net_income"]["period_kind"], "ytd")
+            self.assertEqual(facts["total_assets"]["value"], "356800000")
+            self.assertEqual(facts["total_assets"]["period_kind"], "instant")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -22,7 +22,9 @@ from pathlib import Path
 ANCHORS = {
     "income_statement": (
         "statement of profit or loss", "statement of income", "income statement",
+        "profit & loss statement", "profit and loss statement",
         "statement of comprehensive income", "قائمة الربح أو الخسارة", "قائمة الدخل",
+        "قائمة الأرباح والخسائر",
     ),
     "balance_sheet": (
         "statement of financial position", "balance sheet", "قائمة المركز المالي",
@@ -422,6 +424,13 @@ _NON_PRIMARY_STATEMENT = re.compile(
 _NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
 _PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
+_PERIOD_COLUMN = re.compile(
+    r"(?:19|20)\d{2}|"
+    r"Q[1-4][-_]?(?:FY)?\d{2,4}|"
+    r"(?:H1|9M|FY)[-_]?\d{2,4}|"
+    r"\d{1,2}[-_/](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-_/]\d{2,4}",
+    re.I,
+)
 _RULE = re.compile(r"^[\u2500-\u257f_=\-–—]{3,}$")
 _NOTE_REFERENCE = re.compile(r"^(?:\d{1,3},?|\([a-z]\))$")
 
@@ -790,6 +799,7 @@ class StatementReader:
                 heading = self._continued_statement(doc, page, words, page_text, page_index)
             summary_heading = None
             if (heading is None and not panels
+                    and self._heading_anchor(page, words, page_text) is None
                     and "annual" not in filing_type.lower()):
                 # An annual report normally prints its audited primary
                 # statements later in the same document.  Five-year analysis
@@ -805,6 +815,7 @@ class StatementReader:
                 heading = summary_heading
             continuation = bool(
                 not panels and carry and page_index - carry_page == 1 and columns
+                and self._heading_anchor(page, words, page_text) in (None, carry)
                 and self._looks_tabular(words, columns)
                 and not _NON_PRIMARY_STATEMENT.search(page_text))
             if panels:
@@ -1000,6 +1011,7 @@ class StatementReader:
     _HEADING_PREFIX = re.compile(
         r"^(consolidated |interim |unaudited |condensed )*"
         r"(statement of |statements of |income statement|balance sheet|"
+        r"profit (?:&|and) loss statement|"
         r"قائمة )", re.I)
 
     def _heading_statement(self, page, words, page_text: str | None = None) -> str | None:
@@ -1066,7 +1078,21 @@ class StatementReader:
     def _summary_statement(words, columns, page_text: str,
                            line_map: dict) -> str | None:
         """Recognise compact, explicitly scaled financial-result tables."""
-        if len(columns) < 2 or not _SCALE_DECLARATION.search(page_text):
+        # Investor releases often print one currency heading above both period
+        # columns instead of repeating ``SAR`` per column or spelling out
+        # ``amounts in SAR``.  Treat that as an explicit unit declaration only
+        # when two real period headers are present; a narrative mention of SAR
+        # remains ineligible.
+        period_headers = sum(
+            bool(_PERIOD_COLUMN.fullmatch(word[4])) for word in words
+        )
+        release_unit = (
+            period_headers >= 2
+            and any(re.fullmatch(r"\s*(?:SR|SAR|USD)\s*", line, re.I)
+                    for line in page_text.splitlines())
+        )
+        if (len(columns) < 2
+                or not (_SCALE_DECLARATION.search(page_text) or release_unit)):
             return None
         scores = {name: 0 for name in ANCHORS}
         for row in _rows([word for word in words if not _is_rule_token(word[4])], y_tol=6.0):
@@ -1119,8 +1145,25 @@ class StatementReader:
         neighbour = doc[page_index + 1]
         neighbour_words = [tuple(word[:5]) for word in neighbour.get_text("words")]
         neighbour_text = neighbour.get_text() or ""
-        if self._heading_anchor(neighbour, neighbour_words, neighbour_text) != name:
-            return None
+        neighbour_anchor = self._heading_anchor(
+            neighbour, neighbour_words, neighbour_text
+        )
+        if neighbour_anchor != name:
+            # Some compact releases print the statement title only on page one
+            # and repeat just the period columns on page two.  Accept that
+            # continuation only when it is a substantial adjacent table and it
+            # does not announce notes or another statement.  This is stricter
+            # than carrying an arbitrary preceding statement into the page.
+            neighbour_columns = self._column_blocks(neighbour, neighbour_words)
+            if (neighbour_anchor is not None
+                    or re.search(r"\bnotes? to (?:the )?financial statements\b",
+                                 neighbour_text, re.I)
+                    or _NON_PRIMARY_STATEMENT.search(neighbour_text)
+                    or not neighbour_columns
+                    or not self._looks_tabular(
+                        neighbour_words, neighbour_columns[0]
+                    )):
+                return None
         pooled = f"{page_text}\n{neighbour_text}".lower()
         if all(any(term in pooled for term in group) for group in self._SIGNATURE[name]):
             return name
@@ -1139,7 +1182,9 @@ class StatementReader:
         # still discarded below, and the page must already be a statement.
         top = (page.rect.height or 1000) * 0.45
         hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
-                       if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035})
+                       if _PERIOD_COLUMN.fullmatch(w[4]) and w[1] < top
+                       and (not _YEAR.fullmatch(w[4])
+                            or 2000 <= int(w[4]) <= 2035)})
         if not hits:
             return []
         blocks: list[list[float]] = [[hits[0]]]
@@ -1162,7 +1207,7 @@ class StatementReader:
                 hits = 0
                 for word in words:
                     token = word[4]
-                    if _YEAR.fullmatch(token) or not _NUMBER.match(token):
+                    if _PERIOD_COLUMN.fullmatch(token) or not _NUMBER.match(token):
                         continue
                     value = _parse_number(token)
                     center = (word[0] + word[2]) / 2

@@ -177,6 +177,16 @@ class SplitCashFlowStatementTests(unittest.TestCase):
         values = {f["metric"] for f in manifest["facts"]}
         self.assertNotIn("financing_cash_flow", values)
 
+    def test_compact_release_may_repeat_columns_without_repeating_heading(self):
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "compact-release.pdf"
+            _split_cash_flow_pdf(pdf, second_heading="SAR")
+            manifest = _read(pdf, profile="corporate", filing_type="interim-report",
+                             period_end="2025-12-31", fiscal_year=2025)
+        values = {f["metric"]: f["value"] for f in manifest["facts"]}
+        self.assertEqual(values.get("operating_cash_flow"), "15958999")
+        self.assertEqual(values.get("financing_cash_flow"), "-10873712")
+
 
 @unittest.skipUnless(HAVE_PYMUPDF, "the reader needs the optional pymupdf extra")
 class TwoPanelStatementTests(unittest.TestCase):
