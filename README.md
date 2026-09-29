@@ -257,12 +257,13 @@ identity and API key, then run:
 
 Add `--profile telegram` to start the read-only Telegram adapter. The deployment
 also refreshes the official US and Saudi market inventories daily and creates a
-verified portable database/source bundle, retaining seven bundles by default.
+verified portable database/source bundle, retaining three bundles by default so
+the production archive cannot exhaust a 96 GB host as source coverage grows.
 
 Create a transportable, self-verifying bundle containing an online SQLite snapshot
 and every raw file referenced by its provenance tables:
 
-    finengine --db data/financial.sqlite3 backup-bundle --output-dir backups/bundles --keep 7
+    finengine --db data/financial.sqlite3 backup-bundle --output-dir backups/bundles --keep 3
 
 The ZIP contains a manifest, a consistent database snapshot, and content-addressed
 source files. Every hash is verified after creation, making the bundle suitable for

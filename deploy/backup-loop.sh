@@ -6,7 +6,7 @@ output_dir="${FINENGINE_BACKUP_DIR:-/app/backups}/bundles"
 status_file="${FINENGINE_BACKUP_STATUS_FILE:-/app/backups/backup-status.json}"
 interval="${FINENGINE_BACKUP_SECONDS:-86400}"
 retry_delay="${FINENGINE_BACKUP_RETRY_SECONDS:-900}"
-keep="${FINENGINE_BUNDLE_KEEP:-7}"
+keep="${FINENGINE_BUNDLE_KEEP:-3}"
 
 mkdir -p "$output_dir" "$(dirname "$status_file")"
 

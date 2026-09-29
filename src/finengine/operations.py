@@ -75,6 +75,15 @@ def create_portable_bundle(
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     target = destination_dir / f"financial-bundle-{stamp}.zip"
     partial = target.with_suffix(".zip.part")
+    # Reserve room before constructing the next full bundle. Waiting until the
+    # new ZIP is complete can exhaust the same disk that holds the retained
+    # backups. Keep the newest ``keep - 1`` verified bundles while the new one
+    # is being built; a failed attempt therefore still leaves recent recovery
+    # points intact.
+    retained = sorted(destination_dir.glob("financial-bundle-*.zip"), reverse=True)
+    for expired in retained[max(keep - 1, 0):]:
+        expired.unlink(missing_ok=True)
+        expired.with_suffix(".json").unlink(missing_ok=True)
     # Content-address the archive entries. The same immutable artifact may be
     # referenced from more than one table/path; ZIP members must be written once.
     files: dict[str, dict] = {}
