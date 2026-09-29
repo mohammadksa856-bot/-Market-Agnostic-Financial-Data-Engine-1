@@ -1025,7 +1025,12 @@ class StatementReader:
             # sits in this same zone on every page of a glossy annual report
             # and must not veto pages it happens to share the top-42% band
             # with - only distrust a row that itself looks like a heading.
-            if len(text) > 75 or not self._HEADING_PREFIX.match(text):
+            # Long IFRS headings such as "Condensed consolidated interim
+            # statement of profit or loss and other comprehensive income" are
+            # routinely longer than 75 characters.  They remain safe because
+            # the exact anchor and the statement's independent line-signature
+            # are both required below.
+            if len(text) > 140 or not self._HEADING_PREFIX.match(text):
                 continue
             if any(bad in text for bad in self._NEGATIVE):
                 return None
@@ -1048,7 +1053,7 @@ class StatementReader:
         for row in _rows([word for word in words if word[1] < top]):
             text = " ".join(word[4] for word in row).lower().strip()
             text = re.sub(r"^\d+\s+", "", text)
-            if len(text) > 75 or not self._HEADING_PREFIX.match(text):
+            if len(text) > 140 or not self._HEADING_PREFIX.match(text):
                 continue
             if any(bad in text for bad in self._NEGATIVE):
                 return None

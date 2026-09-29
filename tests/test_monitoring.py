@@ -52,8 +52,19 @@ class DocumentClassificationTests(unittest.TestCase):
 
     def test_signed_primary_statement_is_never_downgraded_to_context(self):
         self.assertFalse(_presentation_text(
-            "Investor presentation. Statement of financial position. "
-            "Forward-looking statements."
+            "Statement of financial position. Total assets. Total equity."
+        ))
+
+    def test_earnings_release_summary_is_context_only(self):
+        self.assertTrue(_presentation_text(
+            "Earnings Release Q2 2026. Income Statement Summary. "
+            "Balance Sheet Summary by value in SAR."
+        ))
+
+    def test_deck_with_appended_reviewed_statements_is_not_context_only(self):
+        self.assertFalse(_presentation_text(
+            "Q2 earnings presentation. Independent review report. "
+            "Condensed consolidated interim statement of financial position."
         ))
 
 def opener_for(content: bytes):

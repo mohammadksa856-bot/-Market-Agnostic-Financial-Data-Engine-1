@@ -493,17 +493,39 @@ def _is_annual_pdf(row: dict) -> bool:
 def _presentation_text(text: str) -> bool:
     """Conservatively distinguish an IR presentation from signed statements."""
     lowered = " ".join(text.lower().split())
+    # An earnings deck can contain pages titled "Income Statement Summary" or
+    # even append a high-level balance-sheet table.  Those phrases alone do not
+    # make it a signed filing.  Conversely, some exchange attachments start as
+    # an earnings deck and append the reviewed statements later in the same
+    # PDF; the explicit review/audit wording is authoritative and keeps the
+    # combined document on the statement-reader path.
+    signed_filing = (
+        "independent auditor's report", "independent auditor’s report",
+        "independent review report", "report on review of interim financial",
+        "condensed consolidated interim statement of financial position",
+        "condensed interim statement of financial position",
+        "تقرير المراجع المستقل", "فحص القوائم المالية الأولية",
+    )
+    if any(token in lowered for token in signed_filing):
+        return False
+    strong = re.search(
+        r"\b(?:earnings|financial results?)\s+(?:release|presentation|call)\b|"
+        r"\banalyst call\b|\binvestor presentation\b",
+        lowered,
+    )
+    if strong:
+        return True
     primary = (
         "statement of financial position", "statement of profit or loss",
-        "statement of income", "statement of cash flows",
-        "قائمة المركز المالي", "قائمة الدخل", "قائمة التدفقات النقدية",
+        "statement of cash flows", "قائمة المركز المالي", "قائمة التدفقات النقدية",
     )
     if any(token in lowered for token in primary):
         return False
     evidence = (
         "financial highlight", "financial highlights", "investor presentation",
         "earnings presentation", "ir contacts", "forward-looking statements",
-        "provided for informational purposes only", "عرض المستثمرين",
+        "this presentation has been prepared", "for informational purposes only",
+        "عرض المستثمرين",
         "أبرز النتائج المالية", "إخالء المسؤولية",
     )
     return sum(token in lowered for token in evidence) >= 2

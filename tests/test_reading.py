@@ -611,6 +611,46 @@ class TwoPanelStatementTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_PYMUPDF, "reader needs the optional pymupdf extra")
 class StatementReaderTests(unittest.TestCase):
+    def test_reads_long_condensed_interim_profit_or_loss_heading(self):
+        from finengine.reading import StatementReader
+
+        with tempfile.TemporaryDirectory() as name:
+            pdf = Path(name) / "long-heading.pdf"
+            doc = pymupdf.open()
+            page = doc.new_page(width=850, height=842)
+            page.insert_text(
+                (45, 55),
+                "Condensed Consolidated Interim Statement of Profit or Loss and Other Comprehensive Income",
+                fontsize=9,
+            )
+            page.insert_text((560, 90), "2026", fontsize=9)
+            page.insert_text((680, 90), "2025", fontsize=9)
+            rows = [
+                ("Operating revenue", "617,133,066", "647,095,366"),
+                ("Operating costs", "(304,280,851)", "(284,039,279)"),
+                ("Gross profit", "312,852,215", "363,056,087"),
+                ("Operating profit", "109,748,850", "185,711,254"),
+                ("Profit before zakat for the period", "176,126,595", "248,057,424"),
+                ("Zakat expense", "(28,349,712)", "(31,473,957)"),
+                ("Profit for the period", "147,776,883", "216,583,467"),
+            ]
+            for index, (label, current, prior) in enumerate(rows):
+                y = 130 + index * 30
+                page.insert_text((45, y), label, fontsize=9)
+                page.insert_text((550, y), current, fontsize=9)
+                page.insert_text((670, y), prior, fontsize=9)
+            doc.save(pdf)
+            doc.close()
+
+            manifest = StatementReader(pdf, enable_ocr=False).read(
+                "SA", "1111", "SAR", "https://issuer.example/q2.pdf",
+                "2026-07-26", "2026-06-30", 2026,
+                filing_type="interim-report",
+            )
+        values = {fact["metric"]: fact["value"] for fact in manifest["facts"]}
+        self.assertEqual(values["revenue"], "617133066")
+        self.assertEqual(values["net_income"], "147776883")
+
     def test_reads_explicitly_scaled_non_ifrs_results_table(self):
         from finengine.reading import StatementReader
 
