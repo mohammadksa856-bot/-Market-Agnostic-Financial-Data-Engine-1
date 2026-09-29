@@ -916,7 +916,27 @@ def issuer_phase(root: Path, company: dict, batch: dict | None,
     if not seeds:
         st["issuer"].update(status="no_source", pages=0)
         run.fail("no_source", "no registry source and no Saudi Exchange website")
+    elif st.get("crawl_start_attempts", 0) >= 3:
+        # The external, OS-level supervisor timeout is the only mechanism
+        # that reliably recovers a wedged crawl (see HARD_COMPANY_TIMEOUT's
+        # docstring), but it kills the whole process - it cannot run this
+        # function's own "give up after N attempts" bookkeeping below,
+        # because that only executes on a normal return. A company whose
+        # crawl never returns therefore looked, from the next restart's
+        # point of view, exactly like a company that had never been tried:
+        # 'todo' picked it first again, every time, forever - one poison
+        # company could permanently block an entire worker's slice while
+        # the rest of its 70+ companies were never reached. Persist the
+        # attempt count *before* the crawl starts, on disk, so it survives
+        # an external kill, and give up on this one company after 3 starts
+        # instead of retrying it indefinitely.
+        st["issuer"].update(status="gave_up_after_repeated_timeout", pages=0)
+        run.fail("gave_up_after_repeated_timeout",
+                 f"crawl did not return after {st['crawl_start_attempts']} attempts "
+                 "(each presumably killed by the external supervisor timeout)")
     else:
+        st["crawl_start_attempts"] = st.get("crawl_start_attempts", 0) + 1
+        run.save()
         try:
             res = crawler.crawl(seeds, run.symbol)
         except Exception as exc:
