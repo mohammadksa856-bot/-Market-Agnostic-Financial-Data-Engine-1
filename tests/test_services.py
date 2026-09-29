@@ -310,6 +310,34 @@ class ServiceTests(unittest.TestCase):
             "pass",
         )
 
+    def test_release_audit_reports_lost_superseded_source_as_warning(self):
+        db = Database(self.dbpath)
+        db.conn.execute(
+            """UPDATE source_documents SET status='superseded',local_path=?,metadata_json=?
+            WHERE source_key='source:test'""",
+            (
+                str(Path(self.temp.name) / "lost.json"),
+                json.dumps({
+                    "superseded_by": "source:replacement",
+                    "archive_loss_reason": "legacy_container_writable_layer_removed",
+                }),
+            ),
+        )
+        db.conn.commit()
+        db.close()
+        self.raw.unlink()
+        result = audit_release(self.dbpath)
+        self.assertTrue(result["ready"])
+        self.assertEqual(
+            next(check for check in result["checks"]
+                 if check["name"] == "source_archive_present")["status"],
+            "pass",
+        )
+        warning = next(check for check in result["checks"]
+                       if check["name"] == "superseded_source_archive_gaps")
+        self.assertEqual(warning["status"], "warn")
+        self.assertEqual(warning["detail"][0]["superseded_by"], "source:replacement")
+
     def test_online_backup_is_integrity_checked_and_retained(self):
         output=Path(self.temp.name)/"backups"
         first=backup_database(self.dbpath,output,keep=1)

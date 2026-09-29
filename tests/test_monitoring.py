@@ -113,6 +113,15 @@ class MonitoringTests(unittest.TestCase):
         self.assertTrue(Path(source["local_path"]).is_file())
         self.assertEqual(self.db.conn.execute(
             "SELECT count(*) FROM market_prices WHERE is_current=1").fetchone()[0], 2)
+        artifact = self.db.conn.execute(
+            """SELECT a.status,a.content_hash,a.local_path,a.metadata_json
+            FROM source_artifacts a JOIN source_artifact_links l USING(artifact_key)
+            WHERE l.source_key=?""", (result["source_key"],)
+        ).fetchone()
+        self.assertEqual(artifact["status"], "archived")
+        self.assertEqual(artifact["content_hash"], source["content_hash"])
+        self.assertEqual(Path(artifact["local_path"]), Path(source["local_path"]))
+        self.assertTrue(json.loads(artifact["metadata_json"])["market_history_archive"])
 
     @patch("finengine.saudi_market.fetch_saudi_market_history")
     def test_market_history_job_uses_runtime_archive_environment(self, fetch):
@@ -130,6 +139,21 @@ class MonitoringTests(unittest.TestCase):
         )
         source = self.db.stored_source(result["source_key"])
         self.assertTrue(Path(source["local_path"]).is_relative_to(runtime_raw))
+        self.assertTrue(Path(source["local_path"]).is_file())
+
+    @patch("finengine.saudi_market.fetch_saudi_market_history")
+    def test_market_history_job_falls_back_to_state_archive(self, fetch):
+        fetch.return_value = json.dumps({"market_prices": []}, sort_keys=True).encode()
+        state_dir = Path(self.temp.name) / "runtime-state"
+        job = SimpleNamespace(payload={
+            "symbol": "2222", "start_date": "2026-09-01",
+            "end_date": "2026-09-15",
+        })
+        with patch.dict(os.environ, {"FINENGINE_STATE_DIR": str(state_dir)}, clear=False):
+            os.environ.pop("FINENGINE_RAW_DIR", None)
+            result = _market_history_job_handler(self.db)(job)
+        source = self.db.stored_source(result["source_key"])
+        self.assertTrue(Path(source["local_path"]).is_relative_to(state_dir / "raw"))
         self.assertTrue(Path(source["local_path"]).is_file())
 
     @patch("finengine.saudi_market.fetch_saudi_market_history")

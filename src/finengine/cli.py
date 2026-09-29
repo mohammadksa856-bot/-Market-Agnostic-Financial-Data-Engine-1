@@ -884,8 +884,10 @@ def _market_history_job_handler(db: Database):
         registry = CompanyRegistry.combined(
             db.conn, payload.get("registry", "config/companies.json"))
         company = registry.resolve("SA", payload["symbol"])
+        state_dir = os.environ.get("FINENGINE_STATE_DIR")
+        runtime_raw = str(Path(state_dir) / "raw") if state_dir else "data/raw"
         raw_dir = Path(payload.get("raw_dir") or
-                       os.environ.get("FINENGINE_RAW_DIR", "data/raw"))
+                       os.environ.get("FINENGINE_RAW_DIR", runtime_raw))
         end_date = date.fromisoformat(payload.get("end_date") or date.today().isoformat())
         existing = db.conn.execute(
             """SELECT min(p.observed_at),max(p.observed_at),count(*) FROM market_prices p
@@ -926,6 +928,15 @@ def _market_history_job_handler(db: Database):
                 {"requested_start": start_date.isoformat(), "requested_end": end_date.isoformat()},
             )
             db.save_source(document, digest, str(target))
+            db.save_source_artifact(
+                f"artifact:{company.company_id}:{digest}", company.company_id,
+                SAUDI_HISTORICAL_REPORTS_URL, digest, str(target), "application/json",
+                len(content), {
+                    "source_key": source_key,
+                    "market_history_archive": True,
+                    "immutable": True,
+                },
+            )
             stage = "publish"
             store = CompanyDomainStore(db)
             prices = json.loads(content).get("market_prices", [])

@@ -163,7 +163,10 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
 
     missing_files = []
     hash_mismatches = []
-    for row in conn.execute("SELECT source_key,local_path,content_hash FROM source_documents"):
+    for row in conn.execute(
+        """SELECT source_key,local_path,content_hash FROM source_documents
+        WHERE status<>'superseded'"""
+    ):
         if not row["local_path"]:
             missing_files.append(row["source_key"]); continue
         path = Path(row["local_path"])
@@ -178,6 +181,27 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
                 hash_mismatches.append(row["source_key"])
     add("source_archive_present", "pass" if not missing_files else "fail", missing_files)
     add("source_archive_hashes", "pass" if not hash_mismatches else "fail", hash_mismatches)
+    superseded_archive_gaps = []
+    for row in conn.execute(
+        """SELECT source_key,local_path,content_hash,metadata_json FROM source_documents
+        WHERE status='superseded'"""
+    ):
+        path = Path(row["local_path"]) if row["local_path"] else None
+        if path is not None and not path.is_absolute():
+            path = root / path
+        if path is None or not path.is_file():
+            if not verified_artifact(row["content_hash"]):
+                metadata = json.loads(row["metadata_json"] or "{}")
+                superseded_archive_gaps.append({
+                    "source_key": row["source_key"],
+                    "superseded_by": metadata.get("superseded_by"),
+                    "reason": metadata.get("archive_loss_reason"),
+                })
+    add(
+        "superseded_source_archive_gaps",
+        "pass" if not superseded_archive_gaps else "warn",
+        superseded_archive_gaps,
+    )
 
     missing_artifacts = []
     artifact_hash_mismatches = []
