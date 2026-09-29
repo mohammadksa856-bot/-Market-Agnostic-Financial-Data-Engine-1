@@ -32,12 +32,27 @@ import sys
 import time
 from pathlib import Path
 
-SUPERVISOR_TIMEOUT = 2400  # seconds: external, OS-enforced hard cap per
-                           # worker run. Deliberately longer than the
-                           # in-process 30-minute deadline so a healthy
-                           # worker's own recovery gets first chance, but
-                           # this fires regardless of whether that internal
-                           # mechanism is itself working.
+SUPERVISOR_TIMEOUT = 600  # seconds: external, OS-enforced hard cap per
+                          # worker run. Was 2400 (40 min), on the theory
+                          # that it should stay longer than the in-process
+                          # 30-minute per-company deadline so a healthy
+                          # worker's own recovery gets first chance. In
+                          # production, though, the dominant failure mode
+                          # turned out to be a full wedge during browser/
+                          # context/page setup, before any company is even
+                          # reached - workers sitting at zero logged events
+                          # for the *entire* 40 minutes, repeatedly, with
+                          # the in-process watchdog never getting a chance
+                          # to run (Playwright's sync API can starve the
+                          # GIL). A shorter external deadline recovers from
+                          # that dominant case ~4x faster; the cost is that
+                          # a company that is genuinely still in progress
+                          # past 10 minutes (seen historically, up to
+                          # ~15 min for a large IR site) gets killed and
+                          # retried from scratch next run rather than
+                          # finishing in place - acceptable since progress
+                          # is saved per-document as it downloads, not only
+                          # at company completion.
 
 name, root, *worker_cmd = sys.argv[1:]
 stop_flag = Path(root) / "state" / f"stop_{name}"
