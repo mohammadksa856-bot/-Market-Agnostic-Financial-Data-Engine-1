@@ -338,6 +338,30 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(warning["status"], "warn")
         self.assertEqual(warning["detail"][0]["superseded_by"], "source:replacement")
 
+    def test_release_audit_warns_for_dead_job_recovered_by_later_success(self):
+        db = Database(self.dbpath)
+        db.conn.executemany(
+            """INSERT INTO jobs(job_id,job_type,company_id,status,available_at,
+            idempotency_key,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)""",
+            (
+                ("dead-old", "monitor", "sa:TST", "dead", "2026-01-01",
+                 "dead-old", "2026-01-01", "2026-01-01"),
+                ("success-new", "monitor", "sa:TST", "succeeded", "2026-01-02",
+                 "success-new", "2026-01-02", "2026-01-02"),
+            ),
+        )
+        db.conn.commit()
+        db.close()
+        result = audit_release(self.dbpath)
+        self.assertTrue(result["ready"])
+        self.assertEqual(
+            next(check for check in result["checks"] if check["name"] == "dead_jobs")["status"],
+            "pass",
+        )
+        historical = next(check for check in result["checks"]
+                          if check["name"] == "historical_dead_jobs")
+        self.assertEqual((historical["status"], historical["detail"]), ("warn", 1))
+
     def test_online_backup_is_integrity_checked_and_retained(self):
         output=Path(self.temp.name)/"backups"
         first=backup_database(self.dbpath,output,keep=1)

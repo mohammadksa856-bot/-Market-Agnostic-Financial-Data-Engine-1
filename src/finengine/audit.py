@@ -38,8 +38,23 @@ def audit_release(db_path: str | Path, project_root: str | Path = ".") -> dict:
         "SELECT count(*) FROM exceptions WHERE status='open' AND severity='error'"
     ).fetchone()[0]
     add("publication_exceptions", "pass" if open_exceptions == 0 else "fail", open_exceptions)
-    dead_jobs = conn.execute("SELECT count(*) FROM jobs WHERE status='dead'").fetchone()[0]
+    dead_jobs = conn.execute(
+        """WITH latest_success AS (
+        SELECT job_type,company_id,max(created_at) created_at FROM jobs
+        WHERE status='succeeded' GROUP BY job_type,company_id
+        ) SELECT count(*) FROM jobs j LEFT JOIN latest_success s
+        ON s.job_type=j.job_type AND s.company_id IS j.company_id
+        WHERE j.status='dead' AND (s.created_at IS NULL OR s.created_at<=j.created_at)"""
+    ).fetchone()[0]
+    historical_dead_jobs = conn.execute(
+        "SELECT count(*) FROM jobs WHERE status='dead'"
+    ).fetchone()[0] - dead_jobs
     add("dead_jobs", "pass" if dead_jobs == 0 else "fail", dead_jobs)
+    add(
+        "historical_dead_jobs",
+        "pass" if historical_dead_jobs == 0 else "warn",
+        historical_dead_jobs,
+    )
     review_mappings = conn.execute(
         "SELECT count(*) FROM mapped_facts WHERE status='review'"
     ).fetchone()[0]
