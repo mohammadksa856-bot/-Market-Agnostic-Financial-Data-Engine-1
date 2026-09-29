@@ -398,6 +398,23 @@ class ServiceTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "ready")
 
+    def test_portable_bundle_ignores_superseded_source_path(self):
+        db = Database(self.dbpath)
+        try:
+            db.conn.execute(
+                """UPDATE source_documents SET status='superseded',local_path=?
+                WHERE source_key='source:test'""",
+                (str(Path(self.temp.name) / "lost-source.json"),),
+            )
+            db.conn.commit()
+        finally:
+            db.close()
+        self.raw.unlink()
+        result = create_portable_bundle(
+            self.dbpath, Path(self.temp.name) / "bundles", self.temp.name, keep=1
+        )
+        self.assertEqual(result["status"], "ready")
+
     def test_portable_bundle_uses_immutable_artifact_when_seed_file_changes(self):
         original = self.raw.read_bytes()
         digest = hashlib.sha256(original).hexdigest()

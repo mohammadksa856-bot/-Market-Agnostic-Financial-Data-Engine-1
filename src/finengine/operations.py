@@ -107,7 +107,15 @@ def create_portable_bundle(
             return None
 
         for table, identity, local_path, content_hash in tables:
-            where = " WHERE status='archived'" if table == "source_artifacts" else ""
+            if table == "source_artifacts":
+                where = " WHERE status='archived'"
+            elif table == "source_documents":
+                # Superseded snapshots remain in SQLite for version lineage,
+                # but a documented lost intermediate archive must not prevent
+                # backing up the current, verified production evidence set.
+                where = " WHERE status<>'superseded'"
+            else:
+                where = ""
             predicate = " AND" if where else " WHERE"
             query = (
                 f"SELECT {identity} AS identity,{local_path} AS local_path,"
