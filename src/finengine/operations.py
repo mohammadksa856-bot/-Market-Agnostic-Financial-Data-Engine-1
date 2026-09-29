@@ -14,6 +14,12 @@ from .jobs import DurableScheduler
 from .registry import CompanyRegistry
 
 
+def _sha256_file(path: Path) -> str:
+    """Hash a potentially multi-gigabyte file without loading it into RAM."""
+    with path.open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
 def backup_database(database: str | Path, output_dir: str | Path, keep: int = 14) -> dict:
     """Create and verify a consistent online SQLite backup.
 
@@ -40,7 +46,7 @@ def backup_database(database: str | Path, output_dir: str | Path, keep: int = 14
         destination.unlink(missing_ok=True)
         raise RuntimeError(f"backup integrity check failed: {integrity}")
 
-    digest = hashlib.sha256(destination.read_bytes()).hexdigest()
+    digest = _sha256_file(destination)
     metadata = destination.with_suffix(".json")
     metadata.write_text(json.dumps({
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -101,7 +107,7 @@ def create_portable_bundle(
         def file_digest(path: Path) -> str:
             resolved = path.resolve()
             if resolved not in digest_cache:
-                digest_cache[resolved] = hashlib.sha256(resolved.read_bytes()).hexdigest()
+                digest_cache[resolved] = _sha256_file(resolved)
             return digest_cache[resolved]
 
         def archived_copy(content_hash: str) -> tuple[Path, Path] | None:
@@ -178,7 +184,7 @@ def create_portable_bundle(
                 source_db.backup(backup_db); backup_db.commit()
                 if backup_db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                     raise RuntimeError("bundle database integrity check failed")
-        database_hash = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+        database_hash = _sha256_file(snapshot)
         manifest_files = [
             {key: value for key, value in item.items() if key != "_absolute"}
             for item in files.values()
@@ -199,31 +205,33 @@ def create_portable_bundle(
             archive.writestr("manifest.json", manifest_bytes)
         partial.replace(target)
     verification = verify_portable_bundle(target)
+    bundle_hash = _sha256_file(target)
     sidecar = target.with_suffix(".json")
     sidecar.write_text(json.dumps({
-        "bundle": target.name, "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+        "bundle": target.name, "sha256": bundle_hash,
         **verification,
     }, indent=2) + "\n", encoding="utf-8")
     bundles = sorted(destination_dir.glob("financial-bundle-*.zip"), reverse=True)
     for expired in bundles[keep:]:
         expired.unlink(missing_ok=True); expired.with_suffix(".json").unlink(missing_ok=True)
     return {"status": "ready", "bundle": str(target), "metadata": str(sidecar),
-            "sha256": hashlib.sha256(target.read_bytes()).hexdigest(), **verification}
+            "sha256": bundle_hash, **verification}
 
 
 def verify_portable_bundle(bundle: str | Path) -> dict:
     """Verify every byte represented by a portable bundle manifest."""
     path = Path(bundle)
     with zipfile.ZipFile(path, "r") as archive:
-        bad = archive.testzip()
-        if bad:
-            raise ValueError(f"corrupt bundle member: {bad}")
         manifest = json.loads(archive.read("manifest.json"))
         database = manifest["database"]
-        if hashlib.sha256(archive.read(database["bundle_path"])).hexdigest() != database["content_hash"]:
+        with archive.open(database["bundle_path"]) as handle:
+            database_hash = hashlib.file_digest(handle, "sha256").hexdigest()
+        if database_hash != database["content_hash"]:
             raise ValueError("bundle database hash mismatch")
         for item in manifest["files"]:
-            if hashlib.sha256(archive.read(item["bundle_path"])).hexdigest() != item["content_hash"]:
+            with archive.open(item["bundle_path"]) as handle:
+                item_hash = hashlib.file_digest(handle, "sha256").hexdigest()
+            if item_hash != item["content_hash"]:
                 raise ValueError(f"bundle file hash mismatch: {item['bundle_path']}")
     return {"format": manifest["format"], "files": len(manifest["files"]),
             "database_bytes": database["bytes"],
