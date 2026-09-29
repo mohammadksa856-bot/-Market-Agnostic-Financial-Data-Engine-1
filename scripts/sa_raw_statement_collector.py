@@ -1248,7 +1248,21 @@ def cmd_launch(args) -> int:
     supervisor = str(Path(__file__).resolve().with_name("_supervisor.py"))
     for name, extra in jobs:
         out = open(root / "logs" / f"{name}.out", "ab")
-        flags = 0x00000008 | 0x00000200 if os.name == "nt" else 0  # DETACHED|NEW_GROUP
+        # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB.
+        # The breakaway flag is the fix for a pattern seen repeatedly in
+        # production: the entire fleet (every supervisor and every worker,
+        # not one at a time) dies together after tens of minutes with no
+        # matching sleep/power event and no per-worker crash reason. That is
+        # consistent with all of these processes still being members of a
+        # Windows Job Object owned by whatever launched this "launch"
+        # command (the calling shell/tool), even though DETACHED_PROCESS
+        # only affects console attachment, not job membership - a job with
+        # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE kills every process in it,
+        # including detached ones, the moment the job itself is torn down.
+        # CREATE_BREAKAWAY_FROM_JOB asks Windows to exclude this process
+        # (and, since it isn't itself put in a job, everything it spawns)
+        # from that job, if the job's own limits allow breakaway.
+        flags = 0x00000008 | 0x00000200 | 0x01000000 if os.name == "nt" else 0
         worker_cmd = [sys.executable, "-B", "-u", str(Path(__file__).resolve()), "run",
                      "--root", str(root), *extra]
         cmd = [sys.executable, "-B", "-u", supervisor, name, str(root)] + worker_cmd
