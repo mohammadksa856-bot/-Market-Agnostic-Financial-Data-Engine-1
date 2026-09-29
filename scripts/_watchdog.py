@@ -47,7 +47,18 @@ def is_alive(name: str, phase: str, worker_index: int, scope: str) -> bool:
     never mistake another tool's automation (e.g. Codex's own Playwright
     processes elsewhere on this machine) for one of ours."""
     filt = (
-        "$_.Name -eq 'python.exe' -and "
+        # Not "-and $_.Name -eq 'python.exe'": the Microsoft Store build of
+        # Python used to launch this fleet reports its process Name as
+        # "python3.13.exe", not "python.exe". That mismatch made every
+        # liveness check return false unconditionally, so every 5-minute
+        # pass launched a brand new fleet on top of the still-running one -
+        # the real cause of the repeated mass "crashes" blamed earlier on
+        # sleep/Job Objects/external kills: dozens of duplicate workers
+        # each launching their own Edge instance were exhausting memory and
+        # taking each other down. The CommandLine match below (script path
+        # plus this exact worker's own arguments) is already unique enough
+        # on its own; matching on the executable's reported Name at all
+        # only reintroduces this exact fragility for no benefit.
         "$_.CommandLine -like '*_supervisor.py*' -and "
         f"$_.CommandLine -like '*--phase*{phase}*' -and "
         f"$_.CommandLine -like '*--worker-index*{worker_index}*' -and "
