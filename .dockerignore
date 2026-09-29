@@ -8,5 +8,6 @@ __pycache__
 *.sqlite3
 runtime
 backups
-data/raw/SA/2222/documents
-data/raw/SA/2222/manifests
+# Raw source archives are mounted read-only at runtime.  Copying them into the
+# application image duplicates many gigabytes and can exhaust small VPS disks.
+data/raw
