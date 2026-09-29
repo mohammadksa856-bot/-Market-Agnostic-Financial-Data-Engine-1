@@ -6,6 +6,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DeploymentContractTests(unittest.TestCase):
+    def test_backup_loop_resumes_fresh_success_interval_after_restart(self):
+        script = (ROOT / "deploy" / "backup-loop.sh").read_text(encoding="utf-8")
+        self.assertIn('status.get("state") == "ready"', script)
+        self.assertIn('sleep "$initial_delay"', script)
+
     def test_runtime_state_is_not_mounted_over_seed_data(self):
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
         self.assertIn("/app/state/financial.sqlite3", compose)

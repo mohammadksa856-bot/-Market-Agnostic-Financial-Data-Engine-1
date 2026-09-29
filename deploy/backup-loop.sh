@@ -10,6 +10,32 @@ keep="${FINENGINE_BUNDLE_KEEP:-7}"
 
 mkdir -p "$output_dir" "$(dirname "$status_file")"
 
+# A container/image refresh must not immediately create another multi-gigabyte
+# bundle when the preceding instance just completed one. Resume the remaining
+# interval from the durable status timestamp instead.
+if [ -s "$status_file" ]; then
+    initial_delay="$(python - "$status_file" "$interval" <<'PY'
+import json, sys
+from datetime import datetime, timezone
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        status = json.load(handle)
+    checked = datetime.fromisoformat(status["checked_at"])
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=timezone.utc)
+    elapsed = max(0, int((datetime.now(timezone.utc) - checked).total_seconds()))
+    remaining = max(0, int(sys.argv[2]) - elapsed) if status.get("state") == "ready" else 0
+    print(remaining)
+except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+    print(0)
+PY
+    )"
+    if [ "$initial_delay" -gt 0 ] 2>/dev/null; then
+        sleep "$initial_delay"
+    fi
+fi
+
 write_status() {
     state="$1"; detail="$2"; bundle="${3:-}"
     python - "$status_file" "$state" "$detail" "$bundle" <<'PY'
