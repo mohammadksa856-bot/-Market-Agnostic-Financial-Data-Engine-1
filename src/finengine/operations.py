@@ -87,6 +87,14 @@ def create_portable_bundle(
     conn = sqlite3.connect(f"file:{source.as_posix()}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
+        digest_cache: dict[Path, str] = {}
+
+        def file_digest(path: Path) -> str:
+            resolved = path.resolve()
+            if resolved not in digest_cache:
+                digest_cache[resolved] = hashlib.sha256(resolved.read_bytes()).hexdigest()
+            return digest_cache[resolved]
+
         def archived_copy(content_hash: str) -> tuple[Path, Path] | None:
             """Resolve an immutable archive when a reviewed seed moved or changed."""
             archived = conn.execute(
@@ -100,9 +108,7 @@ def create_portable_bundle(
                     candidate_path if candidate_path.is_absolute()
                     else root / candidate_path
                 ).resolve()
-                if candidate_absolute.is_file() and hashlib.sha256(
-                    candidate_absolute.read_bytes()
-                ).hexdigest() == content_hash:
+                if candidate_absolute.is_file() and file_digest(candidate_absolute) == content_hash:
                     return candidate_path, candidate_absolute
             return None
 
@@ -133,7 +139,7 @@ def create_portable_bundle(
                             f"bundle source missing: {row['identity']}: {path}"
                         )
                     path, absolute = fallback
-                digest = hashlib.sha256(absolute.read_bytes()).hexdigest()
+                digest = file_digest(absolute)
                 if digest != row["content_hash"]:
                     # A reviewed seed manifest can evolve while the immutable
                     # pipeline artifact remains the evidence for the published
