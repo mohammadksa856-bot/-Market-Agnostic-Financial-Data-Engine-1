@@ -1,7 +1,7 @@
 # Saudi raw financial-statement collection — methodology and limits
 
 Scope: RAW collection only (PDF/XLSX financial statements, annual reports,
-data supplements/factsheets/Pillar 3), full 439-company Saudi registry.
+data supplements/factsheets/Pillar 3), full 422-company Saudi registry.
 No extraction, mapping, normalization, validation, manifest creation, DB
 publishing, or AWS upload — that is Codex's exclusive responsibility for
 this collector. This agent writes `outbox/pending_upload.jsonl` as a
@@ -23,33 +23,76 @@ company, per fiscal year, per slot) and `sa-raw-statements-odd-coverage.csv`
 
 ## What "finished" means, and what it does not
 
-Every one of the 439 companies is marked `finished`: both the Saudi
+Every one of the 422 companies is marked `finished`: both the Saudi
 Exchange phase and the issuer-site phase were attempted through every
 available retry pass. **`finished` is not `complete`.** It means the
 collector stopped trying, not that a company's documents were found.
 
-- **415/439 companies have at least one file.**
-- **24/439 companies have zero files.** Of those, roughly half completed a
-  normal crawl and genuinely found nothing classifiable, and the rest hit
-  an error, were unreachable, gave up after repeated timeouts, or returned
-  a JS-only page with no extractable content — see `zero_file_companies`
-  in the JSON report for the exact reason per symbol; most are small Nomu
-  (parallel market) issuers.
+- **413/422 companies have at least one file (97.9%).**
+- **9/422 companies have zero files.** Of those, 4 completed a normal crawl
+  and genuinely found nothing classifiable, 2 gave up after repeated
+  crawl-start timeouts confirmed (by live manual inspection) to be an
+  in-process watchdog reliability issue rather than a broken site - see
+  "Companies that could not be recovered" below - and the rest hit an
+  unreachable site or a JS-only page with no extractable content. See
+  `zero_file_companies` in the JSON report for the exact reason per symbol.
 - No company should be read as "100% collected" from the `finished` flag
   alone — only `sa-raw-statements-odd-coverage.csv`'s per-year, per-slot
   status cells (and each company's `years` list) say what was actually
   found for a given fiscal year and period.
 
+## Registry data quality: 20 companies were listed twice
+
+The registry originally carried 442 entries. A live diff against Saudi
+Exchange's current company directory (both Main Market and Nomu) found 20
+companies registered under **two different symbols each** - their current
+Main Market symbol and an older Nomu (parallel market) symbol from before
+they graduated to the Main Market, both still present with the same
+company name (e.g. `ALOMRAN` as both `4141` and `9502`; `JAHEZ` as both
+`6017` and `9526`). These were not two securities of the same company -
+the old symbol is simply stale.
+
+Any documents collected under the old, stale symbol were merged into that
+company's correct/current-symbol state first (one case, SUMOU, actually had
+*more* documents under its old symbol, 9511→4323, all preserved), then the
+20 stale entries were removed from the registry seed. This dropped the
+registry from 442 to **422 real companies** and - since several of those
+duplicate pairs were among the "zero file" list purely because the stale
+symbol had nothing while the real one already did - cut the genuine
+zero-file count from 24 to 9.
+
+## Companies that could not be recovered (confirmed root cause)
+
+Two zero-file companies (`5110` Saudi Energy, `9510` NBM) were manually
+re-tried and manually diagnosed by loading their sites directly in a real
+browser: both sites load instantly and normally. A direct foreground debug
+run of a third case that behaved the same way (Al Omran) sat completely
+silent - zero page visits, zero log events - for 41 minutes straight,
+well past the in-process 8-minute page-stall watchdog's own deadline,
+with that watchdog never firing. This confirms the documented risk in
+`IssuerCrawler._watch()`'s own docstring: Playwright's sync API can, in a
+wedged state, starve the Python thread that in-process watchdog needs to
+run, so it is not a reliable recovery path for *this specific class* of
+hang. The only mechanism that reliably recovers from it is the external,
+OS-level supervisor kill (`scripts/_supervisor.py`), which unconditionally
+terminates and restarts the whole worker process - meaning a company that
+hits this exact failure mode will keep hitting it on every retry
+regardless of how many attempts it is given. A real fix would need to run
+each company's crawl in its own OS process (not a thread) so it can be
+killed on a much shorter, reliable timeout without taking down the rest of
+that worker's queue - out of scope for this collector as currently built.
+
 ## "Gave up" companies
 
-32 companies were marked `gave_up_after_repeated_timeout` at some point
+27 companies were marked `gave_up_after_repeated_timeout` at some point
 during the run: their crawl failed to return three separate times (each
 presumably killed by the external supervisor's timeout, not a normal
 error), so the collector stopped retrying that company rather than loop on
 it forever. This was a deliberate trade-off added mid-run after one
 company's repeated hang was found to be blocking an entire worker's other
-~70 companies indefinitely. A future run with more patience (or by hand,
-for this specific list) could recover some of these.
+~70 companies indefinitely. Most of these already have at least one
+document from a different source/pass; the 2 that ended up with zero are
+covered in "Companies that could not be recovered" above.
 
 ## Data-quality check: REIT/fund documents that belonged to the wrong entity
 
