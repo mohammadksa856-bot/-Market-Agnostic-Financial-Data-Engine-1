@@ -61,7 +61,7 @@ duplicate pairs were among the "zero file" list purely because the stale
 symbol had nothing while the real one already did - cut the genuine
 zero-file count from 24 to 9.
 
-## Companies that could not be recovered, and what was tried
+## Companies that hung under browser automation, and how they were resolved
 
 A direct foreground debug run of Al Omran sat completely silent - zero
 page visits, zero log events - for 41 minutes straight, well past the
@@ -71,8 +71,7 @@ watchdog never firing. This confirmed the risk documented in
 wedged state, starve the Python thread that in-process watchdog needs to
 run, so it is not a reliable recovery path for this class of hang.
 
-`scripts/_recover_stuck_company.py` was built to actually fix this rather
-than just document it: it runs one company's crawl as its own OS
+`scripts/_recover_stuck_company.py` runs one company's crawl as its own OS
 subprocess and enforces the timeout with `subprocess.run(..., timeout=N)`,
 which the OS guarantees regardless of the child's internal Python/thread
 state - the same technique `_supervisor.py` already uses at the whole-
@@ -85,16 +84,31 @@ they still returned zero documents.
 
 The remaining 2 (`5110` Saudi Energy, `9510` NBM) timed out on every
 attempt even at a 600-second timeout (4 attempts total, 2 durations x 2
-tries each) - so this is not a timeout-length problem either. Something in
-those two sites' pages genuinely never lets a `page.goto()`/`evaluate()`
-call return, regardless of how long the process is allowed to run or
-whether the timeout enforcement is thread- or OS-level. They are recorded
-as `gave_up_after_repeated_timeout` and are not expected to resolve with
-more retries under this collector's architecture; recovering them would
-need per-request-level control the crawler does not have (e.g. a raw HTTP
-fetch of their known report URLs instead of driving a full browser page).
+tries each) - not a timeout-length problem either. Loading the exact same
+pages in a real, interactive browser (both the built-in tool and the
+user's own Chrome) worked instantly, every time - so the site was never
+actually broken. A plain `urllib` HTTP GET of one of the pages' own
+document URLs, from the same machine, also succeeded in 11.6 seconds for a
+33MB file. The hang is specific to Playwright/CDP-driven browser
+automation talking to these two sites in particular, not the network path,
+not the file, not headless-vs-interactive.
 
-**Final result: 413/422 companies have at least one file (97.9%).**
+`scripts/_manual_collect.py` resolves this directly: it reuses
+`CompanyRun.handle_candidate()` - the collector's own real classification/
+hashing/archiving pipeline, unchanged - with a plain-HTTP `urllib`
+downloader in place of the Playwright-backed one. Document URLs were
+gathered by hand from each site's own investor-reports pages (Saudi
+Energy: `/Investors/Reports-and-Presentations/Annual-Reports/` and
+`/Financial-Results/`; NBM: its `/القوائم-المالية/` page) and fed through
+this script. **Saudi Energy: 38 real documents** (annual reports and
+board-of-directors reports back to 2012, quarterly/annual financial
+statements back to 2020). **NBM: 6 real documents** (2016-2021; nothing
+newer is published on their own site - they applied to move from Nomu to
+the Main Market in 2021 and their site was not obviously updated since).
+Both companies are now marked `status: ok` with a note explaining the
+manual-collection origin.
+
+**Final result: 415/422 companies have at least one file (98.3%).**
 
 ## "Gave up" companies
 
