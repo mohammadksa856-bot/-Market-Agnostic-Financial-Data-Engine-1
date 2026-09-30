@@ -22,7 +22,7 @@ class ShardTests(unittest.TestCase):
         odd = raw.odd_shard(self.reg)
         even = raw.even_shard(self.reg)
         syms = [c["symbol"] for c in odd]
-        self.assertEqual(len(self.reg), 439)
+        self.assertEqual(len(self.reg), 442)
         self.assertEqual(len(odd), raw.SHARD_SIZE)
         self.assertEqual(syms[:8], raw.SHARD_FIRST)
         self.assertEqual(syms[-5:], raw.SHARD_LAST)
