@@ -53,6 +53,20 @@ LOAD_MORE = re.compile(
 NEXT = re.compile(r"^\s*(next|›|»|>|التالي)\s*$", re.I)
 FIN_RESULT_TITLE = re.compile(
     r"financial results|financial statements|النتائج المالية|القوائم المالية", re.I)
+FUND_ENTITY_WORD = re.compile(r"\breit\b|\bfund\b|صندوق|ريت", re.I)
+# A REIT/fund is legally distinct from the asset manager that runs it, but
+# is usually registered on the Exchange under that manager's own corporate
+# website (there is rarely a dedicated fund site) - so an issuer-site crawl
+# seeded from that website can easily pick up the MANAGER's own corporate
+# annual report/financial statements and file them as if they were the
+# fund's. Confirmed live for real, previously-"collected" documents: Jadwa
+# REIT Alharamain and Jadwa REIT Saudi (two different funds) had recorded
+# the identical document - Jadwa Investment Company's own corporate annual
+# report - and Mulkia REIT had recorded "MULKIA INVESTMENT COMPANY...
+# FINANCIAL STATEMENTS" (the manager, not the fund). Every genuine fund
+# filing checked instead explicitly said "REIT"/"Fund"/"صندوق"/"ريت"
+# somewhere in its own title or body text, because that is how Saudi
+# issuers name these filings. Require that same signal here.
 RULES_VERSION = 2
 NOW = lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")  # noqa: E731
 
@@ -701,6 +715,29 @@ class CompanyRun:
                        "stage": "first_page"}
                 self.state["rejected"].append(rec)
                 seen[url] = {"status": "rejected", "reason": s2, "sha256": digest}
+                return
+            if (FUND_ENTITY_WORD.search(self.company.get("name", "")) and
+                    not scanned and not FUND_ENTITY_WORD.search(f"{own} {head}") and
+                    not FUND_ENTITY_WORD.search(f"{url} {index_url}")):
+                # Only fires when there is real, extractable evidence to go
+                # on: a scanned (image-only) PDF has no body text to check
+                # at all, and a URL/index page already living under a
+                # dedicated .../reit/... path or reit.<manager>.com
+                # subdomain is itself strong proof this is the fund's own
+                # page, not the manager's generic corporate site - both
+                # were real false positives caught while building this
+                # check (Derayah REIT's own scanned interim statements,
+                # hosted at reit.derayah.com, would otherwise be wrongly
+                # rejected here).
+                tmp.unlink(missing_ok=True)
+                rec = {"url": url, "title": title[:150],
+                       "reason": "wrong_entity_not_fund_specific",
+                       "index_url": index_url, "sha256": digest,
+                       "stage": "first_page"}
+                self.state["rejected"].append(rec)
+                seen[url] = {"status": "rejected",
+                            "reason": "wrong_entity_not_fund_specific", "sha256": digest}
+                self.log({"event": "rejected", "symbol": self.symbol, **rec})
                 return
         doc_bucket = "supporting" if bucket == "supporting" else "statement"
         target = raw.archive_path(self.root, self.symbol, digest, kind, doc_bucket)
