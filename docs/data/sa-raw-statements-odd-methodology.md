@@ -61,26 +61,40 @@ duplicate pairs were among the "zero file" list purely because the stale
 symbol had nothing while the real one already did - cut the genuine
 zero-file count from 24 to 9.
 
-## Companies that could not be recovered (confirmed root cause)
+## Companies that could not be recovered, and what was tried
 
-Two zero-file companies (`5110` Saudi Energy, `9510` NBM) were manually
-re-tried and manually diagnosed by loading their sites directly in a real
-browser: both sites load instantly and normally. A direct foreground debug
-run of a third case that behaved the same way (Al Omran) sat completely
-silent - zero page visits, zero log events - for 41 minutes straight,
-well past the in-process 8-minute page-stall watchdog's own deadline,
-with that watchdog never firing. This confirms the documented risk in
+A direct foreground debug run of Al Omran sat completely silent - zero
+page visits, zero log events - for 41 minutes straight, well past the
+in-process 8-minute page-stall watchdog's own deadline, with that
+watchdog never firing. This confirmed the risk documented in
 `IssuerCrawler._watch()`'s own docstring: Playwright's sync API can, in a
 wedged state, starve the Python thread that in-process watchdog needs to
-run, so it is not a reliable recovery path for *this specific class* of
-hang. The only mechanism that reliably recovers from it is the external,
-OS-level supervisor kill (`scripts/_supervisor.py`), which unconditionally
-terminates and restarts the whole worker process - meaning a company that
-hits this exact failure mode will keep hitting it on every retry
-regardless of how many attempts it is given. A real fix would need to run
-each company's crawl in its own OS process (not a thread) so it can be
-killed on a much shorter, reliable timeout without taking down the rest of
-that worker's queue - out of scope for this collector as currently built.
+run, so it is not a reliable recovery path for this class of hang.
+
+`scripts/_recover_stuck_company.py` was built to actually fix this rather
+than just document it: it runs one company's crawl as its own OS
+subprocess and enforces the timeout with `subprocess.run(..., timeout=N)`,
+which the OS guarantees regardless of the child's internal Python/thread
+state - the same technique `_supervisor.py` already uses at the whole-
+worker level, applied per company instead. Run against all 9 zero-file
+companies (180s timeout, 2 attempts each): **7 of the 9 finished cleanly**
+with no hang at all (`1832`, `6030`, `9504`, `9507`, `9513`, `9523`,
+`9531`) - confirming their zero-file status was genuinely "nothing there",
+not a wedge, since isolation gave them every chance to prove otherwise and
+they still returned zero documents.
+
+The remaining 2 (`5110` Saudi Energy, `9510` NBM) timed out on every
+attempt even at a 600-second timeout (4 attempts total, 2 durations x 2
+tries each) - so this is not a timeout-length problem either. Something in
+those two sites' pages genuinely never lets a `page.goto()`/`evaluate()`
+call return, regardless of how long the process is allowed to run or
+whether the timeout enforcement is thread- or OS-level. They are recorded
+as `gave_up_after_repeated_timeout` and are not expected to resolve with
+more retries under this collector's architecture; recovering them would
+need per-request-level control the crawler does not have (e.g. a raw HTTP
+fetch of their known report URLs instead of driving a full browser page).
+
+**Final result: 413/422 companies have at least one file (97.9%).**
 
 ## "Gave up" companies
 
