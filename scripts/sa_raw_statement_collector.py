@@ -243,6 +243,67 @@ class SaudiExchange:
                 time.sleep(3 * (attempt + 1))
         raise RuntimeError(f"detail page failed: {last}")
 
+    def financial_statements(self, symbol: str) -> list[dict]:
+        """Direct document links from the profile page's own "Financial
+        Statements and Reports" table - a distinct, more reliable source
+        than scraping individual announcement detail pages. Found by direct
+        browser inspection: years run across the columns, period type
+        (Annual/Q1/Q2/Q3) down the rows, and most cells link straight to a
+        saudiexchange.sa/Resources/fsPdf/ hosted PDF. The existing
+        `profile_website()` already visits this exact page (to read the
+        company's own website out of its "Website:" line) but never looked
+        at this table, so this was a real, previously-uncollected source,
+        not a dead end - confirmed live for at least one bank (1140) that
+        the crawler otherwise recorded as having zero documents anywhere."""
+        url = SE_PROFILE.format(symbol=symbol)
+        last = None
+        for attempt in range(3):
+            self._throttle(1.5)
+            try:
+                with contextlib.suppress(Exception):
+                    self.detail.goto(url, wait_until="domcontentloaded", timeout=45000)
+                self.detail.wait_for_timeout(3000)
+                # The table's rows carry no document links until this tab is
+                # actually clicked - confirmed live: 0 fsPdf links present in
+                # the DOM right after load, 24 after this click. It is a
+                # second portlet call, not part of the initial page render.
+                with contextlib.suppress(Exception):
+                    self.detail.click("text=FINANCIAL STATEMENTS AND REPORTS",
+                                      timeout=8000)
+                    self.detail.wait_for_timeout(2500)
+                rows = self.detail.eval_on_selector_all(
+                    "table", r"""tables => {
+                      for (const t of tables) {
+                        const trs = [...t.querySelectorAll('tr')];
+                        const header = trs.find(r => {
+                          const c = [...r.querySelectorAll('td,th')];
+                          return c.length > 1 && c.some(x => /^\d{4}$/.test(x.textContent.trim()));
+                        });
+                        if (!header) continue;
+                        const years = [...header.querySelectorAll('td,th')].map(c => c.textContent.trim());
+                        const out = [];
+                        for (const r of trs) {
+                          const cells = [...r.querySelectorAll('td,th')];
+                          const label = (cells[0]?.textContent || '').trim();
+                          if (!label || label === years[0]) continue;
+                          cells.forEach((cell, i) => {
+                            const a = cell.querySelector(
+                              'a[href*="fsPdf"], a[href$=".pdf"], a[href$=".xlsx"]');
+                            if (a) out.push({label, year: years[i], href: a.href});
+                          });
+                        }
+                        if (out.length) return out;
+                      }
+                      return [];
+                    }""")
+                return rows or []
+            except Exception as exc:
+                last = exc
+                time.sleep(3 * (attempt + 1))
+        self.log({"event": "se_financial_statements_error", "symbol": symbol,
+                  "error": str(last)[:200] if last else "unknown"})
+        return []
+
     def profile_website(self, symbol: str) -> str | None:
         url = SE_PROFILE.format(symbol=symbol)
         for attempt in range(3):
@@ -813,6 +874,32 @@ def se_phase(root: Path, company: dict, batch: dict | None, se: SaudiExchange,
         run.save()
         return st
     if st.get("status") == "done":
+        if "profile_table_rows" not in st.get("se", {}):
+            # This company finished under the old code, before the profile
+            # page's own "Financial Statements and Reports" table was
+            # discovered as a source (confirmed live: 0 documents found for
+            # Bank Albilad/1140 under the old announcement-only path, 18
+            # real ones from this table alone, going back to 2008). Redo
+            # only this one cheap page visit rather than the whole
+            # announcements crawl, so every already-"done" company benefits
+            # without re-running from scratch.
+            fy_end = st.get("fy_end_month", 12)
+            profile_url = SE_PROFILE.format(symbol=run.symbol)
+            try:
+                fs_rows = se.financial_statements(run.symbol)
+            except Exception as exc:
+                fs_rows = []
+                run.fail(classify_error(exc), f"se financial_statements: {exc}")
+            st["se"]["profile_table_rows"] = len(fs_rows)
+            st["se"]["profile_table_files"] = 0
+            for row in fs_rows:
+                href, label, year = row.get("href"), row.get("label", ""), row.get("year", "")
+                if not href:
+                    continue
+                st["se"]["profile_table_files"] += 1
+                run.handle_candidate(dl, href, f"{label} {year} financial statement".strip(),
+                                     "", profile_url, "saudi_exchange_profile", fy_end)
+            run.save()
         return st
     st["started_at"] = NOW()
     ok = True
@@ -829,6 +916,21 @@ def se_phase(root: Path, company: dict, batch: dict | None, se: SaudiExchange,
     st["se"] = {"total_announcements": len(anns)}
     fy_end = infer_fy_end_month(anns)
     st["fy_end_month"] = fy_end
+    profile_url = SE_PROFILE.format(symbol=run.symbol)
+    try:
+        fs_rows = se.financial_statements(run.symbol)
+    except Exception as exc:
+        fs_rows = []
+        run.fail(classify_error(exc), f"se financial_statements: {exc}")
+    st["se"]["profile_table_rows"] = len(fs_rows)
+    st["se"]["profile_table_files"] = 0
+    for row in fs_rows:
+        href, label, year = row.get("href"), row.get("label", ""), row.get("year", "")
+        if not href:
+            continue
+        st["se"]["profile_table_files"] += 1
+        run.handle_candidate(dl, href, f"{label} {year} financial statement".strip(),
+                             "", profile_url, "saudi_exchange_profile", fy_end)
     results = []
     for a in anns:
         if not FIN_RESULT_TITLE.search(a["SHORT_DESC"]):
@@ -1124,9 +1226,18 @@ def cmd_run(args) -> int:
     def state_status(c, part):
         return jload(root / "state" / part / f"{c['symbol']}.json", {}).get("status")
 
+    def se_needs_profile_table(c):
+        # A company marked "done" by the pre-profile-table code never
+        # visited the source that turned out to matter most (see se_phase's
+        # own "profile_table_rows" backfill branch) - route it back into
+        # this run's todo list once, for that cheap re-check only.
+        st = jload(root / "state" / "se" / f"{c['symbol']}.json", {})
+        return st.get("status") == "done" and "profile_table_rows" not in st.get("se", {})
+
     for pass_no in range(6 if args.phase != "se" else 4):
         if args.phase == "se":
-            todo = [c for c in companies if state_status(c, "se") != "done"]
+            todo = [c for c in companies
+                    if state_status(c, "se") != "done" or se_needs_profile_table(c)]
         else:
             todo = [c for c in companies if state_status(c, "issuer") != "done"]
         if not todo:
