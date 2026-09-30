@@ -352,10 +352,23 @@ def _registrable(host: str) -> str:
     return ".".join(parts[-3:] if parts[-2:-1] in (["com"], ["co"], ["org"], ["gov"], ["edu"]) and len(parts) >= 3 else parts[-2:])
 
 
-def _is_doc_link(href: str, text: str) -> bool:
+def _is_doc_link(href: str, text: str, has_download_attr: bool = False) -> bool:
     p = urlparse(href)
     target = (p.path + "?" + p.query).lower()
     if re.search(r"\.(pdf|xlsx|xls)(\b|$)", target):
+        return True
+    if has_download_attr:
+        # The HTML `download` attribute is the browser's own, unambiguous
+        # signal that a link serves a file to save rather than a page to
+        # navigate to - some sites (e.g. se.com.sa's Angular-driven
+        # investor-reports pages) serve every report through a generic
+        # handler URL (".ashx", no recognisable file extension) with a
+        # plain report-title link text like "Annual Report 2025" that
+        # matches neither the extension check above nor the text/target
+        # keyword check below. Confirmed live: this was the actual, fixable
+        # cause behind one company (Saudi Energy/5110) whose crawl never
+        # found a single document despite its annual reports page listing
+        # 19+ real, publicly downloadable PDFs.
         return True
     return bool(re.search(r"\b(pdf|xlsx?|download)\b|تحميل|تنزيل", text or "", re.I)) and \
         bool(re.search(r"download|file|document|media|attachment|getfile|asset|content", target))
@@ -367,7 +380,7 @@ LINK_JS = """()=>{
    let c=a.closest('li,tr,article,.card,.row,.item,.list-group-item,p,div');
    let t=(c?c.innerText:'')||'';
    out.push([a.href,(a.innerText||a.title||a.getAttribute('aria-label')||'').trim().slice(0,200),
-             t.replace(/\\s+/g,' ').trim().slice(0,300)]);});};
+             t.replace(/\\s+/g,' ').trim().slice(0,300),a.hasAttribute('download')]);});};
  doc(document); return out;}"""
 
 
@@ -473,8 +486,8 @@ class IssuerCrawler:
     def _expand(self, seen_links: dict):
         """Click Load-more / Next / tabs / accordions / year selects until exhausted."""
         def harvest():
-            for href, text, ctx in self._links():
-                seen_links.setdefault(href, (text, ctx))
+            for href, text, ctx, is_download in self._links():
+                seen_links.setdefault(href, (text, ctx, is_download))
         harvest()
         for _ in range(80):
             before = len(seen_links)
@@ -548,10 +561,10 @@ class IssuerCrawler:
                 self.log({"event": "expand_error", "url": url, "error": str(exc)[:150]})
             if not links:
                 statuses.append("js_no_content")
-            for href, (text, ctx) in links.items():
+            for href, (text, ctx, is_download) in links.items():
                 if not href.startswith("http"):
                     continue
-                if _is_doc_link(href, text):
+                if _is_doc_link(href, text, is_download):
                     docs.setdefault(href, (text, ctx, url))
                     continue
                 host = _registrable(urlparse(href).hostname or "")
