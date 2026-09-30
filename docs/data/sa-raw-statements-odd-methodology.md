@@ -7,12 +7,14 @@ publishing, or AWS upload — that is Codex's exclusive responsibility for
 this collector. This agent writes `outbox/pending_upload.jsonl` as a
 handoff artifact only.
 
-Sources, in priority order: Saudi Exchange (announcements + profile
+Sources, in priority order: Saudi Exchange (announcements, the profile
+page's own "Financial Statements and Reports" table, and the profile
 website), then the company's own investor-relations site (bounded
-recursive crawl). Saudi Exchange's own "Financial Statements and Reports"
-portlet is summary tables only for many issuers and does not host the raw
-PDF/XLSX itself — in practice the issuer site is the primary source for
-most companies, despite the stated priority order.
+recursive crawl). The Saudi Exchange profile page's table (columns = years,
+rows = Annual/Q1/Q2/Q3) links directly to saudiexchange.sa/Resources/fsPdf/
+hosted PDFs, but that table's content only loads after its tab is clicked —
+missed entirely until a mid-run fix (see git history), which is why an
+earlier snapshot of this report showed far fewer files than the final one.
 
 Companion files: `sa-raw-statements-odd-coverage.json` (full detail per
 company, per fiscal year, per slot) and `sa-raw-statements-odd-coverage.csv`
@@ -26,17 +28,15 @@ Exchange phase and the issuer-site phase were attempted through every
 available retry pass. **`finished` is not `complete`.** It means the
 collector stopped trying, not that a company's documents were found.
 
-- 228/439 companies have at least one file.
-- **211/439 companies have zero files.** Of those:
-  - 130 completed a normal crawl (status `ok`) and genuinely found no
-    document that classified as a financial statement, annual report, or
-    supporting file - not a failure, just nothing to collect.
-  - 25 were abandoned after repeatedly failing to even return from a
-    crawl attempt (see "gave up" below).
-  - 23 hit an unclassified crawl error, 19 were unreachable, 13 returned a
-    page with no content after JS rendering, 1 timed out.
+- **415/439 companies have at least one file.**
+- **24/439 companies have zero files.** Of those, roughly half completed a
+  normal crawl and genuinely found nothing classifiable, and the rest hit
+  an error, were unreachable, gave up after repeated timeouts, or returned
+  a JS-only page with no extractable content — see `zero_file_companies`
+  in the JSON report for the exact reason per symbol; most are small Nomu
+  (parallel market) issuers.
 - No company should be read as "100% collected" from the `finished` flag
-  alone - only `sa-raw-statements-odd-coverage.csv`'s per-year, per-slot
+  alone — only `sa-raw-statements-odd-coverage.csv`'s per-year, per-slot
   status cells (and each company's `years` list) say what was actually
   found for a given fiscal year and period.
 
@@ -46,19 +46,54 @@ collector stopped trying, not that a company's documents were found.
 during the run: their crawl failed to return three separate times (each
 presumably killed by the external supervisor's timeout, not a normal
 error), so the collector stopped retrying that company rather than loop on
-it forever. This was a deliberate trade-off added mid-run (see git history
-on this branch) after one company's repeated hang was found to be
-blocking an entire worker's other ~70 companies indefinitely. A future
-run with more patience (or by hand, for this specific list) could recover
-some of these.
+it forever. This was a deliberate trade-off added mid-run after one
+company's repeated hang was found to be blocking an entire worker's other
+~70 companies indefinitely. A future run with more patience (or by hand,
+for this specific list) could recover some of these.
+
+## Data-quality check: REIT/fund documents that belonged to the wrong entity
+
+A REIT is legally distinct from the asset manager running it, but is
+usually registered on the Exchange under that manager's own corporate
+website (rarely a dedicated fund site), so a crawl seeded from that
+website can pick up the manager's own corporate annual report/financial
+statements and file them as the fund's. Confirmed on real collected data:
+Jadwa REIT Alharamain and Jadwa REIT Saudi (two different funds) had
+recorded the identical document — Jadwa Investment Company's own annual
+report; Mulkia REIT had the manager's own statements; Alkhabeer REIT and
+Aljazira REIT had a mix of genuine fund filings alongside the manager's
+own annual reports / analyst research notes.
+
+`handle_candidate()` now rejects a financial-statement candidate for a
+REIT/fund-named company when neither its extracted text nor its URL
+carries "REIT"/"Fund"/"صندوق"/"ريت" wording — but only when there is real
+evidence to judge from (a scanned/image-only PDF has no extractable text,
+and is left alone rather than wrongly rejected). `scripts/
+_audit_fund_entities.py --apply` applied this same rule retroactively:
+**197 documents across 10 REIT companies were removed** (reason
+`wrong_entity_not_fund_specific` in the rejected list), freeing ~368MB of
+mis-attributed archived files, without re-downloading anything.
+
+A broader version of this check (any sector, not just REITs) was tried and
+**abandoned**: Saudi companies are very often registered under a short
+trade name (e.g. "BAHRI", "TASNEE", "MEPCO") that differs completely from
+the full legal name a filed statement opens with (e.g. "The National
+Shipping Company of Saudi Arabia", "National Industrialization Company"),
+so a generic name-match check flags the large majority of genuinely
+correct documents as false positives. It was reverted before being
+applied to any data.
 
 ## Known gaps / not done by this collector
 
 - Nothing has been uploaded to AWS or published to the database by this
-  agent - that is Codex's job, working from `outbox/pending_upload.jsonl`
-  (5,782 pending entries as of this report).
-- No extraction/mapping/normalization was run - files are raw archive
+  agent — that is Codex's job, working from `outbox/pending_upload.jsonl`
+  (10,396 pending entries as of this report).
+- No extraction/mapping/normalization was run — files are raw archive
   objects with metadata, not financial facts.
 - Document period classification (`Q1`/`H1`/`9M`/`FY`) is heuristic
-  (filename + on-page text); 482 collected files could not be classified
+  (filename + on-page text); 493 collected files could not be classified
   and are recorded separately, not silently dropped.
+- The REIT/fund entity check (above) only covers the specific pattern
+  found (missing REIT/Fund wording); a subsidiary company whose crawl
+  picked up its *parent's* statements under a completely different name
+  pair would not be caught by anything currently in this collector.
