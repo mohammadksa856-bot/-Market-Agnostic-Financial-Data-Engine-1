@@ -184,18 +184,39 @@ mark it as distinct from an original downloaded file. Collected this way
 for Watani Steel: **FY2025, Q1 2026, H1 2026** (9M 2025 was not reachable
 in the same session due to a navigation issue, not refetched).
 
-## What's left, honestly
+## Group Five was not actually empty - its own corporate site was
 
-Two companies, out of 419: **Group Five** (`9523`) - its own investor page
-is confirmed empty, nothing found anywhere it was checked. **HADCO**
-(`6030`) - its registered website no longer resolves, its Saudi Exchange
-profile-page table links 22 files that all 404, and a plausibly-related
-PDF found via web search is blocked by Saudi Exchange's session-based
-403 (same protection `Downloader._se_get()` already works around for
-in-browser fetches, but it was never confirmed to actually be this
-company's own filing) - left unresolved rather than archived on a guess.
+The first pass checked Group Five's own website (`g5ps.com`) and found a
+genuinely empty "Investors" page (577 characters of page text). That was
+real, but incomplete: its Saudi Exchange profile page has its own
+"Financial Statements and Reports" table - the same table structure
+documented at the top of this file - with 9 real financial statements
+(4 annual, 5 semi-annual, 2022-2026) plus 4 board reports (correctly
+rejected by the classifier). These `fsPdf` URLs return 403 to a plain
+`urllib` request (no session), exactly like Saudi Exchange's other
+protected file paths - `scripts/_ingest_local_files.py` was added to
+archive files that could only be fetched with a real in-browser session
+(cookies) and saved to disk by hand, then run through
+`CompanyRun.handle_candidate()` unchanged, same as every other document.
+**8 real documents now archived for Group Five.**
 
-**Final result: 417/419 companies have at least one file (99.5%).**
+The lesson: an "ok, nothing found" result from checking a company's own
+corporate website does not mean its Saudi Exchange profile table was
+also empty - they are two separate sources and both need checking before
+a company is called empty.
+
+## HADCO (6030): genuinely gone, not a gap
+
+Its registered website no longer resolves, and its Saudi Exchange profile
+page confirms why: **Hail Agriculture Development Co.** has no current
+share price (`-`), no recent trading, and its most recent announcements
+date from 1430H (~2009), including a reference to an acquisition offer
+document from Almarai. Its "Financials" tab has only a by-law PDF, no
+statements. This is a defunct/acquired listing, not a collection failure
+- there is no current financial statement to find for it.
+
+**Final result: 418/419 companies have at least one file (99.76%) - every
+company confirmed still active has at least one real document archived.**
 
 ## "Gave up" companies
 
