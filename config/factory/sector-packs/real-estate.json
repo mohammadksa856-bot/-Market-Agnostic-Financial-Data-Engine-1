@@ -1,0 +1,41 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "real_estate",
+  "sector_display_name": "Real Estate & REITs",
+  "canonical_industry_values": [
+    "Real Estate & REITs"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [],
+    "sector_specific_fields_field_groups": [
+      "real_estate"
+    ]
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "operational_kpis"
+    ]
+  },
+  "additional_required_fields": [
+    "gross_leasable_area",
+    "occupancy_rate",
+    "rental_income",
+    "net_property_income",
+    "net_asset_value",
+    "net_asset_value_per_share",
+    "funds_from_operations",
+    "ffo_per_share",
+    "loan_to_value_ratio",
+    "properties_count"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "operational_kpis is not_applicable for real estate/REITs under the current master contract, matching the banking and insurance pattern: catalog.py's 'real_estate' GROUPS entry (storage statement 'real_estate_operations') already holds the occupancy/leasing/NAV/FFO metrics the task's worked example calls for, and it is wired to the sector_specific_fields category, not operational_kpis, so this pack follows the catalog's own placement rather than duplicating the fields under a second category.",
+    "net_asset_value_per_share and FFO/AFFO are REIT-specific valuation anchors that this project's existing docs flag as frequently requiring reconciliation against IFRS fair-value investment-property movements; extraction_mode for the real_estate field_group is deterministic only for the as-stated management-disclosed figure -- a NAV this pack's readers compute themselves from balance-sheet fair-value marks is a calculated_smart_metrics output, never substituted here as if it were the issuer's own disclosed figure.",
+    "loan_to_value_ratio is occasionally disclosed only as a covenant-compliance statement ('LTV remains within the 50% covenant') rather than a precise percentage; such a qualitative statement is captured as unavailable (reason: not_disclosed, per this category's allowed_reasons) rather than parsed into a fabricated point estimate."
+  ]
+}

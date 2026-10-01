@@ -1,0 +1,45 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "oil_gas",
+  "sector_display_name": "Integrated Oil & Gas",
+  "canonical_industry_values": [
+    "Integrated Oil & Gas"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "oil_gas_operations"
+    ],
+    "sector_specific_fields_field_groups": [
+      "segments"
+    ]
+  },
+  "category_overrides": {
+    "not_applicable_categories": []
+  },
+  "additional_required_fields": [
+    "total_hydrocarbon_production",
+    "total_liquids_production",
+    "crude_oil_production",
+    "total_gas_production",
+    "refinery_throughput",
+    "refinery_utilization",
+    "total_hydrocarbon_reserves",
+    "reserve_replacement_ratio",
+    "average_realized_crude_oil_price",
+    "lifting_cost_per_boe",
+    "upstream_revenue",
+    "downstream_revenue",
+    "upstream_ebit",
+    "downstream_ebit"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "This is the one sector in the master contract where both operational_kpis AND sector_specific_fields are activated (neither is marked not_applicable): catalog.py defines a dedicated 'oil_gas_operations' physical-metrics field_group (production volumes, reserves, refining throughput) distinct from an industry-scoped 'segments' field_group addition (upstream_revenue, downstream_revenue, upstream_ebit, downstream_ebit, etc. -- see GROUPS rows scoped to industry='Integrated Oil & Gas' with category='segments'). The two are genuinely different shapes of data (physical units vs. statement-shaped segment P&L) and this pack activates both rather than forcing one into not_applicable.",
+    "Reserves (total_hydrocarbon_reserves, crude_oil_reserves, gas_reserves, reserve_replacement_ratio) are disclosed at most annually and sometimes only in a standalone reserves report rather than the main annual report -- extraction_mode for oil_gas_operations is requires_review at the master-contract level precisely because reserve-basis definitions (proved vs. proved-plus-probable, SEC vs. PRMS) vary and a reviewer must confirm which basis a figure uses before it is published.",
+    "average_realized_crude_oil_price and lifting_cost_per_boe are the two fields most frequently withheld by national-oil-company-affiliated issuers as commercially sensitive; this pack does not require a fabricated proxy for them -- a genuine absence resolves as unavailable (not_disclosed), never a Brent-minus-differential estimate."
+  ]
+}

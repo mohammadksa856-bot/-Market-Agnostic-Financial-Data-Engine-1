@@ -1,0 +1,37 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "industrial_construction",
+  "sector_display_name": "Industrials & Construction",
+  "canonical_industry_values": [
+    "Industrials & Construction"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "industrial_construction"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "order_intake",
+    "project_backlog",
+    "book_to_bill_industrial",
+    "active_projects_count",
+    "bid_success_rate",
+    "project_gross_margin"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for industrials/construction: catalog.py's 'industrial_construction' GROUPS entry only defines industrial_operations KPI fields, with no distinct sector-specific statement template.",
+    "project_backlog is this sector's single most-cited forward-looking metric and is also the field most prone to double counting (awarded but not yet executed contracts vs. recognized-but-unbilled backlog). This pack requires both project_backlog (total awarded, undelivered) and recognized_backlog/remaining_backlog as distinct catalog fields rather than treating 'backlog' as one ambiguous number, matching this project's general rule against collapsing distinct disclosed figures into a single field.",
+    "bid_success_rate and bid_pipeline_value are rarely disclosed by publicly listed contractors (treated as commercially sensitive); a genuine absence here is the expected steady state for this sector and resolves as unavailable (not_disclosed), not a sign of extraction failure."
+  ]
+}

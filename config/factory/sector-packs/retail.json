@@ -1,0 +1,38 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "retail",
+  "sector_display_name": "Retail",
+  "canonical_industry_values": [
+    "Retail"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "retail"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "same_store_sales_growth",
+    "stores_count",
+    "net_store_openings",
+    "ecommerce_revenue",
+    "ecommerce_revenue_share",
+    "average_transaction_value",
+    "sales_per_sqm"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for retail, mirroring telecom: catalog.py's 'retail' GROUPS entry only defines retail_operations KPI fields, with no distinct sector-specific balance-sheet/income template the way banking or insurance have one.",
+    "same_store_sales_growth (like-for-like) is the single most-watched retail metric and is frequently disclosed only for a subset of formats (e.g. hypermarkets but not convenience) -- when an issuer discloses it per-format rather than company-wide, this pack treats the company-wide figure as unavailable (not_disclosed) rather than averaging the per-format figures into a fabricated blended rate.",
+    "ecommerce_revenue_share is new enough in Saudi retail disclosure that several issuers only began reporting it from FY2023; a company with no pre-2023 figure is correctly event_not_observed for those periods, not a gap in collection."
+  ]
+}

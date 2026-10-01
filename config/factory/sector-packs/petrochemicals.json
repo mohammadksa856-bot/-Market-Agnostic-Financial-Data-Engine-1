@@ -1,0 +1,40 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "petrochemicals",
+  "sector_display_name": "Diversified Chemicals",
+  "canonical_industry_values": [
+    "Diversified Chemicals"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "chemical_operations"
+    ],
+    "sector_specific_fields_field_groups": [
+      "segments"
+    ]
+  },
+  "category_overrides": {
+    "not_applicable_categories": []
+  },
+  "additional_required_fields": [
+    "production_volume",
+    "sales_volume",
+    "production_capacity",
+    "capacity_utilization",
+    "average_selling_price",
+    "feedstock_cost_per_tonne",
+    "petrochemicals_revenue",
+    "petrochemicals_ebitda",
+    "agri_nutrients_revenue"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "Like oil_gas, this pack activates both operational_kpis ('chemical_operations': production_volume, capacity_utilization, feedstock_cost_per_tonne) and sector_specific_fields ('segments', scoped to industry='Diversified Chemicals' in catalog.py: petrochemicals_revenue, agri_nutrients_revenue, specialties_revenue, metals_revenue and their EBITDA/capex counterparts) -- the two field_groups hold physical-unit and segment-financial data respectively and neither should be marked not_applicable for a diversified chemicals issuer.",
+    "feedstock_cost_per_tonne is the field most exposed to subsidized domestic gas/ethane pricing arrangements specific to GCC petrochemical producers; this is disclosed inconsistently (some issuers report a blended cost, others only a feedstock-cost ratio in the MD&A narrative). A figure is only published when the issuer states an actual per-tonne number; a ratio-only disclosure is captured as the ratio field it actually is, never algebraically back-solved into a fabricated per-tonne cost.",
+    "ESG/emissions-intensity fields in chemical_operations (scope_1_emissions_chemicals, water_withdrawal_chemicals, etc.) are catalog-defined but are not included in additional_required_fields here -- they remain recommended rather than required because sustainability-report disclosure cadence (often annual, sometimes biennial) lags the quarterly cadence this category's freshness_policy assumes, and forcing them to required would make the category chronically understated rather than diagnostic."
+  ]
+}

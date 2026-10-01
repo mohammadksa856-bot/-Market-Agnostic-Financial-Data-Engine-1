@@ -1,0 +1,38 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "utilities",
+  "sector_display_name": "Utilities",
+  "canonical_industry_values": [
+    "Utilities"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "utilities"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "electricity_generated",
+    "electricity_sold",
+    "installed_generation_capacity",
+    "capacity_factor",
+    "average_tariff",
+    "customer_connections",
+    "regulated_asset_base"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for utilities: catalog.py's 'utilities' GROUPS entry only defines utilities_operations KPI fields, with no distinct sector-specific statement template. The sector regulator (ECRA for Saudi electricity, or the applicable water/power regulator) is added explicitly as this pack's distinguishing official source, since tariff and regulated_asset_base figures are often only authoritative when cross-checked against the regulator's own published tariff order rather than the issuer's own presentation.",
+    "This pack covers both power generation/transmission and water/desalination operators under the single 'Utilities' catalog scope, since catalog.py does not split them -- water_produced/water_distributed/desalination_capacity fields are recommended rather than required so a pure power generator is not penalized for not disclosing water metrics, and vice versa for a pure water utility.",
+    "average_tariff for a regulated utility is frequently a multi-tier schedule (residential/commercial/industrial bands) rather than one number; this pack requires the single disclosed blended/average figure when the issuer states one, and treats a tiered-only disclosure with no blended figure as unavailable (not_disclosed) rather than computing an average across tiers without weighting data."
+  ]
+}

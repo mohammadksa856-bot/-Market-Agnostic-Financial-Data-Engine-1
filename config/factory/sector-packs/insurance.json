@@ -1,0 +1,42 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "insurance",
+  "sector_display_name": "Insurance",
+  "canonical_industry_values": [
+    "Insurance"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md (e.g. 'Banks', 'Insurance'), so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [],
+    "sector_specific_fields_field_groups": [
+      "insurance"
+    ]
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "operational_kpis"
+    ]
+  },
+  "additional_required_fields": [
+    "gross_written_premium",
+    "insurance_revenue",
+    "claims_incurred",
+    "insurance_service_result",
+    "technical_reserves",
+    "outstanding_claims_reserve",
+    "solvency_capital",
+    "loss_ratio",
+    "combined_ratio",
+    "expense_ratio",
+    "solvency_ratio"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "operational_kpis is not_applicable for insurance under the current master contract, mirroring the banking pack's reasoning: src/finengine/catalog.py's 'insurance' GROUPS entries (insurance_income, insurance_balance_sheet, insurance_ratios) are IFRS 17 statement-shaped lines, not physical operating-unit metrics, so they belong entirely in sector_specific_fields, not operational_kpis. There is no dedicated insurance operational_kpis field_group (policy count, branch count, agents count) in catalog.py today -- that is a genuine catalog gap, not something this pack can paper over by misfiling IFRS 17 fields into operational_kpis.",
+    "IFRS 17 introduced a structural break in how premiums/claims are presented (insurance_revenue and insurance_service_expense replace the older gross_written_premium/claims_incurred presentation for issuers that have transitioned). This pack requires both vocabularies as additional_required_fields because Saudi insurers disclosed under both regimes across the 2022-2023 transition; a field missing under one vocabulary but present under the other must still resolve as populated, not penalized twice.",
+    "solvency_capital and solvency_ratio are regulator-filed (SAMA) figures that are frequently disclosed only in the annual report's risk-management note rather than a dedicated table, so extraction_mode for the insurance sector_specific_fields group remains deterministic at the master-contract level only insofar as the figure is a stated, labeled line; a narrative-only solvency discussion with no number is an unavailable (not_disclosed), never an inferred value."
+  ]
+}

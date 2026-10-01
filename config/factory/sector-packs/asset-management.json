@@ -1,0 +1,37 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "asset_management",
+  "sector_display_name": "Asset Management",
+  "canonical_industry_values": [
+    "Asset Management"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "asset_management"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "assets_under_management",
+    "net_new_money",
+    "management_fees",
+    "management_fee_rate",
+    "average_aum",
+    "funds_count"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for asset management: catalog.py's 'asset_management' GROUPS entry only defines asset_management_operations KPI fields, with no distinct sector-specific statement template.",
+    "AUM composition (institutional_aum, retail_aum, equity_aum, fixed_income_aum, money_market_aum, alternatives_aum) is kept recommended rather than required because not every listed asset manager breaks down AUM by both client type and asset class in every reporting period -- requiring the full cross-tab would make the category chronically understated for managers that disclose only one dimension.",
+    "performance_fees and investment_performance_vs_benchmark are the two fields most dependent on fund-level rather than company-level disclosure; where an issuer manages multiple funds against different benchmarks, this pack requires the company-level aggregate the issuer itself states, and a missing company-level aggregate is unavailable (not_disclosed) rather than an average computed across funds without AUM-weighting."
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "technology",
+  "sector_display_name": "Technology",
+  "canonical_industry_values": [
+    "Technology"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "technology"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "annual_recurring_revenue",
+    "recurring_revenue_share",
+    "active_users",
+    "net_revenue_retention",
+    "customer_acquisition_cost"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for technology: catalog.py's 'technology' GROUPS entry only defines technology_operations KPI fields, with no distinct sector-specific statement template.",
+    "This pack is deliberately narrow on required fields relative to the full technology_operations field_group (cloud_revenue, bookings, logo_churn_rate, etc. remain recommended) because listed Saudi/GCC technology issuers (e.g. Elm, Solutions by stc) are a mix of government-services, systems-integration and SaaS business models, and SaaS-specific metrics like net_revenue_retention or monthly_recurring_revenue are structurally not_applicable (event_not_observed is the wrong reason here -- a non-SaaS technology company genuinely has no such metric to disclose, which this project records as not_applicable via the company_pack flag, not by inventing a 0% or N/M value).",
+    "active_users/monthly_active_users/daily_active_users are platform metrics disclosed inconsistently in scope (registered vs. active vs. verified accounts); this pack requires the field only when the issuer states which user-count basis it is reporting, and treats an unlabeled user count as unavailable (not_disclosed) rather than guessing the basis."
+  ]
+}

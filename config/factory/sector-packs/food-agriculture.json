@@ -1,0 +1,36 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "food_agriculture",
+  "sector_display_name": "Food & Agriculture",
+  "canonical_industry_values": [
+    "Food & Agriculture"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "food_agriculture"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "sales_volume_food",
+    "production_capacity_food",
+    "capacity_utilization_food",
+    "average_selling_price_food",
+    "branded_products_share"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for food & agriculture: catalog.py's 'food_agriculture' GROUPS entry only defines food_agriculture_operations KPI fields, with no distinct sector-specific statement template.",
+    "crop_production, livestock_volume, raw_milk_volume and yield_per_hectare/cultivated_area are kept recommended rather than required because they only apply to issuers with their own farming/dairy operations (e.g. NADEC, Almarai) and not to a pure branded-food processor/distributor with no agricultural segment -- making them required would misclassify a genuine business-model difference as a data gap.",
+    "commodity_input_cost is frequently disclosed only qualitatively ('higher feed costs pressured margins') in the MD&A rather than as a number; such narrative-only disclosure resolves this field as unavailable (not_disclosed), and the margin impact itself is instead captured through the universal profitability category's gross_margin trend, not fabricated into a commodity-cost figure."
+  ]
+}

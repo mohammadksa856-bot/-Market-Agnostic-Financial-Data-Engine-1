@@ -1,0 +1,38 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "healthcare",
+  "sector_display_name": "Health Care",
+  "canonical_industry_values": [
+    "Health Care"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "healthcare"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "licensed_beds",
+    "operational_beds",
+    "bed_occupancy_rate",
+    "outpatient_visits",
+    "inpatient_admissions",
+    "physicians_count",
+    "revenue_per_available_bed"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for healthcare: catalog.py's 'healthcare' GROUPS entry only defines healthcare_operations KPI fields (beds, visits, admissions, payer mix), with no distinct sector-specific statement template comparable to banking/insurance.",
+    "licensed_beds vs operational_beds is a real, commonly conflated distinction in Saudi hospital-operator disclosures (licensed capacity vs. beds actually staffed and in service); this pack requires both as distinct fields rather than letting one silently stand in for the other, since bed_occupancy_rate is only meaningful against operational_beds.",
+    "payer_government_share / payer_insurance_share / payer_cash_share (payer mix) are recommended, not required, in this pack because several issuers disclose payer mix only qualitatively ('predominantly insurance-funded') rather than as a percentage breakdown -- forcing it to required would make the category chronically understated for otherwise well-disclosed issuers."
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "transportation_logistics",
+  "sector_display_name": "Transportation & Logistics",
+  "canonical_industry_values": [
+    "Transportation & Logistics"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "transportation_logistics"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "fleet_size",
+    "fleet_utilization",
+    "cargo_volume",
+    "on_time_performance",
+    "revenue_per_tonne_km"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for transportation/logistics: catalog.py's 'transportation_logistics' GROUPS entry only defines transport_operations KPI fields, with no distinct sector-specific statement template.",
+    "This pack deliberately keeps the required-field list sub-mode-agnostic (fleet_size, fleet_utilization, cargo_volume rather than, say, passengers_carried alone) because catalog.py's single 'Transportation & Logistics' scope covers passenger carriers (airlines), cargo shipping (bulk/tanker), and port/logistics operators together; a pure-cargo shipper is not penalized for lacking passenger-specific fields like passenger_load_factor, which remain recommended rather than required.",
+    "on_time_performance for a shipping/port operator (vs. an airline) is sometimes disclosed as berth/turnaround-time statistics rather than a percentage; this pack accepts the issuer's own disclosed operational-reliability metric for the field but requires the reviewer to record which specific statistic was captured, since a berth-turnaround figure and an airline on-time percentage are not directly comparable across companies even though both populate this field."
+  ]
+}

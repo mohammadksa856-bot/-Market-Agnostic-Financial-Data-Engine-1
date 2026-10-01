@@ -1,0 +1,38 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "mining",
+  "sector_display_name": "Mining",
+  "canonical_industry_values": [
+    "Mining"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md, so a company's existing reviewed industry classification is what selects this pack -- no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [
+      "mining"
+    ],
+    "sector_specific_fields_field_groups": []
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "sector_specific_fields"
+    ]
+  },
+  "additional_required_fields": [
+    "ore_production",
+    "saleable_production",
+    "recoverable_reserves",
+    "ore_grade",
+    "cash_cost_per_tonne",
+    "all_in_sustaining_cost",
+    "mine_life"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "sector_specific_fields is not_applicable for mining: catalog.py's 'mining' GROUPS entry only defines mining_operations KPI fields, with no distinct sector-specific statement template.",
+    "recoverable_reserves and mineral_resources follow the same JORC/SAMREC/SEC-style classification ambiguity flagged for oil_gas reserves -- extraction_mode for the mining field_group is requires_review at the master-contract level so a reviewer confirms which reserve classification basis a disclosed figure uses before it is published, since reserves and resources are not interchangeable and this project never silently treats one as the other.",
+    "all_in_sustaining_cost (AISC) is an industry-standard but non-IFRS metric with issuer-specific calculation footnotes; this pack requires the issuer's own stated AISC figure, never a recomputation from cash_cost_per_tonne plus an assumed sustaining-capex add-on."
+  ]
+}
