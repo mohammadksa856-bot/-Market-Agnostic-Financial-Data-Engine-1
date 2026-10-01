@@ -108,7 +108,29 @@ the Main Market in 2021 and their site was not obviously updated since).
 Both companies are now marked `status: ok` with a note explaining the
 manual-collection origin.
 
-**Final result: 415/422 companies have at least one file (98.3%).**
+## Data that exists only as a Tadawul HTML table, never a file
+
+The remaining 7 zero-file companies were checked by hand, two in depth:
+Group Five's own "Investors" page is genuinely empty (577 characters of
+page text, no content below the title). Watani Steel's own site links
+every quarterly/annual result straight through to its Saudi Exchange
+announcement page - and that page has the real figures (revenue, profit,
+equity, EPS, management commentary) rendered as an HTML table, with no
+PDF/XLSX attachment at all. This is the same gap identified at the very
+start of this project for the Exchange's own profile-page summary table,
+just on the announcement-detail page instead.
+
+`scripts/_scrape_disclosure.py` closes this gap for the cases it is worth
+closing: it renders that page's own text into a real PDF (via reportlab)
+and runs it through the exact same `CompanyRun.handle_candidate()`
+archiving path as every other document, so the real figures end up
+content-hashed and archived like any other statement - `source:
+tadawul_disclosure_table_scrape` and `classification_method: manual_scrape`
+mark it as distinct from an original downloaded file. Collected this way
+for Watani Steel: **FY2025, Q1 2026, H1 2026** (3 periods; 9M 2025 was not
+reachable in the same session due to a navigation issue, not refetched).
+
+**Final result: 416/422 companies have at least one file (98.6%).**
 
 ## "Gave up" companies
 
