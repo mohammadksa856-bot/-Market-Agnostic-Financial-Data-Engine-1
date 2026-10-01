@@ -654,7 +654,7 @@ def evaluate_factory_contract(
     ready = weighted_passed and all_thresholds_pass and all_gates_evaluated and all_gates_passed
     if not weighted_passed:
         blocking_reasons.insert(0, "weighted_coverage_95")
-    return {
+    result = {
         "company_id": company_id,
         "contract_version": contract["contract_version"],
         "scoring_model": "factory_18_category_contract",
@@ -670,3 +670,49 @@ def evaluate_factory_contract(
         "categories": categories,
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }
+    with db.conn:
+        db.conn.execute(
+            """INSERT INTO factory_company_readiness(
+            company_id,contract_version,scoring_model,sector_pack,total_score,target_score,
+            readiness_state,coverage_thresholds_passed,all_hard_gates_evaluated,
+            all_hard_gates_passed,blocking_reasons_json,checked_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(company_id) DO UPDATE SET
+            contract_version=excluded.contract_version,scoring_model=excluded.scoring_model,
+            sector_pack=excluded.sector_pack,total_score=excluded.total_score,
+            target_score=excluded.target_score,readiness_state=excluded.readiness_state,
+            coverage_thresholds_passed=excluded.coverage_thresholds_passed,
+            all_hard_gates_evaluated=excluded.all_hard_gates_evaluated,
+            all_hard_gates_passed=excluded.all_hard_gates_passed,
+            blocking_reasons_json=excluded.blocking_reasons_json,
+            checked_at=excluded.checked_at""",
+            (
+                company_id, result["contract_version"], result["scoring_model"],
+                result["sector_pack"], result["total_score"], result["target_score"],
+                result["readiness_state"], int(result["coverage_thresholds_passed"]),
+                int(result["all_hard_gates_evaluated"]),
+                int(result["all_hard_gates_passed"]),
+                json.dumps(result["blocking_reasons"], ensure_ascii=False, sort_keys=True),
+                result["checked_at"],
+            ),
+        )
+        for category in result["categories"]:
+            db.conn.execute(
+                """INSERT INTO factory_category_scores(
+                company_id,category_key,weight,threshold,score,weighted_score,status,
+                threshold_passed,hard_gates_json,evidence_json,checked_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(company_id,category_key) DO UPDATE SET
+                weight=excluded.weight,threshold=excluded.threshold,score=excluded.score,
+                weighted_score=excluded.weighted_score,status=excluded.status,
+                threshold_passed=excluded.threshold_passed,
+                hard_gates_json=excluded.hard_gates_json,evidence_json=excluded.evidence_json,
+                checked_at=excluded.checked_at""",
+                (
+                    company_id, category["category_key"], category["weight"],
+                    category["threshold"], category["score"], category["weighted_score"],
+                    category["status"], int(category["threshold_passed"]),
+                    json.dumps(category["hard_gates"], ensure_ascii=False, sort_keys=True),
+                    json.dumps(category["evidence"], ensure_ascii=False, sort_keys=True),
+                    result["checked_at"],
+                ),
+            )
+    return result

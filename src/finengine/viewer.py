@@ -11,6 +11,7 @@ def company_viewer_html(page: dict) -> str:
     financials = sections.get("financials", {})
     market = sections.get("market", {})
     completeness = company.get("completeness") or page.get("data_quality", {}).get("completeness", {})
+    readiness = page.get("data_quality", {}).get("factory_readiness", {})
 
     def text(value) -> str:
         if isinstance(value, dict) and "value" in value:
@@ -59,11 +60,21 @@ def company_viewer_html(page: dict) -> str:
         if key in profile:
             profile_rows.append(f"<dt>{label}</dt><dd>{text(profile[key])}</dd>")
 
+    official_categories = readiness.get("categories", [])
     category_rows = "".join(
-        f'<tr><td>{text(item.get("category"))}</td><td>{text(item.get("populated_fields"))}/{text(item.get("expected_fields"))}</td><td>{float(item.get("completeness_score", 0))*100:.0f}%</td></tr>'
-        for item in completeness.get("categories", [])
+        f'<tr><td>{text(item.get("category_key"))}</td><td>{text(item.get("status"))}</td><td>{float(item.get("score", 0))*100:.0f}%</td></tr>'
+        for item in official_categories
     )
-    score = float(completeness.get("completeness_score", 0)) * 100
+    if not official_categories:
+        category_rows = "".join(
+            f'<tr><td>{text(item.get("category"))}</td><td>{text(item.get("populated_fields"))}/{text(item.get("expected_fields"))}</td><td>{float(item.get("completeness_score", 0))*100:.0f}%</td></tr>'
+            for item in completeness.get("categories", [])
+        )
+    score = (float(readiness["total_score"])
+             if readiness.get("total_score") is not None
+             else float(completeness.get("completeness_score", 0)) * 100)
+    score_label = ("جاهزية الفئات الـ18" if readiness.get("total_score") is not None
+                   else "اكتمال الحقول (لم يُقيّم العقد بعد)")
     counts = company.get("fact_counts", {})
     latest = market.get("latest") or {}
     links = (("2222", "أرامكو"), ("2010", "سابك"), ("7010", "stc"),
@@ -75,8 +86,8 @@ def company_viewer_html(page: dict) -> str:
     title = text(profile.get("company_name_ar", company.get("name")))
     return f'''<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} | معرفة استثمار</title><style>{css}</style></head><body><main class="wrap"><nav>{nav}</nav>
 <section class="hero"><span class="muted">{text(company.get("exchange"))} · {text(company.get("symbol"))}</span><h1>{title}</h1><div class="muted">{text(company.get("name"))} · {text(company.get("sector"))} · {text(company.get("industry"))}</div></section>
-<section class="grid"><div class="card"><small>اكتمال قاعدة البيانات</small><div class="score">{score:.1f}%</div></div><div class="card"><small>حقائق مالية</small><strong>{text(counts.get("financial", 0))}</strong></div><div class="card"><small>مؤشرات محسوبة</small><strong>{text(counts.get("calculated", 0))}</strong></div><div class="card"><small>آخر إقفال</small><strong>{number(latest.get("close"), latest.get("currency", "SAR"))}</strong><small>{text(latest.get("observed_at"))}</small></div></section>
+<section class="grid"><div class="card"><small>{score_label}</small><div class="score">{score:.1f}%</div></div><div class="card"><small>حقائق مالية</small><strong>{text(counts.get("financial", 0))}</strong></div><div class="card"><small>مؤشرات محسوبة</small><strong>{text(counts.get("calculated", 0))}</strong></div><div class="card"><small>آخر إقفال</small><strong>{number(latest.get("close"), latest.get("currency", "SAR"))}</strong><small>{text(latest.get("observed_at"))}</small></div></section>
 <section class="panel"><h2>أحدث سنة مالية · {text(annual.get("period_end"))}</h2><div class="grid">{''.join(metric_cards) or '<span class="muted">لا توجد بيانات سنوية منشورة.</span>'}</div></section>
 <section class="panel"><h2>عن الشركة</h2><dl>{''.join(profile_rows) or '<dd>لا توجد معلومات وصفية منشورة.</dd>'}</dl></section>
-<section class="panel"><h2>تغطية فئات البيانات</h2><div class="scroll"><table><thead><tr><th>الفئة</th><th>الحقول</th><th>النسبة</th></tr></thead><tbody>{category_rows}</tbody></table></div></section>
+<section class="panel"><h2>تغطية الفئات الرسمية</h2><div class="scroll"><table><thead><tr><th>الفئة</th><th>الحالة</th><th>النسبة</th></tr></thead><tbody>{category_rows}</tbody></table></div></section>
 <footer>عرض تجريبي مباشر من قاعدة البيانات · للقراءة فقط</footer></main></body></html>'''

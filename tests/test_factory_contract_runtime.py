@@ -11,6 +11,7 @@ from finengine.factory_contract import (
     seed_factory_contract_categories,
 )
 from finengine.models import Company, Market, SourceDocument
+from finengine.query import FinancialQueryService
 
 
 class FactoryContractRuntimeTests(unittest.TestCase):
@@ -42,6 +43,25 @@ class FactoryContractRuntimeTests(unittest.TestCase):
         strategies = {row["category_key"]: row["job_strategy"] for row in result["categories"]}
         self.assertEqual(strategies["market_data"], "periodic_market_data_sync")
         self.assertEqual(strategies["valuation"], "calculated_no_network")
+        persisted = self.db.conn.execute(
+            "SELECT scoring_model,total_score,readiness_state FROM factory_company_readiness "
+            "WHERE company_id=?", (self.company.company_id,),
+        ).fetchone()
+        self.assertEqual(persisted["scoring_model"], "factory_18_category_contract")
+        self.assertEqual(persisted["total_score"], result["total_score"])
+        self.assertEqual(self.db.conn.execute(
+            "SELECT count(*) FROM factory_category_scores WHERE company_id=?",
+            (self.company.company_id,),
+        ).fetchone()[0], 18)
+        query = FinancialQueryService(str(self.path))
+        try:
+            official = query.factory_readiness("SA", "7010")
+        finally:
+            query.close()
+        self.assertEqual(official["scoring_model"], "factory_18_category_contract")
+        self.assertEqual(official["total_score"], result["total_score"])
+        self.assertEqual(len(official["categories"]), 18)
+        self.assertNotIn("source_map_version", official)
 
     def test_contract_categories_are_seeded_without_replacing_legacy_taxonomy(self):
         keys = seed_factory_contract_categories(self.db)

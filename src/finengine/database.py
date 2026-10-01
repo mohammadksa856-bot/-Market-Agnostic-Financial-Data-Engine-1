@@ -412,6 +412,26 @@ CREATE TABLE IF NOT EXISTS company_readiness(
  ('ready','not_ready','awaiting_data','blocked')),
  hard_gates_json TEXT NOT NULL DEFAULT '{}', blocking_reasons_json TEXT NOT NULL DEFAULT '[]',
  checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS factory_company_readiness(
+ company_id TEXT PRIMARY KEY REFERENCES companies(company_id),
+ contract_version TEXT NOT NULL, scoring_model TEXT NOT NULL,
+ sector_pack TEXT, total_score TEXT NOT NULL, target_score TEXT NOT NULL,
+ readiness_state TEXT NOT NULL CHECK(readiness_state IN ('ready','not_ready')),
+ coverage_thresholds_passed INTEGER NOT NULL,
+ all_hard_gates_evaluated INTEGER NOT NULL,
+ all_hard_gates_passed INTEGER NOT NULL,
+ blocking_reasons_json TEXT NOT NULL DEFAULT '[]',
+ checked_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS factory_category_scores(
+ company_id TEXT NOT NULL REFERENCES companies(company_id),
+ category_key TEXT NOT NULL, weight TEXT NOT NULL, threshold TEXT NOT NULL,
+ score TEXT NOT NULL, weighted_score TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('complete','partial','missing','not_applicable')),
+ threshold_passed INTEGER NOT NULL, hard_gates_json TEXT NOT NULL DEFAULT '[]',
+ evidence_json TEXT NOT NULL DEFAULT '{}', checked_at TEXT NOT NULL,
+ PRIMARY KEY(company_id,category_key));
+CREATE INDEX IF NOT EXISTS idx_factory_category_scores_status
+ ON factory_category_scores(category_key,status,threshold_passed);
 CREATE TABLE IF NOT EXISTS factory_runs(
  run_id TEXT PRIMARY KEY, scope_json TEXT NOT NULL DEFAULT '{}', target_score TEXT NOT NULL DEFAULT '95',
  status TEXT NOT NULL DEFAULT 'queued'

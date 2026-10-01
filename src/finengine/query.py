@@ -336,6 +336,7 @@ class FinancialQueryService:
         estimates = self.consensus_estimates(market, symbol, limit=100)
         completeness = self.completeness(market, symbol)
         understanding = self.understanding(market, symbol)
+        factory_readiness = self.factory_readiness(market, symbol)
         peers = self.peer_comparison(market, symbol)
         annual_history = self.period_history(market, symbol, "fy", (
             "revenue", "gross_profit", "operating_income", "ebit", "ebitda",
@@ -407,6 +408,7 @@ class FinancialQueryService:
             },
             "capabilities": capabilities,
             "data_quality": {"completeness": completeness, "understanding": understanding,
+                             "factory_readiness": factory_readiness,
                              "open_backlog": len(self.backlog(market, symbol, "active", 5000))},
         }
 
@@ -986,6 +988,55 @@ class FinancialQueryService:
         result["source_map_version"] = SOURCE_MAP_VERSION
         result["hard_gates"] = json.loads(result.pop("hard_gates_json"))
         result["blocking_reasons"] = json.loads(result.pop("blocking_reasons_json"))
+        result["categories"] = categories
+        return result
+
+    def factory_readiness(self, market: str, symbol: str) -> dict:
+        """Return only the canonical 18-category contract score.
+
+        This deliberately does not fall back to the legacy understanding score;
+        absence means the contract has not been evaluated yet.
+        """
+        company = self.conn.execute(
+            "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+            (market.upper(), symbol.upper()),
+        ).fetchone()
+        if not company:
+            raise KeyError(f"unknown company {market}:{symbol}")
+        company_id = company["company_id"]
+        readiness = self.conn.execute(
+            "SELECT * FROM factory_company_readiness WHERE company_id=?", (company_id,),
+        ).fetchone()
+        rows = self.conn.execute(
+            """SELECT category_key,weight,threshold,score,weighted_score,status,
+            threshold_passed,hard_gates_json,evidence_json,checked_at
+            FROM factory_category_scores WHERE company_id=? ORDER BY category_key""",
+            (company_id,),
+        ).fetchall()
+        categories = []
+        for row in rows:
+            item = dict(row)
+            item["threshold_passed"] = bool(item["threshold_passed"])
+            item["hard_gates"] = json.loads(item.pop("hard_gates_json") or "[]")
+            item["evidence"] = json.loads(item.pop("evidence_json") or "{}")
+            categories.append(item)
+        if not readiness:
+            return {
+                "company_id": company_id,
+                "scoring_model": "factory_18_category_contract",
+                "readiness_state": "not_assessed",
+                "total_score": None,
+                "target_score": "95",
+                "blocking_reasons": ["run_factory_contract_readiness"],
+                "categories": categories,
+            }
+        result = dict(readiness)
+        for key in (
+            "coverage_thresholds_passed", "all_hard_gates_evaluated",
+            "all_hard_gates_passed",
+        ):
+            result[key] = bool(result[key])
+        result["blocking_reasons"] = json.loads(result.pop("blocking_reasons_json") or "[]")
         result["categories"] = categories
         return result
 

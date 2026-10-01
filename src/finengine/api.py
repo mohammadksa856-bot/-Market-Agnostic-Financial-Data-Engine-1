@@ -96,6 +96,7 @@ def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
                     elif tail==["coverage"]: result=query.coverage(market,symbol,self._int(params,"limit",100))
                     elif tail==["completeness"]: result=query.completeness(market,symbol)
                     elif tail==["understanding"]: result=query.understanding(market,symbol)
+                    elif tail==["factory-readiness"]: result=query.factory_readiness(market,symbol)
                     elif tail==["backlog"]: result=query.backlog(market,symbol,params.get("status",["active"])[0],self._int(params,"limit",500))
                     elif tail==["disclosures"]: result=query.disclosures(market,symbol,params.get("type",[None])[0],self._int(params,"limit",50))
                     elif tail==["attributes"]: result=query.attributes(market,symbol)

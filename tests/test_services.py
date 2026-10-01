@@ -116,6 +116,13 @@ class ServiceTests(unittest.TestCase):
             factory_status=json.loads(urlopen(request).read())
             self.assertEqual(factory_status["counts"]["queued"],18)
             self.assertEqual(factory_status["companies"][0]["categories_total"],18)
+            request=Request(
+                f"http://127.0.0.1:{port}/v1/companies/SA/TST/factory-readiness",
+                headers={"X-API-Key":"secret"})
+            official_readiness=json.loads(urlopen(request).read())
+            self.assertEqual(official_readiness["scoring_model"],
+                             "factory_18_category_contract")
+            self.assertEqual(len(official_readiness["categories"]),18)
             request=Request(f"http://127.0.0.1:{port}/health",data=b"{}",method="POST",
                             headers={"X-API-Key":"secret"})
             with self.assertRaises(HTTPError) as readonly: urlopen(request)
@@ -151,6 +158,9 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(page["sections"]["financials"]["ytd"]["metrics"]["revenue"][0]["value"],"55")
         self.assertEqual(page["contract_version"],4)
         self.assertIn("understanding", page["data_quality"])
+        self.assertIn("factory_readiness", page["data_quality"])
+        self.assertEqual(page["data_quality"]["factory_readiness"]["readiness_state"],
+                         "not_assessed")
         quarter_history=page["sections"]["financials"]["history"]["quarter"]
         self.assertEqual(quarter_history["period_kind"],"quarter")
         self.assertEqual(quarter_history["periods"][0]["metrics"]["revenue"][0]["value"],"30")
