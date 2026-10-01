@@ -130,7 +130,72 @@ mark it as distinct from an original downloaded file. Collected this way
 for Watani Steel: **FY2025, Q1 2026, H1 2026** (3 periods; 9M 2025 was not
 reachable in the same session due to a navigation issue, not refetched).
 
-**Final result: 416/422 companies have at least one file (98.6%).**
+## A second, harder-to-catch duplicate pattern: renames, not just symbol changes
+
+The first duplicate-registry pass (442 -> 422 companies, see above) only
+caught pairs with an *identical* company name under two symbols. Checking
+the remaining zero-file companies by hand surfaced a second pattern it
+missed: a company that renamed itself entirely (not just moved market
+segment) keeps its old symbol's registry row under the *old* name, so an
+exact-name duplicate check never flags it.
+
+- `1832` (registered as "SADR") turned out to be the current symbol for a
+  company registered a second time as `9504` ("ALSAMAANI") - "Sadr"
+  (formerly "Al Samaani Factory for Metal Industries"), confirmed via its
+  real current site `sadr.com.sa` (the registry's `sgp.com.sa` for this
+  symbol no longer resolves at all).
+- `9507` ("THOB ALASEEL") was a second row for `4012` ("ALASEEL") -
+  already correctly collected with 18 documents.
+- `9531` ("OBEIKAN GLASS") was a second row for `4145` ("OGC" / Al
+  Obeikan Glass Company) - already correctly collected with 21 documents.
+
+`9504`, `9507`, and `9531` were removed from the registry the same way as
+the first batch (merge-then-delete, no data lost). Registry is now
+**419 real companies**. Finding and fixing this took re-checking the
+"genuinely empty" companies by hand rather than trusting the automated
+pass - the lesson being that an "ok, nothing found" or "zero file" result
+earned by a seed website that turns out to be stale/wrong is
+indistinguishable, from the collector's own numbers alone, from a company
+that truly publishes nothing.
+
+Recovered for Sadr (`1832`) via the same plain-HTTP manual-collection
+technique used for Saudi Energy/NBM: **6 real annual financial-statement
+PDFs, 2020-2025**, from its current site.
+
+## Data that exists only as a Tadawul HTML table, never a file
+
+The remaining zero-file companies were checked by hand. Group Five's own
+"Investors" page is genuinely empty (577 characters of page text, no
+content below the title) - confirmed genuinely nothing to collect. Watani
+Steel's own site links every quarterly/annual result straight through to
+its Saudi Exchange announcement page - and that page has the real figures
+(revenue, profit, equity, EPS, management commentary) rendered as an HTML
+table, with no PDF/XLSX attachment at all. This is the same gap identified
+at the very start of this project for the Exchange's own profile-page
+summary table, just on the announcement-detail page instead.
+
+`scripts/_scrape_disclosure.py` closes this gap for the cases worth
+closing: it renders that page's own text into a real PDF (via reportlab)
+and runs it through the exact same `CompanyRun.handle_candidate()`
+archiving path as every other document, so the real figures end up
+content-hashed and archived like any other statement - `source:
+tadawul_disclosure_table_scrape` and `classification_method: manual_scrape`
+mark it as distinct from an original downloaded file. Collected this way
+for Watani Steel: **FY2025, Q1 2026, H1 2026** (9M 2025 was not reachable
+in the same session due to a navigation issue, not refetched).
+
+## What's left, honestly
+
+Two companies, out of 419: **Group Five** (`9523`) - its own investor page
+is confirmed empty, nothing found anywhere it was checked. **HADCO**
+(`6030`) - its registered website no longer resolves, its Saudi Exchange
+profile-page table links 22 files that all 404, and a plausibly-related
+PDF found via web search is blocked by Saudi Exchange's session-based
+403 (same protection `Downloader._se_get()` already works around for
+in-browser fetches, but it was never confirmed to actually be this
+company's own filing) - left unresolved rather than archived on a guess.
+
+**Final result: 417/419 companies have at least one file (99.5%).**
 
 ## "Gave up" companies
 
