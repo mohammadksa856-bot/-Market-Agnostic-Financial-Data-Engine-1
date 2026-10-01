@@ -219,6 +219,67 @@ class FactoryContractRuntimeTests(unittest.TestCase):
             "SELECT count(*) FROM company_field_availability"
         ).fetchone()[0], 2)
 
+    def test_sector_pack_injecting_a_lower_threshold_key_is_ignored_by_the_evaluator(self):
+        """Requirement 5 (runtime half): a sector pack directory containing a pack
+        with bogus threshold-override keys must not change the dividends category
+        threshold the evaluator reports -- nothing in evaluate_factory_contract
+        ever reads those keys, so a malicious/buggy pack cannot lower a master
+        threshold even if it tries to."""
+        packs_dir = Path(self.temp.name) / "sector-packs"
+        packs_dir.mkdir()
+        tampered = {
+            "pack_version": "1.0.0",
+            "extends_contract_version": "1.0.0",
+            "sector_key": "telecom",
+            "sector_display_name": "Telecommunications",
+            "canonical_industry_values": ["Telecommunications"],
+            "canonical_industry_source": "test fixture",
+            "activates": {
+                "operational_kpis_field_groups": ["telecommunications"],
+                "sector_specific_fields_field_groups": [],
+            },
+            "category_overrides": {"not_applicable_categories": ["sector_specific_fields"]},
+            # Bogus keys a malicious/buggy pack might add to try to lower a
+            # master threshold -- the evaluator must never read these.
+            "completeness_threshold_override": {"dividends": 0.01},
+            "overall_completeness_threshold": 0.0,
+            "additional_required_fields": [],
+            "additional_official_sources": [],
+            "notes": [],
+        }
+        (packs_dir / "telecom.json").write_text(json.dumps(tampered), encoding="utf-8")
+        result = evaluate_factory_contract(
+            self.db, self.company.company_id, sector_pack_dir=packs_dir,
+        )
+        dividends = next(c for c in result["categories"] if c["category_key"] == "dividends")
+        self.assertEqual(dividends["threshold"], "0.9")
+
+    def test_existing_company_registry_and_manifests_are_untouched_by_this_branch(self):
+        """Requirement 7: this audit must never touch live collected data. Proves
+        data/companies.json (if present in this worktree) is byte-identical to
+        the version committed at the branch's merge-base, by diffing against git
+        rather than a baked-in copy (so it still passes if the file legitimately
+        does not exist on this branch)."""
+        import subprocess
+
+        repo_root = Path(__file__).resolve().parents[1]
+        merge_base = subprocess.run(
+            ["git", "merge-base", "HEAD", "origin/codex/telecom-95pct"],
+            cwd=repo_root, capture_output=True, text=True, check=False,
+        ).stdout.strip()
+        if not merge_base:
+            self.skipTest("merge-base not resolvable in this checkout")
+        for candidate in ("config/companies.json", "data/raw", "data/imports"):
+            diff = subprocess.run(
+                ["git", "diff", "--quiet", merge_base, "HEAD", "--", candidate],
+                cwd=repo_root, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(
+                diff.returncode, 0,
+                f"{candidate} differs between {merge_base} and HEAD -- "
+                f"this branch must not touch protected company/manifest data",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -269,8 +269,16 @@ def test_anti_averaging_principle_is_documented(contract):
 # --- Sector pack validation ----------------------------------------------------
 
 
-def test_both_expected_sector_packs_exist(sector_packs):
-    assert set(sector_packs.keys()) == {"telecom", "banking"}
+EXPECTED_SECTOR_PACKS = {
+    "banking", "insurance", "oil-gas", "petrochemicals", "telecom", "real-estate",
+    "retail", "healthcare", "utilities", "mining", "transportation-logistics",
+    "industrial-construction", "technology", "food-agriculture", "asset-management",
+}
+
+
+def test_all_15_requested_sector_packs_exist(sector_packs):
+    assert set(sector_packs.keys()) == EXPECTED_SECTOR_PACKS
+    assert len(sector_packs) == 15
 
 
 def test_sector_pack_activated_field_groups_exist_in_master_contract(contract, sector_packs):
@@ -325,6 +333,60 @@ def test_sector_pack_canonical_industry_values_are_nonempty_strings(sector_packs
         assert pack["canonical_industry_values"]
         for v in pack["canonical_industry_values"]:
             assert isinstance(v, str) and v.strip()
+
+
+def test_every_sector_pack_additional_required_field_exists_in_catalog(sector_packs):
+    """Requirement 2 for the 8 source-category audit: no sector pack may reference
+    a field the catalog does not know about."""
+    from finengine.catalog import iter_catalog_fields
+
+    catalog_keys = {f["field_key"] for f in iter_catalog_fields()}
+    for name, pack in sector_packs.items():
+        for field in pack.get("additional_required_fields", []):
+            assert field in catalog_keys, (
+                f"sector pack {name!r} requires field {field!r} which does not exist in "
+                f"src/finengine/catalog.py"
+            )
+
+
+def test_sector_pack_schema_has_no_recognized_threshold_override_key(sector_packs):
+    """Requirement 5 (static half): the pack schema itself carries no key that
+    could lower a master threshold. The runtime half -- that even an injected
+    bogus key is never read by the evaluator -- is covered by
+    test_factory_contract_runtime.FactoryContractRuntimeTests
+    .test_sector_pack_injecting_a_lower_threshold_key_is_ignored_by_the_evaluator.
+    """
+    banned_keys = {
+        "completeness_threshold", "completeness_threshold_override",
+        "overall_completeness_threshold", "weight", "hard_gates",
+    }
+    for name, pack in sector_packs.items():
+        assert banned_keys.isdisjoint(pack.keys()), (
+            f"sector pack {name!r} must never carry a threshold/weight/gate override key"
+        )
+
+
+def test_no_official_source_type_can_ever_be_an_llm_output_type(contract):
+    """Requirement 6: no LLM output may ever be treated as a source of record.
+
+    Structural check: forbidden_source_types and official_source_types are
+    disjoint vocabularies, and every category's official_sources list is drawn
+    only from official_source_types -- so there is no path by which an
+    'llm_output'/'llm_general_knowledge'/'ai_generated' string could ever be
+    accepted as a category's source type.
+    """
+    forbidden = set(contract["controlled_vocabularies"]["forbidden_source_types"])
+    official = set(contract["controlled_vocabularies"]["official_source_types"])
+    assert forbidden.isdisjoint(official)
+    assert {"llm_general_knowledge", "llm_output", "ai_generated"} <= forbidden
+    for c in contract["categories"]:
+        assert forbidden.isdisjoint(set(c["official_sources"]))
+    for name, pack in sector_packs_fixture_for_llm_check():
+        assert forbidden.isdisjoint(set(pack.get("additional_official_sources", [])))
+
+
+def sector_packs_fixture_for_llm_check():
+    return sector_packs().items()
 
 
 def test_telecom_and_banking_packs_do_not_both_activate_the_same_category(contract, sector_packs):
