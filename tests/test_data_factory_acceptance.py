@@ -189,6 +189,13 @@ class DataFactoryAcceptanceTests(unittest.TestCase):
                 "SELECT count(DISTINCT category_key) FROM factory_work_items WHERE run_id=?",
                 (planned["run_id"],),
             ).fetchone()[0], 18)
+            self.assertEqual(planned["waves"], 6)
+            source_plans = [json.loads(row[0]) for row in db.conn.execute(
+                "SELECT source_plan_json FROM factory_work_items WHERE run_id=?",
+                (planned["run_id"],),
+            )]
+            self.assertTrue(all(plan["wave_key"] for plan in source_plans))
+            self.assertTrue(all("depends_on" in plan for plan in source_plans))
         finally:
             db.close()
 
@@ -219,7 +226,71 @@ class DataFactoryAcceptanceTests(unittest.TestCase):
                 "SELECT count(*) FROM factory_work_items WHERE run_id=? "
                 "AND category_key IN ('valuation','market_data') AND state='running'",
                 (run_id,),
-            ).fetchone()[0], 2)
+            ).fetchone()[0], 1)
+            self.assertEqual(db.conn.execute(
+                "SELECT state FROM factory_work_items WHERE run_id=? AND category_key='market_data'",
+                (run_id,),
+            ).fetchone()[0], "running")
+            self.assertEqual(db.conn.execute(
+                "SELECT state FROM factory_work_items WHERE run_id=? AND category_key='valuation'",
+                (run_id,),
+            ).fetchone()[0], "queued")
+            self.assertGreater(result["waiting_on_dependencies"], 0)
+        finally:
+            db.close()
+
+    def test_factory_unlocks_valuation_only_after_its_inputs_are_terminal(self):
+        db = Database(self.db_path)
+        try:
+            db.register_company(Company(
+                "sa:TST", Market.SA, "TST", "Test Company", "SAR",
+                sector="Telecommunication Services",
+                sources=("https://issuer.example.test/investors",),
+            ))
+            factory = FactoryOrchestrator(db)
+            run_id = factory.plan(market="SA", symbols=["TST"])["run_id"]
+            factory.dispatch(run_id, limit=10)
+            with db.conn:
+                for category in ("financial_statements", "per_share", "market_data"):
+                    db.conn.execute(
+                        "UPDATE factory_work_items SET state='validated' "
+                        "WHERE run_id=? AND category_key=?",
+                        (run_id, category),
+                    )
+            result = factory.dispatch(run_id, limit=10)
+            valuation = db.conn.execute(
+                "SELECT state,job_id,source_plan_json FROM factory_work_items "
+                "WHERE run_id=? AND category_key='valuation'",
+                (run_id,),
+            ).fetchone()
+            self.assertEqual(valuation["state"], "running")
+            self.assertIsNotNone(valuation["job_id"])
+            self.assertIn("market_data", json.loads(valuation["source_plan_json"])["depends_on"])
+            self.assertGreater(result["dispatched_jobs"], 0)
+        finally:
+            db.close()
+
+    def test_factory_finishes_blocked_instead_of_running_forever_after_gaps(self):
+        db = Database(self.db_path)
+        try:
+            db.register_company(Company(
+                "sa:TST", Market.SA, "TST", "Test Company", "SAR",
+                sector="Telecommunication Services",
+            ))
+            factory = FactoryOrchestrator(db)
+            run_id = factory.plan(market="SA", symbols=["TST"])["run_id"]
+            with db.conn:
+                db.conn.execute(
+                    "UPDATE factory_work_items SET state='validated' WHERE run_id=?",
+                    (run_id,),
+                )
+            status = factory.status(run_id)
+            self.assertEqual(status["status"], "blocked")
+            self.assertEqual(status["counts"]["validated"], 18)
+            self.assertEqual(len(status["waves"]), 6)
+            self.assertEqual(sum(
+                wave["counts"].get("validated", 0) for wave in status["waves"]
+            ), 18)
         finally:
             db.close()
 

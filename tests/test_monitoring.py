@@ -586,6 +586,33 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(result["source_map_version"], "18-categories-v1")
         self.assertGreater(result["open_category_gaps"]["financials"], 0)
 
+    def test_understanding_refresh_factory_job_is_scoped_to_its_company(self):
+        other = Company(
+            "sa:OTHER", Market.SA, "OTHER", "Other Company", "SAR",
+            sector="Energy",
+        )
+        self.db.register_company(other)
+        job = type("Job", (), {
+            "payload": {
+                "target_categories": ["profitability", "growth"],
+                "wave_key": "financial_derivations",
+            },
+            "job_id": "understanding-refresh-scoped",
+            "company_id": self.aramco.company_id,
+        })()
+        result = _understanding_refresh_job_handler(self.db)(job)
+        self.assertEqual(result["companies"], 1)
+        self.assertEqual(result["company_id"], self.aramco.company_id)
+        self.assertEqual(result["target_categories"], ["profitability", "growth"])
+        self.assertEqual(result["wave_key"], "financial_derivations")
+        self.assertEqual(
+            self.db.conn.execute(
+                "SELECT count(*) FROM company_readiness WHERE company_id=?",
+                (other.company_id,),
+            ).fetchone()[0],
+            0,
+        )
+
     def test_unreadable_interim_with_known_period_reports_extraction_failure(self):
         candidate = SourceCandidate(
             self.aramco.company_id, "browser-issuer-reports", "interim-unreadable",

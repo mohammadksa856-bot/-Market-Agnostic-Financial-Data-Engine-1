@@ -7,9 +7,15 @@ from decimal import Decimal
 
 from .database import Database, _json
 from .factory_contract import (
+    DEFAULT_CONTRACT,
     contract_category_ready,
     evaluate_factory_contract,
     seed_factory_contract_categories,
+)
+from .factory_execution import (
+    DEFAULT_EXECUTION_PLAN,
+    dependency_status,
+    load_execution_plan,
 )
 from .jobs import DurableJobQueue
 from .understanding import CATEGORIES as LEGACY_CATEGORIES, refresh_company_understanding
@@ -60,9 +66,16 @@ CONTRACT_JOB_STRATEGIES = {
 class FactoryOrchestrator:
     """Durable, token-free controller for the 18-category readiness contract."""
 
-    def __init__(self, db: Database):
+    def __init__(
+        self, db: Database, *, contract_path=DEFAULT_CONTRACT,
+        execution_plan_path=DEFAULT_EXECUTION_PLAN,
+    ):
         self.db = db
         self.queue = DurableJobQueue(db)
+        self.contract_path = contract_path
+        self.execution_plan, self.execution_metadata = load_execution_plan(
+            contract_path, execution_plan_path,
+        )
 
     def latest_active_run(self, scoring_model: str | None = None) -> str | None:
         """Return the newest compatible active run, never a stale model by accident."""
@@ -93,10 +106,11 @@ class FactoryOrchestrator:
             "SELECT * FROM companies WHERE " + " AND ".join(clauses) + " ORDER BY market,symbol",
             args,
         ).fetchall()
-        contract_keys = seed_factory_contract_categories(self.db)
+        contract_keys = seed_factory_contract_categories(self.db, self.contract_path)
         run_id = str(uuid.uuid4())
         scope = {"market": market.upper() if market else None, "symbols": symbols or [],
-                 "scoring_model": "factory_18_category_contract", "contract_version": "1.0.0"}
+                 "scoring_model": "factory_18_category_contract", "contract_version": "1.0.0",
+                 "execution_plan_version": self.execution_plan["plan_version"]}
         with self.db.conn:
             self.db.conn.execute(
                 "INSERT INTO factory_runs(run_id,scope_json,target_score,total_items) VALUES(?,?,?,?)",
@@ -104,9 +118,12 @@ class FactoryOrchestrator:
             )
         queued = completed = 0
         for company in companies:
-            result = evaluate_factory_contract(self.db, company["company_id"])
+            result = evaluate_factory_contract(
+                self.db, company["company_id"], contract_path=self.contract_path,
+            )
             for ordinal, category in enumerate(result["categories"], start=1):
                 key = category["category_key"]
+                execution = self.execution_metadata[key]
                 score = Decimal(category["score"])
                 category_ready = contract_category_ready(category)
                 state = "published" if category_ready and (
@@ -123,6 +140,17 @@ class FactoryOrchestrator:
                     "strategy": CONTRACT_JOB_STRATEGIES[category["job_strategy"]],
                     "contract_job_strategy": category["job_strategy"],
                     "scoring_model": result["scoring_model"],
+                    "wave_key": execution["wave_key"],
+                    "wave_ordinal": execution["wave_ordinal"],
+                    "depends_on": execution["depends_on"],
+                }
+                source_plan = {
+                    "wave_key": execution["wave_key"],
+                    "wave_ordinal": execution["wave_ordinal"],
+                    "execution_mode": execution["execution_mode"],
+                    "depends_on": execution["depends_on"],
+                    "official_sources": execution["official_sources"],
+                    "field_groups": execution["field_groups"],
                 }
                 with self.db.conn:
                     self.db.conn.execute(
@@ -131,7 +159,8 @@ class FactoryOrchestrator:
                         source_plan_json,gap_snapshot_json,finished_at
                         ) VALUES(?,?,?,?,?,?,?,?,CASE WHEN ?='published' THEN CURRENT_TIMESTAMP END)""",
                         (work_id, run_id, company["company_id"], key, state,
-                         10 + ordinal, "[]", _json(gap), state),
+                         execution["wave_ordinal"] * 100 + execution["wave_position"],
+                         _json(source_plan), _json(gap), state),
                     )
         with self.db.conn:
             self.db.conn.execute(
@@ -140,7 +169,9 @@ class FactoryOrchestrator:
             )
         return {"run_id": run_id, "companies": len(companies), "categories": len(contract_keys),
                 "total_items": len(companies) * len(contract_keys), "completed": completed,
-                "queued": queued, "target_score": str(target_score)}
+                "queued": queued, "target_score": str(target_score),
+                "execution_plan_version": self.execution_plan["plan_version"],
+                "waves": len(self.execution_plan["waves"])}
 
     def dispatch(
         self, run_id: str, *, limit: int = 50,
@@ -159,9 +190,39 @@ class FactoryOrchestrator:
             WHERE w.run_id=? AND w.state='queued'
             ORDER BY w.priority,w.created_at LIMIT ?""", (run_id, limit * 18),
         ).fetchall()
+        state_rows = self.db.conn.execute(
+            "SELECT company_id,category_key,state FROM factory_work_items WHERE run_id=?",
+            (run_id,),
+        ).fetchall()
+        states_by_company: dict[str, dict[str, str]] = {}
+        for state_row in state_rows:
+            states_by_company.setdefault(state_row["company_id"], {})[
+                state_row["category_key"]
+            ] = state_row["state"]
+
         groups: dict[tuple[str, str], list] = {}
+        waiting = dependency_blocked = 0
         for row in rows:
             strategy = json.loads(row["gap_snapshot_json"])["strategy"]
+            source_plan = json.loads(row["source_plan_json"] or "{}")
+            dependencies = source_plan.get("depends_on", [])
+            dependency_state, dependency_keys = dependency_status(
+                states_by_company.get(row["company_id"], {}), dependencies,
+            )
+            if dependency_state == "waiting":
+                waiting += 1
+                continue
+            if dependency_state == "blocked":
+                with self.db.conn:
+                    self.db.conn.execute(
+                        """UPDATE factory_work_items SET state='blocked',last_error=?,
+                        updated_at=CURRENT_TIMESTAMP,finished_at=CURRENT_TIMESTAMP
+                        WHERE work_item_id=?""",
+                        ("upstream categories blocked: " + ",".join(dependency_keys),
+                         row["work_item_id"]),
+                    )
+                dependency_blocked += 1
+                continue
             groups.setdefault((row["company_id"], strategy), []).append(row)
         dispatched = blocked = 0
         for (company_id, strategy), items in list(groups.items())[:limit]:
@@ -177,6 +238,16 @@ class FactoryOrchestrator:
                         blocked += 1
                 continue
             first = items[0]
+            source_plans = [json.loads(item["source_plan_json"] or "{}") for item in items]
+            target_categories = sorted(item["category_key"] for item in items)
+            wave_keys = sorted({
+                source_plan.get("wave_key", "legacy") for source_plan in source_plans
+            })
+            expected_source_types = sorted({
+                source_type
+                for source_plan in source_plans
+                for source_type in source_plan.get("official_sources", [])
+            })
             if strategy == "market_history":
                 job_type = "market_history"
                 payload = {"symbol": first["symbol"], "registry": registry, "raw_dir": raw_dir,
@@ -191,9 +262,17 @@ class FactoryOrchestrator:
                            "registry": registry, "raw_dir": raw_dir,
                            "source_index": first["source_index"], "source_limit": 50,
                            "sa_manifest": None, "browser": first["market"] == "SA", "llm": False}
+            payload.update({
+                "factory_run_id": run_id,
+                "wave_key": "+".join(wave_keys),
+                "wave_keys": wave_keys,
+                "target_categories": target_categories,
+                "expected_source_types": expected_source_types,
+            })
+            target_key = ",".join(target_categories)
             job_id, _ = self.queue.enqueue(
                 job_type, payload, company_id,
-                idempotency_key=f"factory:{run_id}:{company_id}:{strategy}",
+                idempotency_key=f"factory:{run_id}:{company_id}:{strategy}:{target_key}",
                 priority=min(item["priority"] for item in items),
             )
             with self.db.conn:
@@ -210,7 +289,9 @@ class FactoryOrchestrator:
                 updated_at=CURRENT_TIMESTAMP WHERE run_id=? AND status='queued'""", (run_id,),
             )
         return {"run_id": run_id, "status": "running", "dispatched_jobs": dispatched,
-                "blocked_items": blocked}
+                "blocked_items": blocked + dependency_blocked,
+                "waiting_on_dependencies": waiting,
+                "dependency_blocked_items": dependency_blocked}
 
     def reconcile(self, run_id: str) -> dict:
         run = self._run(run_id)
@@ -272,12 +353,13 @@ class FactoryOrchestrator:
             (run_id,),
         )}
         completed = counts.get("published", 0) + counts.get("skipped", 0)
-        failed = counts.get("blocked", 0)
+        unresolved = counts.get("blocked", 0) + counts.get("validated", 0)
+        failed = unresolved
         total = sum(counts.values())
         status = run["status"]
         if total and completed == total:
             status = "completed"
-        elif failed and not counts.get("queued", 0) and not counts.get("running", 0):
+        elif unresolved and not counts.get("queued", 0) and not counts.get("running", 0):
             status = "blocked"
         with self.db.conn:
             self.db.conn.execute(
@@ -311,9 +393,33 @@ class FactoryOrchestrator:
                                 "readiness_state": readiness["readiness_state"] if readiness else None,
                                 "scoring_model": "legacy_investor_understanding"})
             companies.append(company)
+        work_rows = self.db.conn.execute(
+            "SELECT state,source_plan_json FROM factory_work_items WHERE run_id=?",
+            (run_id,),
+        ).fetchall()
+        waves: dict[str, dict[str, int]] = {}
+        for work_row in work_rows:
+            source_plan = json.loads(work_row["source_plan_json"] or "{}")
+            if not isinstance(source_plan, dict):
+                source_plan = {}
+            wave_key = source_plan.get("wave_key", "legacy")
+            wave = waves.setdefault(wave_key, {})
+            wave[work_row["state"]] = wave.get(work_row["state"], 0) + 1
+        ordered_waves = []
+        for wave in self.execution_plan["waves"]:
+            counts_for_wave = waves.pop(wave["wave_key"], {})
+            ordered_waves.append({
+                "wave_key": wave["wave_key"], "ordinal": wave["ordinal"],
+                "execution_mode": wave["execution_mode"], "counts": counts_for_wave,
+            })
+        ordered_waves.extend(
+            {"wave_key": key, "ordinal": None, "execution_mode": "legacy", "counts": value}
+            for key, value in sorted(waves.items())
+        )
         return {"run_id": run_id, "status": status, "target_score": run["target_score"],
                 "scoring_model": scope.get("scoring_model", "legacy_investor_understanding"),
-                "counts": counts, "companies": companies}
+                "execution_plan_version": scope.get("execution_plan_version"),
+                "counts": counts, "waves": ordered_waves, "companies": companies}
 
     def throughput(self, run_id: str | None = None, *, window_hours: int = 24) -> dict:
         """Report factory throughput from work that has actually finished.

@@ -1,0 +1,68 @@
+{
+  "plan_version": "1.0.0",
+  "scoring_model": "factory_18_category_contract",
+  "barrier_policy": "per_company_terminal_dependencies",
+  "description": "Dependency-aware execution waves for the canonical 18-category contract. A downstream category waits until its upstream acquisition attempt is terminal; readiness scores and hard gates remain independent and cannot be averaged away.",
+  "waves": [
+    {
+      "wave_key": "financial_foundation",
+      "ordinal": 1,
+      "execution_mode": "source_first",
+      "categories": [
+        {"category_key": "financial_statements", "depends_on": []}
+      ]
+    },
+    {
+      "wave_key": "financial_derivations",
+      "ordinal": 2,
+      "execution_mode": "calculated",
+      "categories": [
+        {"category_key": "profitability", "depends_on": ["financial_statements"]},
+        {"category_key": "liquidity_solvency", "depends_on": ["financial_statements"]},
+        {"category_key": "efficiency", "depends_on": ["financial_statements"]},
+        {"category_key": "growth", "depends_on": ["financial_statements"]},
+        {"category_key": "per_share", "depends_on": ["financial_statements"]},
+        {"category_key": "calculated_smart_metrics", "depends_on": ["financial_statements"]}
+      ]
+    },
+    {
+      "wave_key": "market_and_events",
+      "ordinal": 3,
+      "execution_mode": "source_first",
+      "categories": [
+        {"category_key": "market_data", "depends_on": []},
+        {"category_key": "dividends", "depends_on": []},
+        {"category_key": "corporate_actions", "depends_on": []},
+        {"category_key": "announcements", "depends_on": []}
+      ]
+    },
+    {
+      "wave_key": "company_intelligence",
+      "ordinal": 4,
+      "execution_mode": "source_first",
+      "categories": [
+        {"category_key": "company_profile", "depends_on": []},
+        {"category_key": "segments", "depends_on": ["financial_statements"]},
+        {"category_key": "ownership", "depends_on": []}
+      ]
+    },
+    {
+      "wave_key": "sector_depth",
+      "ordinal": 5,
+      "execution_mode": "sector_pack",
+      "categories": [
+        {"category_key": "operational_kpis", "depends_on": ["company_profile"]},
+        {"category_key": "sector_specific_fields", "depends_on": ["financial_statements", "company_profile"]}
+      ]
+    },
+    {
+      "wave_key": "valuation_and_assurance",
+      "ordinal": 6,
+      "execution_mode": "audit",
+      "categories": [
+        {"category_key": "valuation", "depends_on": ["financial_statements", "per_share", "market_data"]},
+        {"category_key": "sources_lineage_freshness", "depends_on": ["financial_statements", "market_data", "company_profile"]}
+      ]
+    }
+  ]
+}

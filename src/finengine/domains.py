@@ -6,6 +6,7 @@ import statistics
 from decimal import Decimal
 from datetime import date, datetime, timedelta, timezone
 
+from .calculations import Calculator
 from .database import Database, _json
 from .models import Fact, PeriodKind
 
@@ -79,6 +80,31 @@ class CompanyDomainStore:
 
     def __init__(self, db: Database):
         self.db = db
+
+    def refresh_financial_calculations(self, company_id: str) -> dict:
+        """Rebuild deterministic financial outputs from current reported facts.
+
+        Pipeline ingestion calculates new periods incrementally.  Factory waves
+        also need a complete, idempotent rebuild after a historical backfill or
+        a formula release; otherwise old periods never receive newer formulas.
+        Only reported inputs seed the rebuild, so an old calculated value cannot
+        become circular input to its own replacement.
+        """
+        calculator = Calculator()
+        history = self.db.calculation_history(company_id, calculator.HISTORY_METRICS)
+        inputs = [fact for fact in history if not fact.is_calculated]
+        calculated = calculator.calculate(inputs)
+        states = self.db.publish_batch(calculated) if calculated else []
+        return {
+            "company_id": company_id,
+            "input_facts": len(inputs),
+            "calculated_facts": len(calculated),
+            "inserted": states.count("inserted"),
+            "restated": states.count("restated"),
+            "duplicates": states.count("duplicate"),
+            "suppressed": states.count("suppressed"),
+            "metrics": sorted({fact.metric for fact in calculated}),
+        }
 
     def primary_listing_id(self, company_id: str) -> str:
         row = self.db.conn.execute(

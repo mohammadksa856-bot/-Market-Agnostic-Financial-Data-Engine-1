@@ -198,10 +198,17 @@ class ConsensusGovernanceCannotInflateReadinessTests(unittest.TestCase):
 
             factory.dispatch(run_id, limit=10)
             valuation = db.conn.execute(
-                "SELECT state FROM factory_work_items "
+                "SELECT state,source_plan_json FROM factory_work_items "
                 "WHERE run_id=? AND category_key='valuation'", (run_id,),
             ).fetchone()
-            self.assertEqual(valuation["state"], "running")
+            # Valuation is deterministic but it is not independent: running it
+            # before statements, per-share facts and market data are terminal
+            # produces a misleading zero-consensus/zero-fundamentals result.
+            self.assertEqual(valuation["state"], "queued")
+            self.assertEqual(
+                set(json.loads(valuation["source_plan_json"])["depends_on"]),
+                {"financial_statements", "per_share", "market_data"},
+            )
 
             status = factory.status(run_id)
             company_row = status["companies"][0]

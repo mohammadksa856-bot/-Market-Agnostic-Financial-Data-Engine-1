@@ -857,7 +857,11 @@ def _understanding_refresh_job_handler(db: Database):
         market = job.payload.get("market")
         where = "WHERE enabled=1"
         args = ()
-        if market:
+        requested_company_id = getattr(job, "company_id", None)
+        if requested_company_id:
+            where += " AND company_id=?"
+            args = (requested_company_id,)
+        elif market:
             where += " AND market=?"
             args = (market.upper(),)
         company_ids = [row[0] for row in db.conn.execute(
@@ -865,22 +869,33 @@ def _understanding_refresh_job_handler(db: Database):
         )]
         domains = CompanyDomainStore(db)
         states: dict[str, int] = {}
+        financial_calculations = {
+            "input_facts": 0, "calculated_facts": 0, "inserted": 0,
+            "restated": 0, "duplicates": 0, "suppressed": 0,
+        }
         valuations = {"published": 0, "skipped": 0}
         market_statistics = {"published": 0, "skipped": 0}
-        for company_id in company_ids:
-            statistics_result = domains.refresh_market_statistics(company_id)
+        for current_company_id in company_ids:
+            calculation_result = domains.refresh_financial_calculations(current_company_id)
+            for key in financial_calculations:
+                financial_calculations[key] += int(calculation_result.get(key, 0))
+            statistics_result = domains.refresh_market_statistics(current_company_id)
             market_statistics[statistics_result["status"]] = (
                 market_statistics.get(statistics_result["status"], 0) + 1
             )
-            valuation = domains.refresh_market_valuations(company_id)
+            valuation = domains.refresh_market_valuations(current_company_id)
             valuations[valuation["status"]] = valuations.get(valuation["status"], 0) + 1
-            domains.refresh_company_backlog(company_id)
-            assessed = refresh_company_understanding(db.conn, company_id)
+            domains.refresh_company_backlog(current_company_id)
+            assessed = refresh_company_understanding(db.conn, current_company_id)
             state = assessed["readiness_state"]
             states[state] = states.get(state, 0) + 1
         result = {
             "companies": len(company_ids), "states": states,
             "market": market.upper() if market else None,
+            "company_id": requested_company_id,
+            "target_categories": job.payload.get("target_categories", []),
+            "wave_key": job.payload.get("wave_key"),
+            "financial_calculation_refresh": financial_calculations,
             "valuation_refresh": valuations,
             "market_statistics_refresh": market_statistics,
         }

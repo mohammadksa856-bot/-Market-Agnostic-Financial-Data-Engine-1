@@ -108,6 +108,30 @@ class CompanyDomainTests(unittest.TestCase):
             "market_cap_to_net_income",
         }.issubset(metrics))
 
+    def test_financial_calculation_refresh_backfills_existing_periods_idempotently(self):
+        self.db.publish_batch([
+            self.fact("revenue", "100"),
+            self.fact("net_income", "20"),
+            self.fact("operating_cash_flow", "30"),
+            self.fact("capex", "-10"),
+        ])
+        first = self.store.refresh_financial_calculations("sa:TST")
+        second = self.store.refresh_financial_calculations("sa:TST")
+        self.assertGreater(first["calculated_facts"], 0)
+        self.assertGreater(first["inserted"], 0)
+        self.assertEqual(second["inserted"], 0)
+        self.assertEqual(second["restated"], 0)
+        values = {
+            row["metric_key"]: row["value_decimal"]
+            for row in self.db.conn.execute(
+                "SELECT metric_key,value_decimal FROM data_points "
+                "WHERE company_id='sa:TST' AND is_current=1 AND is_calculated=1"
+            )
+        }
+        self.assertEqual(values["net_margin"], "0.2")
+        self.assertEqual(values["free_cash_flow"], "20")
+        self.assertEqual(values["fcf_margin"], "0.2")
+
     def test_market_statistics_require_honest_windows_and_publish_derived_history(self):
         start = date(2024, 12, 25)
         for offset in range(402):
