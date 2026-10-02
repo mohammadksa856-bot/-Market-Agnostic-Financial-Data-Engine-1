@@ -19,7 +19,9 @@ dependency-free.
 """
 
 import json
+import io
 import re
+import zipfile
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -30,6 +32,26 @@ _CUMULATIVE_END = {"1h": "06-30", "h1": "06-30", "9m": "09-30"}
 _SCALE_WORDS = ((re.compile(r"\bmn\b|\bmillion", re.I), 1_000_000),
                 (re.compile(r"'?000|\bthousand", re.I), 1000),
                 (re.compile(r"\bbn\b|\bbillion", re.I), 1_000_000_000))
+
+
+def _workbook_input(path):
+    """Accept an issuer ZIP containing exactly one workbook; preserve raw bytes."""
+    with zipfile.ZipFile(path) as archive:
+        if '[Content_Types].xml' in archive.namelist():
+            return path
+        members = [entry for entry in archive.infolist()
+                   if not entry.is_dir() and entry.filename.lower().endswith('.xlsx')]
+        if len(members) != 1:
+            raise ValueError('Workbook wrapper must contain exactly one XLSX file')
+        member = members[0]
+        if member.file_size > 64 * 1024 * 1024:
+            raise ValueError('Wrapped workbook exceeds 64 MiB')
+        content = io.BytesIO(archive.read(member))
+        with zipfile.ZipFile(content) as inner:
+            if '[Content_Types].xml' not in inner.namelist():
+                raise ValueError('Wrapped file is not an XLSX workbook')
+        content.seek(0)
+        return content
 
 
 def _norm(label) -> str:
@@ -120,7 +142,7 @@ class SupplementReader:
         configured = set(self.mapping.get("period_kinds", requested))
         only = requested & configured
         source_currency = str(self.mapping.get("currency") or currency)
-        workbook = openpyxl.load_workbook(self.xlsx_path, data_only=True)
+        workbook = openpyxl.load_workbook(_workbook_input(self.xlsx_path), data_only=True)
         facts: list[dict] = []
         excluded_facts: list[dict] = []
         seen: set[tuple] = set()

@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 try:
@@ -56,6 +57,29 @@ _MAPPING = {
 
 @unittest.skipUnless(HAVE_OPENPYXL, "supplement reader needs the optional openpyxl extra")
 class SupplementReaderTests(unittest.TestCase):
+    def test_single_workbook_zip_wrapper_is_read_without_changing_archive(self):
+        from finengine.reading_xlsx import _workbook_input
+        with tempfile.TemporaryDirectory() as directory:
+            workbook = Path(directory) / 'book.xlsx'
+            wrapper = Path(directory) / 'download.xlsx'
+            _supplement_xlsx(workbook)
+            with zipfile.ZipFile(wrapper, 'w') as archive:
+                archive.write(workbook, 'issuer/book.xlsx')
+            original = wrapper.read_bytes()
+            loaded = openpyxl.load_workbook(_workbook_input(wrapper), data_only=True)
+            self.assertEqual(loaded['Income Statement']['B2'].value, 24000)
+            loaded.close()
+            self.assertEqual(wrapper.read_bytes(), original)
+
+    def test_ambiguous_workbook_wrapper_is_rejected(self):
+        from finengine.reading_xlsx import _workbook_input
+        with tempfile.TemporaryDirectory() as directory:
+            wrapper = Path(directory) / 'download.xlsx'
+            with zipfile.ZipFile(wrapper, 'w') as archive:
+                archive.writestr('one.xlsx', b'not a workbook')
+                archive.writestr('two.xlsx', b'not a workbook')
+            with self.assertRaisesRegex(ValueError, 'exactly one'):
+                _workbook_input(wrapper)
     def _read(self, directory: Path):
         from finengine.reading_xlsx import SupplementReader
 
