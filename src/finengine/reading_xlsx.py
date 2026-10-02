@@ -22,6 +22,7 @@ import json
 import io
 import re
 import zipfile
+import xml.etree.ElementTree as ET
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -52,6 +53,58 @@ def _workbook_input(path):
                 raise ValueError('Wrapped file is not an XLSX workbook')
         content.seek(0)
         return content
+
+
+def _compact_workbook_input(source):
+    """Drop formatting-only worksheet rows in memory, never source values."""
+    replacements = {}
+    ns = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
+    with zipfile.ZipFile(source) as archive:
+        for entry in archive.infolist():
+            if not entry.filename.startswith('xl/worksheets/') or not entry.filename.endswith('.xml'):
+                continue
+            with archive.open(entry) as stream:
+                prefix = stream.read(4096)
+            dimension = re.search(rb'<dimension\b[^>]*ref="([^"]+)"', prefix)
+            rows = re.findall(rb'\d+', dimension.group(1)) if dimension else []
+            if entry.file_size < 8 * 1024 * 1024 and not any(int(row) > 100000 for row in rows):
+                continue
+            with archive.open(entry) as stream:
+                stack = []
+                root = None
+                removed = False
+                for event, element in ET.iterparse(stream, events=('start', 'end')):
+                    if event == 'start':
+                        stack.append(element)
+                        if root is None:
+                            root = element
+                    else:
+                        if element.tag == ns + 'row':
+                            populated = any(cell.find(ns + tag) is not None
+                                            for cell in element.findall(ns + 'c')
+                                            for tag in ('v', 'is', 'f'))
+                            if not populated:
+                                stack[-2].remove(element)
+                                element.clear()
+                                removed = True
+                        stack.pop()
+            if removed:
+                # Let openpyxl derive the bounds from retained cells.
+                dimension_element = root.find(ns + 'dimension')
+                if dimension_element is not None:
+                    root.remove(dimension_element)
+                replacements[entry.filename] = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+        if not replacements:
+            if hasattr(source, 'seek'):
+                source.seek(0)
+            return source
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as compact:
+            for entry in archive.infolist():
+                compact.writestr(entry.filename, replacements[entry.filename]
+                                 if entry.filename in replacements else archive.read(entry))
+    output.seek(0)
+    return output
 
 
 def _norm(label) -> str:
@@ -142,7 +195,8 @@ class SupplementReader:
         configured = set(self.mapping.get("period_kinds", requested))
         only = requested & configured
         source_currency = str(self.mapping.get("currency") or currency)
-        workbook = openpyxl.load_workbook(_workbook_input(self.xlsx_path), data_only=True)
+        workbook = openpyxl.load_workbook(
+            _compact_workbook_input(_workbook_input(self.xlsx_path)), data_only=True)
         facts: list[dict] = []
         excluded_facts: list[dict] = []
         seen: set[tuple] = set()

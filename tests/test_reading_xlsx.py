@@ -57,6 +57,27 @@ _MAPPING = {
 
 @unittest.skipUnless(HAVE_OPENPYXL, "supplement reader needs the optional openpyxl extra")
 class SupplementReaderTests(unittest.TestCase):
+    def test_compaction_removes_empty_formatting_and_preserves_far_values(self):
+        from finengine.reading_xlsx import _compact_workbook_input
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'formatted.xlsx'
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet['A1'] = 'Revenue'
+            sheet['B1'] = 123
+            sheet['C100001'] = 456
+            sheet['D100001'] = '=B1+1'
+            sheet['A1048576'].number_format = '0.00'
+            workbook.save(path)
+            original = path.read_bytes()
+            compact = openpyxl.load_workbook(_compact_workbook_input(path), data_only=False)
+            self.assertEqual(compact.active.max_row, 100001)
+            self.assertEqual(compact.active['B1'].value, 123)
+            self.assertEqual(compact.active['C100001'].value, 456)
+            self.assertEqual(compact.active['D100001'].value, '=B1+1')
+            self.assertEqual(path.read_bytes(), original)
+            compact.close()
+
     def test_single_workbook_zip_wrapper_is_read_without_changing_archive(self):
         from finengine.reading_xlsx import _workbook_input
         with tempfile.TemporaryDirectory() as directory:
