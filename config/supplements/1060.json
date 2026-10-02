@@ -1,0 +1,35 @@
+{
+  "company_id": "sa:1060",
+  "issuer": "Saudi Awwal Bank",
+  "source_url": "https://www.sab.com/en/about-us/investor-relations/financial-regulatory-reports/",
+  "notes": "Reviewed 2Q2026 datapack. This initial map includes balance-sheet stocks only. C:S are quarter-end stock dates; U:V comparison/YTD columns are deliberately outside the range. Income/segments remain unmapped pending reconciliation of repeated labels and presentation differences. SAR million rounded to issuer thousand-SAR precision; source bytes remain unchanged.",
+  "scale": "1000000",
+  "precision": 3,
+  "period_kinds": ["quarter"],
+  "date_headers": {
+    "Income Statement& Balance Sheet": {"row": 4, "first_column": 3, "last_column": 19, "period_kind": "quarter"}
+  },
+  "sheets": {
+    "Income Statement& Balance Sheet": {
+      "Cash and balances with SAMA": ["cash_and_balances_with_central_bank", "instant"],
+      "Due from banks and other financial institutions": ["due_from_banks", "instant"],
+      "Investments, net": ["bank_investments", "instant"],
+      "Loans and advances, net": ["net_loans", "instant"],
+      "Investment in an associate": ["investments_associates", "instant"],
+      "Property and equipment, net": ["property_plant_equipment", "instant"],
+      "Total Assets": ["total_assets", "instant"],
+      "Due to banks and other financial institutions": ["due_to_banks", "instant"],
+      "Customers’ deposits": ["customer_deposits", "instant"],
+      "Debt securities in issue": ["debt_securities_issued", "instant"],
+      "Total Liabilities": ["total_liabilities", "instant"],
+      "Share capital": ["share_capital", "instant"],
+      "Share premium": ["additional_paid_in_capital", "instant"],
+      "Statutory reserve": ["statutory_reserve", "instant"],
+      "Other reserves": ["other_reserves", "instant"],
+      "Retained earnings": ["retained_earnings", "instant"],
+      "Total equity attributable to equity holders of the Bank": ["equity_parent", "instant"],
+      "Total equity": ["total_equity", "instant"],
+      "Total liabilities and equity": ["total_liabilities_equity", "instant"]
+    }
+  }
+}

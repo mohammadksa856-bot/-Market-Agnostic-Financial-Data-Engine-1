@@ -176,6 +176,22 @@ class SupplementReader:
         """Map column index -> (period_kind, fiscal_year, period_end) from the
         header band (first ~8 rows). Later columns win on a repeated period."""
         columns: dict[int, tuple] = {}
+        # Date cells alone do not establish whether a flow is quarterly/YTD.
+        # Accept them only with a reviewed per-sheet header/range contract.
+        date_header = self.mapping.get("date_headers", {}).get(sheet.title)
+        if date_header:
+            from datetime import date, datetime
+            kind = date_header["period_kind"]
+            if kind not in {"quarter", "ytd", "fy"}:
+                raise ValueError("Invalid explicit date-header period kind")
+            row_number = int(date_header["row"])
+            for row in sheet.iter_rows(min_row=row_number, max_row=row_number, values_only=True):
+                for index, cell in enumerate(row):
+                    if not int(date_header["first_column"]) <= index + 1 <= int(date_header["last_column"]):
+                        continue
+                    if isinstance(cell, (date, datetime)) and kind in only_kinds:
+                        columns[index] = (kind, cell.year, cell.strftime("%Y-%m-%d"))
+            return columns
         for row in sheet.iter_rows(min_row=1, max_row=8, values_only=True):
             for index, cell in enumerate(row):
                 if not isinstance(cell, str):
