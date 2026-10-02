@@ -27,6 +27,8 @@ facts = [raw_fact(r) for r in db.conn.execute("SELECT * FROM data_points WHERE c
 calculated = Calculator().calculate(facts)
 assert all(f.company_id == 'sa:1060' and f.source_key != key for f in calculated)
 db.publish_batch(calculated)
+with db.conn:
+    db.conn.execute("UPDATE source_documents SET status='review_required' WHERE source_key=?", (key,))
 assert db.conn.execute('SELECT count(*) FROM data_points WHERE source_key=? AND is_current=1', (key,)).fetchone()[0] == 0
 report = {'retired_current_points': retired, 'calculated_generated': len(calculated),
           'current_before': len(before['data_points']), 'current_after': db.conn.execute(
