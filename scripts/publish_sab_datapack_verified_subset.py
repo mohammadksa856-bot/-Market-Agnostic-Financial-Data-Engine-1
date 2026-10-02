@@ -48,9 +48,12 @@ with db.conn:
 result = Pipeline(db, root / 'subset-publication-artifacts').run(
     company, LocalFileConnector(path, source['source_url'], source_key=key))
 assert result['status'] == 'published', result
+after = {}
+for row in db.conn.execute("SELECT metric_key,period_end,period_kind,value_decimal FROM data_points WHERE company_id='sa:1060' AND scope='consolidated' AND dimensions_json='{}' AND is_current=1"):
+    after.setdefault((row['metric_key'], row['period_end'], row['period_kind']), []).append(row['value_decimal'])
 for fact in included:
-    rows = db.conn.execute("SELECT value_decimal FROM data_points WHERE company_id='sa:1060' AND metric_key=? AND period_end=? AND period_kind=? AND scope='consolidated' AND dimensions_json='{}' AND is_current=1", (fact['metric'], fact['period_end'], fact['period_kind'])).fetchall()
-    assert rows and all(Decimal(r[0]) == Decimal(fact['value']) * Decimal(fact['scale']) for r in rows), fact
+    values = after.get((fact['metric'], fact['period_end'], fact['period_kind']), [])
+    assert values and all(Decimal(value) == Decimal(fact['value']) * Decimal(fact['scale']) for value in values), fact
 # A successful partial publication must not hide the still-unread domains.
 db.exception('sa:1060', key, 'extraction', 'datapack_partial_coverage',
              'Published verified non-conflicting stocks only. 79 stock values require reconciliation; income and segment rows are not yet mapped.')
