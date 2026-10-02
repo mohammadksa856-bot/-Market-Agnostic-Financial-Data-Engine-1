@@ -15,6 +15,13 @@ from finengine.models import Fact, PeriodKind
 ROOT = Path('/app/state/reports/sab-period-correction-review')
 LIVE = Path('/app/state/financial.sqlite3')
 CLONE = ROOT/'repair-test.sqlite3'
+VERIFIED_TARGETS = [
+    ('total_assets','2022-12-31','314450677000'),
+    ('share_capital','2022-12-31','20547945000'),
+    ('total_assets','2023-12-31','356641636000'),
+    ('share_capital','2023-12-31','20547945000'),
+    ('total_assets','2025-12-31','454454484000'),
+]
 
 
 def raw_fact(row):
@@ -48,6 +55,12 @@ def repair(path, apply):
     keys=[r['source_key'] for r in reviews]
     placeholders=','.join('?' for _ in keys)
     with db.conn:
+        # The first clone run exposed wrong higher-ranked legacy values that
+        # suppress the audited totals. Retire only these independently checked
+        # natural keys, preserving all versions, before publishing replacements.
+        for metric,end,value in VERIFIED_TARGETS:
+            db.conn.execute("UPDATE data_points SET is_current=0 WHERE company_id='sa:1060' AND metric_key=? AND period_end=? AND period_kind='instant' AND scope='consolidated' AND dimensions_json='{}' AND currency='SAR' AND is_current=1 AND value_decimal!=?",(metric,end,value))
+            db.conn.execute("UPDATE observations SET is_current=0 WHERE company_id='sa:1060' AND metric=? AND period_end=? AND period_kind='instant' AND currency='SAR' AND is_current=1 AND value!=?",(metric,end,value))
         for table in ('data_points','observations'):
             db.conn.execute(f"UPDATE {table} SET is_current=0 WHERE company_id='sa:1060' AND (source_key IN ({placeholders}) OR is_calculated=1)",keys)
         for key in keys:
@@ -74,6 +87,9 @@ def repair(path, apply):
             assert count==0,(table,review['source_key'],count)
     assets=db.conn.execute("SELECT value_decimal FROM data_points WHERE company_id='sa:1060' AND metric_key='total_assets' AND period_end='2022-12-31' AND period_kind='instant' AND is_current=1 AND scope='consolidated' AND dimensions_json='{}'").fetchall()
     assert assets and all(Decimal(r[0])==Decimal('314450677000') for r in assets),[tuple(r) for r in assets]
+    for metric,end,value in VERIFIED_TARGETS:
+        rows=db.conn.execute("SELECT value_decimal FROM data_points WHERE company_id='sa:1060' AND metric_key=? AND period_end=? AND period_kind='instant' AND is_current=1 AND scope='consolidated' AND dimensions_json='{}' AND currency='SAR'",(metric,end)).fetchall()
+        assert rows and all(Decimal(r[0])==Decimal(value) for r in rows),(metric,end,[tuple(r) for r in rows])
     after=snapshot(db.conn)
     result={'status':'repair_verified','production_modified':apply,'sources':results,
             'calculated_generated':len(calculated),'calculated_published_states':{s:states.count(s) for s in set(states)},
@@ -81,7 +97,8 @@ def repair(path, apply):
             'current_after':sum(r['is_current'] for r in after['data_points']),
             'history_rows_before':len(before['data_points']),'history_rows_after':len(after['data_points']),
             'retained_all_prior_versions':len(after['data_points'])>=len(before['data_points']),
-            'scope':'Three verified source corrections only; company completeness NOT approved.'}
+            'verified_targets':VERIFIED_TARGETS,
+            'scope':'Three verified source corrections and their proven conflicting totals only; company completeness NOT approved.'}
     target=ROOT/('production-repair-result.json' if apply else 'repair-test-result.json')
     target.write_text(json.dumps(result,indent=2)+'\n')
     db.conn.close()
@@ -89,16 +106,33 @@ def repair(path, apply):
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--apply',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--apply',action='store_true');parser.add_argument('--retest',action='store_true');args=parser.parse_args()
     if args.apply:
         proof=json.loads((ROOT/'repair-test-result.json').read_text())
         assert proof['status']=='repair_verified' and not proof['production_modified']
+        assert proof.get('verified_targets')==[list(t) for t in VERIFIED_TARGETS], 'Old incomplete test is not approval to publish'
         repair(LIVE,True)
+    elif args.retest:
+        baseline=json.loads((ROOT/'test-before-repair.json').read_text())
+        conn=sqlite3.connect(CLONE)
+        with conn:
+            for table in ('data_points','observations'):
+                conn.execute("UPDATE "+table+" SET is_current=0 WHERE company_id='sa:1060'")
+                conn.executemany('UPDATE '+table+' SET is_current=? WHERE id=?', [(r['is_current'],r['id']) for r in baseline[table]])
+            conn.executemany('UPDATE source_documents SET status=? WHERE source_key=?',[(r['status'],r['source_key']) for r in baseline['source_documents']])
+        conn.close()
+        repair(CLONE,False)
     else:
-        assert not CLONE.exists(), 'Preserve previous test database; inspect it first'
+        assert not (ROOT/'repair-test-result.json').exists(), 'Inspect completed test before repeating'
+        assert not (ROOT/'test-before-repair.json').exists(), 'Inspect previous repair attempt before repeating'
         assert shutil.disk_usage(ROOT).free > LIVE.stat().st_size+512*1024*1024, 'Insufficient safe disk space for clone'
         origin=sqlite3.connect('file:'+str(LIVE)+'?mode=ro',uri=True)
+        # Hold one WAL read snapshot. Without it concurrent job-heartbeat
+        # writes can repeatedly restart an incremental 3GB backup.
+        origin.execute('BEGIN')
+        origin.execute('SELECT count(*) FROM sqlite_master').fetchone()
         destination=sqlite3.connect(CLONE)
-        origin.backup(destination,pages=1000,sleep=0.05)
+        origin.backup(destination,pages=1000,sleep=0.05,
+                      progress=lambda status,remaining,total: print(json.dumps({'backup_pages_remaining':remaining,'total':total}),flush=True))
         destination.close();origin.close()
         repair(CLONE,False)
