@@ -680,6 +680,26 @@ class StatementReader:
             self._hybrid_pages_remaining -= 1
         return result
 
+    def _verified_header_words(self, page, native_text: str, ocr_words: list[tuple]) -> list[tuple]:
+        """Recover only an exact heading; OCR must never replace native amounts.
+
+        Mixed PDFs can rasterize the title while keeping the financial table
+        selectable. Require both a primary heading and its native signature.
+        This helper is deliberately not an automatic OCR trigger.
+        """
+        accepted = []
+        for row in _rows([word for word in ocr_words if word[3] <= page.rect.height * .18]):
+            text = ' '.join(word[4] for word in row).lower().strip()
+            if not self._HEADING_PREFIX.match(text) or any(term in text for term in self._NEGATIVE):
+                continue
+            for name, anchors in ANCHORS.items():
+                if (any(anchor in text for anchor in anchors)
+                        and all(any(term in native_text.lower() for term in group)
+                                for group in self._SIGNATURE[name])):
+                    accepted.extend(row)
+                    break
+        return accepted
+
     def infer_fiscal_year(self) -> int | None:
         """The reporting year printed on the statements themselves - the
         left (current-period) column of whichever confirmed statement pages
