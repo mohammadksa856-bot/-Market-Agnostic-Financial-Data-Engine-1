@@ -5,7 +5,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 root = Path('/app/state/reports/sab-period-correction-review/datapack-review')
-output = root / 'income-cell-reconciliation-v1.json'
+output = root / 'income-cell-reconciliation-v2.json'
 assert not output.exists(), 'Preserve audit checkpoint'
 digests = ['76acffa163e24985e1c3b9ea9a2d986656291d3698da73b3608df030956c5d0c',
            '300a90f7b1ead3c808e7533087326f82bb137678422d8e8e438720f627f8aee7']
@@ -35,11 +35,14 @@ for digest in digests:
         for name, (total, parts) in equations.items():
             if any(not isinstance(cells[row-1][col], (int, float)) for row in [total, *parts]):
                 checks.append({'equation': name, 'status': 'missing_or_non_numeric_source_cell',
-                               'total_row': total, 'component_rows': parts, 'within_printed_precision': False})
+                               'total_row': total, 'component_rows': parts, 'within_printed_precision': False,
+                               'source_cells': {str(row): cells[row-1][col] for row in [total,*parts]}})
                 continue
             delta = amount(total) - sum((amount(row) for row in parts), Decimal(0))
             checks.append({'equation': name, 'total_row': total, 'component_rows': parts,
                            'delta_SAR': str(delta * 1000000),
+                           'status': 'reconciled' if abs(delta) <= Decimal('0.002') else 'numeric_mismatch',
+                           'source_cells': {str(row): str(amount(row)) for row in [total,*parts]},
                            'within_printed_precision': abs(delta) <= Decimal('0.002')})
         results.append({'hash': digest, 'period_end': period, 'checks': checks,
                         'duplicate_net_income_rows': [26, 30],
@@ -49,6 +52,9 @@ for digest in digests:
 report = {'production_modified': False, 'workbooks': len(digests), 'columns': len(results),
           'checks': sum(len(r['checks']) for r in results),
           'failed_equations': sum(not c['within_printed_precision'] for r in results for c in r['checks']),
+          'numeric_mismatches': sum(c['status']=='numeric_mismatch' for r in results for c in r['checks']),
+          'not_evaluable_missing_cells': sum(c['status']=='missing_or_non_numeric_source_cell' for r in results for c in r['checks']),
+          'reconciled_equations': sum(c['status']=='reconciled' for r in results for c in r['checks']),
           'different_duplicate_income_columns': sum(r['duplicate_net_income_delta_SAR'] is not None and Decimal(r['duplicate_net_income_delta_SAR']) != 0 for r in results),
           'results': results, 'publication_approved': False,
           'next_gate': 'Resolve attribution discrepancies against audited statements; do not map repeated labels globally.'}
