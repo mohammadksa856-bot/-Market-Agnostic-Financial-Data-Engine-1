@@ -533,6 +533,10 @@ def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> s
     if best is None:
         return None
     metric = best[1]
+    # A cash-flow add-back is not the income-statement expense: retaining
+    # separate identities preserves both their source signs and provenance.
+    if statement == "cash_flow" and metric == "depreciation_amortization":
+        return "depreciation_amortization_cash_flow"
     if statement == "income_statement" and metric in _PL_OVERRIDES:
         return _PL_OVERRIDES[metric]
     return metric
