@@ -1206,9 +1206,9 @@ class StatementReader:
         # still discarded below, and the page must already be a statement.
         top = (page.rect.height or 1000) * 0.45
         hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
-                       if _PERIOD_COLUMN.fullmatch(w[4]) and w[1] < top
-                       and (not _YEAR.fullmatch(w[4])
-                            or 2000 <= int(w[4]) <= 2035)})
+                       if _PERIOD_COLUMN.fullmatch(w[4].rstrip('*†‡')) and w[1] < top
+                       and (not _YEAR.fullmatch(w[4].rstrip('*†‡'))
+                            or 2000 <= int(w[4].rstrip('*†‡')) <= 2035)})
         if not hits:
             return []
         blocks: list[list[float]] = [[hits[0]]]
@@ -1231,7 +1231,7 @@ class StatementReader:
                 hits = 0
                 for word in words:
                     token = word[4]
-                    if _PERIOD_COLUMN.fullmatch(token) or not _NUMBER.match(token):
+                    if _PERIOD_COLUMN.fullmatch(token.rstrip('*†‡')) or not _NUMBER.match(token):
                         continue
                     value = _parse_number(token)
                     center = (word[0] + word[2]) / 2

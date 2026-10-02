@@ -24,3 +24,15 @@ class MixedHeadingRecoveryTests(unittest.TestCase):
     def test_rejects_body_reference(self):
         self.assertEqual(self.reader._verified_header_words(self.page,
             'total assets total equity', self.words('Consolidated statement of financial position',200)), [])
+
+    def test_year_column_with_footnote_marker_is_retained(self):
+        words=[]
+        for x,year in [(390,'2025'),(480,'2024'),(550,'2024*')]:
+            words.append((x-10,100,x+10,110,year,0,0,0))
+            for i in range(6):
+                words.append((x-10,200+i*20,x+10,210+i*20,'100,000',0,i,0))
+        self.assertEqual(StatementReader._column_blocks(self.page,words),[[390,480,550]])
+
+    def test_year_column_with_arbitrary_suffix_is_not_retained(self):
+        words=self.words('2024forecast',100)
+        self.assertEqual(StatementReader._column_blocks(self.page,words),[])

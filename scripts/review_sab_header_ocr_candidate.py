@@ -50,7 +50,7 @@ db=Database('/app/state/financial.sqlite3',initialize=False)
 db.conn.execute('PRAGMA query_only=ON')
 company=CompanyRegistry.combined(db.conn,'/app/config/companies.json').get('sa:1060')
 prior=Path('/app/state/reports/sab-period-correction-review/interim-batch-v1')
-root=prior.with_name('interim-header-candidate-v2')
+root=prior.with_name('interim-header-candidate-v3')
 root.mkdir(exist_ok=True)
 for review in sorted(prior.glob('*.review.json')):
     info=json.loads(review.read_text());key=info['source_key'];digest=key.rsplit(':',1)[1]
