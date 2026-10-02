@@ -294,6 +294,16 @@ def _published_language_equivalent(db: Database, row: dict) -> str | None:
 
 def _source_period(row: dict, company) -> tuple[str, int] | None:
     """Derive a period only from explicit source metadata or URL tokens."""
+    # Collector titles can accidentally use the upload year (e.g. 2026 for
+    # FY2025). The explicit annual reporting date on the immutable PDF cover
+    # is stronger evidence; never treat a publication date as a fiscal date.
+    from .document_period import annual_cover_period
+    try:
+        cover_period = annual_cover_period(row["local_path"])
+    except (KeyError, IndexError):
+        cover_period = None
+    if cover_period:
+        return cover_period
     try:
         metadata = json.loads(row["metadata_json"] or "{}")
     except (KeyError, TypeError, json.JSONDecodeError):

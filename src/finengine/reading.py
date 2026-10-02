@@ -407,13 +407,13 @@ _SCALE_PATTERNS = (
     # A bare "000" is often just part of a reported amount (for example
     # 210,000) and is not a scale declaration. Require an apostrophe or an
     # explicit word so a millions statement cannot be silently divided by 1000.
-    (re.compile(r"\bthousands\b|['‘’]000['‘’]?|\b000s\b|bآ?لاف\s+الريالات|بالآلاف", re.I), Decimal(1000)),
+    (re.compile(r"\bthousands\b|['‘’]\s*000(?!\d)['‘’]?|\b000s\b|bآ?لاف\s+الريالات|بالآلاف", re.I), Decimal(1000)),
     (re.compile(r"\bmillions?\b|بالملايين|مليون", re.I), Decimal(1_000_000)),
     (re.compile(r"\bbillions?\b|بالمليارات", re.I), Decimal(1_000_000_000)),
 )
 _SCALE_DECLARATION = re.compile(
     r"\b(?:all\s+)?amounts?\s+(?:are\s+)?(?:presented\s+)?in\b|"
-    r"['‘’]000['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات|"
+    r"['‘’]\s*000(?!\d)['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات|"
     r"مليون\s+(?:ريال|لاير)|(?:ألف|الف)\s+(?:ريال|لاير)",
     re.I,
 )
