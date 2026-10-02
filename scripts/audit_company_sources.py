@@ -8,7 +8,12 @@ import re
 import sqlite3
 from pathlib import Path
 import pymupdf
-from finengine.document_period import annual_period_from_text
+try:
+    from finengine.document_period import annual_period_from_text
+except ImportError:
+    # The persistent read-only audit container carries this tested helper
+    # beside the script, independently of the production image version.
+    from document_period import annual_period_from_text
 
 
 def run(company_id):
