@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "symbol": "2330",
+  "name": "Advanced Petrochemical Company",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B003)",
+    "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+    "method": "SHA-256 recomputed and equal to inventory; the only file rendered and read; word coordinates used to resolve column order",
+    "status_vocabulary": {"extractable_and_verified": "value read on the page and column assignment confirmed", "not_read": "nothing claimed", "no_statement_in_file": "file is not a primary-statement document"}
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "headline_only_verified",
+      "summary": "Only 5 headline figures exist in the whole raw set and they were verified on the page (pdf p1, printed 1): YTD 2026 (six months to 30 Jun 2026) revenue 1,906; gross profit 251; operating profit 141; EBITDA 452; net (loss) (69); YTD 2025: 1,313; 241; 166; 268; 153. SAR millions, rounded, 'estimated' (unaudited preliminary). The text-layer reading order lists the 2025 column first; word x-coordinates (2026 column x~315, 2025 column x~422) and the rendered image agree that 2026 = 1,906/251/141/452/(69). No balance sheet, cash flow, or discrete quarter value is extractable."
+    },
+    "document_completeness": {
+      "status": "no_primary_statements",
+      "summary": "The single file (sha256 0d109ac36c13...024f080b, 1 page) is a Q2/H1 2026 financial press release (dated 12 July 2026, 'estimated interim financial results'), NOT financial statements. Inventory flags confirmed: not_financial_statements, duration_phrase_mismatch (it says 'second quarter' and shows YTD six-month columns: both are on the page, so slot H1 is acceptable), weak_period_classification. Period label 2026|H1 is correct. Net loss in YTD 2026 against income in 2025 is as printed."
+    },
+    "company_coverage": {
+      "status": "none",
+      "summary": "1 of 40 expected periods has any file and it is a non-statement. Saudi Exchange results announcements exist for every period 2014-2026H1 (inventory state, up to 116 announcements) but no statement file was collected for any. Inventory coverage_class 'none' is confirmed from the page. Listing/first period 2010|FY per inventory; nothing verified from pages."
+    }
+  },
+  "documents": [
+    {"sha256": "0d109ac36c132b1f66bb94d8e710d7da72e0e576f083b0239293c0aa024f080b", "inventory_label": "2026|H1", "actual_period": "six months ended 2026-06-30 (YTD) with Q2 narrative", "pages": 1, "pdf_page_read": 1, "printed_page": 1, "currency_units": "SAR millions, rounded", "type": "press release / earnings highlights", "restated_or_adjusted": "none stated", "continuing_vs_discontinued": "not stated", "read": "visual + text layer"}
+  ],
+  "coverage_inventory_corrections": [],
+  "defects": [],
+  "unread_items": ["Entire period range 2010-2025 has no file; nothing to read", "Saudi Exchange announcement ids exist in state but were not collected as files (cannot be read here)"],
+  "conclusion": "NOT complete. 2330 has no extractable primary statement anywhere in the raw set."
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "symbol": "2020",
+  "name": "SABIC Agri-Nutrients Company (formerly Saudi Arabian Fertilizer Co. / SAFCO)",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B003)",
+    "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+    "method": "SHA-256 recomputed per file; statement pages rendered and read by eye where the page has no text layer (FY2024, FY2023, Q1 2025, H1 2024) or as primary reader plus text layer (9M 2025); remaining born-digital interims read from the text layer (second reader = comparatives in the next filing). Arithmetic identities in tools/check_transcripts.py (cash-flow sums and rolls, BS identity, NI split) all pass; transcripts/2020.json holds the values.",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/head.py", "tools/survey.py", "tools/check_transcripts.py", "transcripts/2020.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_9_periods",
+      "summary": "Transcribed and verified (SAR thousand): FY2024 (+FY2023 comparative), FY2023 (+FY2022 comparative), 9M2025, H1 2025, Q1 2025, 9M2024, H1 2024, Q1 2024, 9M2023. Each has BS (total assets, equity, cash), income (revenue to net income, attributable, EPS) and cash flow (CFO, capex, CFI, CFF, begin/end cash). Cash-flow identities reconcile in every column. Cross-filing checks: FY2023 equal in the FY2023 and FY2024 filings (revenue 11,033,429; NI 3,864,110; CFO 5,679,990) so no restatement; 9M2024/H1 2024/Q1 2024 comparatives in the 2025 filings equal the 2024 filings; 6M2025 revenue 6,361,394 + Q3 3,521,527 = 9M 9,882,921; Q2 2025 = H1 - Q1 (3,287,449 = 6,361,394 - 3,073,945). The 9M2023 filing shows 2022 comparatives marked reclassified (Note 17) - they are comparatives, not 2023 values. Interim income statements carry both quarter and cumulative columns; cash flows are cumulative only (discrete quarters must be derived by subtraction).",
+      "not_read": ["notes to the statements in every file (segments, debt, zakat detail)", "statement of changes in equity values (only headline equity)", "H1 2025, 9M2024, Q1 2024, 9M2023: not independently rendered, text layer only (see documents[].reading)"]
+    },
+    "document_completeness": {
+      "status": "primary_statements_present_for_9_periods_inventory_flags_wrong_for_4",
+      "summary": "FY2024 and FY2023 files (0f2bbea6, 142aa19a): the inventory marks them 'partial: balance sheet + income, cash flow missing' because pdf pages 8-13 are IMAGE-ONLY (no text layer; the hits were from notes). Reading the images shows all statements are present (financial position p8, income p9, equity, cash flows p12-13). Likewise Q1 2025 (3cf2ee7a) and H1 2024 (d2f64ee4): inventory 'partial/missing cash_flows', but pages 4-10 are images and contain BS, income, equity, cash flows in full. Corrected to complete. Period labels: all 'FY' labels for 2023/2024 are correct (year-end 2023/2024), no publication-year mislabel for this company. File 42e55713 (2018 FY) is the Arabic Board report of the former name SAFCO: 5-year summary table (printed pp18-19) gives 2018 revenue 3,859,836, gross profit 2,131,246, net profit 1,738,438, total assets 9,504,467 (SAR thousand) - summary only, NOT statements. Four earnings-release files (5b2b448d 2023 9M, c4f1d46c 2023 FY, a7f17d5f 2023 H1, 1e6a9744 2024 H1) are results announcements, not statements. No duplicate/wrong-company files found among the 14.",
+      "defect_ids": ["B003-2020-1"]
+    },
+    "company_coverage": {
+      "status": "sparse_confirmed",
+      "present_with_statements": ["2023|9M", "2023|FY", "2024|Q1", "2024|H1", "2024|9M", "2024|FY", "2025|Q1", "2025|H1", "2025|9M"],
+      "derivable_extra": ["FY2022 comparatives (income, BS, cash flow) from the FY2023 file", "H1/Q1 2023 comparatives in 2024 filings (revenue/NI/CFO)"],
+      "summary_only": ["2018|FY (board-report five-year table 2014-2018)"],
+      "missing": ["2025|FY (statements never collected; announcement 93343 exists)", "2026|Q1", "2026|H1", "2023|Q1 and 2023|H1 statements (only earnings releases)", "all periods before 2018 (inventory expects 60 periods; 9 complete = 15 percent)"],
+      "inventory_confirmed": "coverage_class sparse; 49 of 60 expected periods have no usable statement. Corrected counts: complete-statement periods 9 (inventory said 5)."
+    }
+  },
+  "documents": [
+    {"sha256": "0f2bbea6b9f25acc24070ab58656f7ffb85c1584c9c91a6d6716f3874a4b96c7", "actual_period": "FY ended 2024-12-31 audited", "label_ok": true, "pdf_pages": {"bs": 8, "is": 9, "cf": [12, 13]}, "printed_pages": {"bs": 7, "is": 8, "cf": [11, 12]}, "units": "SAR thousand", "reading": "visual (image-only pages)"},
+    {"sha256": "142aa19ac5a5e3ed7ddd81e17425378140e24dce09d2b3f1745f0847d8a8528c", "actual_period": "FY ended 2023-12-31 audited", "label_ok": true, "pdf_pages": {"bs": 8, "is": 9, "cf": [12, 13]}, "units": "SAR thousand", "reading": "visual (image-only pages)"},
+    {"sha256": "3b66cfc1f3fdfa6322f95caae4bb4f6dbd84a2ea5a72e96847da8a6b3ec7c723", "actual_period": "3M and 9M ended 2025-09-30, reviewed", "label_ok": true, "pdf_pages": {"bs": [4, 5], "is": [6, 7], "cf": [9, 10]}, "units": "SAR thousand", "reading": "visual + text layer"},
+    {"sha256": "a460ede7...", "actual_period": "3M and 6M ended 2025-06-30", "label_ok": true, "reading": "text layer"},
+    {"sha256": "3cf2ee7a...", "actual_period": "3M ended 2025-03-31", "label_ok": true, "pdf_pages": {"bs": 4, "is": 6, "cf": [9, 10]}, "reading": "visual (image-only pages)"},
+    {"sha256": "e57b47ce...", "actual_period": "3M and 9M ended 2024-09-30", "label_ok": true, "reading": "text layer"},
+    {"sha256": "d2f64ee4...", "actual_period": "3M and 6M ended 2024-06-30", "label_ok": true, "pdf_pages": {"bs": 4, "is": 6, "cf": [9, 10]}, "reading": "visual (image-only pages)"},
+    {"sha256": "83850131...", "actual_period": "3M ended 2024-03-31", "label_ok": true, "reading": "text layer"},
+    {"sha256": "d6b7642f...", "actual_period": "3M and 9M ended 2023-09-30 (2022 comparatives reclassified, Note 17)", "label_ok": true, "reading": "text layer; inventory 'period 2023-10-31' is the review-report date, not the period"},
+    {"sha256": "42e55713...", "actual_period": "Board report FY2018 (SAFCO)", "type": "board report with 5-year summary", "reading": "visual page 10 (printed 18-19)"}
+  ],
+  "defects": [
+    {"id": "B003-2020-1", "class": "coverage_inventory_flag_wrong", "severity": "medium", "evidence": "Inventory statement_pages for FY2024/FY2023/Q1 2025/H1 2024 were derived from note text; the actual statement pages (pdf 8-13, 4-10) have no text layer and contain all four primary statements. The general fix (flag files whose contents/index list a statement but whose pages are image-only as 'statements_in_image_pages: visual reading needed' rather than 'missing_primary_statement') is recorded in tests/test_audit_raw_b003_transcripts.py as a guard on the transcript arithmetic, not as a pipeline change."}
+  ],
+  "unread_items": ["notes in all files", "equity statements", "text-layer-only interims were not rendered (H1 2025, 9M2024, Q1 2024, 9M2023)", "FY2025, Q1 2026, H1 2026: no files"],
+  "conclusion": "NOT complete as a company: 9 periods verified, FY2025 and 2026 interims absent."
+}
