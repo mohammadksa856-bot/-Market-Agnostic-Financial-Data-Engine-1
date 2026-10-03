@@ -22,7 +22,7 @@ INV = ROOT.parent / "raw-coverage" / "companies"
 TR = ROOT / "transcripts"
 CROSS_KEYS = {
     "bs": ["total_assets", "total_liabilities", "total_equity", "cash", "ppe", "total_current_assets"],
-    "is": ["revenue", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent"],
+    "is": ["revenue", "cost_of_revenue", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent"],
     "cf": ["cfo", "cfi", "cff", "net_change", "cash_begin", "cash_end", "capex_ppe", "capex_investment_property"],
 }
 
