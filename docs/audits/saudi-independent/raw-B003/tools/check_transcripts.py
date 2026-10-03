@@ -2,7 +2,7 @@
 
 For every transcribed document/column:
   * balance sheet: total_assets == total_liabilities + total_equity (when both liabilities and equity were transcribed)
-  * cash flow: cfo + cfi + cff == net_change (when net_change transcribed) and cash_begin + net == cash_end
+  * cash flow: cfo + cfi + cff == net_change (when net_change transcribed) and cash_begin + net + optional fx == cash_end
   * income: net_income == ni_parent + ni_nci (when ni_nci transcribed)
   * cross-document: a period's 'prior' column must equal the same period's 'cur' column in the document that reported it
     (restatement detector) for the keys revenue, net_income, cfo, total_assets.
@@ -29,8 +29,10 @@ def identities(doc):
         if cf:
             if {"cfo", "cfi", "cff", "net_change"} <= cf.keys() and cf["cfo"] + cf["cfi"] + cf["cff"] != cf["net_change"]:
                 bad.append((doc["label"], col, "cf-sum", cf["net_change"], cf["cfo"] + cf["cfi"] + cf["cff"]))
-            if {"cash_begin", "net_change", "cash_end"} <= cf.keys() and cf["cash_begin"] + cf["net_change"] != cf["cash_end"]:
-                bad.append((doc["label"], col, "cf-roll", cf["cash_end"], cf["cash_begin"] + cf["net_change"]))
+            if {"cash_begin", "net_change", "cash_end"} <= cf.keys():
+                rolled = cf["cash_begin"] + cf["net_change"] + cf.get("fx", 0)
+                if rolled != cf["cash_end"]:
+                    bad.append((doc["label"], col, "cf-roll", cf["cash_end"], rolled))
         for key in ("is", "is_q"):
             i = doc.get(key, {}).get(col)
             if i and {"net_income", "ni_parent", "ni_nci"} <= i.keys() and i["net_income"] != i["ni_parent"] + i["ni_nci"]:

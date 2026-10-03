@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "symbol": "2050",
+  "name": "Savola Group Company",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B003)",
+    "scope": "raw files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, AWS, Supabase",
+    "method": "SHA-256 recomputed per file read; image-only statement pages rendered and read by eye (FY2025, FY2024 original, H1 2026, plus spot pages of Q1 2025 and Q1 2023); text layer plus one rendered page for FY2023/FY2022 originals; identities in tools/check_transcripts.py (BS identity, cash-flow sum, roll including FX, NI split) pass; transcripts/2050.json.",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/head.py", "tools/survey.py", "tools/check_transcripts.py", "transcripts/2050.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_5_filings",
+      "summary": "SAR thousand. Verified (page-read): FY2025, FY2024 original, FY2023 original, FY2022 original (each with one comparative year) and H1 2026 (3M and 6M). Savola restates heavily and the restatements were found on the pages. (1) FY2024 as originally filed (de290fdc): revenue 23,986,655, results from operations 1,454,680, profit before zakat/tax 11,863,818, total liabilities 15,815,179, equity 5,579,063; re-presented in the FY2025 filing: revenue 23,045,574, results from operations 1,385,563, PBT 11,936,679, liabilities 15,825,605, equity 5,568,637 (discontinued operations re-presented; loss from discontinued ops (1,381,990) -> (1,440,202); profit 9,915,352 unchanged). (2) FY2023 original: revenue 26,818,317, CFO 1,719,969, total assets 29,962,663; re-presented in the FY2024 filing: revenue 24,149,521, CFO 1,539,364, total assets 29,937,138 (profit 1,070,476 unchanged). (3) FY2022 original: CFO 1,104,571, results from operations 1,701,586; re-presented in the FY2023 filing: CFO 1,029,420 and 1,667,866. Whichever filing is taken for a year changes revenue, operating profit and CFO; both versions are transcribed. Continuing vs discontinued: FY2025/FY2024 statements show a continuing block plus a separate discontinued line, and EPS has continuing and total variants (FY2025 2.95 / 2.93; FY2024 restated 12.08 / 10.61). FY2024 profit includes a one-off gain of 11,554,662 on distribution of an equity-accounted investee. H1 2026: quarter and cumulative income columns, cash flow cumulative only. Cash-flow closing cash (842,697 at 31 Dec 2025) differs from balance-sheet cash (904,137) as printed (term-deposit / overdraft definitions); the roll includes the printed FX line.",
+      "not_read": ["notes in all files", "equity statements", "text-layer interims 2022 Q1 to 2024 Q1 and 2025 H1 (statements present per inventory, not read here)", "image-only interims 2023 Q1 (only BS p4 viewed, total assets 30,302,651), 2024 H1/9M, 2025 Q1 (only P&L p6 viewed), 2025 9M, 2026 Q1", "Arabic annual reports 2006 and 2010-2012 (inventory says statements present)", "annual reports 2013-2021 (inventory: no statements; not opened)", "Q4 2023 interim 5164f3be"]
+    },
+    "document_completeness": {
+      "status": "defective_labels_and_flags",
+      "summary": "(a) PERIOD LABELS WRONG: 1eb906a4 labelled 2023|FY is FY2022 (cover: year ended December 31, 2022); 7be15fa3 labelled 2024|FY is FY2023; de290fdc labelled 2025|FY is FY2024; 5d6f64aa labelled 2026|FY is FY2025. The publication year was used. The inventory's period_mismatch_candidate flag is a true positive for all four. As a result the inventory treats FY2022-FY2025 as missing or partial although audited statements exist, and invents a 2026|FY. (b) INVENTORY FLAGS WRONG: de290fdc and 5d6f64aa are flagged no-statements / partial but pdf pages 9-16 are image-only and contain balance sheet, P&L/OCI, equity and cash flows in full (read). Q1 2023 (41dbb59f, 'other_no_statements_found') contains the condensed balance sheet at pdf p4 (read; image). Q1 2025 (95a7f518, 'partial: equity only') contains the P&L at pdf p6 (read). Image-only statement pages explain the partial flags in 2024 H1/9M, 2025 Q1/9M and 2026 Q1/H1 (pdf pages 3 or 4 to 10 or 11 have no text). (c) 5164f3be labelled 2023|FY is not annual: it is the unaudited condensed interim statements for the three-month period and year ended December 31, 2023; the audited FY2023 statements are 7be15fa3. (d) 2004 file a7f8a372 (scanned, 17 pages): pdf page 9 read visually; it is an Arabic Board of Directors narrative report (subsidiary commentary), not statements; reclassify as board_report. The 2005 file is likewise a board report. (e) 2015 has two files (0036ef03, d15907e2), both annual-report labels; FY2015 statements not located. Wrong-company files: none seen.",
+      "defect_ids": ["B003-2050-1", "B003-2050-2", "B003-2050-3"]
+    },
+    "company_coverage": {
+      "status": "sparse_confirmed_but_understated",
+      "present_with_statements_verified": ["FY2022", "FY2023", "FY2024", "FY2025", "2026 H1"],
+      "present_per_inventory_not_read": ["2022 Q1/H1/9M", "2023 Q1/H1/9M", "2023 Q4 interim", "2024 Q1/H1/9M", "2025 Q1/H1/9M", "2026 Q1", "FY2006, FY2010-2012 (Arabic annual reports)"],
+      "missing": ["FY2008 (no file)", "FY2017-FY2021 audited statements", "2011-2021 interims (internal gaps in inventory, confirmed by the file list)"],
+      "inventory_correction": "inventory says 12 of 66 expected periods are complete. After relabelling the four FY files and recognising image-only statement pages, FY2022-FY2025 are complete, and the 2022-2026 interim run is very likely complete (not all read). The 2004 and 2005 files are board reports and carry no statements."
+    }
+  },
+  "documents": [
+    {"sha256": "5d6f64aa...", "inventory_label": "2026|FY", "actual_period": "FY2025", "label_ok": false, "pdf_pages": {"bs": [9, 10], "is": [11, 12], "cf": [15, 16]}, "printed_pages": {"bs": [7, 8], "is": [9, 10], "cf": [13, 14]}, "audit_report_date": "2026-03-08"},
+    {"sha256": "de290fdc...", "inventory_label": "2025|FY", "actual_period": "FY2024", "label_ok": false, "pdf_pages": {"bs": 9, "is": [10, 11], "cf": [14, 15]}},
+    {"sha256": "7be15fa3...", "inventory_label": "2024|FY", "actual_period": "FY2023", "label_ok": false, "pdf_pages": {"bs": 8, "is": [9, 10], "cf": [13, 14]}},
+    {"sha256": "1eb906a4...", "inventory_label": "2023|FY", "actual_period": "FY2022", "label_ok": false, "pdf_pages": {"bs": 10, "is": [11, 12], "cf": [15, 16]}},
+    {"sha256": "775a58c6...", "inventory_label": "2026|H1", "actual_period": "H1 2026", "label_ok": true, "pdf_pages": {"bs": [4, 5], "is": [6, 7], "cf": [10, 11]}},
+    {"sha256": "5164f3be...", "inventory_label": "2023|FY", "actual_period": "Q4/FY2023 unaudited condensed", "label_ok": false},
+    {"sha256": "a7f8a372...", "inventory_label": "2004|FY", "actual_period": "board report", "label_ok": "n/a", "type": "scanned Arabic narrative, no statements"}
+  ],
+  "defects": [
+    {"id": "B003-2050-1", "class": "period_label_publication_year", "severity": "high", "evidence": "Four annual FS PDFs labelled with the year after the fiscal year-end, plus 5164f3be (Q4 2023 interim) labelled 2023|FY."},
+    {"id": "B003-2050-2", "class": "inventory_flag_image_statements", "severity": "medium", "evidence": "Image-only statement pages classified as partial or no statements (FY2024, FY2025, Q1 2023, Q1 2025, 2024 H1/9M, 2025 9M, 2026 Q1/H1)."},
+    {"id": "B003-2050-3", "class": "restated_comparatives_not_tracked", "severity": "high", "evidence": "FY2022, FY2023 and FY2024 each exist in original and re-presented form with different revenue, operating profit and CFO (see value_correctness)."}
+  ],
+  "unread_items": ["see value_correctness.not_read"],
+  "conclusion": "NOT complete as a company. FY2022-FY2025 and H1 2026 verified; 14 other interims and pre-2022 history not read."
+}
