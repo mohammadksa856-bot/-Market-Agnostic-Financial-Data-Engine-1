@@ -22,12 +22,14 @@ from pathlib import Path
 ANCHORS = {
     "income_statement": (
         "statement of profit or loss", "statement of income", "income statement",
+        "statements of profit or loss", "statements of income",
         "profit & loss statement", "profit and loss statement",
         "statement of comprehensive income", "قائمة الربح أو الخسارة", "قائمة الدخل",
         "قائمة الأرباح والخسائر",
     ),
     "balance_sheet": (
-        "statement of financial position", "balance sheet", "قائمة المركز المالي",
+        "statement of financial position", "statements of financial position",
+        "balance sheet", "قائمة المركز المالي",
     ),
     "cash_flow": (
         # Both spellings are listed: ANB titles the page "Consolidated statement
@@ -35,6 +37,7 @@ ANCHORS = {
         # plural must stay in its own right - heading matching is per line, so
         # the singular does not stand in for it.
         "statement of cash flows", "statement of cash flow", "cash flow statement",
+        "statements of cash flows", "statements of cash flow",
         "قائمة التدفقات النقدية",
     ),
 }
@@ -220,6 +223,7 @@ _BANK_NATURAL_NEGATIVE_METRICS = {
     "salaries_and_employee_expenses",
     "general_and_administrative_expense",
     "depreciation_amortization",
+    "other_expense",
 }
 # The credit-impairment line is reversible: a net release is income. Its sign
 # follows the statement's own convention, proven by the never-income rows on
@@ -400,6 +404,23 @@ _PROFILE_MAPS = {
     "insurance": {**LINE_MAP, **INSURANCE_LINE_MAP},
 }
 
+# A cash-flow statement repeats income-statement captions as indirect-method
+# adjustments ("Dividend income", "Special commission expense on Sukuk"): those
+# rows are reversed or partial amounts, never the income-statement totals, so
+# they must not populate the income-statement metrics. Depreciation and the
+# credit-impairment charge are the exception - the add-back equals the P&L
+# charge - but are printed as a positive add-back, so they take the expense sign.
+_CASH_FLOW_REJECTED_METRICS = {
+    "financing_income", "financing_expense", "net_financing_income",
+    "fee_income", "fee_expense", "net_fee_income",
+    "exchange_income", "trading_income", "dividend_income",
+    "other_income", "other_expense", "total_operating_income",
+    "total_operating_expenses", "operating_expense_banking",
+    "salaries_and_employee_expenses", "general_and_administrative_expense",
+    "net_income_parent", "net_income_noncontrolling", "eps_diluted",
+}
+_CASH_FLOW_ADDBACK_EXPENSE_METRICS = {"depreciation_amortization", "provision_expense"}
+
 # non-controlling interest inside the income statement means a different metric
 _PL_OVERRIDES = {"noncontrolling_interests": "net_income_noncontrolling"}
 
@@ -432,7 +453,7 @@ _PERIOD_COLUMN = re.compile(
     re.I,
 )
 _RULE = re.compile(r"^[\u2500-\u257f_=\-–—]{3,}$")
-_NOTE_REFERENCE = re.compile(r"^(?:\d{1,3},?|\([a-z]\))$")
+_NOTE_REFERENCE = re.compile(r"^(?:\d{1,3}(?:[.\-–]\d{1,3})?,?|\([a-z]\))$")
 
 
 def _is_rule_token(token: str) -> bool:
@@ -851,6 +872,11 @@ class StatementReader:
                     metric = _resolve_line(label, statement, line_map)
                     if metric is None:
                         continue
+                    if statement == "cash_flow" and profile == "bank":
+                        if metric in _CASH_FLOW_REJECTED_METRICS:
+                            continue
+                        if metric in _CASH_FLOW_ADDBACK_EXPENSE_METRICS:
+                            value = -value
                     if self._is_comprehensive_attribution(page_text, label, metric):
                         continue
                     resolved.append((label, kind, value, metric))
@@ -1170,6 +1196,33 @@ class StatementReader:
         return None
 
     @staticmethod
+    def _header_row_hits(candidates: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        """Period tokens of the column-header row only.
+
+        A statement title can repeat the reporting years ("... NINE MONTHS ENDED
+        SEPTEMBER 30, 2021 AND 2020") above the real column header. Those two
+        stray year centres do not align with the amount columns; kept, they
+        shift the period pairing so a three-month column is read as the
+        nine-month column. When period tokens sit on several text lines, the
+        line carrying the most of them is the header (the lowest such line on a
+        tie); one-line pages are unchanged.
+        """
+        if not candidates:
+            return []
+        ordered = sorted(candidates, key=lambda c: c[1])
+        lines: list[list[tuple[float, float]]] = [[ordered[0]]]
+        for item in ordered[1:]:
+            if item[1] - lines[-1][-1][1] <= 4.0:
+                lines[-1].append(item)
+            else:
+                lines.append([item])
+        if len(lines) == 1:
+            return list(candidates)
+        best = max(len({round(x, 1) for x, _ in line}) for line in lines)
+        chosen = [line for line in lines if len({round(x, 1) for x, _ in line}) == best]
+        return list(chosen[-1])
+
+    @staticmethod
     def _column_blocks(page, words) -> list[list[float]]:
         """Up to two side-by-side statement panels on one page (e.g. assets on
         the left, equity and liabilities on the right of a landscape balance
@@ -1181,10 +1234,11 @@ class StatementReader:
         # "2006" is as real as one headed "2016". Note-reference columns are
         # still discarded below, and the page must already be a statement.
         top = (page.rect.height or 1000) * 0.45
-        hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
-                       if _PERIOD_COLUMN.fullmatch(w[4]) and w[1] < top
-                       and (not _YEAR.fullmatch(w[4])
-                            or 2000 <= int(w[4]) <= 2035)})
+        candidates = [((w[0] + w[2]) / 2, w[1]) for w in words
+                      if _PERIOD_COLUMN.fullmatch(w[4]) and w[1] < top
+                      and (not _YEAR.fullmatch(w[4])
+                           or 2000 <= int(w[4]) <= 2035)]
+        hits = sorted({round(x, 1) for x, _ in StatementReader._header_row_hits(candidates)})
         if not hits:
             return []
         blocks: list[list[float]] = [[hits[0]]]
@@ -1335,6 +1389,17 @@ class StatementReader:
                 panels = [seg for seg in ((left, blocks[0]), (right, blocks[1])) if seg[0]]
             for panel_words, columns in panels:
                 note_zone = (min(columns) - 90, min(columns) - 25)  # lone note refs sit just left of the values
+                # A note column can sit much further left of the first value
+                # column than the fixed zone assumes (ANB's annual-report
+                # statements print notes ~150pt left of the amounts). A note-
+                # reference token that starts to the right of every caption word
+                # of the row and ahead of the value columns is a note column
+                # entry, not a number inside the caption ("Tier 1 capital").
+                label_edge = max(
+                    (w[2] for w in panel_words
+                     if not _NUMBER.match(w[4]) and not _PERCENT.match(w[4])
+                     and not _NOTE_REFERENCE.match(w[4])),
+                    default=None)
                 text_tokens, number_tokens = [], []
                 for w in panel_words:
                     token = w[4]
@@ -1345,7 +1410,10 @@ class StatementReader:
                             number_tokens.append((center, value))
                     elif _PERCENT.match(token) and center > max(columns) + 25:
                         continue  # comparison/change column, not part of the row label
-                    elif _NOTE_REFERENCE.match(token) and note_zone[0] < center < note_zone[1]:
+                    elif _NOTE_REFERENCE.match(token) and (
+                            note_zone[0] < center < note_zone[1]
+                            or (label_edge is not None and w[0] >= label_edge - 0.5
+                                and center < min(columns) - 25)):
                         continue  # a note reference ("6", "10,", "(a)"), not part of the label
                     else:
                         text_tokens.append(token)
