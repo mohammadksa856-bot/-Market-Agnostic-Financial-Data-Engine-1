@@ -8,4 +8,4 @@ out=pymupdf.Pixmap(pymupdf.csRGB,pymupdf.IRect(0,0,w*cols,hh*rows),False);out.cl
 for i,x in enumerate(pm):
     x=pymupdf.Pixmap(pymupdf.csRGB,x) if x.n!=3 else x
     x.set_origin((i%cols)*w,(i//cols)*hh);out.copy(x,x.irect)
-fn=pg.OUT+'\m_%s_%s.png'%(sym,h[:6]);out.save(fn);print(fn)
+fn=os.path.join(pg.OUT,'m_%s_%s.png'%(sym,h[:6]));out.save(fn);print(fn)

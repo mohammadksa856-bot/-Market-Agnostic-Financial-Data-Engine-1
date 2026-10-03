@@ -1,0 +1,515 @@
+{
+ "schema_version": 1,
+ "symbol": "4001",
+ "name": "Abdullah Al-Othaim Markets Company (A.Othaim Market)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B006)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed per file (tools/mk.py); image-only statement pages rendered and read by eye; born-digital pages read from the text layer; identities in tools/check_transcripts.py pass for every transcribed column",
+  "tools": [
+   "tools/pg.py",
+   "tools/head.py",
+   "tools/rows.py",
+   "tools/kv.py",
+   "tools/montage.py",
+   "tools/mk.py",
+   "tools/check_transcripts.py",
+   "transcripts/4001.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_listed_periods_only",
+   "unit": "full SAR in every file read",
+   "verified_periods": {
+    "FY2025": "189024ca",
+    "FY2024": "350fe789 original, 189024ca re-presented",
+    "FY2023": "061f79d0 original, 350fe789 restated",
+    "FY2022": "2b0c792e (+ comparative in 061f79d0)",
+    "FY2021": "comparative column of 2b0c792e",
+    "H1 2026 and Q2 2026": "9b7e4d0d",
+    "Q1 2026": "e0f4d19e",
+    "9M 2025 and Q3 2025": "ba18426d",
+    "H1 2025 and Q2 2025": "6782a654 (income only) and comparative of 9b7e4d0d",
+    "Q1 2025": "931ab530 (income only) and comparative of e0f4d19e",
+    "Q4 2024 (unaudited) income": "8430f7aa",
+    "9M 2024, Q3 2024, H1 2024, Q2 2024, Q1 2024": "comparative columns (restated Note 21) in ba18426d, 6782a654, 931ab530"
+   },
+   "checks": [
+    "BS identity holds in every transcribed column (Dec 2025/2024/2023/2022/2021, Jun-2026, Mar-2026, Sep-2025)",
+    "cash-flow CFO+CFI+CFF = net change and begin + net + FX = end in every column incl. FY2021, FY2022, FY2023 (both versions), FY2024 (both), FY2025, Q1 2026/2025, H1 2026/2025, 9M 2025/2024",
+    "net income = shareholders + NCI in every column",
+    "Q1+Q2=H1 2026: net sales 2,965,191,138 + 2,520,385,705 = 5,485,576,843; net income 57,611,265 + (102,948,757 loss) = (45,337,492)",
+    "Q1+Q2=H1 2025 on re-presented figures: net sales 3,147,196,554 + 2,546,335,127 = 5,693,531,681; net income 79,922,106 + 44,905,485 = 124,827,591",
+    "Q1+Q2=H1 2025 on original figures does NOT tie for sales: 3,133,040,470 + 2,535,241,682 = 5,668,282,152 vs H1 5,673,208,729 (gap 4,926,577, same gap in cost of sales; gross profit, operating profit and net income tie) - the H1 filing re-presented Q1 sales",
+    "H1 2025 original + Q3 2025 = 9M 2025 net sales: 5,673,208,729 + 2,711,289,954 = 8,384,498,683",
+    "Dec 2025 balance sheet equal in the FY2025, Q1 2026 and H1 2026 filings"
+   ],
+   "restatements": "five recorded in transcripts/4001.json: FY2023 restated (Note 37, net income 497,309,947 -> 488,583,164), FY2024 re-presented (net sales 10,715,716,714 -> 10,762,916,016, total assets, CFO), unaudited Q4 2024 vs audited FY2024 (net income 528,396,991 vs 516,333,116), Q1 2025 and H1 2025 sales gross-up. 9M/Q3 2024 comparatives are marked Restated (Note 21) in the 2025 filings.",
+   "not_read": [
+    "notes in every file",
+    "equity statements and OCI values",
+    "balance sheets and cash flows of 931ab530, 6782a654, 8430f7aa (income only read)",
+    "all of Q1/H1/9M 2022, Q1/H1/9M 2023, Q1/H1/9M 2024, Q4 2022 and Q4 2023 interim files (statements present by layout, values not transcribed except as comparatives)",
+    "Q4 2024 balance sheet and cash flows",
+    "FY2023 restated balance-sheet third column (1 Jan 2023: total assets 5,778,042,635 seen, not transcribed)",
+    "segment and Arabic annual reports (not collected)"
+   ]
+  },
+  "document_completeness": {
+   "status": "full_statement_sets_in_all_21_files_inventory_flags_wrong_for_17",
+   "summary": "All 21 files are statement sets (4 audited annual, 17 interim incl. 3 unaudited Q4 year-end interims); none is a results announcement. The inventory flagged 17 as partial because pdf p3-9 (review report plus all primary statements) are image-only and only note text was seen; the 4 'financial_statements' interims and annual files were classed correctly but the annual statements for FY2022 and FY2025 are also image-only. All four annual files carry the publication-year label, and three Q4 interim files are labelled Q1 of the same year (5d416bdf, 76bdd149, 8430f7aa), which makes the Q4 slot look absent and the Q1 slot duplicated. No duplicate or wrong-company files found.",
+   "defect_ids": [
+    "B006-4001-1",
+    "B006-4001-2",
+    "B006-4001-3",
+    "B006-4001-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "complete_run_2022_to_H1_2026_except_Q4_2025_older_history_absent",
+   "page_derived_periods_with_full_statements": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "Q1 2022",
+    "H1 2022",
+    "9M 2022",
+    "Q4 2022 (unaudited)",
+    "Q1 2023",
+    "H1 2023",
+    "9M 2023",
+    "Q4 2023 (unaudited)",
+    "Q1 2024",
+    "H1 2024",
+    "9M 2024",
+    "Q4 2024 (unaudited)",
+    "Q1 2025",
+    "H1 2025",
+    "9M 2025",
+    "Q1 2026",
+    "H1 2026"
+   ],
+   "comparative_only": [
+    "FY2021 (BS, income, cash flow columns of the FY2022 file)",
+    "1 January 2023 balance sheet (restated, in FY2024 file)"
+   ],
+   "absent": [
+    "Q4 2025 unaudited interim (FY2025 audited present)",
+    "everything before 2022 (inventory window starts 2010; 2010-2021 not collected)",
+    "Q3 2026 onward (not yet reported)"
+   ],
+   "inventory_correction": "inventory expected 63 periods from 2010 and counted 4 complete / 13 partial; page-derived there are 21 full-statement periods 2022 to H1 2026 and the Q4 slots are mislabelled Q1. Periods 2010-2021 remain absent and unverified."
+  }
+ },
+ "defects": [
+  {
+   "id": "B006-4001-1",
+   "severity": "medium",
+   "text": "Annual statements carry the publication-year label (FY2022 as 2023|FY, FY2023 as 2024|FY, FY2024 as 2025|FY, FY2025 as 2026|FY)."
+  },
+  {
+   "id": "B006-4001-2",
+   "severity": "medium",
+   "text": "Three Q4 year-end unaudited interim files are labelled Q1 (5d416bdf, 76bdd149, 8430f7aa); cover text says 'three-month and year ended 31 December'. Their full-year figures are unaudited and differ from audited FY2024."
+  },
+  {
+   "id": "B006-4001-3",
+   "severity": "high",
+   "text": "Image-only statement pages classify 17 complete interim statement sets as partial."
+  },
+  {
+   "id": "B006-4001-4",
+   "severity": "high",
+   "text": "Restated and re-presented comparatives (FY2023 net income 497.3m vs 488.6m; FY2024 net sales 10,715.7m vs 10,762.9m; 2025 quarterly sales gross-up) mean one period has several values depending on the file. Sales gross-ups in 2026 comparatives do not change profit."
+  }
+ ],
+ "documents": [
+  {
+   "sha256": "02ea0d9708980b586eef25926b2ac0837a7cc7367fa34e003c0f8d0a80ff9ce3",
+   "relpath": "archive/SA/4001/02ea0d9708980b586eef25926b2ac0837a7cc7367fa34e003c0f8d0a80ff9ce3.pdf",
+   "collector_label": "2022|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 35,
+   "actual_period": "Q1 ended 2022-03-31",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "1c7aa4fcbbe244f02afbd19b487a61b96ddfd024a4652c4c85bdebf0f78becdf",
+   "relpath": "archive/SA/4001/1c7aa4fcbbe244f02afbd19b487a61b96ddfd024a4652c4c85bdebf0f78becdf.pdf",
+   "collector_label": "2022|H1",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 30,
+   "actual_period": "Q2 and H1 ended 2022-06-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed"
+  },
+  {
+   "sha256": "8235a955ef1df4ae06d440bdaf5fada62c36905b96f3da9571d217a7ed7fb9d1",
+   "relpath": "archive/SA/4001/8235a955ef1df4ae06d440bdaf5fada62c36905b96f3da9571d217a7ed7fb9d1.pdf",
+   "collector_label": "2022|9M",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 34,
+   "actual_period": "Q3 and 9M ended 2022-09-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "5d416bdfaf3532d67df5e59fbf9ed4d088784819cdeeab30c3df8cffd73f341b",
+   "relpath": "archive/SA/4001/5d416bdfaf3532d67df5e59fbf9ed4d088784819cdeeab30c3df8cffd73f341b.pdf",
+   "collector_label": "2022|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 34,
+   "actual_period": "Q4 and year ended 2022-12-31, UNAUDITED interim statements (cover phrase 'three-month and year ended 31 December 2022')",
+   "label_ok": false,
+   "correct_label": "2022|Q4 (unaudited year-end interim)",
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed",
+   "defect": "labelled 2022|Q1 but is the Q4 / year-end unaudited interim; inventory period_check=mismatch is a true positive. Unaudited year-end figures can differ from the audited FY (see 8430f7aa)"
+  },
+  {
+   "sha256": "cc70e251ec2e78b55c2288bfcfe0f5b27a3d355dcd1e7807ff27e90661ebf6fa",
+   "relpath": "archive/SA/4001/cc70e251ec2e78b55c2288bfcfe0f5b27a3d355dcd1e7807ff27e90661ebf6fa.pdf",
+   "collector_label": "2023|Q1",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 26,
+   "actual_period": "Q1 ended 2023-03-31",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed"
+  },
+  {
+   "sha256": "5222e9c9242938e38931ea941c3edfd5c5eec3ddf29fbd4a7dece72b455910bf",
+   "relpath": "archive/SA/4001/5222e9c9242938e38931ea941c3edfd5c5eec3ddf29fbd4a7dece72b455910bf.pdf",
+   "collector_label": "2023|H1",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 28,
+   "actual_period": "Q2 and H1 ended 2023-06-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed"
+  },
+  {
+   "sha256": "aae4fe1aec5e5f1a8ff5735daf4f022030e534c7429b4138f3ad628fa84a0442",
+   "relpath": "archive/SA/4001/aae4fe1aec5e5f1a8ff5735daf4f022030e534c7429b4138f3ad628fa84a0442.pdf",
+   "collector_label": "2023|9M",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 29,
+   "actual_period": "Q3 and 9M ended 2023-09-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed"
+  },
+  {
+   "sha256": "76bdd14905038b0f22067648bb5ce4c24d1db59a83b7576a6bec84452ba51706",
+   "relpath": "archive/SA/4001/76bdd14905038b0f22067648bb5ce4c24d1db59a83b7576a6bec84452ba51706.pdf",
+   "collector_label": "2023|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 29,
+   "actual_period": "Q4 and year ended 2023-12-31, UNAUDITED interim statements",
+   "label_ok": false,
+   "correct_label": "2023|Q4 (unaudited year-end interim)",
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed",
+   "defect": "labelled 2023|Q1; true period is Q4 2023"
+  },
+  {
+   "sha256": "aaa5b103dcd68d3e15f488f53c932fd72716626a84c59a22b19f45c36c7719f8",
+   "relpath": "archive/SA/4001/aaa5b103dcd68d3e15f488f53c932fd72716626a84c59a22b19f45c36c7719f8.pdf",
+   "collector_label": "2024|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 25,
+   "actual_period": "Q1 ended 2024-03-31",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "067cbe81d9b1c61ef33fef99dfcbb99d40df022074f8e1cb3c592b0fd1d05b5f",
+   "relpath": "archive/SA/4001/067cbe81d9b1c61ef33fef99dfcbb99d40df022074f8e1cb3c592b0fd1d05b5f.pdf",
+   "collector_label": "2024|H1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 26,
+   "actual_period": "Q2 and H1 ended 2024-06-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed"
+  },
+  {
+   "sha256": "fe238c37844439dfd17826eb8b32d976375fa3f57d6c7bf976fba1fa5c7ffe13",
+   "relpath": "archive/SA/4001/fe238c37844439dfd17826eb8b32d976375fa3f57d6c7bf976fba1fa5c7ffe13.pdf",
+   "collector_label": "2024|9M",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 27,
+   "actual_period": "Q3 and 9M ended 2024-09-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "read": "statements present by the identical image-page layout of the other interim files of this issuer (pdf p3-9 textless); not individually rendered, values not transcribed"
+  },
+  {
+   "sha256": "8430f7aa4ec345c58b2b15b45b3b2cbd10949ea45effe10202428b13270bced2",
+   "relpath": "archive/SA/4001/8430f7aa4ec345c58b2b15b45b3b2cbd10949ea45effe10202428b13270bced2.pdf",
+   "collector_label": "2024|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 29,
+   "actual_period": "Q4 and year ended 2024-12-31, UNAUDITED interim statements",
+   "label_ok": false,
+   "correct_label": "2024|Q4 (unaudited year-end interim)",
+   "kind": "full_interim_statements_image_pages",
+   "pdf_pages": {
+    "is": 5
+   },
+   "printed_pages": {
+    "is": 4
+   },
+   "units": "SAR",
+   "read": "visual: income statement read in full; BS and cash flows not read",
+   "defect": "labelled 2024|Q1; true period Q4 2024. Its unaudited FY2024 net income 528,396,991 and operating profit 471,192,753 differ from the audited FY2024 (516,333,116; 449,037,042)"
+  },
+  {
+   "sha256": "931ab53096578e4719c2100c64bc38fdae74cad08401782f6f25c3cb6e7dc306",
+   "relpath": "archive/SA/4001/931ab53096578e4719c2100c64bc38fdae74cad08401782f6f25c3cb6e7dc306.pdf",
+   "collector_label": "2025|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 27,
+   "actual_period": "Q1 ended 2025-03-31",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "pdf_pages": {
+    "is": 5
+   },
+   "printed_pages": {
+    "is": 4
+   },
+   "units": "SAR",
+   "read": "visual: income statement only",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "6782a654a9e013cd2478fa96429f154981e9f48f2f8f6ceef39e8fa3ab677028",
+   "relpath": "archive/SA/4001/6782a654a9e013cd2478fa96429f154981e9f48f2f8f6ceef39e8fa3ab677028.pdf",
+   "collector_label": "2025|H1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 31,
+   "actual_period": "Q2 and H1 ended 2025-06-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "pdf_pages": {
+    "is": 5
+   },
+   "printed_pages": {
+    "is": 4
+   },
+   "units": "SAR",
+   "read": "visual: income statement only",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "ba18426dc67eae5b1694aa5d3b6a7c0f0b62187e7abbe6ba0b3eb6d2cba71741",
+   "relpath": "archive/SA/4001/ba18426dc67eae5b1694aa5d3b6a7c0f0b62187e7abbe6ba0b3eb6d2cba71741.pdf",
+   "collector_label": "2025|9M",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 32,
+   "actual_period": "Q3 and 9M ended 2025-09-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": [
+     8,
+     9
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": [
+     7,
+     8
+    ]
+   },
+   "units": "SAR",
+   "read": "visual: BS, income, cash flows read",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "e0f4d19ebede36552c4c8fa787053545376e8e33f6298c92f112fe011e4792d0",
+   "relpath": "archive/SA/4001/e0f4d19ebede36552c4c8fa787053545376e8e33f6298c92f112fe011e4792d0.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_class": "partial_statements",
+   "pdf_pages_total": 25,
+   "actual_period": "Q1 ended 2026-03-31",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": [
+     8,
+     9
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": [
+     6,
+     7
+    ]
+   },
+   "units": "SAR",
+   "read": "visual: BS, income, cash flows read",
+   "defect": "inventory partial_statements: pdf p3-9 are image-only (auditor review report, BS, income, OCI, equity, cash flows); inventory saw only note text and flagged partial"
+  },
+  {
+   "sha256": "9b7e4d0d37b26293d28466db6cbc16bbd0069e326e0a7c34c5b30ed9835be34b",
+   "relpath": "archive/SA/4001/9b7e4d0d37b26293d28466db6cbc16bbd0069e326e0a7c34c5b30ed9835be34b.pdf",
+   "collector_label": "2026|H1",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 29,
+   "actual_period": "Q2 and H1 ended 2026-06-30",
+   "label_ok": true,
+   "kind": "full_interim_statements_image_pages",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "oci": 6,
+    "eq": 7,
+    "cf": [
+     8,
+     9
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": [
+     6,
+     7
+    ]
+   },
+   "units": "SAR",
+   "read": "visual: BS, income, cash flows read; contact sheet confirms OCI and equity statements"
+  },
+  {
+   "sha256": "2b0c792e865764b4ec5701fdea881de7e7b810496bef290b3c967b8be56d311b",
+   "relpath": "archive/SA/4001/2b0c792e865764b4ec5701fdea881de7e7b810496bef290b3c967b8be56d311b.pdf",
+   "collector_label": "2023|FY",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 59,
+   "actual_period": "FY ended 2022-12-31 audited consolidated FS",
+   "label_ok": false,
+   "correct_label": "2022|FY",
+   "kind": "full_annual_statements_image_pages",
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "oci": 11,
+    "eq": 12,
+    "cf": 13
+   },
+   "printed_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": 12
+   },
+   "units": "SAR",
+   "read": "visual: BS, income, cash flows read",
+   "defect": "labelled 2023|FY (publication year)"
+  },
+  {
+   "sha256": "061f79d09cd43eb755fbb8bc5f1538044cd43e0b676dcc1520ac5aebd074cb9e",
+   "relpath": "archive/SA/4001/061f79d09cd43eb755fbb8bc5f1538044cd43e0b676dcc1520ac5aebd074cb9e.pdf",
+   "collector_label": "2024|FY",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 60,
+   "actual_period": "FY ended 2023-12-31 audited consolidated FS (original, later restated)",
+   "label_ok": false,
+   "correct_label": "2023|FY",
+   "kind": "full_annual_statements",
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "eq": 12,
+    "cf": [
+     13,
+     14
+    ]
+   },
+   "units": "SAR",
+   "read": "text layer (pdf p9-14 readable; values transcribed from pages 9, 10, 13; pdf p3-8 are image-only auditor report pages)",
+   "defect": "labelled 2024|FY (publication year)"
+  },
+  {
+   "sha256": "350fe78924f735429bd6121e259632d7a17e01f917df199817837d7a8df8f5f4",
+   "relpath": "archive/SA/4001/350fe78924f735429bd6121e259632d7a17e01f917df199817837d7a8df8f5f4.pdf",
+   "collector_label": "2025|FY",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 63,
+   "actual_period": "FY ended 2024-12-31 audited consolidated FS (original)",
+   "label_ok": false,
+   "correct_label": "2024|FY",
+   "kind": "full_annual_statements",
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "oci": 10,
+    "eq": 11,
+    "cf": [
+     12,
+     13
+    ]
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 11
+   },
+   "units": "SAR",
+   "read": "text layer, full BS/income/cash flows transcribed incl. restated FY2023 comparative",
+   "defect": "labelled 2025|FY (publication year)"
+  },
+  {
+   "sha256": "189024cada46cd3ade0fee976c78cde492d629e802624218e17e7144d1774ec8",
+   "relpath": "archive/SA/4001/189024cada46cd3ade0fee976c78cde492d629e802624218e17e7144d1774ec8.pdf",
+   "collector_label": "2026|FY",
+   "inventory_class": "financial_statements",
+   "pdf_pages_total": 60,
+   "actual_period": "FY ended 2025-12-31 audited consolidated FS",
+   "label_ok": false,
+   "correct_label": "2025|FY",
+   "kind": "full_annual_statements_image_pages",
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "oci": 10,
+    "eq": 11,
+    "cf": [
+     12,
+     13
+    ]
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": [
+     11,
+     12
+    ]
+   },
+   "units": "SAR",
+   "read": "visual: BS, income, cash flows read",
+   "defect": "labelled 2026|FY (publication year); statements are image-only pages 7-13; the cash-flow page heading says year ended 31 December 2024 (issuer typo)"
+  }
+ ]
+}
