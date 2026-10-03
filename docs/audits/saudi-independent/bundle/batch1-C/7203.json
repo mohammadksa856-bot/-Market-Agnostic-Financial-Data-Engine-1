@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "symbol": "7203",
+  "company_id": "sa:7203",
+  "name": "Elm Company",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "12-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch1-C)",
+    "method": "Archived source PDFs under data/raw/SA/<symbol>/documents (SHA-256 re-computed and equal to data/raw/archive-index.json for all 26 archived files). Digital pages: text layer read and the printed figure located. Scanned pages (stc, Zain, Elm primary statements): pages rendered to PNG with PyMuPDF and read by eye, line by line, both columns. Findings are proven with page and line item; 'verified_correct' is claimed only where the printed page was read. Internal arithmetic (subtotals, reconciliations) used only as a secondary check, never as proof. Offline; no AWS, no Supabase, no data/raw edits.",
+    "tools_added_on_branch": [
+      "src/finengine/manifest_audit.py",
+      "tests/test_manifest_audit.py",
+      "scripts/audit_manifest_provenance.py",
+      "docs/audits/saudi-independent/batch1-C-provenance-scan.json (machine scan of every fact vs its cited page)"
+    ],
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong or mislabelled against the printed page",
+      "unverified": "source not available/archived or not readable here; nothing is claimed",
+      "verified_correct_with_caveat": "value correct as printed but label/semantics need a note (no value change required)",
+      "pending (source status)": "document is not archived or not present locally, so the source cannot be re-read; resumable once archived"
+    },
+    "rejected_facts_note": "No manifest of these symbols contains 'excluded_facts'/rejected records on telecom-95pct, and data/financial.sqlite3 in the repo has zero rows for them. A production rejected-fact registry (AWS DB) was out of bounds for this audit -> rejected facts: unverified.",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "why_authoritative": "origin/codex/telecom-95pct is the newest lineage of the telecom manifests. origin/claude/telecom-shared-gap-closers (a8245ac) forks at 3980d36 and carries OLDER copies of stc-2025-fy.json, stc-2025-segments-financial-notes.json, stc-2025-company-profile.json and zain-ksa-2025-notes-segments.json (fewer facts); its mobily-2025-fy.json, zain-ksa-2025-fy.json and go-telecom-2021-2025-fy-history.json are byte-identical to the audited ones. It additionally holds the raw Saudi Exchange market archives (data/raw/SA/70x0/market) and *-market-prices-2026-09-23.json manifests that are NOT on telecom-95pct; those raw archives were read via 'git show' (read-only) to audit the price manifests. origin/claude/data-tech-1 (a10e790) elm-2025-fy.json is byte-identical to the audited Elm manifest. origin/claude/data-telecom-1 (f778594) holds the first, shorter stc/Zain FY2025 manifests (superseded).",
+    "batch": "1-C"
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "verified_correct",
+      "summary": "136/136 facts of the single published manifest verified against the rendered audited statements (FY2025 and FY2024 comparatives); only basic EPS is absent.",
+      "defect_ids": [
+        "C-7203-01"
+      ]
+    },
+    "document_completeness": {
+      "status": "defective",
+      "summary": "Primary statements are all present at subtotal level; OCI components, basic EPS, the whole statement of changes in equity and the operating/investing cash-flow detail lines are printed but not extracted."
+    },
+    "company_coverage": {
+      "status": "defective",
+      "present": {
+        "annual": "FY2024 (comparative only) and FY2025",
+        "quarterly": "none",
+        "market": "none"
+      },
+      "missing": [
+        "FY2022, FY2023",
+        "all quarterly/interim results",
+        "price history",
+        "Q1-Q3 2025, Q1-Q2 2026"
+      ],
+      "defect_ids": [
+        "C-7203-03"
+      ]
+    }
+  },
+  "shared_root_cause_refs": [
+    "RC1",
+    "RC2",
+    "RC3"
+  ],
+  "findings": [
+    {
+      "id": "C-7203-01",
+      "defect_class": "missing_field_eps_basic",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "elm-2025-fy.json",
+      "metric": "basic EPS",
+      "period": "FY2025 / FY2024",
+      "page": {
+        "pdf_page": 8,
+        "printed_page": 6
+      },
+      "line_item": "Earnings per share from net profit attributable to equity holders of the parent: Basic / Diluted",
+      "published_value": {
+        "eps_diluted": "26.80 / 23.44",
+        "eps_basic": "absent"
+      },
+      "correct_value": {
+        "basic": "26.86 (2025) / 23.51 (2024)"
+      },
+      "evidence": "Rendered PDF p8: Basic 26.86 / 23.51 and Diluted 26.80 / 23.44 are both printed; only diluted is published (both diluted values are verified_correct).",
+      "fix": "Add basic_eps 26.86 and 23.51."
+    },
+    {
+      "id": "C-7203-02",
+      "defect_class": "page_reference_printed_not_pdf",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "elm-2025-fy.json",
+      "metric": "(all 136 facts)",
+      "period": "FY2025/FY2024",
+      "evidence": "Every fact cites the printed FS page numbers (6 profit or loss, 7 comprehensive income, 8 financial position, 10 cash flows) which are PDF pages 8, 9, 10, 12 (offset +2: PDF pp1-2 cover/contents, p3-7 auditor's report). The manifest notes say 'Statement page references are the printed FS page numbers' so this is documented, but it is inconsistent with the PDF-page convention of other manifests and the page-offset is invisible to a consumer.",
+      "fix": "Store the PDF page (8/9/10/12) and keep the printed page in metadata."
+    },
+    {
+      "id": "C-7203-03",
+      "defect_class": "coverage_only_two_fiscal_years",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "(none)",
+      "metric": "all",
+      "period": "FY2022-FY2023 and all quarters",
+      "evidence": "Elm listed on Tadawul in 2022 (public record, not verifiable from the repo files). The repository holds one manifest: FY2025 with FY2024 comparatives. No FY2022/FY2023 annual statements, no interim (Q1-Q3 2025, Q1-Q2 2026) results and no market-price history for 7203.",
+      "fix": "Collect FY2023/FY2022 audited statements and 2025-2026 interim statements from Saudi Exchange fsPdf."
+    },
+    {
+      "id": "C-7203-04",
+      "defect_class": "filed_at_semantics",
+      "severity": "info",
+      "status": "verified_correct_with_caveat",
+      "manifest": "elm-2025-fy.json",
+      "metric": "filed_at",
+      "period": "FY2025",
+      "evidence": "filed_at = 2026-02-26, the board approval date (note 43), while the Saudi Exchange file name carries the upload stamp 2026-03-05. Other manifests use publication date or a documented basis.",
+      "fix": "Add filed_at_basis ('board_approval_date') as the stc/Mobily manifests do."
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "elm-FY2025-audited-FS",
+      "manifest": "elm-2025-fy.json",
+      "document": {
+        "url": "https://www.saudiexchange.sa/Resources/fsPdf/2784_0_2026-03-05_17-23-45_En.pdf",
+        "archive_path": "data/raw/SA/7203/documents/363810a1a59f0d824d5c053286e35900c0bd4092b22807a125003cddb0c11600.pdf",
+        "sha256": "363810a1a59f0d824d5c053286e35900c0bd4092b22807a125003cddb0c11600",
+        "pdf_pages": 61,
+        "archived": true,
+        "note": "Auditor's report PDF p3-7 and primary statements PDF p8-12 are scanned/garbled (no usable text layer: the extracted text is encoding noise); notes digital."
+      },
+      "status": "done",
+      "verification_basis": "pages rendered at 1.7x and read line by line, both columns; subtotals re-added as a secondary check",
+      "checks_performed": [
+        "Identity: 'ELM COMPANY (A SAUDI JOINT STOCK COMPANY)', 'All amounts in Saudi Riyals', year ended December 31, 2025, auditor BDO Dr. Mohamed Al-Amri & Co (PDF p3) - matches symbol 7203",
+        "Profit or loss (PDF p8): all 21 FY2025 and 21 FY2024 lines incl. revenue 9,464,884,988 / 7,406,794,402, cost, gross profit, R&D, S&M, ECL (105,710,338) + impairment (30,210,394) = published impairment_charges (135,920,732; FY2024 142,748,596 + 21,343,476 = 164,092,072), G&A, D&A, operating profit 2,029,947,228 / 1,700,452,424, finance cost, murabaha income, associates, FV change, other income, 'NET PROFIT BRFORE ZAKAT' [sic] 2,136,035,872 / 1,953,868,382, zakat (45,710,979) / (127,019,914), net profit 2,090,324,893 / 1,826,848,468, parent / NCI, diluted EPS",
+        "Comprehensive income (PDF p9): 2,036,881,399 / 1,808,076,652",
+        "Financial position (PDF p10): every published line for both years incl. combined lines (other_noncurrent_assets 45,470,575 + 38,010,740 = 83,481,315; 73,409,363 + 19,070,247 = 92,479,610; other_current_assets 27,584,336 + 404,602,319 = 432,186,655; 21,399,046 + 480,597,586 = 501,996,632), treasury shares (273,857,280)/(293,112,576), long term borrowing 1,520,000,000 / 453,408,021 current (nil in 2024 -> no FY2024 fact, correct)",
+        "Cash flows (PDF p12): operating 2,662,743,206 / 1,659,338,913; investing (4,231,913,025) / 904,084,074; financing 1,154,742,212 / (697,019,550); capex FY2025 = (144,205,897) + (185,845,000) = (330,050,897); FY2024 = (62,749,712) + (165,399,192) = (228,148,904)",
+        "Other cash-flow lines: acquisitions (3,141,074,348); borrowing 1,900,000,000; lease (70,326,367)/(81,286,841); finance costs paid (13,718,984)/(7,607,646); zakat paid (113,689,400)/(92,460,708); dividends (661,212,437)/(582,729,000); FX 2,106/(865); cash 1,836,371,678 / 2,250,797,179 equals balance sheet",
+        "Scale (full SAR, scale 1), currency SAR, sign convention and FY2025/FY2024 columns confirmed; FY2024 comparatives equal the reclassified (Note 39, SAR 5,371,520) figures as the manifest notes say"
+      ],
+      "verified_correct": {
+        "count": 136,
+        "of": 136,
+        "summary": "all 136 published facts verified_correct"
+      },
+      "defects": [
+        "C-7203-01",
+        "C-7203-02",
+        "C-7203-04"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "income_statement": [
+          "basic EPS 26.86 / 23.51",
+          "OCI components (FX translation (734,012)/215,146; FVOCI (24,242,118)/(16,059,887); EOSB remeasurement (28,414,427)/(2,927,075); associates (52,937))",
+          "attribution of comprehensive income (parent 2,036,909,510 / NCI (28,111))"
+        ],
+        "cash_flow": [
+          "every operating adjustment and working-capital line (amortisation of long term prepaid 67,260,024; share-based payments 74,202,007; accounts receivable (481,019,256) ...)",
+          "murabaha deposit movements (779,929,000) / 1,607,785,901",
+          "investments in other financial assets, associates, long term prepaid, proceeds, restricted cash",
+          "payment of liabilities for purchasing property (25,396,063) 2024"
+        ],
+        "statement_of_changes_in_equity": "PDF p11 (printed p9) not extracted (contains the SAR 3,121,807,695 Thiqah common-control charge to retained earnings referred to only in the notes field)",
+        "balance_sheet": "none - every printed line is extracted (two combined into other_noncurrent_assets / other_current_assets, documented in notes)"
+      },
+      "fix_plan": [
+        "Add basic EPS; add PDF page numbers",
+        "Extract equity statement and cash-flow detail if line-level analysis is needed"
+      ]
+    },
+    {
+      "source_id": "elm-market-and-other",
+      "manifest": "(none)",
+      "document": {
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "no price history, quarterly results, annual reports or profile manifests exist for 7203 - nothing to audit; coverage gap recorded in C-7203-03",
+      "defects": [
+        "C-7203-03"
+      ]
+    }
+  ]
+}

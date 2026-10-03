@@ -1,0 +1,906 @@
+{
+ "symbol": "1180",
+ "audited_branch": "origin/codex/telecom-95pct @ ec610f3 (data/imports identical to origin/main for these companies)",
+ "audited_at": "2026-10-03",
+ "auditor": "claude/audit-saudi-batch1-B",
+ "dimensions_note": "(1) numeric correctness of published values, (2) document completeness, (3) company coverage are reported separately and never blended",
+ "name": "Saudi National Bank (SNB)",
+ "numeric_correctness_summary": "no numeric defect found: FY2025 audited statements (pages 9, 10, 13 row-aligned), 4 interim statements, 10 XLSX supplements and 10 Pillar 3 documents anchor exactly; sign conventions consistent; the NCI sign flip from the workbook is intentional and matches the PDF",
+ "document_completeness_summary": "FY2025: 96 facts of ~120 printed lines; Pillar 3 KM1 beyond four metrics excluded (P3-STALE)",
+ "coverage": {
+  "have": [
+   "FY2025 (+FY2024 comparatives); interim 2Q-2025, 3Q-2025, 1Q-2026, 2Q-2026 PDFs",
+   "XLSX supplements 2Q2024..2Q2026 quarters, FY2022-2025",
+   "Pillar 3: 2023Q1, 2024Q2, 2024Q4, 2025Q1-Q4, 2026Q1-Q2"
+  ],
+  "absent": [
+   "audited FY2024 and earlier as filed",
+   "1Q-2025 interim PDF",
+   "stand-alone 4Q-2025 quarter (supplement only)",
+   "everything before 2024 except FY2022/23 supplement lines and Pillar 3 2023Q1",
+   "cash flow outside FY2025/FY2024 and interim ytd"
+  ]
+ },
+ "sources": [
+  {
+   "source_document": {
+    "manifest": "snb-2023-q1-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/f1231091a31282df61d1eab883f15e28fd886fcaff02ba6256d6c123ef0272b9.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/basel-iii-pillar-q1-2023-final.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2023-03-31",
+    "published_facts": 20,
+    "excluded_facts": 50
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2024-q2-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/4e03ee3c61597d090b3ddb00eddfe56ac107a6753f91e318a1da7ac2ab5d7ba5.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/basel-iii-pillar-3q2-2024.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2024-06-30",
+    "published_facts": 8,
+    "excluded_facts": 67
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 35,
+    "reported_ratio_does_not_reconcile": 15,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 12
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2024-q4-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/4d3b5bcc7c0287953042fbfd8ce1b347d0b11c0381ac8bd37f118bb903db69b0.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/Basel-IV-Pillar-3-December-2024-Final-with-Remuneration.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2024-12-31",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-fy.json",
+    "archived_path": "data/raw/SA/1180/documents/510a940da50b06fc05673319610cefa60013547f4ce69920a849da6bc85fccfd.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-Investor-Relations/Financial-Information/Financial-Statements/English/SNB-YE-2025-Financials-English.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 96,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "pdf p9 balance sheet: 17 values anchored (Total assets 1,210,031,553; Customers deposits 636,094,377; equity 203,827,248)",
+    "pdf p10 income: all published incl. EPS diluted 4.03; net income parent 25,013,279 / NCI (21,718) on separate rows",
+    "pdf p13 cash flow: totals match; dividends_paid (12,000,000) = final 6,000,000 + interim 6,000,000 (derived sum of two printed lines); FX effect (433,513) read from a wrapped caption",
+    "cash roll: 21,001,893 + 5,513,671 - 433,513 = 26,082,051"
+   ],
+   "anchors": {
+    "ok": 88,
+    "value_not_in_row": 6,
+    "label_not_found": 2
+   },
+   "unanchored": [
+    {
+     "metric": "net_income_parent",
+     "status": "value_not_in_row",
+     "value": "25013279",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_income_noncontrolling",
+     "status": "value_not_in_row",
+     "value": "-21718",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_income_parent",
+     "status": "value_not_in_row",
+     "value": "21192995",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_income_noncontrolling",
+     "status": "value_not_in_row",
+     "value": "-99349",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "foreign_exchange_effect",
+     "status": "value_not_in_row",
+     "value": "-433513",
+     "kind": "fy",
+     "page": 13
+    },
+    {
+     "metric": "dividends_paid",
+     "status": "label_not_found",
+     "value": "-12000000",
+     "kind": "fy",
+     "page": 13
+    },
+    {
+     "metric": "foreign_exchange_effect",
+     "status": "value_not_in_row",
+     "value": "-542423",
+     "kind": "fy",
+     "page": 13
+    },
+    {
+     "metric": "dividends_paid",
+     "status": "label_not_found",
+     "value": "-10800000",
+     "kind": "fy",
+     "page": 13
+    }
+   ],
+   "column_pattern_from_right": {
+    "instant@p9": {
+     "2": 18,
+     "1": 16
+    },
+    "fy@p10": {
+     "2": 20,
+     "1": 20
+    },
+    "fy@p13": {
+     "2": 8,
+     "1": 6
+    }
+   },
+   "numeric_correctness": "verified_correct",
+   "semantic_notes": [
+    "equity_parent 203,278,511 is \"Equity attributable to equity holders of the Bank\" and includes Tier-1 sukuk 17,652,684 (185,625,827 not published)",
+    "depreciation_amortization excludes amortisation of intangibles 820,280 (separate printed line)",
+    "other_income is negative: printed \"Other operating expenses, net\""
+   ],
+   "completeness": {
+    "missing_fields": [
+     "Goodwill 34,006,782",
+     "Intangible assets 4,921,688",
+     "Property/equipment 13,065,976",
+     "Derivative fair values",
+     "Share premium 63,701,800",
+     "Treasury shares (2,586,243)",
+     "Tier 1 Sukuk 17,652,684",
+     "Equity attributable to shareholders 185,625,827",
+     "FVIS gains 2,819,579",
+     "Non-FVIS gains 558,687",
+     "Rent 485,853",
+     "Amortisation of intangibles 820,280",
+     "Income from operations 28,288,040",
+     "Other non-operating (391,307)",
+     "basic EPS 4.04 (only diluted published)"
+    ]
+   }
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q1-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/3d165a4840557d3bd4e9ab14aefdae05898a51a40cb4d437156fe2eda6d2c025.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/Financial-Regulatory-Disclosures/English/SNB-Pillar-3-Disclosures-Q1-2025.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2025-03-31",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q1-supplement.json",
+    "archived_path": "data/raw/SA/1180/documents/fce918d2699e865a185072cffaec1557a830402162136d6c23d1c0ab4bce2fb1.xlsx",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/snb-1q-2025-data-supplement.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-03-31",
+    "published_facts": 34,
+    "excluded_facts": 190
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 33,
+    "pub:ok_signflip": 1,
+    "exc:ok_rounded": 4,
+    "exc:ok": 179,
+    "exc:ok_signflip": 7
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q2-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/55e1ef5c6878de12d431a13ef7d1a1d760caa772dc5ae9a51aae8dbdba86acdb.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/snb-pillar-3-disclosures-q2-2025.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2025-06-30",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q2-supplement.json",
+    "archived_path": "data/raw/SA/1180/documents/62b7419cec5dbf3fa0d7b3f59713b787e8c65ab43f8608205a90cb1a56897b48.xlsx",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/snb-2q-2025-data-supplement.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-06-30",
+    "published_facts": 52,
+    "excluded_facts": 208
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 48,
+    "pub:ok_rounded": 2,
+    "pub:ok_signflip": 2,
+    "exc:ok_rounded": 2,
+    "exc:ok": 198,
+    "exc:ok_signflip": 8
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q2.json",
+    "archived_path": "data/raw/SA/1180/documents/d1cb051e03c338ac066b7e445cb57a3340eacaa155ae35b81944d3ac69b88058.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-Investor-Relations/Financial-Information/Financial-Statements/English/2Q-2025-Financial-Statement-English.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-06-30",
+    "published_facts": 69,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "income statement (pdf p5): quarter facts come from the first (three-month) column, ytd from the third; Q1 has a single pair",
+    "balance sheet (pdf p4): first (current-date) column of three",
+    "cash flow (pdf p8): current-period column",
+    "sign convention consistent: expenses negative; impairment reversal printed (172,900) stored +172,900"
+   ],
+   "anchors": {
+    "ok": 69
+   },
+   "unanchored": [],
+   "column_pattern_from_right": {
+    "instant@p4": {
+     "3": 18
+    },
+    "quarter@p5": {
+     "4": 24
+    },
+    "ytd@p5": {
+     "2": 24
+    },
+    "ytd@p8": {
+     "2": 3
+    }
+   },
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q3-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/6713b3c181b66ba7210587835522c0d6aaf0b7c1bd5d5f67d232b196dd06c929.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/SNB-Pillar-3-Disclosures-Q3-2025.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2025-09-30",
+    "published_facts": 4,
+    "excluded_facts": 56
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 60
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 40,
+    "engine_calculates_metric": 4,
+    "superseded_by_higher_ranked_publication": 12
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q3-supplement.json",
+    "archived_path": "data/raw/SA/1180/documents/2a6db9db47f405e0a28571e08ae4b5cbd0c94cf9a68b04fd82f8b4bcb5947ab1.xlsx",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/snb-3q-2025-data-supplement.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-09-30",
+    "published_facts": 88,
+    "excluded_facts": 172
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok_rounded": 3,
+    "pub:ok": 81,
+    "pub:ok_signflip": 4,
+    "exc:ok": 166,
+    "exc:ok_signflip": 6
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q3.json",
+    "archived_path": "data/raw/SA/1180/documents/e272c89f1cf2b25a16579aa397d0da2d4c78427ea7ae56f062b1f5d961cba0c4.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-Investor-Relations/Financial-Information/Financial-Statements/English/SNB-3Q-2025-Financial-Statements-English.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-09-30",
+    "published_facts": 69,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "income statement (pdf p5): quarter facts come from the first (three-month) column, ytd from the third; Q1 has a single pair",
+    "balance sheet (pdf p4): first (current-date) column of three",
+    "cash flow (pdf p8): current-period column",
+    "sign convention consistent: expenses negative; impairment reversal printed (172,900) stored +172,900"
+   ],
+   "anchors": {
+    "ok": 69
+   },
+   "unanchored": [],
+   "column_pattern_from_right": {
+    "instant@p4": {
+     "3": 18
+    },
+    "quarter@p5": {
+     "4": 24
+    },
+    "ytd@p5": {
+     "2": 24
+    },
+    "ytd@p8": {
+     "2": 3
+    }
+   },
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q4-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/cdc4f9f2a9cb55a5fa04a5e2c7e30a353edf07da53c745fa9260259cbb84ae77.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/SNB-Pillar-3-Disclosures-Dec-2025-HR.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 4,
+    "excluded_facts": 56
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 60
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 40,
+    "engine_calculates_metric": 4,
+    "superseded_by_higher_ranked_publication": 12
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2025-q4-supplement.json",
+    "archived_path": "data/raw/SA/1180/documents/0ded488172fd39021b221d9d9eaeb50620bddd14903eb06556237647906a1c55.xlsx",
+    "source_url": "https://www.alahli.com/-/jssmedia/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/SNB-4Q-2025-Data-Supplement.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-12-31",
+    "published_facts": 18,
+    "excluded_facts": 188
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 17,
+    "pub:ok_signflip": 1,
+    "exc:ok": 182,
+    "exc:ok_signflip": 6
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2026-q1-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/20ae7010d38373b74efa0277f8c00b4838e24074fde04b67c1c92e1f394fb8a2.pdf",
+    "source_url": "https://www.alahli.com/-/jssmedia/project/snb/snb-web/about-us/02-1-Investor-Relations/Financial-Information/Financial-Regulatory-Disclosures/English/SNB-Pillar-3-Disclosures-Q1-2026.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2026-03-31",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2026-q1-supplement.json",
+    "archived_path": "data/raw/SA/1180/documents/8325cf411a3b8abb1e6fd9a6d39b772cf50f11f5bb51adf7a55fbe5ce0a4b5cf.xlsx",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/snb-1q-2026-data-supplement.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2026-03-31",
+    "published_facts": 34,
+    "excluded_facts": 172
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 33,
+    "pub:ok_signflip": 1,
+    "exc:ok": 166,
+    "exc:ok_signflip": 6
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2026-q1.json",
+    "archived_path": "data/raw/SA/1180/documents/85441d26c682dbcc17a1c2a54d3baa5765434a6b7c0a4752830fdbe345f3b872.pdf",
+    "source_url": "https://www.alahli.com/-/jssmedia/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-statements/english/SNB-1Q-2026-Financials-English.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2026-03-31",
+    "published_facts": 45,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "income statement (pdf p5): quarter facts come from the first (three-month) column, ytd from the third; Q1 has a single pair",
+    "balance sheet (pdf p4): first (current-date) column of three",
+    "cash flow (pdf p8): current-period column",
+    "sign convention consistent: expenses negative; impairment reversal printed (172,900) stored +172,900"
+   ],
+   "anchors": {
+    "ok": 45
+   },
+   "unanchored": [],
+   "column_pattern_from_right": {
+    "instant@p4": {
+     "3": 18
+    },
+    "ytd@p5": {
+     "2": 24
+    },
+    "ytd@p8": {
+     "2": 2,
+     "1": 1
+    }
+   },
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2026-q2-pillar3.json",
+    "archived_path": "data/raw/SA/1180/documents/47232592de58babab2572c40d057cb68a7fa3911fd01b06e08bdd79dfe669323.pdf",
+    "source_url": "https://www.alahli.com/-/jssmedia/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-regulatory-disclosures/english/SNB-Pillar-3-Disclosures-Q2-2026.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2026-06-30",
+    "published_facts": 20,
+    "excluded_facts": 55
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2026-q2-supplement.json",
+    "archived_path": "data/raw/SA/1180/documents/cd8439096b29a3da69a07665b8565182457a95c9ef815753f9112163b6f779d0.xlsx",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-investor-relations/financial-information/financial-data-supplement/english/snb-2q-2026-data-supplement.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2026-06-30",
+    "published_facts": 36,
+    "excluded_facts": 206
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 34,
+    "pub:ok_signflip": 2,
+    "exc:ok": 199,
+    "exc:ok_signflip": 7
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "snb-2026-q2.json",
+    "archived_path": "data/raw/SA/1180/documents/d55aa563e5894121aaf8905dcdefc84c4bb1402d1768ddbb1c4bd58f59f6c3e9.pdf",
+    "source_url": "https://www.alahli.com/-/media/project/snb/snb-web/about-us/02-1-Investor-Relations/Financial-Information/Financial-Statements/English/SNB-2Q-2026-Financials-English.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2026-06-30",
+    "published_facts": 69,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "income statement (pdf p5): quarter facts come from the first (three-month) column, ytd from the third; Q1 has a single pair",
+    "balance sheet (pdf p4): first (current-date) column of three",
+    "cash flow (pdf p8): current-period column",
+    "sign convention consistent: expenses negative; impairment reversal printed (172,900) stored +172,900"
+   ],
+   "anchors": {
+    "ok": 69
+   },
+   "unanchored": [],
+   "column_pattern_from_right": {
+    "instant@p4": {
+     "3": 18
+    },
+    "quarter@p5": {
+     "4": 24
+    },
+    "ytd@p5": {
+     "2": 24
+    },
+    "ytd@p8": {
+     "2": 3
+    }
+   },
+   "numeric_correctness": "verified_correct"
+  }
+ ],
+ "progress": {
+  "total": 20,
+  "done": 20,
+  "pending": []
+ }
+}

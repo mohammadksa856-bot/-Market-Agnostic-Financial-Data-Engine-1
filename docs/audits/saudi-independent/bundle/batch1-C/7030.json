@@ -1,0 +1,488 @@
+{
+  "schema_version": 1,
+  "symbol": "7030",
+  "company_id": "sa:7030",
+  "name": "Mobile Telecommunications Company Saudi Arabia (Zain KSA)",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "12-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch1-C)",
+    "method": "Archived source PDFs under data/raw/SA/<symbol>/documents (SHA-256 re-computed and equal to data/raw/archive-index.json for all 26 archived files). Digital pages: text layer read and the printed figure located. Scanned pages (stc, Zain, Elm primary statements): pages rendered to PNG with PyMuPDF and read by eye, line by line, both columns. Findings are proven with page and line item; 'verified_correct' is claimed only where the printed page was read. Internal arithmetic (subtotals, reconciliations) used only as a secondary check, never as proof. Offline; no AWS, no Supabase, no data/raw edits.",
+    "tools_added_on_branch": [
+      "src/finengine/manifest_audit.py",
+      "tests/test_manifest_audit.py",
+      "scripts/audit_manifest_provenance.py",
+      "docs/audits/saudi-independent/batch1-C-provenance-scan.json (machine scan of every fact vs its cited page)"
+    ],
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong or mislabelled against the printed page",
+      "unverified": "source not available/archived or not readable here; nothing is claimed",
+      "verified_correct_with_caveat": "value correct as printed but label/semantics need a note (no value change required)",
+      "pending (source status)": "document is not archived or not present locally, so the source cannot be re-read; resumable once archived"
+    },
+    "rejected_facts_note": "No manifest of these symbols contains 'excluded_facts'/rejected records on telecom-95pct, and data/financial.sqlite3 in the repo has zero rows for them. A production rejected-fact registry (AWS DB) was out of bounds for this audit -> rejected facts: unverified.",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "why_authoritative": "origin/codex/telecom-95pct is the newest lineage of the telecom manifests. origin/claude/telecom-shared-gap-closers (a8245ac) forks at 3980d36 and carries OLDER copies of stc-2025-fy.json, stc-2025-segments-financial-notes.json, stc-2025-company-profile.json and zain-ksa-2025-notes-segments.json (fewer facts); its mobily-2025-fy.json, zain-ksa-2025-fy.json and go-telecom-2021-2025-fy-history.json are byte-identical to the audited ones. It additionally holds the raw Saudi Exchange market archives (data/raw/SA/70x0/market) and *-market-prices-2026-09-23.json manifests that are NOT on telecom-95pct; those raw archives were read via 'git show' (read-only) to audit the price manifests. origin/claude/data-tech-1 (a10e790) elm-2025-fy.json is byte-identical to the audited Elm manifest. origin/claude/data-telecom-1 (f778594) holds the first, shorter stc/Zain FY2025 manifests (superseded).",
+    "batch": "1-C"
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "defective",
+      "summary": "Primary statements FY2025/FY2024: 86/86 verified_correct on rendered pages. Notes: 99/104 facts fully correct. Proven defects are labelling/derivation rather than transcription: entity-segment facts tagged scope=consolidated, one derived revenue_by_geography value that is not printed, one sentence stored as 0, and four dividend actions whose cash_amount holds the per-share amount. UNVERIFIED: 36 quarterly facts (announcements not archived).",
+      "defect_ids": [
+        "C-7030-01",
+        "C-7030-02",
+        "C-7030-03",
+        "C-7030-04",
+        "C-7030-05"
+      ],
+      "unverified_ids": [
+        "C-7030-07"
+      ]
+    },
+    "document_completeness": {
+      "status": "defective",
+      "summary": "FY2025 FS PDF: ECL, share of associate loss, tower gain, government grant, comprehensive income, OCI, hedging reserve (so equity_parent), statement of changes in equity and all FY2024 detail lines of the cash flow are printed but missing from the primary manifest; the notes manifest carries 2025-only detail."
+    },
+    "company_coverage": {
+      "status": "partial",
+      "present": {
+        "annual": "FY2024 and FY2025 in SAR (full primary statements); FY2021-FY2023 only as USD-million revenue/EBITDA/net income from the Group annual reports",
+        "quarterly": "12 discrete quarters Q1-2023..Q4-2025 (revenue, operating profit, net profit) - unverified source",
+        "kpis": "customers, ARPU (USD), capex (USD) 2021-2025; coverage points 2021-2022 only"
+      },
+      "missing": [
+        "SAR annual statements FY2008-FY2023 (listed 2008)",
+        "FY2023 SAR income statement/balance sheet/cash flow",
+        "quarterly balance sheet/cash flow",
+        "H1/9M cumulative statements",
+        "Q1-Q2 2026"
+      ]
+    }
+  },
+  "shared_root_cause_refs": [
+    "RC1",
+    "RC2",
+    "RC3",
+    "RC4",
+    "RC6",
+    "RC7",
+    "RC8"
+  ],
+  "findings": [
+    {
+      "id": "C-7030-01",
+      "defect_class": "scope_label_wrong_entity_segment_tagged_consolidated",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "zain-ksa-2025-notes-segments.json",
+      "metric": "segment_assets / segment_liabilities / segment_depreciation_amortization",
+      "period": "FY2025 / 2025-12-31",
+      "page": {
+        "pdf_page": "69-70 (cited 68-69)"
+      },
+      "line_item": "Note 40 Segment reporting: 'Mobile Telecommunications Company' column / row before eliminations",
+      "published_value": {
+        "segment_assets": "57,603,795 (scope=consolidated)",
+        "segment_liabilities": "46,972,936 (scope=consolidated)",
+        "segment_depreciation_amortization": "-2,153,794 (scope=consolidated, label 'Zain KSA depreciation and amortization')"
+      },
+      "correct_value": {
+        "statement": "These are the legal-entity segment 'Mobile Telecommunications Company' before eliminations. Consolidated: total assets 28,753,303 (after eliminations (29,920,980)), total liabilities 17,877,352, D&A 2,160,661 (note 40 total column; P&L p9)"
+      },
+      "evidence": "PDF p70: 'Assets: Mobile Telecommunications Company 57,603,795 | Tamam Finance Company 1,030,079 | Others 40,409 | Eliminations / adjustments (29,920,980) | Total assets 28,753,303'. PDF p69: 'Depreciation and amortization (2,153,794) | (6,577) | (290) | (2,160,661)'. Tagging the entity column scope='consolidated' lets any consumer that reads scope see assets of 57.6bn next to the audited 28.75bn.",
+      "fix": "Set scope='segment' with dimensions {'segment': 'Mobile Telecommunications Company'} (the sibling facts already use that pattern for Consumer/Business/Wholesale revenue)."
+    },
+    {
+      "id": "C-7030-02",
+      "defect_class": "derived_value_presented_as_printed",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "zain-ksa-2025-notes-segments.json",
+      "metric": "revenue_by_geography (Saudi Arabia domestic)",
+      "period": "FY2025",
+      "page": {
+        "pdf_page": 52,
+        "cited": 51
+      },
+      "line_item": "26-2: 'revenue has been recognized from their operation within KSA except for the international roaming and interconnect which account 14.97% (2024: 15.54%)'",
+      "published_value": {
+        "value": "9338850",
+        "scale": "1000",
+        "label": "Revenue from operations within KSA excluding international roaming and interconnect"
+      },
+      "correct_value": {
+        "printed": "only the percentage 14.97%; no SAR amount is printed",
+        "implied_by_rounded_percentage": "10,983,264 x (1-0.1497) = 9,339,070 (+/-0.5 per mille of rounding), not 9,338,850"
+      },
+      "evidence": "9,338,850 occurs nowhere in the 71-page PDF (text and scanned statement pages checked: grep + visual p8-p12). It is a derived number carried with six-digit precision although the document supports only a 14.97% share. The percentage itself is not published as a fact.",
+      "fix": "Delete the derived fact (or mark metadata.derivation='total revenue x (1 - 14.97%)' and publish the printed 14.97% as the primary fact)."
+    },
+    {
+      "id": "C-7030-03",
+      "defect_class": "text_statement_encoded_as_numeric_zero",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "zain-ksa-2025-notes-segments.json",
+      "metric": "customer_concentration",
+      "period": "FY2025",
+      "page": {
+        "pdf_page": 52
+      },
+      "line_item": "'No single customers contributed 10% or more to the Group's revenues.'",
+      "published_value": {
+        "value": "0",
+        "unit": "pure"
+      },
+      "correct_value": {
+        "statement": "qualitative: no customer reaches 10% (a bound, not a value of zero)"
+      },
+      "evidence": "A sentence is stored as the number 0 (unit 'pure'); downstream a 0% concentration is wrong - the largest customer is 'below 10%', unknown. stc stores the opposite case (government 11.298bn) as a number, so the metric means different things per issuer.",
+      "fix": "Store as a boolean/qualitative disclosure or as {'value': '0.10', 'qualifier': 'less_than'}."
+    },
+    {
+      "id": "C-7030-04",
+      "defect_class": "field_semantics_mismatch_per_share_in_total_amount_field",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "zain-ksa-2025-company-profile.json",
+      "metric": "corporate_actions.cash_amount (4 dividend actions FY2022-FY2025)",
+      "period": "FY2022-FY2025",
+      "page": {
+        "pdf_page": "23/24/34 of AR2025 (per metadata)"
+      },
+      "line_item": "Dividend of SAR 0.50 per share",
+      "published_value": {
+        "cash_amount": 0.5,
+        "currency": "SAR",
+        "details.dividend_per_share": 0.5
+      },
+      "correct_value": {
+        "cash_amount": "about SAR 449,364,588 (0.50 x 898,729,175 shares; total cash distributed as in cash-flow 'Dividend paid' 451,855 thousand in 2025 and 448,115 in 2024)"
+      },
+      "evidence": "Across all manifests in data/imports the other 22 corporate actions (stc 2,750,000,000 per quarter; Mobily 924,000,000; GO 10,199,970) store the TOTAL cash in cash_amount. Zain's four rows are the only ones where cash_amount equals dividend_per_share, i.e. a per-share amount in a total field - an understatement of about 898,729,175x (the share count) if summed.",
+      "fix": "Set cash_amount = total (DPS x shares) and keep dividend_per_share in details."
+    },
+    {
+      "id": "C-7030-05",
+      "defect_class": "provenance_wrong_page_and_wrong_source_document_plus_currency_basis",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "zain-ksa-2021-2023-financial-history.json",
+      "metric": "revenue/ebitda/net_income",
+      "period": "FY2021-FY2023",
+      "published_value": {
+        "currency": "USD",
+        "values": "FY2021 2,111/836/57; FY2022 2,421/842/147; FY2023 2,634/794/338 (USD m)",
+        "cited_pages": "p46 (2021), p48 (2022-23)",
+        "source_url": "AR2023 for all three years"
+      },
+      "correct_value": {
+        "values": "numbers are correct",
+        "where": "FY2022/FY2023: AR2023 PDF p17 'Operational & Financial Performance 2023|2022'; FY2021: AR2021 PDF p23 and AR2022 PDF p20 (NOT in AR2023); no page 46/48 holds them"
+      },
+      "evidence": "AR2023 p17: Revenue (USD m) 2,634 | 2,421; EBITDA 794 | 842; Net Profit 338 | 147. AR2021 p23: 2021 revenue 2,111, EBITDA 836, net profit 57. FY2022 as first reported (AR2022 p20) was 2,427 / 828 / 133 - the manifest correctly uses the later restated 2,421/842/147 as its notes state. The facts are USD amounts of a SAR-reporting issuer under metric names revenue/ebitda/net_income: with no SAR annual statements for FY2021-FY2023 in the repo, a consumer asking for 7030 FY2023 revenue gets 2,634 (USD m).",
+      "fix": "Cite AR2021 p23 for 2021 and AR2023 p17 for 2022-2023; add the archive entry for this manifest; publish SAR figures from Zain KSA's own audited statements or dimension the facts as currency basis USD."
+    },
+    {
+      "id": "C-7030-06",
+      "defect_class": "internal_source_inconsistency",
+      "severity": "low",
+      "status": "verified_correct_with_caveat",
+      "manifest": "zain-ksa-2021-operating-kpis.json",
+      "metric": "five_g_coverage",
+      "period": "2021-12-31",
+      "page": {
+        "pdf_page": 23
+      },
+      "evidence": "AR2021 p23 text: 'increase of 5G population coverage from 54% to 63%' but the Network KPI donut on the same page shows '62%'. Published 63% follows the text. 2022 (63%, p20 donut) verified.",
+      "fix": "None required; keep a note that the issuer's own page conflicts."
+    },
+    {
+      "id": "C-7030-07",
+      "defect_class": "source_not_archived",
+      "severity": "medium",
+      "status": "unverified",
+      "manifest": "zain-ksa-2023-2025-quarterly-results.json",
+      "metric": "revenue / operating_income / net_income (36 facts)",
+      "period": "Q1-2023..Q4-2025",
+      "evidence": "Saudi Exchange announcements (anId=93064 etc.) are not archived. Arithmetic reconciliation only (NOT proof): FY2025 quarters 10,983 / 1,313 / 604 vs audited FY2025 10,983,264 / 1,312,791 / 603,873; FY2024 10,364 / 1,200 / 596 vs 10,365,461 / 1,199,106 / 596,369. By construction Q4 = FY less 9M so annual totals reconcile regardless; Q1-Q3 individual values cannot be verified. FY2023: no SAR annual in the repo to reconcile (USD 2,634 m x 3.75 = 9,877 vs quarter sum 9,882).",
+      "fix": "Archive the quarterly announcements' PDFs/pages; the manifest already lists exact URLs."
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "zain-FY2025-FS-primary-statements",
+      "manifest": "zain-ksa-2025-fy.json",
+      "document": {
+        "url": "https://sa.zain.com/sites/default/files/media/2026-02/Zain%20English%20Signed%20FS%202025_3.pdf",
+        "archive_path": "data/raw/SA/7030/documents/bee6f9b63c9d81f625abb5675852d96679bb2776b746ef6f1bf2b1e7e26d192c.pdf",
+        "sha256": "bee6f9b63c9d81f625abb5675852d96679bb2776b746ef6f1bf2b1e7e26d192c",
+        "pdf_pages": 71,
+        "archived": true,
+        "note": "PDF p8 financial position, p9 profit or loss and OCI, p11 cash flows, p10 changes in equity are scanned images (printed pages 7-10); notes digital"
+      },
+      "status": "done",
+      "verification_basis": "rendered images read line by line, both columns",
+      "checks_performed": [
+        "Financial position 2025/2024: PPE 4,769,761/4,977,368; intangibles 13,270,363/13,556,680; total non-current 20,611,119/20,822,578; inventories 180,506/263,180; trade receivables and other assets 6,871,811/6,058,398; cash 951,157/840,201; total current 8,142,184/7,312,883; total assets 28,753,303/28,135,461; borrowings NC 8,329,221/2,233,558; total NCL 11,511,791/4,728,638; current borrowings 233,263/5,965,202; total CL 6,365,561/12,699,986; total liabilities 17,877,352/17,428,624; share capital 8,987,292; other reserve 51,882/14,072; retained earnings 1,831,135/1,676,969; NCI 5,642/-; total equity 10,875,951/10,706,837",
+        "Profit or loss: revenue 10,983,264/10,365,461; cost (4,409,757)/(3,894,395); gross 6,573,507/6,471,066; SG&A as sum of distribution and marketing (2,193,529)/(2,172,243) + G&A (529,172)/(547,403); D&A (2,160,661)/(2,123,721); operating profit 1,312,791/1,199,106; finance income 14,756/32,292; finance cost (679,827)/(734,929); other income/(expense) 3,991/(14,716); PBT 651,110/554,482; zakat (47,237)/+41,887 (credit - sign verified); profit 603,873/596,369; parent 603,531/596,369; NCI 342/-; EPS 0.67/0.66",
+        "Cash flow: operating 1,775,899/2,044,463; investing (489,612)/(513,546) (footing of the detail lines re-added: -248,257+12,184-21,482+14,746-2,700-244,103 = -489,612); financing (1,174,100)/(1,636,818); net change 112,187/(105,901); FX (705)/60; opening 839,133/944,974; closing 950,615/839,133; capex = 248,257+244,103 = 492,360 and 427,374+193,089 = 620,463; dividends (451,855)/(448,115)",
+        "cash_end 950,615 vs balance sheet cash 951,157: difference 542 = 'cash at bank under lien' printed in note 6 (p34); 2024: 1,068 - explained, not an error",
+        "Zain presents operating profit AFTER expected credit loss (377,354 / 428,593); the manifest's operating_income is the printed subtotal"
+      ],
+      "verified_correct": {
+        "count": 86,
+        "of": 86,
+        "summary": "all 86 published facts verified_correct"
+      },
+      "defects": [],
+      "missing_fields_in_document_not_extracted": {
+        "income_statement": [
+          "Expected credit loss (377,354)/(428,593) (published only for 2025 in the notes manifest)",
+          "Share of loss of associate (601)/(766) (2025 only elsewhere)",
+          "Gain on tower sale 21,238 (2024)",
+          "Government grant income 52,257 (2024)",
+          "Total comprehensive income 613,179/564,782 (2025 only elsewhere)",
+          "OCI lines (EOSB remeasurement 37,810/15,543; hedge (28,504)/(47,130))"
+        ],
+        "balance_sheet": [
+          "Right of use assets 1,400,608/1,098,144",
+          "Capital advances 840,269/901,595",
+          "Contract assets, lease liabilities, spectrum payable 1,175,455/931,407, trade and other payables 5,264,904/5,632,908, provisions, related-party payable (2025 only in notes manifest)",
+          "Hedging reserve 28,504 (2024) - so equity attributable to parent is not published"
+        ],
+        "cash_flow": [
+          "every detail line for 2024 (repayments (1,186,697), proceeds 870,000, lease (224,003), finance cost paid (648,003), zakat (30,832) ...)",
+          "2025 detail lines are only in the notes manifest"
+        ],
+        "statement_of_changes_in_equity": "not extracted (PDF p10)"
+      },
+      "fix_plan": [
+        "Add FY2024 column for the lines already extracted in zain-ksa-2025-notes-segments.json",
+        "Extract ECL, tower gain, grant income, comprehensive income, OCI so operating profit -> PBT can be proven line by line"
+      ]
+    },
+    {
+      "source_id": "zain-FY2025-FS-notes-segments",
+      "manifest": "zain-ksa-2025-notes-segments.json",
+      "document": {
+        "url": "https://sa.zain.com/sites/default/files/media/2026-02/Zain%20English%20Signed%20FS%202025_3.pdf",
+        "archive_path": "data/raw/SA/7030/documents/bee6f9b63c9d81f625abb5675852d96679bb2776b746ef6f1bf2b1e7e26d192c.pdf",
+        "sha256": "bee6f9b63c9d81f625abb5675852d96679bb2776b746ef6f1bf2b1e7e26d192c",
+        "pdf_pages": 71,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "digital notes (PDF page = printed page + 1) + scanned statement lines read visually; all 104 facts located and semantically read",
+      "checks_performed": [
+        "Statement-derived duplicates (ECL (377,354), operating profit, finance cost, zakat, comprehensive income 613,179, all 2025 cash-flow detail lines) re-read from the images: verified_correct",
+        "Notes: ROU 1,400,608; PPE roll-forward (additions 853,001, depreciation 1,032,059); intangibles (additions 490,850, amortisation 819,988); goodwill 25,865 (printed on PDF p43, cited p44); trade payables 2,691,358 / accruals 1,846,496; borrowings 8,562,484 (current 233,263); leases 282,314/1,531,170; EOSB 147,626 and actuarial 37,810; zakat provision 88,864; ECL charge 449,475 - reversal 72,486 = 376,989 (this is the note's 'closing balance'); revenue by product (usage 6,271,929 ...); segment revenue Consumer 6,911,555 / Business 1,804,454 / Wholesale 3,129,827 (sum 11,845,836 before eliminations (862,572) = 10,983,264); related parties; commitments 'SAR 1.85 billion' stored 1,850,000 x1000 = correct; undrawn facility 'SAR 780 million' stored 780,000 x1000 = correct; net debt 9,424,811",
+        "employee_benefit_expense 650,695 = distribution salaries 350,623 + G&A salaries 300,072 (aggregate of two printed lines; label says so)",
+        "Zero-valued facts (derivative level-2, brand impairment, variable lease) match printed dashes ('-')"
+      ],
+      "verified_correct": {
+        "count": 99,
+        "of": 104,
+        "summary": "99 facts fully correct; 5 defective: 3 entity-segment facts with scope=consolidated (values correct, label wrong), 1 derived value that is not printed (revenue_by_geography), 1 sentence stored as numeric 0 (customer_concentration)"
+      },
+      "defects": [
+        "C-7030-01",
+        "C-7030-02",
+        "C-7030-03"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "note": "FY2024 comparatives of every note table (e.g. ROU 1,098,144; borrowings 8,198,760; trade payables; ECL closing 429,183) are printed but not published."
+      },
+      "fix_plan": [
+        "Apply C-7030-01/02/03",
+        "Add FY2024 columns",
+        "Convert page numbers to PDF pages (printed+1) - 69 facts are off by exactly one page"
+      ]
+    },
+    {
+      "source_id": "zain-FY2025-AR-company-profile",
+      "manifest": "zain-ksa-2025-company-profile.json",
+      "document": {
+        "url": "https://d30ezutk4plts9.cloudfront.net/media/documents/ZainAR2025En.pdf",
+        "archive_path": "data/raw/SA/7030/documents/23f6d19a79de8c10bcc12e19128f9dd672e4c52333106d9e277ea7d75c524c44.pdf",
+        "sha256": "23f6d19a79de8c10bcc12e19128f9dd672e4c52333106d9e277ea7d75c524c44",
+        "pdf_pages": 159,
+        "archived": true
+      },
+      "status": "done",
+      "verification_depth": "sample: ownership, dividend, market data, identity",
+      "checks_performed": [
+        "37% / 21% / 42% ownership, SAR 10.26 share price (p34) located",
+        "dividends: SAR 0.5 per share each year (p23-24, 34) - amount correct per share; stored in the wrong field (C-7030-04)"
+      ],
+      "defects": [
+        "C-7030-04"
+      ],
+      "verified_correct": {
+        "summary": "sampled identity/ownership items verified_correct; remainder unverified"
+      }
+    },
+    {
+      "source_id": "zain-2021-AR-KSA-operations",
+      "manifest": "zain-ksa-2021-operating-kpis.json",
+      "document": {
+        "archive_path": "data/raw/SA/7030/documents/644c9fd89cdf40bba37d7b6c2f2dcdbccc1b480cfcac5626a31fee8decd4c2c9.pdf",
+        "sha256": "644c9fd89cdf40bba37d7b6c2f2dcdbccc1b480cfcac5626a31fee8decd4c2c9",
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer + rendered donut/infographic pages where needed",
+      "checks_performed": [
+        "AR2021 p23 (printed 44-45): customers 8,027k, ARPU $19, capex USD 271 m, 4,805 5G sites, 5G coverage 63% (text) / 62% (donut)"
+      ],
+      "verified_correct": {
+        "summary": "all values verified_correct"
+      },
+      "defects": [
+        "C-7030-06"
+      ]
+    },
+    {
+      "source_id": "zain-2022-AR-KSA-operations",
+      "manifest": "zain-ksa-2022-operating-kpis.json",
+      "document": {
+        "archive_path": "data/raw/SA/7030/documents/6db521ccfb0847f9a69c336b394176b1e5b477e7e81cc874dc3e5e144e54bcac.pdf",
+        "sha256": "6db521ccfb0847f9a69c336b394176b1e5b477e7e81cc874dc3e5e144e54bcac",
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer + rendered donut/infographic pages where needed",
+      "checks_performed": [
+        "AR2022 p20 (printed 38-39): customers 8,644k, ARPU $17, capex USD 242 m, 5G 63%, LTE 94% (donut) verified_correct"
+      ],
+      "verified_correct": {
+        "summary": "all values verified_correct"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "zain-2023-AR-KSA-operations",
+      "manifest": "zain-ksa-2023-operating-kpis.json",
+      "document": {
+        "archive_path": "data/raw/SA/7030/documents/c3d63156bb98c10362c6627f3cb144ad0f2655facf84c2cbb89da946592bc62b.pdf",
+        "sha256": "c3d63156bb98c10362c6627f3cb144ad0f2655facf84c2cbb89da946592bc62b",
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer + rendered donut/infographic pages where needed",
+      "checks_performed": [
+        "AR2023 p17: customers 8,892k, ARPU $17, capex USD 253 m verified_correct"
+      ],
+      "verified_correct": {
+        "summary": "all values verified_correct"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "zain-2024-IR-deck-KSA-operations",
+      "manifest": "zain-ksa-2024-operating-kpis.json",
+      "document": {
+        "archive_path": "data/raw/SA/7030/documents/b4b0d88df3a7bb9e46423a8a326f6b2c0c95e88f9b584b48d91ae196ac43382b.pdf",
+        "sha256": "b4b0d88df3a7bb9e46423a8a326f6b2c0c95e88f9b584b48d91ae196ac43382b",
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer + rendered donut/infographic pages where needed",
+      "checks_performed": [
+        "FY2024 IR deck p23: customer base 9.3M, blended ARPU $16, total capex $396M verified_correct"
+      ],
+      "verified_correct": {
+        "summary": "all values verified_correct"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "zain-2025-AR-KSA-operations",
+      "manifest": "zain-ksa-2025-operating-kpis.json",
+      "document": {
+        "archive_path": "data/raw/SA/7030/documents/23f6d19a79de8c10bcc12e19128f9dd672e4c52333106d9e277ea7d75c524c44.pdf",
+        "sha256": "23f6d19a79de8c10bcc12e19128f9dd672e4c52333106d9e277ea7d75c524c44",
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer + rendered donut/infographic pages where needed",
+      "checks_performed": [
+        "AR2025 p34: customer base 8.1 million (decline vs 9.3M kept as printed), ARPU $17, CAPEX $357M verified_correct"
+      ],
+      "verified_correct": {
+        "summary": "all values verified_correct"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "zain-FY2021-2023-parent-AR-history",
+      "manifest": "zain-ksa-2021-2023-financial-history.json",
+      "document": {
+        "url": "https://zainweb-data.s3.amazonaws.com/media/documents/AnnualReport2023EN.pdf",
+        "archive_path": "data/raw/SA/7030/documents/c3d63156bb98c10362c6627f3cb144ad0f2655facf84c2cbb89da946592bc62b.pdf",
+        "archived": true,
+        "note": "archive-index registers this PDF only for zain-ksa-2023-operating-kpis.json; the history manifest has no archive entry. Verified against AR2023 p17, AR2022 p20, AR2021 p23."
+      },
+      "status": "done",
+      "checks_performed": [
+        "All 9 USD-million values verified_correct (see C-7030-05 for provenance/currency defects)"
+      ],
+      "verified_correct": {
+        "count": 9,
+        "of": 9
+      },
+      "defects": [
+        "C-7030-05"
+      ]
+    },
+    {
+      "source_id": "zain-2023-2025-quarterly-announcements",
+      "manifest": "zain-ksa-2023-2025-quarterly-results.json",
+      "document": {
+        "url": "saudiexchange.sa announcements (see manifest)",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source announcements not archived",
+      "related_findings": [
+        "C-7030-07"
+      ],
+      "fix_plan": [
+        "Archive the 12 announcement pages/PDFs"
+      ]
+    },
+    {
+      "source_id": "zain-market-price-history",
+      "manifest": "telecom-market-history-7030-through-2026-09-22.json",
+      "document": {
+        "archive_path": "origin/claude/telecom-shared-gap-closers:data/raw/SA/7030/market/saudi-exchange-historical-2026-09-22.csv (1,247 rows)",
+        "archived": "partially (other branch only)"
+      },
+      "status": "done",
+      "scope_of_check": "market data",
+      "checks_performed": [
+        "All 1,247 raw rows (2021-2026 window) equal the manifest",
+        "Self-consistency of all 4,616 rows: 224 early rows have a close with null open/high/low (2008-03-24 ...), 1 daily move >15% (2008-10-07 70.86->58.80), 2 turnover/volume outliers"
+      ],
+      "verified_correct": {
+        "summary": "window verified_correct; 2008-2020 unverified"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "zain-regulation-industry-context",
+      "manifest": "zain-ksa-telecom-regulation.json; zain-ksa-2024-industry-context.json",
+      "document": {
+        "archived": false
+      },
+      "status": "done",
+      "reason": "no numeric facts",
+      "defects": []
+    }
+  ]
+}

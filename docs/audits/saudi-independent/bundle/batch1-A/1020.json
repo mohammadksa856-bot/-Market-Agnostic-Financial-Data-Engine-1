@@ -1,0 +1,1899 @@
+{
+ "symbol": "1020",
+ "company": "Bank AlJazira",
+ "audited_branch_commit": "origin/codex/telecom-95pct @ ec610f3de3aca3a02c1a65526b666f315254b16e",
+ "other_branches_checked": "Authoritative = origin/codex/telecom-95pct. origin/claude/data-banking-notes-1 and -profiles-1 carry OLDER copies of the 2025 FY manifests + alrajhi-supplement.json (not audited as authoritative). origin/claude/aramco-alrajhi-gap-closure adds alrajhi-2025-annual-notes/company-profile/q4-supplement.json (audited read-only via git show: annual-notes 8 facts verified numerically; q4-supplement 1161/1188 values match workbook, 27 = EPS rounding).",
+ "resumable_status": {
+  "done": 39,
+  "pending": 0,
+  "documents_total": 39
+ },
+ "dimension_1_numeric_correctness": {
+  "text_pdf_facts": 243,
+  "value_on_page_label_period_ok": 153,
+  "other_text_pdf": 90,
+  "pillar3_facts_checked(published+rejected)": 1747,
+  "pillar3_ok": 1702,
+  "xlsx_facts_checked(published+rejected)": 1470,
+  "xlsx_ok": 1412,
+  "xlsx_eps_rounding_only": 58,
+  "status": "defective"
+ },
+ "dimension_2_document_completeness": {
+  "status": "defective",
+  "unextracted_core_lines_present_in_source_documents": 53,
+  "detail": "per-document list in documents[].document_completeness_unextracted_lines_present_in_document (only PDF statements scanned; Pillar 3 only KM1 core rows; other Pillar 3 templates not extracted)"
+ },
+ "dimension_3_company_coverage": {
+  "status": "incomplete_severely",
+  "published_period_range": "2008-Q2/Q3, 2013-2015 Q3/Q1, then Pillar3 2019+, supplements 2024-2026, FY2025",
+  "missing_periods": [
+   "2009-2012 all",
+   "2013 Q1,Q2,FY",
+   "2014 Q1,Q2,FY",
+   "2015 Q2,FY",
+   "2016-2020 all statements",
+   "2021-2023 Q1-Q3 statements (only FY2021-23 via supplement)"
+  ],
+  "evidence": "39/39 archived documents have manifests; quarterly P&L/BS 2024+ only through data supplements (data-supplement rank 1)"
+ },
+ "defects": [
+  {
+   "id": "D5",
+   "symbols": [
+    "1020"
+   ],
+   "severity": "high",
+   "documents": [
+    "aljazira-2008-q2.json",
+    "aljazira-2008-q3.json"
+   ],
+   "summary": "aljazira-2008-q2: bank_investments=13,312 is the income-statement row 'Gain on non-trading investments, net' (3M June-2007 comparative); real Investments = 4,431,820 (p3). The whole income statement (p4) is missing from both 2008 interims; due_from/due_to missing in Q2.",
+   "evidence": [
+    {
+     "pdf_page": 4,
+     "line": "Gain on non-trading investments, net - 13,312 4,003 22,501 (3M08, 3M07, 6M08, 6M07)"
+    },
+    {
+     "pdf_page": 3,
+     "line": "Investments 4 4,431,820; Due from banks 2,758,879; Due to banks 1,643,829"
+    }
+   ],
+   "root_cause": "Plural heading 'STATEMENTS OF INCOME' was not an ANCHORS entry; substring label match 'investments'.",
+   "fix": "plural anchors; test PluralStatementHeadingTests.",
+   "defect_class": "wrong_row_wrong_column_and_missing_statement"
+  },
+  {
+   "id": "D8",
+   "symbols": [
+    "1080",
+    "1010",
+    "1020"
+   ],
+   "severity": "medium",
+   "documents": [
+    "*anb",
+    "*riyad",
+    "*aljazira"
+   ],
+   "summary": "other_expense (unsigned expense line) is published positive in 72 facts while every other expense metric is negative.",
+   "evidence": [
+    {
+     "doc": "aljazira-2008-q2",
+     "pdf_page": 4,
+     "line": "Other operating expenses 21 289 367 1,273"
+    }
+   ],
+   "fix": "other_expense added to _BANK_NATURAL_NEGATIVE_METRICS; test OtherExpenseSignTests.",
+   "defect_class": "sign_convention"
+  },
+  {
+   "id": "D9",
+   "symbols": [
+    "1140",
+    "1010",
+    "1080",
+    "1020"
+   ],
+   "severity": "medium",
+   "documents": [
+    "*albilad",
+    "*riyad",
+    "*anb",
+    "*aljazira"
+   ],
+   "summary": "Lines present on the statement pages but not published (list per document in documents[]): Albilad 'Income from investing and financing assets' (financing_income) and '..., net'; 'Fee and commission, net'; 'Impairment charge for credit and other financial assets, net'; cash-flow subtotals missing in many interims (ANB operating CF 55 docs, Riyad cash_end 31 / D&A 37, Albilad); Riyad pre-zakat income (15).",
+   "evidence": [
+    {
+     "doc": "albilad-2019-fy",
+     "pdf_page": 8,
+     "line": "Income from investing and financing assets 20 3,355,200 2,723,748"
+    }
+   ],
+   "fix": "Add labels to BANK_LINE_MAP (planned, not applied: changes protected data on republish).",
+   "defect_class": "document_completeness_label_gaps"
+  },
+  {
+   "id": "D10",
+   "symbols": [
+    "1120",
+    "1020",
+    "1010",
+    "1140"
+   ],
+   "severity": "low",
+   "documents": [
+    "*alrajhi",
+    "*aljazira",
+    "*riyad",
+    "*albilad"
+   ],
+   "summary": "Pillar 3: all 7,569 published+rejected KM1 values match the printed cell, month and unit (45 aljazira leverage cells not locatable by row id). Only the oldest column per doc is published (vintage rule); rows 8-12, 'a' variants, LCR/NSFR for old Riyad docs and all non-KM1 templates are not extracted. Supplements: values match workbooks; EPS published at 2dp vs unrounded; Al Rajhi workbook has duplicate FY/quarter columns with different values (FY2023 DPS 1.15 col T vs 2.3 col BF; FY2021 total assets 623,126.517 vs 623,644.628) - original column published, restated column unverified.",
+   "evidence": [
+    {
+     "xlsx": "alrajhi 2Q2026 sheet '1. Income Statement' row 29 cols T and BF"
+    }
+   ],
+   "defect_class": "pillar3_and_supplement_notes"
+  }
+ ],
+ "manual_visual_checks": [
+  {
+   "doc": "aljazira-2025-fy",
+   "pages": [
+    7,
+    8,
+    11,
+    12
+   ],
+   "result": "all 84 published values (2025 + restated 2024) match the scanned statements; combos: provision_2024 274,889 = 317,460 - 42,571; zakat+tax 280,289 = 267,145 + 13,144 and 173,665 = 165,281 + 8,384"
+  }
+ ],
+ "documents": [
+  {
+   "manifest": "aljazira-2008-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2008-06-30",
+   "facts_published": 10,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "138c989b2dfcc38c.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 7,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 3,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     7,
+     "Net cash used in operating activities",
+     [
+      "(927,427)",
+      "(180,702)"
+     ]
+    ],
+    "cash_end": [
+     7,
+     "Other real estate, net Cash and cash equivalents at the end ",
+     [
+      "-",
+      "749",
+      "6)",
+      "2,853,942",
+      "4,060,880"
+     ]
+    ],
+    "cash_beginning": [
+     7,
+     "Investments held for trading Cash and cash equivalents at th",
+     [
+      "469,619",
+      "601,818",
+      "3,891,962",
+      "6,543,525"
+     ]
+    ],
+    "depreciation_amortization": [
+     4,
+     "Depreciation",
+     [
+      "18,771",
+      "15,171",
+      "36,083",
+      "26,821"
+     ]
+    ],
+    "provision_expense": [
+     7,
+     "Provision for credit losses, net Net cash from (used in) inv",
+     [
+      "32,190",
+      "-",
+      "2,334",
+      "(2,073,231)"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Trading income, net",
+     [
+      "6,489",
+      "7,385",
+      "1,784",
+      "11,841"
+     ]
+    ],
+    "dividend_income": [
+     4,
+     "Dividend income",
+     [
+      "1,994",
+      "5,501",
+      "6,330",
+      "6,602"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Special commission income",
+     [
+      "254,450",
+      "227,177",
+      "523,754",
+      "432,350"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Net special commission income",
+     [
+      "167,774",
+      "155,739",
+      "334,686",
+      "294,485"
+     ]
+    ],
+    "financing_expense": [
+     4,
+     "Special commission expense",
+     [
+      "(86,676)",
+      "(71,438)",
+      "(189,068)",
+      "(137,865)"
+     ]
+    ],
+    "due_from_banks": [
+     3,
+     "Due from banks and other financial Share capital",
+     [
+      "9",
+      "3,000,000",
+      "2,250,000",
+      "2,250,000"
+     ]
+    ],
+    "due_to_banks": [
+     3,
+     "Due to banks and other financial interests",
+     [
+      "4,906,674",
+      "4,789,089",
+      "4,398,359"
+     ]
+    ],
+    "general_and_administrative_expense": [
+     4,
+     "Other general and administrative expense",
+     [
+      "53,679",
+      "43,909",
+      "104,701",
+      "78,298"
+     ]
+    ],
+    "salaries_and_employee_expenses": [
+     4,
+     "Salaries and employee-related expenses",
+     [
+      "119,870",
+      "87,096",
+      "221,879",
+      "161,821"
+     ]
+    ],
+    "total_operating_expenses": [
+     4,
+     "Total operating expenses",
+     [
+      "231,255",
+      "156,651",
+      "419,914",
+      "269,501"
+     ]
+    ],
+    "total_operating_income": [
+     4,
+     "Total operating income",
+     [
+      "331,317",
+      "363,328",
+      "673,071",
+      "778,495"
+     ]
+    ],
+    "other_income": [
+     4,
+     "Other operating income",
+     [
+      "2,676",
+      "473",
+      "2,717",
+      "3,787"
+     ]
+    ],
+    "exchange_income": [
+     4,
+     "Exchange income, net",
+     [
+      "5,204",
+      "3,915",
+      "9,037",
+      "7,273"
+     ]
+    ]
+   },
+   "defects": [
+    "D5",
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2008-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2008-09-30",
+   "facts_published": 10,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "f1ea8dd9132a016c.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 10,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     6,
+     "Net cash used in operating activities",
+     [
+      "(2,157,387)",
+      "(673,214)"
+     ]
+    ],
+    "investing_cash_flow": [
+     6,
+     "Net cash from (used in) investing activities",
+     [
+      "582,413",
+      "(3,302,981)"
+     ]
+    ],
+    "financing_cash_flow": [
+     6,
+     "Net cash used in financing activities",
+     [
+      "(135,411)",
+      "(218,423)"
+     ]
+    ],
+    "cash_end": [
+     6,
+     "Cash and cash equivalents at the end of the period (Note",
+     [
+      "6)",
+      "2,181,577",
+      "2,348,907"
+     ]
+    ],
+    "cash_beginning": [
+     6,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "3,891,962",
+      "6,543,525"
+     ]
+    ],
+    "depreciation_amortization": [
+     6,
+     "Depreciation",
+     [
+      "55,169",
+      "42,199"
+     ]
+    ],
+    "provision_expense": [
+     6,
+     "Provision for credit losses, net",
+     [
+      "33,673",
+      "-"
+     ]
+    ],
+    "dividend_income": [
+     6,
+     "Dividend received",
+     [
+      "3,821",
+      "-"
+     ]
+    ],
+    "share_capital": [
+     3,
+     "Share capital",
+     [
+      "8",
+      "3,000,000",
+      "2,250,000",
+      "2,250,000"
+     ]
+    ]
+   },
+   "defects": [
+    "D5",
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2013-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2013-09-30",
+   "facts_published": 36,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "d992ecdf589ed4c9.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 36,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     7,
+     "Net cash (used in) / from operating activities",
+     [
+      "(1,274,202)",
+      "3,552,485"
+     ]
+    ],
+    "investing_cash_flow": [
+     7,
+     "Net cash used in investing activities",
+     [
+      "(277,933)",
+      "(3,218,339)"
+     ]
+    ],
+    "financing_cash_flow": [
+     15,
+     "Net cash used in financing activities",
+     [
+      "(148,979)",
+      "(9,293)",
+      "(158,272)"
+     ]
+    ],
+    "cash_end": [
+     7,
+     "Cash and cash equivalents at the end of the period (note",
+     [
+      "11)",
+      "5,536,640",
+      "6,133,603"
+     ]
+    ],
+    "cash_beginning": [
+     7,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "7,088,775",
+      "5,957,729"
+     ]
+    ],
+    "depreciation_amortization": [
+     4,
+     "Depreciation",
+     [
+      "17,732",
+      "16,206",
+      "52,463",
+      "48,688"
+     ]
+    ],
+    "provision_expense": [
+     4,
+     "credit losses, net",
+     [
+      "(2,928)",
+      "35,659",
+      "83,607",
+      "140,197"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Trading income , net",
+     [
+      "25,977",
+      "14,207",
+      "44,581",
+      "25,033"
+     ]
+    ]
+   },
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2014-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2014-09-30",
+   "facts_published": 39,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "01a8ea17723be1dc.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 38,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 1,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     7,
+     "Net cash used in operating activities",
+     [
+      "(1,573,546)",
+      "(1,274,202)"
+     ]
+    ],
+    "investing_cash_flow": [
+     7,
+     "Net cash from / (used in) investing activities",
+     [
+      "351,499",
+      "(277,933)"
+     ]
+    ],
+    "cash_end": [
+     7,
+     "Cash and cash equivalents at the end of the period (note",
+     [
+      "11)",
+      "5,868,453",
+      "5,536,640"
+     ]
+    ],
+    "cash_beginning": [
+     7,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "7,090,500",
+      "7,088,775"
+     ]
+    ],
+    "depreciation_amortization": [
+     4,
+     "Depreciation",
+     [
+      "19,863",
+      "17,732",
+      "58,773",
+      "52,463"
+     ]
+    ],
+    "provision_expense": [
+     4,
+     "credit losses, net",
+     [
+      "211,186",
+      "(2,928)",
+      "367,747",
+      "83,607"
+     ]
+    ]
+   },
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2015-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2015-03-31",
+   "facts_published": 27,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "4a4a624bf1f4f9b0.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 27,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     7,
+     "Net cash from / (used in) operating activities",
+     [
+      "2,964,874",
+      "(2,654,775)"
+     ]
+    ],
+    "investing_cash_flow": [
+     7,
+     "Net cash (used in) / from investing activities",
+     [
+      "(44,951)",
+      "165,836"
+     ]
+    ],
+    "cash_end": [
+     7,
+     "Cash and cash equivalents at the end of the period (note",
+     [
+      "11)",
+      "9,726,327",
+      "4,601,561"
+     ]
+    ],
+    "cash_beginning": [
+     7,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "6,806,404",
+      "7,090,500"
+     ]
+    ],
+    "depreciation_amortization": [
+     4,
+     "Depreciation",
+     [
+      "21,110",
+      "19,321"
+     ]
+    ]
+   },
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2015-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2015-09-30",
+   "facts_published": 35,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "0acebcf221502784.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 35,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     7,
+     "Net cash from / (used in) operating activities",
+     [
+      "1,667,795",
+      "(1,573,546)"
+     ]
+    ],
+    "investing_cash_flow": [
+     7,
+     "Net cash (used in) / from investing activities",
+     [
+      "(7,319)",
+      "351,499"
+     ]
+    ],
+    "cash_end": [
+     7,
+     "Cash and cash equivalents at the end of the period (note",
+     [
+      "11)",
+      "8,466,880",
+      "5,868,453"
+     ]
+    ],
+    "cash_beginning": [
+     7,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "6,806,404",
+      "7,090,500"
+     ]
+    ],
+    "depreciation_amortization": [
+     4,
+     "Depreciation",
+     [
+      "18,432",
+      "19,863",
+      "59,838",
+      "58,773"
+     ]
+    ],
+    "provision_expense": [
+     4,
+     "credit losses, net",
+     [
+      "(39,810)",
+      "211,186",
+      "65,332",
+      "367,747"
+     ]
+    ],
+    "trading_income": [
+     7,
+     "Trading income, net",
+     [
+      "(2,285)",
+      "(48,612)"
+     ]
+    ]
+   },
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2019-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-06-30",
+   "facts_published": 18,
+   "facts_rejected_or_excluded": 17,
+   "source_document": "b2288b351d59622e.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 35,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2019-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-12-31",
+   "facts_published": 6,
+   "facts_rejected_or_excluded": 46,
+   "source_document": "96bca887b6b013e4.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 52,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2020-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-03-31",
+   "facts_published": 6,
+   "facts_rejected_or_excluded": 29,
+   "source_document": "2b4252d71f51c8ba.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 35,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2020-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-06-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "379e04c407ff6c6d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2020-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-09-30",
+   "facts_published": 24,
+   "facts_rejected_or_excluded": 41,
+   "source_document": "02def5fe966c9ac7.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2021-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-03-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "fc6eec6a878804bd.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2021-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-06-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "4a55ce9643ed1304.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2021-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-09-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "96928b818fe0ea5e.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2021-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-12-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "b65e82e21d9ed460.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2022-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-03-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "9fd8eb4aef19b512.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2022-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-06-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "50f80875e10dc3cd.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2022-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-09-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "8ccca54c20601b01.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2022-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-12-31",
+   "facts_published": 24,
+   "facts_rejected_or_excluded": 41,
+   "source_document": "4f60f90d98354c13.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2023-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-06-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "4d2f6303e8ce76ab.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2023-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-09-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "a4ff54d99d335fae.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2023-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-12-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "ae1cdcaf72492921.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2024-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-03-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "4d71a915607367e2.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2024-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-06-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "15665a3163ac6242.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2024-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-09-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "57b7ef1db104ed98.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2024-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-12-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "f6c012529e38e115.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2025-12-31",
+   "facts_published": 86,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "5fc9c27102e5be4a.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 0,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": [
+     [
+      "cash_and_balances_with_central_bank",
+      "7059209",
+      7
+     ],
+     [
+      "due_from_banks",
+      "6025771",
+      7
+     ],
+     [
+      "bank_investments",
+      "38967880",
+      7
+     ],
+     [
+      "net_loans",
+      "110862169",
+      7
+     ],
+     [
+      "total_assets",
+      "165923974",
+      7
+     ],
+     [
+      "due_to_banks",
+      "23912230",
+      7
+     ],
+     [
+      "customer_deposits",
+      "115395315",
+      7
+     ],
+     [
+      "debt_securities_issued",
+      "2007489",
+      7
+     ],
+     [
+      "total_liabilities",
+      "144149145",
+      7
+     ],
+     [
+      "share_capital",
+      "12812500",
+      7
+     ],
+     [
+      "statutory_reserve",
+      "802412",
+      7
+     ],
+     [
+      "other_reserves",
+      "-578763",
+      7
+     ],
+     [
+      "retained_earnings",
+      "2070448",
+      7
+     ],
+     [
+      "total_equity",
+      "21774829",
+      7
+     ],
+     [
+      "total_liabilities_equity",
+      "165923974",
+      7
+     ],
+     [
+      "cash_and_balances_with_central_bank",
+      "6583790",
+      7
+     ],
+     [
+      "due_from_banks",
+      "6697117",
+      7
+     ],
+     [
+      "bank_investments",
+      "36406356",
+      7
+     ],
+     [
+      "net_loans",
+      "96912496",
+      7
+     ],
+     [
+      "total_assets",
+      "149118701",
+      7
+     ],
+     [
+      "due_to_banks",
+      "19309333",
+      7
+     ],
+     [
+      "customer_deposits",
+      "108186514",
+      7
+     ],
+     [
+      "debt_securities_issued",
+      "2005918",
+      7
+     ],
+     [
+      "total_liabilities",
+      "131704371",
+      7
+     ],
+     [
+      "share_capital",
+      "10250000",
+      7
+     ],
+     [
+      "statutory_reserve",
+      "1707276",
+      7
+     ],
+     [
+      "other_reserves",
+      "-880833",
+      7
+     ],
+     [
+      "retained_earnings",
+      "2462887",
+      7
+     ],
+     [
+      "total_equity",
+      "17414330",
+      7
+     ],
+     [
+      "total_liabilities_equity",
+      "149118701",
+      7
+     ],
+     [
+      "financing_income",
+      "8597185",
+      8
+     ],
+     [
+      "financing_expense",
+      "-5597533",
+      8
+     ],
+     [
+      "net_financing_income",
+      "2999652",
+      8
+     ],
+     [
+      "fee_income",
+      "1135823",
+      8
+     ],
+     [
+      "fee_expense",
+      "-401834",
+      8
+     ],
+     [
+      "exchange_income",
+      "284298",
+      8
+     ],
+     [
+      "trading_income",
+      "171890",
+      8
+     ],
+     [
+      "dividend_income",
+      "251955",
+      8
+     ],
+     [
+      "other_income",
+      "36679",
+      8
+     ],
+     [
+      "total_operating_income",
+      "4464334",
+      8
+     ],
+     [
+      "salaries_and_employee_expenses",
+      "-1261146",
+      8
+     ],
+     [
+      "depreciation_amortization",
+      "-177583",
+      8
+     ],
+     [
+      "general_and_administrative_expense",
+      "-809745",
+      8
+     ],
+     [
+      "operating_expense_banking",
+      "-2337628",
+      8
+     ],
+     [
+      "provision_expense",
+      "-353744",
+      8
+     ],
+     [
+      "total_operating_expenses",
+      "-2691372",
+      8
+     ],
+     [
+      "income_before_income_taxes_and_zakat",
+      "1785833",
+      8
+     ],
+     [
+      "income_taxes_and_zakat",
+      "-280289",
+      8
+     ],
+     [
+      "net_income",
+      "1505544",
+      8
+     ],
+     [
+      "eps_diluted",
+      "1.00",
+      8
+     ],
+     [
+      "financing_income",
+      "7978793",
+      8
+     ],
+     [
+      "financing_expense",
+      "-5344371",
+      8
+     ],
+     [
+      "net_financing_income",
+      "2634422",
+      8
+     ],
+     [
+      "fee_income",
+      "1085666",
+      8
+     ],
+     [
+      "fee_expense",
+      "-481605",
+      8
+     ],
+     [
+      "exchange_income",
+      "224066",
+      8
+     ],
+     [
+      "trading_income",
+      "44641",
+      8
+     ],
+     [
+      "dividend_income",
+      "192681",
+      8
+     ],
+     [
+      "other_income",
+      "82533",
+      8
+     ],
+     [
+      "total_operating_income",
+      "3779397",
+      8
+     ],
+     [
+      "salaries_and_employee_expenses",
+      "-1126100",
+      8
+     ],
+     [
+      "depreciation_amortization",
+      "-183815",
+      8
+     ],
+     [
+      "general_and_administrative_expense",
+      "-702694",
+      8
+     ],
+     [
+      "operating_expense_banking",
+      "-2116790",
+      8
+     ],
+     [
+      "provision_expense",
+      "-274889",
+      8
+     ],
+     [
+      "total_operating_expenses",
+      "-2391679",
+      8
+     ],
+     [
+      "income_before_income_taxes_and_zakat",
+      "1404619",
+      8
+     ],
+     [
+      "income_taxes_and_zakat",
+      "-173665",
+      8
+     ],
+     [
+      "net_income",
+      "1230954",
+      8
+     ],
+     [
+      "eps_diluted",
+      "0.81",
+      8
+     ],
+     [
+      "operating_cash_flow",
+      "-761486",
+      11
+     ],
+     [
+      "investing_cash_flow",
+      "-1811418",
+      11
+     ],
+     [
+      "financing_cash_flow",
+      "2323757",
+      11
+     ],
+     [
+      "cash_change",
+      "-249147",
+      12
+     ],
+     [
+      "cash_beginning",
+      "2789806",
+      12
+     ],
+     [
+      "cash_end",
+      "2540659",
+      12
+     ],
+     [
+      "capex",
+      "-342353",
+      11
+     ],
+     [
+      "dividends_paid",
+      "-14652",
+      11
+     ],
+     [
+      "operating_cash_flow",
+      "1641960",
+      11
+     ],
+     [
+      "investing_cash_flow",
+      "-1394306",
+      11
+     ],
+     [
+      "financing_cash_flow",
+      "-461144",
+      11
+     ],
+     [
+      "cash_change",
+      "-213490",
+      12
+     ],
+     [
+      "cash_beginning",
+      "3003296",
+      12
+     ],
+     [
+      "cash_end",
+      "2789806",
+      12
+     ],
+     [
+      "capex",
+      "-252641",
+      11
+     ],
+     [
+      "dividends_paid",
+      "-3676",
+      11
+     ]
+    ]
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-03-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "ec2abf61a8bd6226.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q1-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2025-03-31",
+   "facts_published": 33,
+   "facts_rejected_or_excluded": 196,
+   "source_document": "c1b8cfec58be881.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 220,
+    "mismatch_eps_rounding_only": 9,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-06-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "1ae9c0ccef92b1bc.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q2-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2025-06-30",
+   "facts_published": 65,
+   "facts_rejected_or_excluded": 196,
+   "source_document": "51357eea1772a64.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 251,
+    "mismatch_eps_rounding_only": 10,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-09-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "c2af4a1e136c85e4.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q3-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2025-09-30",
+   "facts_published": 65,
+   "facts_rejected_or_excluded": 196,
+   "source_document": "741ad6d3ca9165b.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 251,
+    "mismatch_eps_rounding_only": 10,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-12-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "83e7915a3477a5cd.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2025-q4-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2025-12-31",
+   "facts_published": 16,
+   "facts_rejected_or_excluded": 229,
+   "source_document": "01e69adf31563f2.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 235,
+    "mismatch_eps_rounding_only": 10,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2026-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2026-03-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "6e36e1fbd1f49cf8.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 5,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2026-q1-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2026-03-31",
+   "facts_published": 33,
+   "facts_rejected_or_excluded": 196,
+   "source_document": "30e1f2cd6ee92f6.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 220,
+    "mismatch_eps_rounding_only": 9,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2026-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2026-06-30",
+   "facts_published": 70,
+   "facts_rejected_or_excluded": 5,
+   "source_document": "1a7f6d956d210ca2.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "aljazira-2026-q2-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2026-06-30",
+   "facts_published": 196,
+   "facts_rejected_or_excluded": 49,
+   "source_document": "1d855bd8c681b67.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 235,
+    "mismatch_eps_rounding_only": 10,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D8",
+    "D9",
+    "D10"
+   ]
+  }
+ ]
+}

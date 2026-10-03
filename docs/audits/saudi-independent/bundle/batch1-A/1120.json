@@ -1,0 +1,1098 @@
+{
+ "symbol": "1120",
+ "company": "Al Rajhi Bank",
+ "audited_branch_commit": "origin/codex/telecom-95pct @ ec610f3de3aca3a02c1a65526b666f315254b16e",
+ "other_branches_checked": "Authoritative = origin/codex/telecom-95pct. origin/claude/data-banking-notes-1 and -profiles-1 carry OLDER copies of the 2025 FY manifests + alrajhi-supplement.json (not audited as authoritative). origin/claude/aramco-alrajhi-gap-closure adds alrajhi-2025-annual-notes/company-profile/q4-supplement.json (audited read-only via git show: annual-notes 8 facts verified numerically; q4-supplement 1161/1188 values match workbook, 27 = EPS rounding).",
+ "resumable_status": {
+  "done": 34,
+  "pending": 0,
+  "documents_total": 34
+ },
+ "dimension_1_numeric_correctness": {
+  "pillar3_facts_checked(published+rejected)": 1997,
+  "pillar3_ok": 1997,
+  "text_pdf_facts": 126,
+  "value_on_page_label_period_ok": 81,
+  "other_text_pdf": 45,
+  "xlsx_facts_checked(published+rejected)": 1260,
+  "xlsx_ok": 1230,
+  "xlsx_eps_rounding_only": 30,
+  "status": "defective_minor_see_defects"
+ },
+ "dimension_2_document_completeness": {
+  "status": "defective",
+  "unextracted_core_lines_present_in_source_documents": 7,
+  "detail": "per-document list in documents[].document_completeness_unextracted_lines_present_in_document (only PDF statements scanned; Pillar 3 only KM1 core rows; other Pillar 3 templates not extracted)"
+ },
+ "dimension_3_company_coverage": {
+  "status": "incomplete",
+  "published_period_range": "FY2014-2025 and quarterly 2019-2026 only via data supplement; statements only 2023-Q3,2024-Q2,FY2025",
+  "missing_periods": [
+   "primary statements for all periods except 2023-Q3, 2024-Q2, FY2025 (supplement fills series, rank below audited statements)"
+  ],
+  "evidence": "35/35 archived docs have manifests; 3 more manifests exist only on origin/claude/aramco-alrajhi-gap-closure (annual-notes, company-profile, q4-supplement)"
+ },
+ "defects": [
+  {
+   "id": "D4",
+   "symbols": [
+    "1080",
+    "1120",
+    "1140",
+    "1010"
+   ],
+   "severity": "medium",
+   "documents": [
+    "anb-2015-annual-report.json",
+    "anb-2017-annual-report.json",
+    "anb-2019-annual-report.json",
+    "anb-2020-q1.json",
+    "anb-2021-q1.json",
+    "alrajhi-2024-q2.json",
+    "albilad-2019-fy.json",
+    "albilad-2020-fy.json",
+    "albilad-2020-q1.json",
+    "albilad-2021-q3.json",
+    "albilad-2022-q1.json",
+    "albilad-2023-q1.json",
+    "albilad-2024-q1.json",
+    "riyad-2018-q2.json",
+    "riyad-2018-q3.json"
+   ],
+   "summary": "Cash-flow reconciliation rows published as income-statement facts: dividend_income negative in 6 docs (-46,277, -53,203, -84,531, -13,223, -16,162, alrajhi-2024-q2 -74,037); financing_expense = 'Special commission expense on Sukuk' (+71,460, +85,129, +18,944, +23,386: partial amount, wrong sign); depreciation/provision add-backs published positive (13 + 8 facts) while IS-sourced expenses are negative.",
+   "evidence": [
+    {
+     "doc": "anb-2017-annual-report",
+     "pdf_page": 16,
+     "line": "Dividend income (53,203); Special commission expense on sukuk 71,460",
+     "correct": "FY2017 special commission expense 1,370,441 (anb-2018 AR p11 comparative); dividend income 53,203 positive"
+    },
+    {
+     "doc": "anb-2019-annual-report",
+     "pdf_page": 9,
+     "correct": "Special commission expense 2,079,685; Dividend income 84,531"
+    }
+   ],
+   "fix": "_CASH_FLOW_REJECTED_METRICS + add-back sign flip; test CashFlowRowsDoNotPopulateIncomeStatementMetricsTests.",
+   "defect_class": "cash_flow_adjustment_row_mapped_to_income_metric"
+  },
+  {
+   "id": "D7",
+   "symbols": [
+    "1080",
+    "1120"
+   ],
+   "severity": "medium",
+   "documents": [
+    "anb-2025-annual-report.json",
+    "alrajhi-2025-fy.json"
+   ],
+   "summary": "anb-2025-annual-report assets_held_for_sale=11,358 is 'Liabilities associated with assets held for sale'; real assets held for sale 250,085 not extracted. equity_parent in ANB/Al Rajhi FY2025 includes Tier-1/equity sukuk (49,482,510 / 142,762,048) whereas shareholders-only equity is 41,715,010 / 114,854,169 - not comparable with banks that publish shareholders-only.",
+   "evidence": [
+    {
+     "doc": "anb-2025-annual-report",
+     "pdf_page": 7,
+     "line": "Liabilities associated with assets held for sale 39 11,358; Assets held for sale 39 250,085"
+    }
+   ],
+   "defect_class": "wrong_metric_mapping_and_semantics"
+  },
+  {
+   "id": "D10",
+   "symbols": [
+    "1120",
+    "1020",
+    "1010",
+    "1140"
+   ],
+   "severity": "low",
+   "documents": [
+    "*alrajhi",
+    "*aljazira",
+    "*riyad",
+    "*albilad"
+   ],
+   "summary": "Pillar 3: all 7,569 published+rejected KM1 values match the printed cell, month and unit (45 aljazira leverage cells not locatable by row id). Only the oldest column per doc is published (vintage rule); rows 8-12, 'a' variants, LCR/NSFR for old Riyad docs and all non-KM1 templates are not extracted. Supplements: values match workbooks; EPS published at 2dp vs unrounded; Al Rajhi workbook has duplicate FY/quarter columns with different values (FY2023 DPS 1.15 col T vs 2.3 col BF; FY2021 total assets 623,126.517 vs 623,644.628) - original column published, restated column unverified.",
+   "evidence": [
+    {
+     "xlsx": "alrajhi 2Q2026 sheet '1. Income Statement' row 29 cols T and BF"
+    }
+   ],
+   "defect_class": "pillar3_and_supplement_notes"
+  },
+  {
+   "id": "D11",
+   "symbols": [
+    "1120"
+   ],
+   "severity": "medium",
+   "documents": [
+    "alrajhi-2025-fy.json"
+   ],
+   "summary": "All 45 FY2025 values verified visually (pdf pp 9,10,14,15) but FY2024 comparatives on the same pages, net_fee_income 5,869,207, equity sukuk 27,907,879 and shareholders equity 114,854,169 are not published. Branch-only alrajhi-2025-annual-notes cites printed page numbers (pdf page = cited + 8).",
+   "evidence": [
+    {
+     "pdf_page": 9,
+     "line": "Total assets 1,043,268,297 | 972,444,354"
+    }
+   ],
+   "defect_class": "coverage_and_completeness"
+  }
+ ],
+ "manual_visual_checks": [
+  {
+   "doc": "alrajhi-2025-fy",
+   "pages": [
+    9,
+    10,
+    14,
+    15
+   ],
+   "result": "all 45 values match; unit SAR '000"
+  }
+ ],
+ "documents": [
+  {
+   "manifest": "alrajhi-2018-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2018-12-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "66cb50ecf8ce8bad.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2019-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-03-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 52,
+   "source_document": "bb826b0b256dec3d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 64,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2019-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-06-30",
+   "facts_published": 24,
+   "facts_rejected_or_excluded": 41,
+   "source_document": "79fe7925eb2969e7.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2019-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-09-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 52,
+   "source_document": "08f35661b31c6483.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 64,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2019-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-12-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 52,
+   "source_document": "984889aeb4948cd0.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 64,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2020-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-06-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "e7147659bfab11ea.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2020-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-09-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "83208a0a370795f0.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2020-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-12-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "49949dc3dd896951.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2021-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-03-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "7a1b06c69492e271.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2021-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-06-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "0463f74a363e1063.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2021-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-09-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "a8730dc177f7fb50.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2021-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-12-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "e877795f4714d335.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2022-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-03-31",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "a809e2ba53fdb875.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2022-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-06-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "14c0b6cc7dd55929.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2022-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-09-30",
+   "facts_published": 12,
+   "facts_rejected_or_excluded": 53,
+   "source_document": "40af6f4e35fbf15b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2022-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-12-31",
+   "facts_published": 27,
+   "facts_rejected_or_excluded": 38,
+   "source_document": "053c420de052c66b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 65,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2023-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-03-31",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "79539d2019fca1fd.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2023-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-06-30",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "a28c5a0c2d39095e.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2023-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-09-30",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "6494ddb7d8bb6a6f.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2023-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2023-09-30",
+   "facts_published": 35,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "6567326bd70c3a0b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 35,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "net_financing_income": [
+     4,
+     "Net financing and investment income",
+     [
+      "5,400,642",
+      "5,687,019",
+      "15,719,570",
+      "16,593,954"
+     ]
+    ],
+    "general_and_administrative_expense": [
+     4,
+     "Other general and administrative expenses",
+     [
+      "583,836599,4941,721,914",
+      "1,935,152"
+     ]
+    ],
+    "salaries_and_employee_expenses": [
+     4,
+     "Salaries and employees' related benefits",
+     [
+      "882,206939,0282,639,660",
+      "2,548,713"
+     ]
+    ]
+   },
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2023-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-12-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "25b91d8fa2fc1e82.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2024-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-03-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "b68504f03e8cc489.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2024-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-06-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "ca7422ff7da93b6d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2024-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2024-06-30",
+   "facts_published": 46,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "af5c07612818c795.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 46,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "financing_cash_flow": [
+     10,
+     "Net cash generated from / (used in) financing activities",
+     [
+      "5,126,788",
+      "(1,769,758)"
+     ]
+    ],
+    "cash_end": [
+     10,
+     "Cash and cash equivalents at end of the period",
+     [
+      "17",
+      "16,981,373",
+      "21,135,679"
+     ]
+    ],
+    "provision_expense": [
+     9,
+     "Impairment charge for financing and other financial assets, ",
+     [
+      "8",
+      "876,031",
+      "719,166"
+     ]
+    ],
+    "salaries_and_employee_expenses": [
+     5,
+     "Salaries and employees’ related benefits",
+     [
+      "918,008",
+      "885,346",
+      "1,816,850",
+      "1,757,454"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2024-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-09-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "452f7182514ae5e4.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2024-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-12-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "86391df9d5466400.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2025-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2025-12-31",
+   "facts_published": 45,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "d97ed729a43b4a52.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 0,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": [
+     [
+      "cash_and_balances_with_central_bank",
+      "54004876",
+      9
+     ],
+     [
+      "due_from_banks",
+      "26940586",
+      9
+     ],
+     [
+      "bank_investments",
+      "174304596",
+      9
+     ],
+     [
+      "net_loans",
+      "752759851",
+      9
+     ],
+     [
+      "total_assets",
+      "1043268297",
+      9
+     ],
+     [
+      "due_to_banks",
+      "117283797",
+      9
+     ],
+     [
+      "customer_deposits",
+      "667287500",
+      9
+     ],
+     [
+      "debt_securities_issued",
+      "79866625",
+      9
+     ],
+     [
+      "total_liabilities",
+      "900355952",
+      9
+     ],
+     [
+      "share_capital",
+      "40000000",
+      9
+     ],
+     [
+      "statutory_reserve",
+      "40000000",
+      9
+     ],
+     [
+      "other_reserves",
+      "581422",
+      9
+     ],
+     [
+      "retained_earnings",
+      "34272747",
+      9
+     ],
+     [
+      "equity_parent",
+      "142762048",
+      9
+     ],
+     [
+      "noncontrolling_interests",
+      "150297",
+      9
+     ],
+     [
+      "total_equity",
+      "142912345",
+      9
+     ],
+     [
+      "total_liabilities_equity",
+      "1043268297",
+      9
+     ],
+     [
+      "financing_income",
+      "55849516",
+      10
+     ],
+     [
+      "financing_expense",
+      "-26003845",
+      10
+     ],
+     [
+      "net_financing_income",
+      "29845671",
+      10
+     ],
+     [
+      "fee_income",
+      "12686142",
+      10
+     ],
+     [
+      "fee_expense",
+      "-6816935",
+      10
+     ],
+     [
+      "exchange_income",
+      "1558950",
+      10
+     ],
+     [
+      "other_income",
+      "1820137",
+      10
+     ],
+     [
+      "total_operating_income",
+      "39093965",
+      10
+     ],
+     [
+      "salaries_and_employee_expenses",
+      "-4025571",
+      10
+     ],
+     [
+      "depreciation_amortization",
+      "-2369057",
+      10
+     ],
+     [
+      "general_and_administrative_expense",
+      "-2732360",
+      10
+     ],
+     [
+      "operating_expense_banking",
+      "-9126988",
+      10
+     ],
+     [
+      "provision_expense",
+      "-2320481",
+      10
+     ],
+     [
+      "total_operating_expenses",
+      "-11447469",
+      10
+     ],
+     [
+      "income_before_income_taxes_and_zakat",
+      "27646496",
+      10
+     ],
+     [
+      "income_taxes_and_zakat",
+      "-2821986",
+      10
+     ],
+     [
+      "net_income",
+      "24824510",
+      10
+     ],
+     [
+      "net_income_parent",
+      "24791754",
+      10
+     ],
+     [
+      "net_income_noncontrolling",
+      "32756",
+      10
+     ],
+     [
+      "eps_diluted",
+      "5.85",
+      10
+     ],
+     [
+      "operating_cash_flow",
+      "-22373072",
+      14
+     ],
+     [
+      "investing_cash_flow",
+      "-1564467",
+      15
+     ],
+     [
+      "financing_cash_flow",
+      "36302349",
+      15
+     ],
+     [
+      "cash_change",
+      "12364810",
+      15
+     ],
+     [
+      "cash_beginning",
+      "24100411",
+      15
+     ],
+     [
+      "cash_end",
+      "36465221",
+      15
+     ],
+     [
+      "capex",
+      "-3523379",
+      15
+     ],
+     [
+      "dividends_paid",
+      "-8840000",
+      15
+     ]
+    ]
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D7",
+    "D10",
+    "D11"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2025-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-03-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "34c8e3af65451ed7.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2025-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-06-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "694e4dd40d1cee66.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2025-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-09-30",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "131bc0fd136c0ee0.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2025-q4-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-12-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "70d76b795d68ae94.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2026-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2026-03-31",
+   "facts_published": 14,
+   "facts_rejected_or_excluded": 61,
+   "source_document": "beae60fafd83f944.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2026-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2026-06-30",
+   "facts_published": 70,
+   "facts_rejected_or_excluded": 5,
+   "source_document": "450ebf678bd09eaa.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  },
+  {
+   "manifest": "alrajhi-2026-q2-supplement.json",
+   "filing_type": "data-supplement",
+   "period_end": "2026-06-30",
+   "facts_published": 1152,
+   "facts_rejected_or_excluded": 108,
+   "source_document": "df022bb50aab838.xlsx",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "XLSX header period + row label located in workbook; value compared (published and rejected facts)",
+    "verified_correct": 1230,
+    "mismatch_eps_rounding_only": 30,
+    "not_found": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D10"
+   ]
+  }
+ ]
+}

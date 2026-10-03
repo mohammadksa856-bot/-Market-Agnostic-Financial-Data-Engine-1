@@ -1,0 +1,235 @@
+{
+ "symbol": "8010",
+ "audited_branch": "origin/codex/telecom-95pct @ ec610f3 (data/imports identical to origin/main for these companies)",
+ "audited_at": "2026-10-03",
+ "auditor": "claude/audit-saudi-batch1-B",
+ "dimensions_note": "(1) numeric correctness of published values, (2) document completeness, (3) company coverage are reported separately and never blended",
+ "name": "The Company for Cooperative Insurance (Tawuniya)",
+ "numeric_correctness_summary": "published FY2025 manifest: all 30 facts match the annual-report statements (page images); unmerged candidate manifests: one defect (tawuniya-2023-fy cash_change)",
+ "document_completeness_summary": "30 facts of ~75 printed statement lines; no EPS, zakat, profit before zakat, term deposits, investments, statutory deposit, cash-flow detail",
+ "coverage": {
+  "have": [
+   "FY2025 only on main / telecom-95pct"
+  ],
+  "absent": [
+   "FY2023 and Q3-2024..Q4-2025 manifests exist ONLY on origin/claude/insurance-tawuniya-bupa-enrichment (2985be4), not merged",
+   "Q1-Q4 2023, Q1/Q2 2024 statements",
+   "FY2024 audited statement (only comparative columns)",
+   "all eight Tawuniya source PDFs are absent from main and from the audited branch; they exist only on the enrichment branch, so the published manifest cannot be re-verified from main"
+  ]
+ },
+ "sources": [
+  {
+   "source_document": {
+    "manifest": "tawuniya-2025-fy.json",
+    "archived_path": "data\\raw\\SA\\8010\\documents\\fce6dcdf382f3a476a1eb5b2e0dee0200a1791f6d5d5ae2d7b44946464f06d75.pdf",
+    "source_url": "https://www.tawuniya.com/docs/2025_Annual_Report_EN.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 30,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "PDF extracted read-only from origin/claude/insurance-tawuniya-bupa-enrichment (fce6dcdf..., 20 MB); pdf p89 is the spread of printed pages 176 (financial position) and 177 (income): page image read, all published values match",
+    "pdf p91 cash flow: 7 values + 2024 comparatives anchor",
+    "foots: 21,403,177 - 18,016,361 - 2,613,920 + 343,355 = 1,116,251"
+   ],
+   "anchors": {},
+   "numeric_correctness": "verified_correct",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)",
+   "semantic_notes": [
+    "cited page numbers are PDF indices (89/91), printed numbers are 176/177/179"
+   ],
+   "completeness": {
+    "missing_fields": [
+     "Insurance service result before reinsurance 3,386,816",
+     "Net insurance finance expense (101,768)",
+     "Insurance and non-insurance results 1,918,625",
+     "Net profit before Zakat 1,226,621",
+     "Zakat charge (123,507)",
+     "EPS basic 7.37 / diluted 7.35",
+     "Term deposits 7,933,741",
+     "Investments 4,578,024",
+     "Receivable from brokers 2,977,221",
+     "Statutory deposit 149,988",
+     "Commission income 524,998"
+    ]
+   }
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2023-fy.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/1975790ff3fd29669340e72aba0507fae6c6a9f2efe9676186d46965bdfdda37.pdf",
+    "source_url": "https://www.tawuniya.com/docs/BODEn.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2023-12-31",
+    "published_facts": 15,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 14,
+    "value_not_in_row": 1
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "defective",
+   "defects": [
+    {
+     "id": "TAW-1",
+     "defect_class": "two_panel_layout_wrong_pairing_sign_and_magnitude",
+     "page": 179,
+     "severity": "high",
+     "line_item": "Net change in cash and cash equivalents during the period",
+     "published_value": "-106248",
+     "correct_value": "422514",
+     "evidence": "pdf p179 (printed 179): the caption \"Net change in cash and cash equivalents during / the period\" is in the right-hand panel, printed value 422,514 (2023) / 471,057 (2022). The reader paired it with the left-panel row \"Reinsurance contract assets (780,487) (106,248)\". Proof: 1,591,389 - 1,044,024 - 124,851 = 422,514 and 1,659,193 + 422,514 = 2,081,707 (cash at end).",
+     "fix": "two-panel pages: pair captions only with numbers of the same panel (reading._statement_facts panel split by x boundary fails when the caption wraps across rows); do not merge this manifest until fixed"
+    }
+   ],
+   "unanchored": [
+    {
+     "metric": "cash_change",
+     "status": "value_not_in_row",
+     "value": "-106248",
+     "kind": "fy",
+     "page": 179
+    }
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2024-q3.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/a9707e8dba92f5580774c04a0a023f88508db41ad1819b96e9f90daf89367a85.pdf",
+    "source_url": "https://www.tawuniya.com/docs/Tawuniya_Q3_FS-English.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2024-09-30",
+    "published_facts": 39,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 39
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "verified_correct",
+   "unanchored": []
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2024-q4.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/fe019c74c9a5fd1c986322bc022f148cf9268e3147f5635071b0ca33bf2b27b8.pdf",
+    "source_url": "https://www.tawuniya.com/docs/2024_Q4_Financial_Statements_EN.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2024-12-31",
+    "published_facts": 34,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 34
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "verified_correct",
+   "unanchored": []
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2025-q1.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/37f076968d3580f461982c8787e1b49dbfc9255b552691ba64ce9406dabbd263.pdf",
+    "source_url": "https://www.tawuniya.com/docs/2025_Q1_Financial_Statements_EN.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-03-31",
+    "published_facts": 34,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 34
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "verified_correct",
+   "unanchored": []
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2025-q2.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/e54081c727f82c25f3a1d5cd3a80a2322bac90ec955206f4e75cc699cb8c1788.pdf",
+    "source_url": "https://www.tawuniya.com/docs/2025_Q2_Financial_Statements_EN.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-06-30",
+    "published_facts": 46,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 46
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "verified_correct",
+   "unanchored": []
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2025-q3.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/1067c984c544812abc6a8225bdd12b471d65c337971807c1205b37abeb2b4348.pdf",
+    "source_url": "https://www.tawuniya.com/docs/2025_Q3_Financial_Statements_EN.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-09-30",
+    "published_facts": 40,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 40
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "verified_correct",
+   "unanchored": []
+  },
+  {
+   "source_document": {
+    "manifest": "tawuniya-2025-q4.json",
+    "archived_path": "(on origin/claude/insurance-tawuniya-bupa-enrichment) data/raw/SA/8010/documents/e44ceb137d421189ad7b25c46c105dffb964f50138566f05259ee722fe79e60b.pdf",
+    "source_url": "https://www.tawuniya.com/docs/2025_Q4_Financial_Statements_EN.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 36,
+    "excluded_facts": 0,
+    "branch_status": "UNMERGED candidate (not published on main)"
+   },
+   "status": "done",
+   "anchors": {
+    "ok": 36
+   },
+   "checks": [
+    "each fact located on its cited pdf page row; column index recorded"
+   ],
+   "numeric_correctness": "verified_correct",
+   "unanchored": []
+  }
+ ],
+ "progress": {
+  "total": 8,
+  "done": 8,
+  "pending": []
+ }
+}

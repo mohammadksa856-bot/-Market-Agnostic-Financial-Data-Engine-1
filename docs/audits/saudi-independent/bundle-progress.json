@@ -1,0 +1,17 @@
+{
+  "task": "unified defect bundle from six Saudi audit batches",
+  "branch": "claude/audit-saudi-defect-bundle",
+  "base": "origin/codex/telecom-95pct @ ec610f3",
+  "source_branches": {
+    "batch1-A": "origin/claude/audit-saudi-batch1-A @ 83a70f7",
+    "batch1-B": "origin/claude/audit-saudi-batch1-B @ ae11b2d",
+    "batch1-C": "origin/claude/audit-saudi-batch1-C @ a14877e",
+    "batch1-D": "origin/claude/audit-saudi-batch1-D @ a6b399a",
+    "batch2-E": "origin/claude/audit-saudi-batch2-E @ 61c7ca4",
+    "batch2-F": "origin/claude/audit-saudi-batch2-F @ 82c82e7"
+  },
+  "log": [
+    {"step": 1, "what": "worktree created; per-company JSONs, summaries, E/F transcriptions and batch1-A defects.json copied unchanged under bundle/<batch>/", "state": "done"}
+  ],
+  "resume_hint": "next: run docs/audits/saudi-independent/tools/bundle_build.py (reads bundle/ copies + data/imports + data/raw) to regenerate defect-bundle.json/.md; entries below are appended, never overwritten"
+}

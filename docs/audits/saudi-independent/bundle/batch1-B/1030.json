@@ -1,0 +1,1771 @@
+{
+ "symbol": "1030",
+ "audited_branch": "origin/codex/telecom-95pct @ ec610f3 (data/imports identical to origin/main for these companies)",
+ "audited_at": "2026-10-03",
+ "auditor": "claude/audit-saudi-batch1-B",
+ "dimensions_note": "(1) numeric correctness of published values, (2) document completeness, (3) company coverage are reported separately and never blended",
+ "name": "Saudi Investment Bank (SAIB)",
+ "numeric_correctness_summary": "no numeric defect found: FY2025 audited statements (page images read, all 83 facts), 19 Pillar 3 manifests (1,370 facts incl. excluded) and 5 XLSX supplements anchor exactly to source; classification notes only",
+ "document_completeness_summary": "FY2025 FS: 83 facts of ~200 printed lines; Pillar 3 KM1 amounts beyond RWA/total capital/CET1 ratio/Tier-1 ratio are excluded (P3-STALE)",
+ "coverage": {
+  "have": [
+   "FY2025 and restated FY2024 (audited PDF)",
+   "quarterly 17-line series 1Q2021-2Q2026 and FY2021-2023 via XLSX supplements",
+   "Pillar 3 KM1: 2018-06, 2018-12, 2019-06, 2019-12, 2022-03/06/09/12, 2023-03/06/09/12, 2024-03/06/09/12, 2025-06/09, 2026-06 documents"
+  ],
+  "absent": [
+   "audited FS for FY2024-and-earlier as originally filed",
+   "every interim FS PDF",
+   "cash-flow statement outside FY2025/FY2024",
+   "Pillar 3 documents for 2019-09..2021-12 and 2025-03/2025-12 not archived"
+  ]
+ },
+ "sources": [
+  {
+   "source_document": {
+    "manifest": "saib-2023-q2-supplement.json",
+    "archived_path": "data/raw/SA/1030/documents/95da1034ae92a30c030f8b78c494631c9af80dc6196165902e3e561e38c5dc81.xlsx",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2023-08/20230809-SAIB-Data-Supplement-1H-2023.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2023-06-30",
+    "published_facts": 76,
+    "excluded_facts": 352
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 72,
+    "pub:ok_rounded": 4,
+    "exc:ok": 340,
+    "exc:ok_rounded": 12
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2024-05-pillar-3-workbook-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/c10ad4105fab2f884720b80fee7f2d1eb14853d1f9867694ef86dc6a5e3d9e30.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-05/Pillar-3-Workbook.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2024-03-31",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2024-08-saib-pillar-3-q2-2024-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/a2f6188faabb06f533e9e6179e4833acd93718c7c71aa004f9ae03e29c835eb7.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-08/SAIB-Pillar-3-Q2-2024.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2024-06-30",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2024-11-pillar-3-disclosure-q3-2024-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/b8f8336839bdf900937d14dacc68409165dbbba58ded2a08458e27bec1dfee8e.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-11/Pillar-3-Disclosure-Q3-2024.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2024-09-30",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-04-pillar-3-workbook-dec-31-2024-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/c5c8c5ce7d337a224f68b5ce2d0ed016cf85fa6a269357cdce3060b28c262bcf.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2025-04/Pillar-3-Workbook-%28Dec-31-2024%29.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2024-12-31",
+    "published_facts": 8,
+    "excluded_facts": 62
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 12
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-07-pillar-iii-disclosures-q2-2025-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/d50c49bab7c80f88c42766f10310023b4c5fb1800256c518d75254f96228ab64.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2025-07/Pillar-III-Disclosures-Q2-2025.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2025-06-30",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-10-web-pillar-3-workbook-sep-2025-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/dbbc0f0a975244475075b2f7bf9c05d53dd55dce1be68436cabb90d18bbe51dc.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2025-10/Web-Pillar-3-Workbook-Sep-2025.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2025-09-30",
+    "published_facts": 12,
+    "excluded_facts": 63
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 8
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-fy.json",
+    "archived_path": "data/raw/SA/1030/documents/b6b7f03abffd5c046486e680546f98237f7a688ba9b82d7dccd3d2714ba8d945.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2026-02/SAIB_FS-q42025-en.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 83,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "pdf p9 (financial position) page image read: all 15+14 published balance-sheet values match (Total assets 172,720,276; Customers deposits 109,619,007; Investments 47,196,978)",
+    "pdf p10 (income): 19+19 values match incl. signs and EPS 1.68/1.43; 3,527,768+374,227+257,465+87,459+11,123+536,140 = 4,794,182 foots",
+    "pdf p14-15 (cash flow): operating 1,387,085; investing (6,375,408); financing 1,436,708; net change (3,551,616); begin 6,137,954; end 2,586,338; capex (362,286); dividends (997,860) and all 2024 comparatives match",
+    "columns: 2025 = first numeric column; 2024 = the Restated column (published with period_end 2024-12-31)"
+   ],
+   "anchors": {
+    "label_not_found": 83
+   },
+   "unanchored": [
+    {
+     "metric": "cash_and_balances_with_central_bank",
+     "status": "label_not_found",
+     "value": "6130601",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "due_from_banks",
+     "status": "label_not_found",
+     "value": "1620994",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "bank_investments",
+     "status": "label_not_found",
+     "value": "47196978",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "net_loans",
+     "status": "label_not_found",
+     "value": "112069952",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_assets",
+     "status": "label_not_found",
+     "value": "172720276",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "due_to_banks",
+     "status": "label_not_found",
+     "value": "35559086",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "customer_deposits",
+     "status": "label_not_found",
+     "value": "109619007",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "debt_securities_issued",
+     "status": "label_not_found",
+     "value": "2789722",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_liabilities",
+     "status": "label_not_found",
+     "value": "150286804",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "share_capital",
+     "status": "label_not_found",
+     "value": "12500000",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "statutory_reserve",
+     "status": "label_not_found",
+     "value": "2414500",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "other_reserves",
+     "status": "label_not_found",
+     "value": "-361424",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "retained_earnings",
+     "status": "label_not_found",
+     "value": "2602875",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_equity",
+     "status": "label_not_found",
+     "value": "22433472",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_liabilities_equity",
+     "status": "label_not_found",
+     "value": "172720276",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "cash_and_balances_with_central_bank",
+     "status": "label_not_found",
+     "value": "9918878",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "due_from_banks",
+     "status": "label_not_found",
+     "value": "1314000",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "bank_investments",
+     "status": "label_not_found",
+     "value": "40834059",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "net_loans",
+     "status": "label_not_found",
+     "value": "99466490",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_assets",
+     "status": "label_not_found",
+     "value": "157069431",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "due_to_banks",
+     "status": "label_not_found",
+     "value": "39900998",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "customer_deposits",
+     "status": "label_not_found",
+     "value": "94013131",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_liabilities",
+     "status": "label_not_found",
+     "value": "135938074",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "share_capital",
+     "status": "label_not_found",
+     "value": "12500000",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "statutory_reserve",
+     "status": "label_not_found",
+     "value": "1806500",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "other_reserves",
+     "status": "label_not_found",
+     "value": "-565009",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "retained_earnings",
+     "status": "label_not_found",
+     "value": "2112345",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_equity",
+     "status": "label_not_found",
+     "value": "21131357",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "total_liabilities_equity",
+     "status": "label_not_found",
+     "value": "157069431",
+     "kind": "instant",
+     "page": 9
+    },
+    {
+     "metric": "financing_income",
+     "status": "label_not_found",
+     "value": "9691999",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "financing_expense",
+     "status": "label_not_found",
+     "value": "-6164231",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_financing_income",
+     "status": "label_not_found",
+     "value": "3527768",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "fee_income",
+     "status": "label_not_found",
+     "value": "709724",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "fee_expense",
+     "status": "label_not_found",
+     "value": "-335497",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "exchange_income",
+     "status": "label_not_found",
+     "value": "257465",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "trading_income",
+     "status": "label_not_found",
+     "value": "87459",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "other_income",
+     "status": "label_not_found",
+     "value": "536140",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "total_operating_income",
+     "status": "label_not_found",
+     "value": "4794182",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "salaries_and_employee_expenses",
+     "status": "label_not_found",
+     "value": "-835542",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "depreciation_amortization",
+     "status": "label_not_found",
+     "value": "-184790",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "general_and_administrative_expense",
+     "status": "label_not_found",
+     "value": "-642106",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "operating_expense_banking",
+     "status": "label_not_found",
+     "value": "-1723487",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "provision_expense",
+     "status": "label_not_found",
+     "value": "-354858",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "total_operating_expenses",
+     "status": "label_not_found",
+     "value": "-2078345",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "income_before_income_taxes_and_zakat",
+     "status": "label_not_found",
+     "value": "2840520",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "income_taxes_and_zakat",
+     "status": "label_not_found",
+     "value": "-409035",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_income",
+     "status": "label_not_found",
+     "value": "2431485",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "eps_diluted",
+     "status": "label_not_found",
+     "value": "1.68",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "financing_income",
+     "status": "label_not_found",
+     "value": "8864079",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "financing_expense",
+     "status": "label_not_found",
+     "value": "-5327387",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_financing_income",
+     "status": "label_not_found",
+     "value": "3536692",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "fee_income",
+     "status": "label_not_found",
+     "value": "757594",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "fee_expense",
+     "status": "label_not_found",
+     "value": "-414740",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "exchange_income",
+     "status": "label_not_found",
+     "value": "207580",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "trading_income",
+     "status": "label_not_found",
+     "value": "89646",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "other_income",
+     "status": "label_not_found",
+     "value": "61",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "total_operating_income",
+     "status": "label_not_found",
+     "value": "4178048",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "salaries_and_employee_expenses",
+     "status": "label_not_found",
+     "value": "-822360",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "depreciation_amortization",
+     "status": "label_not_found",
+     "value": "-176827",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "general_and_administrative_expense",
+     "status": "label_not_found",
+     "value": "-674195",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "operating_expense_banking",
+     "status": "label_not_found",
+     "value": "-1734501",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "provision_expense",
+     "status": "label_not_found",
+     "value": "-289954",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "total_operating_expenses",
+     "status": "label_not_found",
+     "value": "-2024455",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "income_before_income_taxes_and_zakat",
+     "status": "label_not_found",
+     "value": "2269872",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "income_taxes_and_zakat",
+     "status": "label_not_found",
+     "value": "-313242",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "net_income",
+     "status": "label_not_found",
+     "value": "1956630",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "eps_diluted",
+     "status": "label_not_found",
+     "value": "1.43",
+     "kind": "fy",
+     "page": 10
+    },
+    {
+     "metric": "operating_cash_flow",
+     "status": "label_not_found",
+     "value": "1387085",
+     "kind": "fy",
+     "page": 14
+    },
+    {
+     "metric": "investing_cash_flow",
+     "status": "label_not_found",
+     "value": "-6375408",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "financing_cash_flow",
+     "status": "label_not_found",
+     "value": "1436708",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "cash_change",
+     "status": "label_not_found",
+     "value": "-3551616",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "cash_beginning",
+     "status": "label_not_found",
+     "value": "6137954",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "cash_end",
+     "status": "label_not_found",
+     "value": "2586338",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "capex",
+     "status": "label_not_found",
+     "value": "-362286",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "dividends_paid",
+     "status": "label_not_found",
+     "value": "-997860",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "operating_cash_flow",
+     "status": "label_not_found",
+     "value": "4523580",
+     "kind": "fy",
+     "page": 14
+    },
+    {
+     "metric": "investing_cash_flow",
+     "status": "label_not_found",
+     "value": "-8322273",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "financing_cash_flow",
+     "status": "label_not_found",
+     "value": "1465165",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "cash_change",
+     "status": "label_not_found",
+     "value": "-2333528",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "cash_beginning",
+     "status": "label_not_found",
+     "value": "8471482",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "cash_end",
+     "status": "label_not_found",
+     "value": "6137954",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "capex",
+     "status": "label_not_found",
+     "value": "-382654",
+     "kind": "fy",
+     "page": 15
+    },
+    {
+     "metric": "dividends_paid",
+     "status": "label_not_found",
+     "value": "-899531",
+     "kind": "fy",
+     "page": 15
+    }
+   ],
+   "column_pattern_from_right": {},
+   "numeric_correctness": "verified_correct",
+   "semantic_notes": [
+    "metric debt_securities_issued is fed by the printed line \"Term Loans, net\" 2,789,722 (a term loan, not securities)",
+    "total_equity 22,433,472 includes Tier-1 sukuk 5,312,500; shareholders equity 17,120,972 is not published",
+    "FY2024 values are restated comparatives; the originally filed FY2024 statements are not archived"
+   ],
+   "completeness": {
+    "missing_fields": [
+     "Positive/negative fair values of derivatives 622,360 / 47,714",
+     "Investments in associates 1,083,124",
+     "Other real estate 593,010",
+     "Intangible assets 818,858",
+     "Treasury shares (34,979)",
+     "Tier I Sukuk 5,312,500",
+     "Shareholders equity 17,120,972",
+     "Gains on disposals of FVOCI debt securities 11,123",
+     "Rent and premises 61,049",
+     "Operating income 2,715,837",
+     "Share in earnings of associates 124,683",
+     "cash-flow detail lines (statutory deposit, loans, deposits, zakat paid, sukuk cost (334,731))"
+    ]
+   }
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-q2-supplement.json",
+    "archived_path": "data/raw/SA/1030/documents/2f41b5fa3d30e0560c750d8b4effc5272221285eb73568ab937627f9061227d1.xlsx",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2025-08/SAIB-Data-Supplement-2Q-2025.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-06-30",
+    "published_facts": 16,
+    "excluded_facts": 624
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 15,
+    "pub:ok_rounded": 1,
+    "exc:ok": 602,
+    "exc:ok_rounded": 22
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-q3-supplement.json",
+    "archived_path": "data/raw/SA/1030/documents/b10835dc9004daa2cf48ae07b4f106279630a213c6c221f423fb740e7e390e79.xlsx",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2025-11/SAIB-Data-Supplement-3Q-2025.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-09-30",
+    "published_facts": 48,
+    "excluded_facts": 641
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 46,
+    "pub:ok_rounded": 2,
+    "exc:ok": 619,
+    "exc:ok_rounded": 22
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2025-q4-supplement.json",
+    "archived_path": "data/raw/SA/1030/documents/57f0a05edf6942fef182d36d2499a149e1db4bbebbcccef9d86568cfdd9837f8.xlsx",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2026-02/saib-data-supplement-4q-2025.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2025-12-31",
+    "published_facts": 26,
+    "excluded_facts": 660
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 26,
+    "exc:ok": 636,
+    "exc:ok_rounded": 24
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2026-07-pillar-3-workbook-june-2026-web-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/6efc8535ec934d3f3a0d9e82e90fc38e281d17ee8cd32edc13007de1e8e7a3ba.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2026-07/Pillar-3-Workbook-june-2026-web.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2026-06-30",
+    "published_facts": 20,
+    "excluded_facts": 55
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 50,
+    "engine_calculates_metric": 5
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-2026-q2-supplement.json",
+    "archived_path": "data/raw/SA/1030/documents/98711497658b7b19c58a0c3b7b6435daab4f9ea5de82afc669ba57cb65e0e015.xlsx",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2026-08/SAIB-Data-Supplement-2Q-2026_0.xlsx",
+    "kind": "issuer_data_supplement_xlsx",
+    "period_end": "2026-06-30",
+    "published_facts": 692,
+    "excluded_facts": 58
+   },
+   "status": "done",
+   "checks": [
+    "every published/excluded fact matched to workbook cell by row label and column header (FY/nQ/1H) and value (sign flip and rounding classified)"
+   ],
+   "anchors": {
+    "pub:ok": 667,
+    "pub:ok_rounded": 25,
+    "exc:ok": 56,
+    "exc:ok_rounded": 2
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "saib-km1-2022-03-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/4d4265d44a0805212d54faace07a0bcdf6f8b34875d6b7b552d0c72c5246dbe6.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2022-05/SAIB-KM1-Mar-2022.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2022-03-31",
+    "published_facts": 4,
+    "excluded_facts": 66
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5,
+    "restated_in_higher_ranked_publication": 6,
+    "superseded_by_higher_ranked_publication": 10
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-km1-2022-06-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/f84c566169eab6df461a0d9929d55c39cf5bd4bccd017993f9df786be43a019d.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2022-08/KM1-June-2022.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2022-06-30",
+    "published_facts": 4,
+    "excluded_facts": 66
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 42,
+    "engine_calculates_metric": 5,
+    "reported_ratio_does_not_reconcile": 3,
+    "restated_in_higher_ranked_publication": 9,
+    "superseded_by_higher_ranked_publication": 7
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-km1-2022-09-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/fe42982d676069105ef4c9b526988fec14db4bf025ce4efd7d8708cd882b0807.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2023-03/SAIB%20KM1-Sep-2022.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2022-09-30",
+    "published_facts": 4,
+    "excluded_facts": 66
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 33,
+    "engine_calculates_metric": 5,
+    "reported_ratio_does_not_reconcile": 12,
+    "restated_in_higher_ranked_publication": 2,
+    "superseded_by_higher_ranked_publication": 14
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-km1-2023-03-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/c9a2b8ffcfcc62330cd60067529820a3afe0a4716eaa1b0e01e5b91aa1965b67.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2023-05/SAIB-KM1-Mar%202023.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2023-03-31",
+    "published_facts": 4,
+    "excluded_facts": 66
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 36,
+    "engine_calculates_metric": 5,
+    "reported_ratio_does_not_reconcile": 9,
+    "superseded_by_higher_ranked_publication": 14,
+    "restated_in_higher_ranked_publication": 2
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-km1-dec-2019-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/8853385498f92738bc920d93929ed822257d2e62ebb35e89960e7ae08b65470e.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-03/KM1-Dec-2019.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2019-12-31",
+    "published_facts": 20,
+    "excluded_facts": 50
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2018-06-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/c4d3153084a93d79d4c847114b0975277447f86feaca826cdc819fc774666327.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-03/Pillar%203%20-%20June%2030%2C%202018.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2018-06-30",
+    "published_facts": 8,
+    "excluded_facts": 62
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 12
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2018-12-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/3df760876ae3933792acd6ba42b80778992e5403ea5c85331b7a053464bd68a3.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-03/December%202018%20Pillar%20III%20Web%20Disclosures-(F).pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2018-12-31",
+    "published_facts": 8,
+    "excluded_facts": 62
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5,
+    "restated_in_higher_ranked_publication": 4,
+    "superseded_by_higher_ranked_publication": 8
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2019-06-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/7c38ca3bd222e3403cef33f074c74842e73d72e4e55fb3a3a9b498185a6f2744.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-03/30-June-2019-PillarIII-Web-Disclosures.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2019-06-30",
+    "published_facts": 8,
+    "excluded_facts": 62
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 9,
+    "restated_in_higher_ranked_publication": 3
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2022-12-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/b0b850e3f71b627f0c0ebbe552daa4dc3401fc3198cfd9af22ae39085054c982.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2023-03/SAIB-PIII-Dec-2022%20.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2022-12-31",
+    "published_facts": 4,
+    "excluded_facts": 66
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 33,
+    "engine_calculates_metric": 5,
+    "reported_ratio_does_not_reconcile": 12,
+    "superseded_by_higher_ranked_publication": 14,
+    "restated_in_higher_ranked_publication": 2
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2023-06-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/5011b997ef58cc9f7c475e305285922d9e36a506d74704f6dfe342f2bffb8006.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2023-08/SAIB-Pillar-3%20-June-30-2023.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2023-06-30",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 44,
+    "engine_calculates_metric": 5,
+    "reported_ratio_does_not_reconcile": 6,
+    "superseded_by_higher_ranked_publication": 15,
+    "restated_in_higher_ranked_publication": 1
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2023-09-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/dc8746d426dce3f887ad638761746dd48e81053878fa9f7eba43fdc885e698d5.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2023-11/Web_Pillar-3-sep-2023.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2023-09-30",
+    "published_facts": 4,
+    "excluded_facts": 71
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 75
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 47,
+    "engine_calculates_metric": 5,
+    "reported_ratio_does_not_reconcile": 3,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "saib-p3-2023-12-pillar3.json",
+    "archived_path": "data/raw/SA/1030/documents/2aed1d35e6e58138e8b886ef827789142b354b19e2685b9c34c4b62c6a6dc8bd.pdf",
+    "source_url": "https://www.saib.com.sa/sites/default/files/2024-02/Pillar-3-Dec-2023.pdf",
+    "kind": "pillar3_km1_pdf",
+    "period_end": "2023-12-31",
+    "published_facts": 4,
+    "excluded_facts": 66
+   },
+   "status": "done",
+   "checks": [
+    "every published and excluded fact compared with the KM1 row/cell of the PDF (value at column letter)",
+    "column letters map to consecutive quarter-ends back from the document date: PASS"
+   ],
+   "anchors": {
+    "ok": 70
+   },
+   "unanchored": [],
+   "excluded_reasons": {
+    "catalog_field_missing": 45,
+    "engine_calculates_metric": 5,
+    "superseded_by_higher_ranked_publication": 16
+   },
+   "numeric_correctness": "verified_correct",
+   "defects": [
+    {
+     "id": "P3-STALE",
+     "defect_class": "stale_catalog_exclusion_pillar3",
+     "severity": "medium",
+     "summary": "KM1 rows CET1 amount, Tier 1 amount, leverage exposure/ratio, HQLA, net cash outflow, LCR, available/required stable funding and NSFR are excluded with reason catalog_field_missing, although the current Pillar3KeyMetricsReader publishes them (re-read of the same archived PDF gives 56-70 publishable facts vs 4-20 in the manifest; the Alinma manifests, produced later, publish them). Result: no CET1/Tier-1 amounts, leverage, LCR or NSFR for this issuer in the published data.",
+     "fix": "regenerate Pillar 3 manifests with the current reader and run reconcile_vintages across the set; tools/p3_regen_dryrun.py reports the delta without writing anything; Codex to publish"
+    }
+   ],
+   "completeness": {
+    "missing_fields": [
+     "cet1_capital",
+     "tier1_capital",
+     "leverage_ratio_exposure",
+     "leverage_ratio",
+     "high_quality_liquid_assets",
+     "net_cash_outflow",
+     "liquidity_coverage_ratio",
+     "available_stable_funding",
+     "required_stable_funding",
+     "net_stable_funding_ratio"
+    ]
+   },
+   "checks_manual": [
+    "cross-document comparison of the same quarter across all issuer disclosures (tools/b_p3_cross.py): only restatements by the issuer differ"
+   ]
+  }
+ ],
+ "progress": {
+  "total": 25,
+  "done": 25,
+  "pending": []
+ }
+}

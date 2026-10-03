@@ -1,0 +1,1147 @@
+{
+ "schema_version": 1,
+ "symbol": "2010",
+ "company_id": "sa:2010",
+ "company_name": "Saudi Basic Industries Corporation (SABIC)",
+ "auditor": "Claude Sonnet 5.5 (independent audit batch1-D)",
+ "audit_date": "2026-10-03",
+ "audited_published_branch": "origin/codex/telecom-95pct",
+ "audited_published_commit": "ec610f3de3aca3a02c1a65526b666f315254b16e",
+ "resumable": true,
+ "resume_instructions": "Each entry in sources[] has status pending|done|blocked. Re-run only sources not 'done'. Evidence cites pdf_page and the issuer's printed page separately.",
+ "rejected_facts": {
+  "status": "unverified",
+  "note": "No rejection/quarantine ledger for this company exists in the repository or in the repo's data/financial.sqlite3 snapshot (exceptions table has no rows for it). The AWS production DB was out of bounds for this audit, so server-side rejected facts were not reviewed."
+ },
+ "dimensions": {
+  "numeric_correctness": {
+   "status": "defective",
+   "note": "All face-statement values (59 FY2025 + 82 FY2024 comparative facts) and all 72 five-year table facts match the source. Defects are definition/composition problems (capex, asset-sale proceeds, D&A), one double-counted debt component (599k), one summation error (100k), a conflicting-basis pair of sales volumes and two mislabelled metrics. See defects."
+  },
+  "document_completeness": {
+   "status": "defective",
+   "note": "The annual report carries full audited FY2025 and FY2024 (restated) statements plus FY2021-2023 only as summary tables. Many face-statement lines are not extracted (derivatives, equity/debt investments, general reserve 2024, JV/associate results, impairment of associates, most cash-flow lines), so FY2024 equity components do not add to equity."
+  },
+  "company_coverage": {
+   "status": "defective",
+   "note": "Published: FY2025 full, FY2024 full (restated comparative), FY2021-FY2023 summary metrics only. NO quarterly, H1 or 9M period for any year and no full statements for FY2021-FY2023 are published; SABIC reports quarterly so this is a material gap."
+  }
+ },
+ "sources": [
+  {
+   "source_id": "2010-sabic-2025-fy",
+   "status": "done",
+   "manifest": "data/imports/sabic-2025-fy.json",
+   "manifest_last_commit": "03b4f54",
+   "manifest_sha256_prefix": "db3b8b7d195c693f",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 59,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 59,
+    "value_found_on_cited_page": 59,
+    "facts": 59,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 59,
+    "detail": "all 59 facts: every value found in its labelled row/column on printed p132 (BS), p133 (income), p136-137 (cash flow); FY2025 first numeric column; liabilities_held_for_sale '–' second column"
+   },
+   "notes": "Face statements FY2025.",
+   "checks_performed": [
+    {
+     "check": "balance sheet FY2025 line by line",
+     "page": "printed 132",
+     "line_item": "PPE 93,069,696; ROU 3,412,073; intangibles 18,279,953; associates 33,326,389; total assets 244,292,189; equity attributable 128,718,634; NCI 26,100,907; total equity 154,819,541; total liabilities 89,472,648",
+     "result": "verified_correct"
+    },
+    {
+     "check": "income statement FY2025",
+     "page": "printed 133",
+     "line_item": "Revenue 116,525,214; Income from operations 4,366,994; Income before Zakat and income tax 1,258,302; continuing -345,652; discontinued -24,379,314; net loss -24,724,966; parent -25,779,231; NCI 1,054,265",
+     "result": "verified_correct",
+     "evidence": "parent/NCI rows read from the 'Net (loss) income attributable to' block (not the continuing-operations block)"
+    },
+    {
+     "check": "cash flow FY2025",
+     "page": "printed 136-137",
+     "line_item": "OCF 15,958,999; ICF (7,717,198); FCF (10,873,712); cash end 27,950,605 incl. held-for-sale cash 204,876 and overdraft (599); debt issued 18,495,107; repaid (15,288,056)",
+     "result": "verified_correct",
+     "evidence": "cash_end (27,950,605) legitimately differs from balance-sheet cash 27,746,328 by 204,277 = 204,876 - 599 (p137 reconciliation); engine warning on this tie-out is explained"
+    },
+    {
+     "check": "capex composition",
+     "page": "printed 137",
+     "line_item": "PP&E purchases only",
+     "result": "defective - see 2010-D1"
+    },
+    {
+     "check": "restated comparative vs current",
+     "page": "printed 132-137",
+     "line_item": "2024 columns carry '(Restated)' on BS",
+     "result": "verified_correct (all facts here use the 2025 column)"
+    }
+   ],
+   "defects": [
+    {
+     "id": "2010-D1",
+     "class": "definition_drift_across_periods",
+     "severity": "medium",
+     "metric": "capex",
+     "published_value": "FY2025 -8,750,028 (sabic-2025-fy); FY2024 -10,200,229 (sabic-2024-fy-comparative)",
+     "correct_value": "FY2025 on the FY2024/company basis (PP&E + intangibles) = -8,774,805 (8,750,028 + 24,777); company-reported 'Capital expenditures' 8.77 Bn (FY2025) and 10.20 Bn (FY2024)",
+     "page": "printed 137 (cash flow) and 42 (summary)",
+     "line_item": "'Purchase of property, plant and equipment (8,750,028) (10,114,320)'; 'Additions of intangible assets (24,777) (85,909)'; p42 'Capital expenditures 8.77 10.20 -14 10.49 10.22 10.97'",
+     "evidence": "FY2024 capex = 10,114,320 + 85,909 = 10,200,229 (includes intangibles) while FY2025 capex = PP&E only, so FY2025 vs FY2024 capex growth is not like-for-like; five-year capex 2021-2023 (10.97/10.22/10.49 Bn) is also the company definition (PP&E + intangibles).",
+     "root_cause": "RC-CAPEX-DEFINITION",
+     "fix_plan": "Publish FY2025 capex as -8,774,805 with composite label, or carry ppe_purchases and intangible_asset_purchases for both years and derive capex consistently. Detector: finengine.audit_consistency.definition_drift (flags sa:2010 capex)."
+    },
+    {
+     "id": "2010-D2",
+     "class": "definition_drift_across_periods",
+     "severity": "medium",
+     "metric": "proceeds_asset_sales",
+     "published_value": "FY2025 82,308 (PP&E only); FY2024 595,767 (PP&E + held-for-sale assets)",
+     "correct_value": "same basis FY2025 (PP&E + held-for-sale) = 3,688,034 (82,308 + 3,605,726), or PP&E-only FY2024 = 33,343",
+     "page": "printed 137",
+     "line_item": "'Proceeds from sale of property, plant and equipment 82,308 33,343'; 'Proceeds from sale of assets held for sale 3,605,726 562,424'",
+     "evidence": "595,767 = 33,343 + 562,424 exactly, so the FY2024 label includes held-for-sale proceeds while FY2025 does not; a 7x difference in composition.",
+     "root_cause": "RC-CAPEX-DEFINITION",
+     "fix_plan": "Use one basis for both years (recommend PP&E-only with a separate proceeds_assets_held_for_sale metric)."
+    }
+   ],
+   "missing_fields": [
+    {
+     "field": "FY2025 balance-sheet lines with no fact in any SABIC manifest",
+     "periods": [
+      "2025-12-31"
+     ],
+     "page": "printed 132",
+     "line_item": "Investments in debt instruments 332,458; investments in equity instruments 304,260; derivative assets (non-current 2,421,604); non-current provisions 237,933 and current provisions 83,392; short-term borrowings 998,944 (as a line)"
+    },
+    {
+     "field": "income statement lines",
+     "periods": [
+      "2025"
+     ],
+     "page": "printed 133",
+     "line_item": "impairment loss from associates and non-integral JVs (1,493,344); income tax benefit (696,178) only in deep notes; continuing-ops attribution (1,533,112)/1,187,460; EPS from continuing (0.51)"
+    },
+    {
+     "field": "cash-flow lines",
+     "periods": [
+      "2025"
+     ],
+     "page": "printed 136-137",
+     "line_item": "all operating adjustments (11,185,373; 1,184,728; 527,578; 4,598,013; 15,175,854 ...), working-capital lines, capital contribution to JVs (1,628,510), dividends received (1,211,374; 1,334,917), short-term investments net (4,883,950), proceeds from discontinued operation 3,173,005 and held-for-sale 3,605,726, FX 46,107"
+    }
+   ],
+   "fix_plan": "Republish capex/proceeds on the FY2024 basis (2010-D1/D2). Add missing lines via a new reviewed manifest.",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [],
+    "count": 0
+   }
+  },
+  {
+   "source_id": "2010-sabic-2024-fy-comparative",
+   "status": "done",
+   "manifest": "data/imports/sabic-2024-fy-comparative.json",
+   "manifest_last_commit": "2bfb1f6",
+   "manifest_sha256_prefix": "193aa0fa72814f22",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 82,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 73,
+    "value_found_on_cited_page": 76,
+    "facts": 82,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 82,
+    "detail": "82 facts: all matched to printed p132/133/136/137 FY2024 (restated) column; 80 values correct as published; capex and proceeds_asset_sales are arithmetically correct composites but are the defective side of 2010-D1/D2"
+   },
+   "notes": "FY2024 restated comparatives as presented in the FY2025 annual report (restated for MARAFIQ, p214, and discontinued operations). They are NOT the originally reported FY2024 values.",
+   "checks_performed": [
+    {
+     "check": "balance sheet 2024 (Restated) column",
+     "page": "printed 132",
+     "line_item": "PPE 112,580,575; total assets 277,543,843; total equity 183,443,209; total liabilities 94,100,634; retained earnings 19,581,626; other reserves (4,112,475)",
+     "result": "verified_correct"
+    },
+    {
+     "check": "composites",
+     "page": "printed 132",
+     "line_item": "current_debt 2,080,922 + 2,022,996 = 4,103,918; provisions 870,565 + 137,248 = 1,007,813",
+     "result": "verified_correct"
+    },
+    {
+     "check": "income statement 2024",
+     "page": "printed 133",
+     "line_item": "Revenue 117,736,492; Income from operations 9,426,513; net income 3,723,135; parent 1,538,542; NCI 2,184,593; EPS 0.51 (net) - continuing EPS 1.70 not used",
+     "result": "verified_correct",
+     "evidence": "parent/NCI read from the 'Net (loss) income attributable to' block: 1,538,542 and 2,184,593 (continuing block shows 5,090,374 / 2,184,593)"
+    },
+    {
+     "check": "cash flow 2024",
+     "page": "printed 136-137",
+     "line_item": "OCF 16,358,596; ICF (7,986,366); FCF (11,556,171); D&A 11,494,649+1,155,390+359,066 = 13,009,105; dividends received 1,756,390+841,891 = 2,598,281; cash end 30,536,409 (after overdraft (3,259))",
+     "result": "verified_correct"
+    },
+    {
+     "check": "restated vs original",
+     "page": "printed 214 (Note 42)",
+     "line_item": "Restatement 474,950 (associates and retained earnings)",
+     "result": "verified_correct as restated; original FY2024 not retained"
+    }
+   ],
+   "defects": [
+    {
+     "id": "2010-D1",
+     "class": "definition_drift_across_periods",
+     "severity": "medium",
+     "metric": "capex",
+     "published_value": "FY2025 -8,750,028 (sabic-2025-fy); FY2024 -10,200,229 (sabic-2024-fy-comparative)",
+     "correct_value": "FY2025 on the FY2024/company basis (PP&E + intangibles) = -8,774,805 (8,750,028 + 24,777); company-reported 'Capital expenditures' 8.77 Bn (FY2025) and 10.20 Bn (FY2024)",
+     "page": "printed 137 (cash flow) and 42 (summary)",
+     "line_item": "'Purchase of property, plant and equipment (8,750,028) (10,114,320)'; 'Additions of intangible assets (24,777) (85,909)'; p42 'Capital expenditures 8.77 10.20 -14 10.49 10.22 10.97'",
+     "evidence": "FY2024 capex = 10,114,320 + 85,909 = 10,200,229 (includes intangibles) while FY2025 capex = PP&E only, so FY2025 vs FY2024 capex growth is not like-for-like; five-year capex 2021-2023 (10.97/10.22/10.49 Bn) is also the company definition (PP&E + intangibles).",
+     "root_cause": "RC-CAPEX-DEFINITION",
+     "fix_plan": "Publish FY2025 capex as -8,774,805 with composite label, or carry ppe_purchases and intangible_asset_purchases for both years and derive capex consistently. Detector: finengine.audit_consistency.definition_drift (flags sa:2010 capex)."
+    },
+    {
+     "id": "2010-D2",
+     "class": "definition_drift_across_periods",
+     "severity": "medium",
+     "metric": "proceeds_asset_sales",
+     "published_value": "FY2025 82,308 (PP&E only); FY2024 595,767 (PP&E + held-for-sale assets)",
+     "correct_value": "same basis FY2025 (PP&E + held-for-sale) = 3,688,034 (82,308 + 3,605,726), or PP&E-only FY2024 = 33,343",
+     "page": "printed 137",
+     "line_item": "'Proceeds from sale of property, plant and equipment 82,308 33,343'; 'Proceeds from sale of assets held for sale 3,605,726 562,424'",
+     "evidence": "595,767 = 33,343 + 562,424 exactly, so the FY2024 label includes held-for-sale proceeds while FY2025 does not; a 7x difference in composition.",
+     "root_cause": "RC-CAPEX-DEFINITION",
+     "fix_plan": "Use one basis for both years (recommend PP&E-only with a separate proceeds_assets_held_for_sale metric)."
+    },
+    {
+     "id": "2010-D4",
+     "class": "incomplete_extraction_breaks_component_sum",
+     "severity": "medium",
+     "metric": "FY2024 equity components",
+     "published_value": "share_capital 30,000,000 + other_reserves -4,112,475 + retained_earnings 19,581,626 = 45,469,151",
+     "correct_value": "equity_parent 156,358,183 (adds the 'General reserve 110,889,032' line that is not extracted)",
+     "page": "printed 132",
+     "line_item": "'General reserve 20 – 110,889,032'",
+     "evidence": "published components miss 110,889,032, so any consumer summing equity components gets 45.5 Bn instead of 156.4 Bn for FY2024.",
+     "root_cause": "RC-PARTIAL-EXTRACTION",
+     "fix_plan": "Add general_reserve (2024: 110,889,032; 2025: nil)."
+    },
+    {
+     "id": "2010-D3",
+     "class": "definition_drift_across_periods",
+     "severity": "low",
+     "metric": "depreciation_amortization (FY2025, deep notes) vs depreciation_amortization_cash_flow (FY2024, comparative)",
+     "published_value": "FY2025 12,762,575; FY2024 13,009,105",
+     "correct_value": "cash-flow basis FY2025 = 12,897,679 (11,185,373 + 1,184,728 + 527,578); the published FY2025 value uses note-9 intangible amortisation 392,474 instead of the cash-flow line 527,578",
+     "page": "printed 136 and 186/159",
+     "line_item": "'Depreciation of property, plant and equipment 11,185,373 11,494,649'; 'Depreciation of right-of-use assets 1,184,728 1,155,390'; 'Amortisation of intangible assets and other assets 527,578 359,066'",
+     "evidence": "FY2024 13,009,105 = 11,494,649 + 1,155,390 + 359,066 (cash-flow lines). FY2025 12,762,575 = 12,370,101 + 392,474 (note totals). The metric key also differs between years, so YoY D&A cannot be derived from the published keys. Sign is positive while the cement/ACWA manifests carry D&A negative (the engine applies abs()).",
+     "root_cause": "RC-CAPEX-DEFINITION",
+     "fix_plan": "Publish FY2025 depreciation_amortization on the cash-flow basis (12,897,679) under the same metric key as FY2024."
+    }
+   ],
+   "missing_fields": [
+    {
+     "field": "FY2024 comprehensive income 1,823,437",
+     "periods": [
+      "2024"
+     ],
+     "page": "printed 134",
+     "line_item": "Total comprehensive income (loss)"
+    },
+    {
+     "field": "general_reserve 110,889,032",
+     "periods": [
+      "2024-12-31"
+     ],
+     "page": "printed 132",
+     "line_item": "General reserve"
+    },
+    {
+     "field": "derivatives, investments in debt/equity instruments, other assets/liabilities lines",
+     "periods": [
+      "2024-12-31"
+     ],
+     "page": "printed 132",
+     "line_item": "see sabic-2025-fy"
+    }
+   ],
+   "fix_plan": "See 2010-D1/D2/D3/D4.",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [],
+    "count": 0
+   }
+  },
+  {
+   "source_id": "2010-sabic-2021-2025-five-year-financial-history",
+   "status": "done",
+   "manifest": "data/imports/sabic-2021-2025-five-year-financial-history.json",
+   "manifest_last_commit": "e6401ad",
+   "manifest_sha256_prefix": "e1c41b5157c92446",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 72,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 64,
+    "value_found_on_cited_page": 72,
+    "facts": 72,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 72,
+    "detail": "all 72 facts: SAR Bn block (not the US$ block) of printed p19 (shares), p39-42 summary tables; column order '2025 2024 %Change 2023 2022 2021' confirmed for every value (the % change column is skipped correctly)"
+   },
+   "notes": "Summary tables are footnoted: 'All numbers presented above are based on the published financial statements, including any restatements of prior periods' - FY2021-2023 values are restated for Hadeed and other discontinued operations, not as originally reported.",
+   "checks_performed": [
+    {
+     "check": "column mapping",
+     "page": "printed 40-42",
+     "line_item": "Sales 116.53 117.74 -1 141.54 183.08 174.88 -> 2023 141.54, 2022 183.08, 2021 174.88; EBITDA 16.43 21.00 -22 19.02 36.40 48.51; total assets 244.29 277.54 -12 294.38 313.11 319.36",
+     "result": "verified_correct"
+    },
+    {
+     "check": "scale/currency",
+     "page": "printed 40 header 'x (Bn.)'",
+     "line_item": "SAR billions (second table is US$)",
+     "result": "verified_correct (scale 1e9, SAR)"
+    },
+    {
+     "check": "CF summary",
+     "page": "printed 42",
+     "line_item": "Investing -8.92/-12.57/-11.76; capex 10.97/10.22/10.49; FCF 28.52/25.59/13.96; cash end 42.31/40.04/33.80",
+     "result": "verified_correct"
+    }
+   ],
+   "defects": [
+    {
+     "id": "2010-D9",
+     "class": "cash_flow_cash_published_as_balance_sheet_cash",
+     "severity": "low",
+     "metric": "cash (five-year table 2021-2023)",
+     "published_value": "42.31 / 40.04 / 33.80 Bn under metric 'cash' (source label 'Cash and cash equivalents at the end of the year', cash-flow table p42)",
+     "correct_value": "cash-flow cash differs from the balance-sheet line: FY2025 27,950,605 vs 27,746,328 (+204,277 held-for-sale cash less overdraft); FY2024 30,536,409 vs 30,539,668",
+     "page": "printed 42 and 132/137",
+     "line_item": "BS 'Cash and cash equivalents 18 27,746,328 30,539,668' vs CF 'Cash and cash equivalents at the end of the year 27,950,605 30,536,409'",
+     "evidence": "Balance-sheet cash for FY2021-2023 is not in this document, so the five-year 'cash' values are cash-flow cash; they can deviate from balance-sheet cash by the amounts shown for FY2024/FY2025.",
+     "root_cause": "RC-CASH-DEFINITION",
+     "fix_plan": "Publish those values only as cash_end, not cash."
+    }
+   ],
+   "missing_fields": [
+    {
+     "field": "FY2021-2023 full statements",
+     "periods": [
+      "2021",
+      "2022",
+      "2023"
+     ],
+     "page": "n/a",
+     "line_item": "Only summary rows exist in this document; full FY2021-2023 statements are in earlier annual reports (not in the archive)"
+    },
+    {
+     "field": "free_cash_flow and capex FY2024/FY2025",
+     "periods": [
+      "2024",
+      "2025"
+     ],
+     "page": "printed 42",
+     "line_item": "capex 10.20/8.77; FCF 6.16/7.18"
+    }
+   ],
+   "fix_plan": "Move 'cash' rows to cash_end. Archive earlier annual reports to build FY2021-2023 full statements.",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [],
+    "count": 0
+   }
+  },
+  {
+   "source_id": "2010-sabic-2025-deep-financial-notes",
+   "status": "done",
+   "manifest": "data/imports/sabic-2025-deep-financial-notes.json",
+   "manifest_last_commit": "e6401ad",
+   "manifest_sha256_prefix": "d52122f2a1bb8f4d",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 114,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 56,
+    "value_found_on_cited_page": 92,
+    "facts": 114,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 78,
+    "detail": "114 facts: 56 matched label+value in the cited row; 36 more value-on-page cells and 22 derived/text values were individually resolved (sums re-added, 'x N million' text located). 2 are defective (2010-D5, 2010-D6); 1 definitional (2010-D3). Note: related_party_loans 'Loan from Saudi Aramco subsidiary' 10,397,249 reproduces p201 faithfully while note 22 (p184) prints 10,397,294 for the same loan - a source-document inconsistency; total debt 33,546,363 only reconciles with ...294."
+   },
+   "notes": "Notes 7-43 of the audited statements.",
+   "checks_performed": [
+    {
+     "check": "PPE by class",
+     "page": "printed 155",
+     "line_item": "NBV 10,728,485 + 72,094,291 + 186,632 + 133,599 + 9,926,689 = 93,069,696 (= BS); gross 243,418,277 - accumulated 150,348,581 = 93,069,696",
+     "result": "verified_correct"
+    },
+    {
+     "check": "intangibles by class",
+     "page": "printed 159",
+     "line_item": "16,531,734 + 626,255 + 800,622 + 310,604 + 10,738 = 18,279,953",
+     "result": "verified_correct"
+    },
+    {
+     "check": "provisions by class",
+     "page": "printed 193",
+     "line_item": "79,644 + 27,630 + 27,263 + 186,788 = 321,325",
+     "result": "verified_correct"
+    },
+    {
+     "check": "debt note",
+     "page": "printed 184",
+     "line_item": "Bonds 7,472,811 + 66,669 = 7,539,480; SIDF 180,479 + 116,693 = 297,172; Total non-current 21,311,688; total current 11,235,731; total debt 33,546,363",
+     "result": "Murabaha defective (2010-D5); others verified_correct"
+    },
+    {
+     "check": "related parties",
+     "page": "printed 201",
+     "line_item": "receivables 37,159+3,603,302+15,317+1,304,334 = 4,960,112 correct; payables off by 100",
+     "result": "see 2010-D6"
+    },
+    {
+     "check": "tax/zakat, EPS shares, commitments",
+     "page": "printed 196-200, 213",
+     "line_item": "Zakat 907,776; income tax 696,178; effective rate 127% (published 1.27); weighted shares 3,000,000 thousand; commitments 6,503 Mn; guarantees 1,070 Mn",
+     "result": "verified_correct"
+    }
+   ],
+   "defects": [
+    {
+     "id": "2010-D5",
+     "class": "component_double_counted",
+     "severity": "low",
+     "metric": "borrowings_by_instrument[Murabaha] 2025",
+     "published_value": "15,195,578",
+     "correct_value": "15,194,979 (13,658,398 + 998,345 + 538,236)",
+     "page": "printed 184",
+     "line_item": "Murabaha non-current 13,658,398; Murabaha short-term 998,345; Murabaha current portion 538,236; 'Conventional short-term bank borrowings' 599; 'Total short-term borrowings 998,944'; 'Total debt 33,546,363'",
+     "evidence": "Published Murabaha (15,195,578) already contains the 599 of conventional short-term borrowings, which the same manifest lists again as 'Bank overdraft' 599. Components sum to 33,546,962 versus reported total debt 33,546,363 (+599). The engine's debt reconciliation (canonicalization.py) therefore refuses to derive bank_loans/bonds_sukuk projections.",
+     "root_cause": "RC-COMPOSITE-LABEL-DOUBLE-COUNT",
+     "fix_plan": "Set Murabaha to 15,194,979. Detector: finengine.audit_consistency.dimension_reconciliation (flags sa:2010 2025-12-31, difference 599,000)."
+    },
+    {
+     "id": "2010-D6",
+     "class": "derived_sum_arithmetic_error",
+     "severity": "low",
+     "metric": "related_party_payables 2025",
+     "published_value": "12,296,996",
+     "correct_value": "12,296,896 (719,429 + 5,520,211 + 3,655,683 + 2,401,573)",
+     "page": "printed 201",
+     "line_item": "'Amounts owed to related parties' column: Associates 719,429; Joint ventures 5,520,211; Saudi Aramco 3,655,683; Aramco subsidiaries/JVs/associates 2,401,573",
+     "evidence": "The page prints no total; the published total exceeds the sum of the four printed rows by 100. (The receivables total 4,960,112 = 37,159+3,603,302+15,317+1,304,334 is correct.)",
+     "root_cause": "RC-COMPOSITE-LABEL-DOUBLE-COUNT",
+     "fix_plan": "Correct to 12,296,896."
+    },
+    {
+     "id": "2010-D10",
+     "class": "sign_convention_inconsistent",
+     "severity": "low",
+     "metric": "zakat_expense, income_tax_expense, depreciation_amortization, amortization_expense (deep notes)",
+     "published_value": "positive (907,776; 696,178; 12,762,575)",
+     "correct_value": "sa:2082/3010/3030/3050 and sabic-2025-fy carry expenses and D&A negative (e.g. cost_of_revenue, finance_costs, income_taxes_and_zakat)",
+     "page": "printed 133, 196, 197",
+     "line_item": "'Zakat expense 31 (907,776)', 'Income tax benefit 31 (696,178)' are presented as negatives (expenses) on the face of the income statement",
+     "evidence": "Same economic items appear with opposite signs across manifests; engine formulas use abs() for D&A but not for tax lines.",
+     "root_cause": "RC-SIGN-CONVENTION",
+     "fix_plan": "Normalise to the dominant negative-expense convention when republishing."
+    }
+   ],
+   "missing_fields": [
+    {
+     "field": "n/a",
+     "periods": [],
+     "page": "",
+     "line_item": "Notes extraction is selective; FY2024 note comparatives are not published for any note table"
+    }
+   ],
+   "fix_plan": "Correct 2010-D5 and 2010-D6; add FY2024 note comparatives.",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [
+     [
+      "gross_property_plant_equipment",
+      "2025",
+      "243418277",
+      155
+     ],
+     [
+      "accumulated_depreciation",
+      "2025",
+      "-150348581",
+      155
+     ],
+     [
+      "construction_in_progress",
+      "2025",
+      "9926689",
+      155
+     ],
+     [
+      "cash_equivalents",
+      "2025",
+      "16897107",
+      178
+     ],
+     [
+      "other_receivables",
+      "2025",
+      "8425796",
+      173
+     ],
+     [
+      "employee_benefits_noncurrent",
+      "2025",
+      "12514849",
+      186
+     ],
+     [
+      "provisions",
+      "2025",
+      "321325",
+      192
+     ],
+     [
+      "other_noncurrent_liabilities",
+      "2025",
+      "1513088",
+      193
+     ],
+     [
+      "other_current_liabilities",
+      "2025",
+      "10687055",
+      193
+     ],
+     [
+      "amortization_expense",
+      "2025",
+      "392474",
+      160
+     ],
+     [
+      "zakat_expense",
+      "2025",
+      "907776",
+      196
+     ],
+     [
+      "property_plant_equipment_by_class",
+      "2025",
+      "10728485",
+      155
+     ],
+     [
+      "property_plant_equipment_by_class",
+      "2025",
+      "72094291",
+      155
+     ],
+     [
+      "property_plant_equipment_by_class",
+      "2025",
+      "186632",
+      155
+     ],
+     [
+      "property_plant_equipment_by_class",
+      "2025",
+      "9926689",
+      155
+     ],
+     [
+      "depreciation_by_ppe_class",
+      "2025",
+      "11185373",
+      155
+     ],
+     [
+      "impairment_by_asset_class",
+      "2025",
+      "120814",
+      157
+     ],
+     [
+      "impairment_by_asset_class",
+      "2025",
+      "7543",
+      159
+     ],
+     [
+      "intangible_assets_by_class",
+      "2025",
+      "16531734",
+      159
+     ],
+     [
+      "intangible_assets_by_class",
+      "2025",
+      "626255",
+      159
+     ],
+     [
+      "intangible_assets_by_class",
+      "2025",
+      "800622",
+      159
+     ],
+     [
+      "intangible_assets_by_class",
+      "2025",
+      "310604",
+      159
+     ],
+     [
+      "intangible_assets_by_class",
+      "2025",
+      "10738",
+      159
+     ],
+     [
+      "intangible_amortization_by_class",
+      "2025",
+      "392474",
+      159
+     ],
+     [
+      "secured_borrowings",
+      "2025",
+      "297172",
+      185
+     ],
+     [
+      "borrowings_by_maturity",
+      "2025",
+      "10973221",
+      211
+     ],
+     [
+      "borrowings_by_maturity",
+      "2025",
+      "895631",
+      211
+     ],
+     [
+      "borrowings_by_maturity",
+      "2025",
+      "10448095",
+      211
+     ],
+     [
+      "borrowings_by_maturity",
+      "2025",
+      "10132000",
+      211
+     ],
+     [
+      "defined_benefit_obligation",
+      "2025",
+      "12302178",
+      186
+     ],
+     [
+      "actuarial_gain_loss",
+      "2025",
+      "245085",
+      187
+     ],
+     [
+      "provisions_by_class",
+      "2025",
+      "79644",
+      193
+     ],
+     [
+      "provisions_by_class",
+      "2025",
+      "27630",
+      193
+     ],
+     [
+      "provisions_by_class",
+      "2025",
+      "27263",
+      193
+     ],
+     [
+      "provisions_by_class",
+      "2025",
+      "186788",
+      193
+     ],
+     [
+      "deferred_tax_liabilities_by_component",
+      "2025",
+      "-535191",
+      199
+     ]
+    ],
+    "count": 36
+   },
+   "other_unverified": [
+    {
+     "scope": "36 table-cell facts whose value was located on the cited page but whose row label/column was not individually re-read (e.g. contractual maturity bands p211, fair-value levels p174, deferred-tax components p199)",
+     "status": "unverified"
+    }
+   ]
+  },
+  {
+   "source_id": "2010-sabic-2025-gap-closure",
+   "status": "done",
+   "manifest": "data/imports/sabic-2025-gap-closure.json",
+   "manifest_last_commit": "e6401ad",
+   "manifest_sha256_prefix": "eb3d94cc4f9c0b33",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 69,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 39,
+    "value_found_on_cited_page": 64,
+    "facts": 69,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 44,
+    "detail": "69 facts; 66 re-read or re-computed against printed p19/20/47/133-137/155-156/173-174/194-199/207-208/231: face-statement items, PPE by class, revenue by product 111,629,493 + 3,416,268 + 1,479,453 = 116,525,214, segment revenue 103,935,678 + 12,589,536 = 116,525,214, working_capital_change 1,903,465 re-summed from nine CF lines. 3 are defective (2010-D7 x2 volumes, 2010-D8 x2 geo labels are counted in the 3 for volumes only)"
+   },
+   "notes": "Gap-closure facts for FY2025.",
+   "checks_performed": [
+    {
+     "check": "segment/geography totals",
+     "page": "printed 207-208",
+     "line_item": "Revenue Petrochemicals 103,935,678 / Agri-nutrients 12,589,536 / total 116,525,214; geography sum 116,525,214",
+     "result": "verified_correct"
+    },
+    {
+     "check": "sales volumes",
+     "page": "printed 47",
+     "line_item": "Chemicals 23.4, Polymers 16.2 are the including-discontinued panel",
+     "result": "defective - 2010-D7"
+    },
+    {
+     "check": "comprehensive income",
+     "page": "printed 134",
+     "line_item": "Total comprehensive loss (22,125,623)",
+     "result": "verified_correct"
+    },
+    {
+     "check": "zero facts",
+     "page": "printed 137",
+     "line_item": "'–' in 2025 for proceeds on maturity of debt investments and sale of equity investments",
+     "result": "verified_correct (value 0 represents a dash)"
+    }
+   ],
+   "defects": [
+    {
+     "id": "2010-D7",
+     "class": "mixed_operating_basis_unflagged",
+     "severity": "medium",
+     "metric": "petrochemicals_sales_volume (gap-closure) vs sales_volume (sector-operational)",
+     "published_value": "gap-closure: Chemicals 23.4 and Polymers 16.2 Mn t (2025); sector-operational: Chemicals 23.2 and Polymers 13.0 Mn t (2025, basis=continuing_operations)",
+     "correct_value": "23.4/16.2 are the 'TOTAL OPERATIONAL FOOTPRINT (Including discontinued operations)' panel; 23.2/13.0 are the 'OPERATIONAL FOOTPRINT (Continuing operations)' panel",
+     "page": "printed 47 (rendered image checked)",
+     "line_item": "left panel 'Sales volumes: 6% 2025: 23.4 Mn. t' and 'Sales volumes: 2% 2025: 16.2 Mn. t'; middle panel 'Sales volumes: 6% 2025: 23.2' and 'Sales volumes: 1% 2025: 13.0'",
+     "evidence": "Same concept published twice with different values; gap-closure carries no basis dimension while sector-operational does. 'petrochemicals_ebitda' 11.54 Bn in the same manifest is a continuing-operations figure, so the manifest mixes bases.",
+     "root_cause": "RC-OPERATING-BASIS",
+     "fix_plan": "Add basis=including_discontinued_operations to the gap-closure volumes or drop them in favour of the sector-operational facts."
+    },
+    {
+     "id": "2010-D8",
+     "class": "mislabelled_metric",
+     "severity": "low",
+     "metric": "domestic_revenue_chemicals / international_revenue_chemicals",
+     "published_value": "18,083,824 / 98,441,390",
+     "correct_value": "same numbers are GROUP revenue by customer location (KSA 18,083,824 + non-KSA 98,441,390 = 116,525,214 total revenue), not the Chemicals segment (103,935,678)",
+     "page": "printed 208",
+     "line_item": "'GEOGRAPHICAL DISTRIBUTION OF REVENUE ... KSA 18,083,824 16 ... 116,525,214 100'",
+     "evidence": "The note covers the whole group; Chemicals/Petrochemicals revenue is 103,935,678 (p207).",
+     "root_cause": "RC-MISLABEL",
+     "fix_plan": "Rename to domestic_revenue / international_revenue (group)."
+    }
+   ],
+   "missing_fields": [],
+   "fix_plan": "Fix 2010-D7/D8.",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [
+     [
+      "net_income_cash_flow",
+      "2025",
+      "-22357920",
+      136
+     ],
+     [
+      "other_current_assets",
+      "2025",
+      "8425796",
+      173
+     ],
+     [
+      "other_noncurrent_assets",
+      "2025",
+      "5204351",
+      173
+     ],
+     [
+      "land",
+      "2025",
+      "1675",
+      156
+     ],
+     [
+      "accumulated_depreciation_by_class",
+      "2025",
+      "-9004680",
+      155
+     ],
+     [
+      "accumulated_depreciation_by_class",
+      "2025",
+      "-138935593",
+      155
+     ],
+     [
+      "accumulated_depreciation_by_class",
+      "2025",
+      "-774063",
+      155
+     ],
+     [
+      "accumulated_depreciation_by_class",
+      "2025",
+      "-489716",
+      155
+     ],
+     [
+      "accumulated_depreciation_by_class",
+      "2025",
+      "-1144529",
+      155
+     ],
+     [
+      "ppe_disposals_by_class",
+      "2025",
+      "-706938",
+      155
+     ],
+     [
+      "petrochemicals_revenue",
+      "2025",
+      "103935678",
+      207
+     ],
+     [
+      "petrochemicals_ebitda",
+      "2025",
+      "11.54",
+      47
+     ],
+     [
+      "agri_nutrients_revenue",
+      "2025",
+      "12589536",
+      207
+     ],
+     [
+      "agri_nutrients_ebitda",
+      "2025",
+      "4.89",
+      47
+     ],
+     [
+      "domestic_revenue_chemicals",
+      "2025",
+      "18083824",
+      208
+     ],
+     [
+      "agri_nutrients_sales_volume",
+      "2025",
+      "7.2",
+      47
+     ],
+     [
+      "petrochemicals_sales_volume",
+      "2025",
+      "16.2",
+      47
+     ],
+     [
+      "fair_value_assets_by_level",
+      "2025",
+      "310199",
+      174
+     ],
+     [
+      "fair_value_assets_by_level",
+      "2025",
+      "965875",
+      174
+     ],
+     [
+      "fair_value_assets_by_level",
+      "2025",
+      "2689282",
+      174
+     ],
+     [
+      "fair_value_liabilities_by_level",
+      "2025",
+      "6767951",
+      174
+     ],
+     [
+      "fair_value_liabilities_by_level",
+      "2025",
+      "25998403",
+      174
+     ],
+     [
+      "fair_value_liabilities_by_level",
+      "2025",
+      "1870894",
+      174
+     ],
+     [
+      "dividend_installments_count",
+      "2025",
+      "2",
+      20
+     ],
+     [
+      "total_dividend_paid_ttm",
+      "2025",
+      "9625654",
+      137
+     ]
+    ],
+    "count": 25
+   },
+   "other_unverified": [
+    {
+     "scope": "years_consecutive_dividend_payments (=5) is a derived count from the five-year dividend row, not a printed number",
+     "status": "unverified"
+    }
+   ]
+  },
+  {
+   "source_id": "2010-sabic-2025-sector-operational",
+   "status": "done",
+   "manifest": "data/imports/sabic-2025-sector-operational.json",
+   "manifest_last_commit": "2a575ba",
+   "manifest_sha256_prefix": "5bca6d4ef5f2e0b2",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 31,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 18,
+    "value_found_on_cited_page": 31,
+    "facts": 31,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 31,
+    "detail": "all 31 values checked on the rendered printed p47 (volumes, EBITDA) and p5/p207; each carries a basis dimension (continuing vs including discontinued) and the figure matches its panel (e.g. total production 55.5 Mn t is the including-discontinued figure and is tagged so)"
+   },
+   "notes": "Operational and segment facts.",
+   "checks_performed": [
+    {
+     "check": "p47 volume panels",
+     "page": "printed 47 (image)",
+     "line_item": "continuing: Chemicals production 35.7/34.1, sales 23.2/21.9; Polymers production 7.3/7.2, sales 13.0/12.9; Agri-Nutrients production 8.3/8.4, sales 7.2/7.1",
+     "result": "verified_correct"
+    },
+    {
+     "check": "segment table",
+     "page": "printed 207",
+     "line_item": "revenue, EBIT 331,322/4,035,672, D&A (10,005,124)/(850,750), assets 207,682,909/27,647,759",
+     "result": "verified_correct"
+    }
+   ],
+   "defects": [],
+   "missing_fields": [],
+   "fix_plan": "none",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [],
+    "count": 0
+   }
+  },
+  {
+   "source_id": "2010-sabic-2025-company-esg-market",
+   "status": "done",
+   "manifest": "data/imports/sabic-2025-company-esg-market.json",
+   "manifest_last_commit": "e6401ad",
+   "manifest_sha256_prefix": "48a9acbed26685df",
+   "document": "data/raw/SA/2010/documents/888b4c0373f7da9588dc393a44c8d5682c0f2206bdfc8185ad4d9a37bf8ba6aa.pdf",
+   "document_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
+   "document_pdf_pages": 262,
+   "page_offset_note": "SABIC Integrated Annual Report 2025: PDF page number == printed page number (e.g. PDF 132 = printed 132 'Consolidated statement of financial position'); amounts in SAR thousands unless stated",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p132-137 headers: 'SABIC INTEGRATED ANNUAL REPORT 2025', consolidated statements of Saudi Basic Industries Corporation; auditor PwC (PDF p126)."
+   },
+   "facts_audited": 103,
+   "automatic_page_checks": {
+    "label_and_value_found_in_one_row_of_cited_page": 86,
+    "value_found_on_cited_page": 93,
+    "facts": 103,
+    "method": "pdf word-position row reconstruction on the cited page; a second pass checks numeric presence on the page; these are screening steps, 'verified_correct' below is only claimed from the manual evidence listed"
+   },
+   "verified_correct": {
+    "count": 96,
+    "detail": "103 facts: EPS -8.59/0.51 (p133), DPS 3/3.4/3.4/4.25/4 and market cap 153,900/201,000/250,500/268,200/348,000 Mn (p19), shares 3,000 Mn, revenue by geography 2025 and 2024 (sum = revenue both years), ESG intensity and safety series p231-233 read in year order 2025..2021"
+   },
+   "notes": "Company, market and ESG facts.",
+   "checks_performed": [
+    {
+     "check": "EPS",
+     "page": "printed 133",
+     "line_item": "Net (loss) income (8.59) 0.51; continuing (0.51) 1.70",
+     "result": "verified_correct (net EPS, not continuing)"
+    },
+    {
+     "check": "geography 2024",
+     "page": "printed 208",
+     "line_item": "30,608,426+24,558,306+18,573,597+13,693,820+10,571,464+9,081,178+10,649,701 = 117,736,492",
+     "result": "verified_correct"
+    },
+    {
+     "check": "ESG series",
+     "page": "printed 231-233",
+     "line_item": "Flaring reduction since 2010 % 57.44 49.9 38 57 54; GHG scope 1+2 41.51 43.0 42.8 44.4 44.3; women in workplace 9 9 8 8 7",
+     "result": "verified_correct (percent stored as ratio)"
+    }
+   ],
+   "defects": [],
+   "missing_fields": [],
+   "fix_plan": "none",
+   "unverified_facts": {
+    "status": "unverified",
+    "reason": "value located on the cited page by the automatic screen, but row label/column not individually re-read",
+    "facts": [
+     [
+      "basic_eps",
+      "2025",
+      "-8.59",
+      133
+     ],
+     [
+      "eps_diluted",
+      "2025",
+      "-8.59",
+      133
+     ],
+     [
+      "basic_eps",
+      "2024",
+      "0.51",
+      133
+     ],
+     [
+      "eps_diluted",
+      "2024",
+      "0.51",
+      133
+     ],
+     [
+      "new_products_introduced",
+      "2025",
+      "148",
+      23
+     ],
+     [
+      "revenue_by_geography",
+      "2025",
+      "18083824",
+      208
+     ],
+     [
+      "revenue_by_geography",
+      "2024",
+      "18573597",
+      208
+     ]
+    ],
+    "count": 7
+   }
+  }
+ ],
+ "missing_periods": [
+  "No quarterly (Q1, H1, Q3, 9M) period for any year",
+  "No full statements for FY2021-FY2023 (summary rows only)",
+  "FY2024 as originally reported is not retained (only the restated comparative)"
+ ],
+ "informational_findings": [
+  {
+   "finding": "cash_end vs balance-sheet cash",
+   "detail": "ManifestVerifier warns for FY2025 (delta 204,277k); proven benign: cash flow cash includes 204,876 of cash in assets held for sale and is net of 599 overdraft (printed p137).",
+   "page": "137"
+  },
+  {
+   "finding": "source-document typo",
+   "detail": "Loan from Saudi Aramco subsidiary printed 10,397,249 (p201) vs 10,397,294 (p184); debt total only reconciles with ...294.",
+   "page": "184/201"
+  }
+ ]
+}

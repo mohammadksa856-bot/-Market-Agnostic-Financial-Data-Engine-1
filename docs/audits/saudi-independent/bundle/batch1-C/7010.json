@@ -1,0 +1,691 @@
+{
+  "schema_version": 1,
+  "symbol": "7010",
+  "company_id": "sa:7010",
+  "name": "Saudi Telecom Company (stc)",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "12-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch1-C)",
+    "method": "Archived source PDFs under data/raw/SA/<symbol>/documents (SHA-256 re-computed and equal to data/raw/archive-index.json for all 26 archived files). Digital pages: text layer read and the printed figure located. Scanned pages (stc, Zain, Elm primary statements): pages rendered to PNG with PyMuPDF and read by eye, line by line, both columns. Findings are proven with page and line item; 'verified_correct' is claimed only where the printed page was read. Internal arithmetic (subtotals, reconciliations) used only as a secondary check, never as proof. Offline; no AWS, no Supabase, no data/raw edits.",
+    "tools_added_on_branch": [
+      "src/finengine/manifest_audit.py",
+      "tests/test_manifest_audit.py",
+      "scripts/audit_manifest_provenance.py",
+      "docs/audits/saudi-independent/batch1-C-provenance-scan.json (machine scan of every fact vs its cited page)"
+    ],
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong or mislabelled against the printed page",
+      "unverified": "source not available/archived or not readable here; nothing is claimed",
+      "verified_correct_with_caveat": "value correct as printed but label/semantics need a note (no value change required)",
+      "pending (source status)": "document is not archived or not present locally, so the source cannot be re-read; resumable once archived"
+    },
+    "rejected_facts_note": "No manifest of these symbols contains 'excluded_facts'/rejected records on telecom-95pct, and data/financial.sqlite3 in the repo has zero rows for them. A production rejected-fact registry (AWS DB) was out of bounds for this audit -> rejected facts: unverified.",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "why_authoritative": "origin/codex/telecom-95pct is the newest lineage of the telecom manifests. origin/claude/telecom-shared-gap-closers (a8245ac) forks at 3980d36 and carries OLDER copies of stc-2025-fy.json, stc-2025-segments-financial-notes.json, stc-2025-company-profile.json and zain-ksa-2025-notes-segments.json (fewer facts); its mobily-2025-fy.json, zain-ksa-2025-fy.json and go-telecom-2021-2025-fy-history.json are byte-identical to the audited ones. It additionally holds the raw Saudi Exchange market archives (data/raw/SA/70x0/market) and *-market-prices-2026-09-23.json manifests that are NOT on telecom-95pct; those raw archives were read via 'git show' (read-only) to audit the price manifests. origin/claude/data-tech-1 (a10e790) elm-2025-fy.json is byte-identical to the audited Elm manifest. origin/claude/data-telecom-1 (f778594) holds the first, shorter stc/Zain FY2025 manifests (superseded).",
+    "batch": "1-C"
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "defective",
+      "summary": "FY2025/FY2024 primary statements: 123/123 facts verified_correct against rendered pages. FY2020-2023 five-year history: 36/36 verified against AR2024 p73-74. Notes/segments: 61/64 verified. DEFECTIVE: customer_concentration and employee_benefit_expense (1000x scale), ppe_additions_by_class (wrong line), FY2025 wired broadband subscribers (prior-year column). UNVERIFIED: all quarterly series Q1-2023..Q4-2025 (decks not archived), H1-2026 (file missing). Basis conflict FY2023 quarters vs FY2023 (+0.78%).",
+      "defect_ids": [
+        "C-7010-01",
+        "C-7010-02",
+        "C-7010-03",
+        "C-7010-04",
+        "C-7010-06"
+      ],
+      "unverified_ids": [
+        "C-7010-07",
+        "C-7010-08"
+      ]
+    },
+    "document_completeness": {
+      "status": "defective",
+      "summary": "The FY2025 FS PDF prints five statements with two columns each. Published: all main subtotals for both years but ~30 FY2024 comparative lines, ~12 never-extracted balance-sheet/income lines, the statement of changes in equity (p12) and all OCI components are missing. The five-year summary in AR2024 prints investing/financing cash flows, equity split and comprehensive income that are not extracted.",
+      "evidence": "see sources[0].missing_fields_in_document_not_extracted and sources[6]"
+    },
+    "company_coverage": {
+      "status": "partial",
+      "present": {
+        "annual": "FY2020-FY2023 (summary subset: revenue, gross profit, operating profit, net profit, assets/liabilities/equity, operating cash flow), FY2024 and FY2025 (full primary statements as comparatives/primary)",
+        "quarterly": "discrete Q1-2023..Q4-2025 (12 quarters) with ONLY revenue/EBITDA/net profit parent (not every metric in every quarter); no balance sheet or cash flow per quarter; no 9M/H1 cumulative except H1-2026 ytd (unverified)",
+        "kpis": "5G coverage 2021-2025, subscribers 2024-2025, traffic 2021-2023"
+      },
+      "missing": [
+        "FY2019 and earlier (listed since 2003; 5-year summary starts 2020)",
+        "original (not restated) FY2020-FY2022/FY2024 statements",
+        "Q1-2026 and discrete Q2-2026",
+        "any interim balance sheet/cash flow before 2026 Q2",
+        "2024 KPI series beyond Q4 (subscribers 2021-2023)"
+      ]
+    }
+  },
+  "shared_root_cause_refs": [
+    "RC1",
+    "RC2",
+    "RC3",
+    "RC4",
+    "RC5",
+    "RC8"
+  ],
+  "findings": [
+    {
+      "id": "C-7010-01",
+      "defect_class": "scale_error_text_millions_stored_as_raw_scale_1",
+      "severity": "high",
+      "status": "defective",
+      "manifest": "stc-2025-segments-financial-notes.json",
+      "metric": "customer_concentration",
+      "period": "FY2025",
+      "page": {
+        "pdf_page": 128,
+        "printed_pages": "254-255 (spread)"
+      },
+      "line_item": "Information about major customers - revenues from Government entities",
+      "published_value": {
+        "value": "11298000",
+        "scale": "1",
+        "currency": "SAR",
+        "normalised_value_sar": 11298000
+      },
+      "correct_value": {
+        "value": "11298000",
+        "scale": "1000",
+        "normalised_value_sar": 11298000000,
+        "printed_as": "approximately SAR 11,298 million (2024: SAR 11,145 million)"
+      },
+      "evidence": "AR2025 PDF p128 prints 'revenues of approximately %11,298 million for the year ended 31 December 2025 (2024: %11,145 million) resulting from sales to Government entities' (% = glyph of the SAR sign). Engine normalisation is raw*scale (src/finengine/normalization.py:16), so the published fact is SAR 11.3 million, 1000x too small. The sibling manifest stc-2025-company-profile.json states the same fact correctly as 'approximately SAR 11.298 billion', proving the document says billions.",
+      "fix": "Set scale to '1000' on this fact (value unchanged). Re-publish via Codex."
+    },
+    {
+      "id": "C-7010-02",
+      "defect_class": "scale_error_text_millions_stored_as_raw_scale_1",
+      "severity": "high",
+      "status": "defective",
+      "manifest": "stc-2025-segments-financial-notes.json",
+      "metric": "employee_benefit_expense",
+      "period": "FY2025",
+      "page": {
+        "pdf_page": 141,
+        "printed_pages": "280-281 (spread)"
+      },
+      "line_item": "27.2 Defined contribution plans - expense recognised for the year",
+      "published_value": {
+        "value": "631000",
+        "scale": "1",
+        "normalised_value_sar": 631000
+      },
+      "correct_value": {
+        "value": "631000",
+        "scale": "1000",
+        "normalised_value_sar": 631000000,
+        "printed_as": "%631 million (2024: %675 million)"
+      },
+      "evidence": "AR2025 PDF p141: 'The amount recognized as an expense for defined contribution plans for the year ended 31 December 2025 is %631 million (2024: %675 million)'. Stored as raw 631000 with scale 1 = SAR 631 thousand.",
+      "fix": "Set scale to '1000'."
+    },
+    {
+      "id": "C-7010-03",
+      "defect_class": "wrong_line_item_mapped",
+      "severity": "high",
+      "status": "defective",
+      "manifest": "stc-2025-segments-financial-notes.json",
+      "metric": "ppe_additions_by_class",
+      "period": "FY2025",
+      "page": {
+        "pdf_page": 129,
+        "printed_pages": "256-257 (spread)"
+      },
+      "line_item": "Note 10 Property and equipment - 'Additions' row, Total column (2025 roll-forward)",
+      "published_value": {
+        "value": "8279660",
+        "scale": "1000",
+        "label": "Additions to property and equipment"
+      },
+      "correct_value": {
+        "value": "8235137",
+        "scale": "1000",
+        "label": "Additions, total (lands & buildings 90,710 + network & equipment 94,452 + other 138,210 + CWIP 7,911,765)"
+      },
+      "evidence": "8,279,660 is the NET BOOK VALUE of 'Lands and buildings' at 31 Dec 2025 (bottom row of the same roll-forward), and the manifest already carries that same number correctly as property_plant_equipment_by_class / Lands and buildings. The 2025 additions row totals 8,235,137.",
+      "fix": "Replace the value with 8235137 (additions total) or drop the fact; add additions-by-class from the same row if wanted."
+    },
+    {
+      "id": "C-7010-04",
+      "defect_class": "wrong_period_column_prior_year_value_taken",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "stc-2025-operating-kpis.json",
+      "metric": "broadband_subscribers (wired)",
+      "period": "2025-12-31",
+      "page": {
+        "pdf_page": 38,
+        "printed_pages": "74-75"
+      },
+      "line_item": "Subscribers at a glance - Fixed subscribers, fixed-wired broadband subscriptions (millions)",
+      "published_value": {
+        "value": "1300000",
+        "label": "Wired broadband subscribers 1.3 million"
+      },
+      "correct_value": {
+        "value": "1400000",
+        "label": "Q4 25 wired broadband 1.4 million (Q4 24 = 1.3 million)"
+      },
+      "evidence": "Rendered AR2025 PDF p38: stacked bars Q4 24 / Q4 25 for fixed subscribers: Q4 24 = 3.9 (telephone) + 1.3 (wired broadband) + 0.5 (wireless) = 5.7; Q4 25 = 4.1 + 1.4 + 0.5 = 6.0. The published 1.3 is the Q4 2024 comparative column. FY2024 manifest (AR2024 p53 printed: wired 1.32 m, wireless 0.50 m) is consistent with 1.3 being the prior-year value.",
+      "fix": "Change value to 1400000 and label to 'Wired broadband subscribers 1.4 million'."
+    },
+    {
+      "id": "C-7010-05",
+      "defect_class": "page_reference_wrong_or_other_document",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "stc-2025-segments-financial-notes.json; stc-2025-fy.json; stc-2024-operating-kpis.json; stc-2025-operating-kpis.json; stc-2021-2023-network-kpis.json",
+      "metric": "(many)",
+      "period": "FY2025 / FY2024",
+      "evidence": "Machine scan (batch1-C-provenance-scan.json) + manual confirmation: segments-notes cites p143 for revenue_by_product, remaining_performance_obligations, deferred_tax_expense (actually PDF p144); p139 for borrowings (p140); p144 for finance_cost_by_type/expected_credit_losses (p145); p148 for purchase_commitments, other_commitments, guarantees, contingencies (p149); contract_assets cites p8 which is a page of the FS PDF, not of the AR2025 PDF the manifest points to. stc-2025-fy.json 'provisions' cites p142, a page of the AR2025 PDF, but its source_url is the 106-page FS PDF (the line is on p87). KPI manifests use printed page numbers (74/75, 53, 108, 116) while others use PDF page numbers; five_g_coverage/network_sites/fiber/data_centers have no page.",
+      "fix": "Normalise to PDF page numbers (add printed page under metadata). Re-run scripts/audit_manifest_provenance.py until zero page_offset/wrong_page."
+    },
+    {
+      "id": "C-7010-06",
+      "defect_class": "mixed_basis_original_vs_restated_vintage",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "stc-2023-quarterly-history.json vs stc-2020-2023-annual-history.json",
+      "metric": "revenue",
+      "period": "FY2023",
+      "published_value": {
+        "quarters": "18.18+18.33+18.11+17.72 = 72.34 bn (Q1-2024 deck comparatives)",
+        "fy": "71,777,161 thousand (AR2024 five-year summary, 'Revised')"
+      },
+      "evidence": "Sum of the four 2023 quarterly revenues exceeds the FY2023 figure by 0.78% (562.8m). AR2024 p73 footnote: '*Certain comparative figures for 2023 were reclassified', and column header '2023 Consolidated Revised'. The quarterly set was taken from the Q1-2024 presentation (pre-restatement, includes the later-discontinued operations) while FY2023 is the restated continuing-operations figure. Net profit parent reconciles (13.290 vs 13.295 bn) because discontinued profit is inside the parent total. The Q1-2024 deck itself is not archived, so the quarterly values are unverified; the basis conflict is proven arithmetically + by the AR2024 footnote.",
+      "fix": "Archive the Q1-2024 deck; tag the 2023 quarters as 'original basis' or replace with restated quarters from later decks; never publish FY and quarters of different vintages without a basis flag."
+    },
+    {
+      "id": "C-7010-07",
+      "defect_class": "quarter_sum_does_not_match_year",
+      "severity": "low",
+      "status": "unverified",
+      "manifest": "stc-2024-quarterly-revenue.json vs stc-2025-fy.json",
+      "metric": "revenue",
+      "period": "FY2024",
+      "published_value": {
+        "quarters_bn": "18.908+19.021+18.643+19.266 = 75.838",
+        "fy_thousand": "75,893,413 (restated comparative, AR2025 p9)"
+      },
+      "evidence": "Gap -55.4m (-0.07%): Q4 implied by FY less Q1-Q3 is 19.321 bn vs published 19.266 bn. Source deck (Q1-2025 presentation) not archived, so cannot say which is right.",
+      "fix": "Archive EarningsPresentationQ1-2025En.pdf and re-read p9."
+    },
+    {
+      "id": "C-7010-08",
+      "defect_class": "source_not_archived",
+      "severity": "medium",
+      "status": "unverified",
+      "manifest": "stc-2026-q2.json",
+      "metric": "(15 H1-2026 facts)",
+      "period": "H1 2026 (ytd to 2026-06-30)",
+      "evidence": "data/raw/archive-index.json lists artifact 0f09bdc6... (saudiexchange fsPdf 23192_480_2026-07-29) but the file is not present in the repo, in any sibling worktree, or on any audited branch. Nothing about these 15 facts can be verified. Facts are labelled ytd/fiscal_quarter=2 with scale 1e6, which is the correct label for a six-month cumulative if the document is the H1 statement.",
+      "fix": "Re-archive the PDF (Codex/ops) and re-audit; Q1-2026 standalone and Q2 discrete quarter are not published."
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "stc-FY2025-FS-primary-statements",
+      "manifest": "stc-2025-fy.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/stc_Annual-2025-en.pdf",
+        "archive_path": "data/raw/SA/7010/documents/aeec895e88a6d48c1ae9e64c99eadeed5773deb87381239e9265403137b95e55.pdf",
+        "sha256": "aeec895e88a6d48c1ae9e64c99eadeed5773deb87381239e9265403137b95e55",
+        "pdf_pages": 106,
+        "archived": true,
+        "note": "Primary statements are scanned images (PDF p8 financial position, p9 profit or loss, p10 comprehensive income, p11 cash flows; printed pages 7-10)."
+      },
+      "status": "done",
+      "verification_basis": "rendered page images read line by line (both columns) + digital notes text",
+      "periods_in_manifest": [
+        "FY2025 (fy 2025-01-01..2025-12-31)",
+        "FY2024 comparatives",
+        "instants 2025-12-31 and 2024-12-31"
+      ],
+      "checks_performed": [
+        "p8 balance sheet: every published line for 31 Dec 2025 and 31 Dec 2024 compared with the image (PPE 43,286,335/41,514,233; intangibles 17,325,168/15,162,732; total non-current 99,460,914/87,893,018; inventories; trade receivables 26,727,198/22,223,164; short term murabahas 1,704,161/15,212,455; cash 13,376,071/15,543,441; total current 58,015,755/72,745,125; total assets 157,476,669/160,638,143; share capital; other reserves 1,495,094/1,484,621; retained earnings 32,321,997/38,449,272; equity parent 83,413,571/89,416,542; NCI 2,972,769/3,068,505; total equity 86,386,340/92,485,047; LT borrowings 14,404,268/14,740,155; ST borrowings 787,160/391,584; total NCL 30,917,754/29,196,835; total CL 40,172,575/38,956,261; total liabilities 71,090,329/68,153,096)",
+        "p9 profit or loss: revenue 77,818,675/75,893,413; cost of revenues; gross profit 37,699,689/37,325,924; S&M + G&A sum (6,371,576+6,858,678 = 13,230,254; 2024: 6,561,820+6,812,989 = 13,374,809); D&A and impairment; operating profit 14,438,264/14,425,638; finance income/cost; PBT 14,722,642/12,134,447; zakat and income tax +466,436/(1,191,564); net profit 15,134,945/24,916,243; parent 14,828,030/24,688,652; NCI 306,915/227,591; discontinued operations (54,133)/13,973,360; EPS basic 2.97/4.95 and diluted 2.97/4.94 (total-profit EPS, NOT the continuing-ops EPS 2.98/2.15 also printed)",
+        "p10 comprehensive income: total comprehensive income 15,152,800 (2025) read; 2024 value 24,608,071 printed but not published",
+        "p11 cash flows: operating 18,283,163/19,885,337; investing 2,546,411/(7,178,981); financing (23,000,575)/(10,495,146); FX 3,631/(39,089); net change (2,171,001)/2,211,210; opening 15,543,441/13,371,320; closing 13,376,071/15,543,441; capex (11,794,671)/(11,926,776); dividends to parent holders (20,954,565)/(9,687,757); 2025 detail lines (share-based 142,987; zakat paid 961,437; asset-sale proceeds 439,483; new subsidiaries (4,688); JV (375); dividends from associates 28,410; murabaha net 13,471,805; lease (857,400); repayments (441,692); proceeds 376,118; NCI dividends (443,473); finance costs paid (714,286))",
+        "Sign convention, scale (SAR thousands, header 'All amounts in Saudi Riyals thousands'), currency SAR, period labelling (FY = calendar year, 2024 column = restated comparative) all confirmed",
+        "Restatement check: FY2024 comparatives here (cost of revenues 38,567,489, gross profit 37,325,924) differ from the original FY2024 AR (AR2024 p73: 38,593,003 / 37,300,410) - a reclassification of 25,514; the manifest correctly carries the FY2025-report comparative and does not mix columns",
+        "Digital notes cross-check: p144 (note 34) revenue 77,818,675; p127 segment totals; p142 provisions 1,405,566 (note 30); p141 contract liabilities 5,359,851"
+      ],
+      "verified_correct": {
+        "count": 123,
+        "of": 123,
+        "summary": "All 123 published facts match the printed statements (value, sign, period column, scale, unit). stc_2025-fy numeric correctness: verified_correct."
+      },
+      "defects": [
+        "C-7010-05"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "balance_sheet_FY2024_comparatives_missing_for": [
+          "right_of_use_assets 1,351,971",
+          "investment_associates 12,259,656",
+          "assets_held_for_sale 39,519",
+          "treasury_shares (517,351)",
+          "end_of_service_benefits 5,184,542",
+          "lease_liabilities_noncurrent 1,570,638",
+          "trade_and_other_payables 22,627,472",
+          "zakat_and_income_tax 2,934,627",
+          "lease_liabilities_current 593,447",
+          "provisions total 1,427,442"
+        ],
+        "income_statement_FY2024_missing": [
+          "selling_and_marketing (6,561,820)",
+          "general_and_administration (6,812,989)",
+          "total_operating_expenses (22,900,286)",
+          "net_share_in_results_of_associates (665,913)",
+          "net_other_gains 529,069",
+          "total_comprehensive_income 24,608,071"
+        ],
+        "cash_flow_FY2024_missing": [
+          "share_based_payment 120,558",
+          "zakat paid (892,108)",
+          "asset sale proceeds 132,744",
+          "acquisitions (733,547)",
+          "JV payments (297,861)",
+          "dividends from JV 2,900",
+          "short-term murabaha net (446,791)",
+          "lease payments (1,515,120)",
+          "repayment of borrowings (2,634,835)",
+          "proceeds from borrowings 4,434,843",
+          "NCI dividends (347,954)",
+          "finance costs paid (983,528)",
+          "change in trade receivables (2,427,591)",
+          "change in trade payables 377,471"
+        ],
+        "lines_printed_but_never_extracted_either_year": [
+          "Investment properties 864,066/1,007,572",
+          "Contract assets and costs non-current 1,407,043/1,466,233 and current 8,427,932/7,840,069",
+          "Financial assets and others NC 21,902,057/15,130,621, current 5,593,303/9,997,250",
+          "Contract liabilities NC 1,271,654/1,170,341, current 4,088,197/4,067,079",
+          "Provisions NC 482,373/512,233, current 923,193/915,209",
+          "Financial liabilities and others NC 7,892,783/6,018,926, current 10,042,137/7,426,843",
+          "Cost of early retirement program (823,801)/(2,577,256)",
+          "Net other income (expense) 7,042/(61,263)",
+          "OCI components",
+          "Impairment on trade receivables 301,871/1,267,469 and other operating cash-flow adjustments",
+          "Proceeds from finance income 1,667,408/1,724,947",
+          "Statement of changes in equity (p12) - not extracted at all"
+        ]
+      },
+      "fix_plan": [
+        "Add FY2024 comparative column facts for every line already extracted for FY2025 (same page, same table).",
+        "Extract the never-extracted lines above (all printed on p8-p11) so identities (assets, liabilities) can be proven line by line.",
+        "Move 'provisions' to the AR2025/notes manifest or cite p87 of this PDF."
+      ]
+    },
+    {
+      "source_id": "stc-FY2025-AR-notes-segments",
+      "manifest": "stc-2025-segments-financial-notes.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/stc2025-annual-report-en.pdf",
+        "archive_path": "data/raw/SA/7010/documents/7dccc9e19eb2627fd7e455fab047b79044ad893071a327f6c23eb92663c7ad21.pdf",
+        "sha256": "7dccc9e19eb2627fd7e455fab047b79044ad893071a327f6c23eb92663c7ad21",
+        "pdf_pages": 154,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "digital text layer of notes (64 facts: numbers located and semantics read on the cited page)",
+      "checks_performed": [
+        "Segment revenue p127 (13 values incl. eliminations -11,498,645 summing to 77,818,675), segment capex p128, segment assets 152,076,841 and liabilities 51,660,411 (stc segment, pre-eliminations) p128",
+        "PPE roll-forward p129, intangibles p130 (additions 5,543,360; amortisation 3,447,151; software NBV 5,636,021), goodwill p131 (SAR 75.6 million stored 75,600,000 scale 1 = correct)",
+        "Related parties p137 (747,635 / 4,313,008 / 1,844,351 / 1,197,439 / key mgmt 1,012,066), EOSB p140-141, contract liabilities 5,359,851, lease finance cost 91,883, provisions p142, finance cost by type p145, revenue by product p144, RPO 'SAR 5,360 million' stored 5,360,000 x 1000 = correct, commitments 9,488 million, guarantees 4,828 million, claim 742 million, other commitments 553 million (all x1000 correct), borrowings p140, fair values p146",
+        "Every fact located on its page by the machine scan and then semantically read (label vs printed line)"
+      ],
+      "verified_correct": {
+        "count": 61,
+        "of": 64,
+        "summary": "61 facts verified on the printed page (value, sign, scale, label); 3 numerically defective (C-7010-01/02/03). Separately, 12 of these facts carry a wrong or other-document page reference (C-7010-05)."
+      },
+      "defects": [
+        "C-7010-01",
+        "C-7010-02",
+        "C-7010-03",
+        "C-7010-05"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "note": "Only FY2025 values are extracted; every table prints FY2024 comparatives (e.g. segment revenue 2024 stc 49,643,893, Channels 15,110,606 ...; PPE 2024 NBV 41,514,233) - none extracted. No quarterly or interim notes."
+      },
+      "fix_plan": [
+        "Apply C-7010-01/02/03 corrections",
+        "Add FY2024 comparative columns for segment, PPE, intangibles, provisions, related-party tables",
+        "Fix page numbers (C-7010-05)"
+      ]
+    },
+    {
+      "source_id": "stc-FY2025-AR-company-profile",
+      "manifest": "stc-2025-company-profile.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/stc2025-annual-report-en.pdf",
+        "archive_path": "data/raw/SA/7010/documents/7dccc9e19eb2627fd7e455fab047b79044ad893071a327f6c23eb92663c7ad21.pdf",
+        "sha256": "7dccc9e19eb2627fd7e455fab047b79044ad893071a327f6c23eb92663c7ad21",
+        "pdf_pages": 154,
+        "archived": true
+      },
+      "status": "done",
+      "verification_depth": "sample (numeric/identity items only; qualitative text not audited)",
+      "checks_performed": [
+        "ISIN SA0007879543, symbol 7010, listing 2003, 5 billion shares (p14); PIF 62% / public float 38% (p14, PIF 3.1bn shares); market cap 'SAR 215 billion' (rendered p14: the SAR sign glyph, 42.98 x 5bn = 214.9bn) -> verified_correct, currency SAR confirmed visually",
+        "employees 18,921 and Saudization 89.6% (p5); SAR 32.64 billion government contract (p7/9); cash dividends 21bn = 20,954,565 thousand parent dividends in cash-flow p11 + 0.55/share x4 + 2.00 special"
+      ],
+      "verified_correct": {
+        "summary": "sampled items verified_correct; remainder (board, ESG, governance narrative) unverified"
+      },
+      "defects": [],
+      "reader_hazard": "PDF text layer renders the SAR sign as '$', '&' or '%' ('$ 215 billion', '&42.98', '%11,298 million'). A currency-aware reader must not map '$' to USD for stc/Mobily documents.",
+      "fix_plan": [
+        "Extend the audit to the qualitative attributes if they are used downstream"
+      ]
+    },
+    {
+      "source_id": "stc-FY2025-AR-operating-kpis",
+      "manifest": "stc-2025-operating-kpis.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/stc2025-annual-report-en.pdf",
+        "archive_path": "data/raw/SA/7010/documents/7dccc9e19eb2627fd7e455fab047b79044ad893071a327f6c23eb92663c7ad21.pdf",
+        "sha256": "7dccc9e19eb2627fd7e455fab047b79044ad893071a327f6c23eb92663c7ad21",
+        "pdf_pages": 154,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "rendered AR2025 PDF p38 (printed 74-75) read by eye + text hits",
+      "checks_performed": [
+        "mobile 30.0 m, prepaid 22.2 m, postpaid 6.5 m (Q4 25 column) verified_correct",
+        "wireless broadband 0.5 m verified_correct",
+        "wired broadband published 1.3 m but Q4 25 = 1.4 m -> defective (C-7010-04)",
+        "5G coverage 63% (p5, p20) and 25 data centers (p65) verified in text; no page recorded in manifest"
+      ],
+      "defects": [
+        "C-7010-04",
+        "C-7010-05"
+      ],
+      "fix_plan": [
+        "Correct wired broadband to 1.4 m; add PDF page numbers for coverage and data centers"
+      ]
+    },
+    {
+      "source_id": "stc-FY2024-AR-operating-kpis",
+      "manifest": "stc-2024-operating-kpis.json",
+      "document": {
+        "url": "https://www.stc.com.sa/content/dam/stc/stc-annual-report-2024/assets/img/pdfs/stc_AR2024_English.pdf",
+        "archive_path": "data/raw/SA/7010/documents/eaef9595d99bb0ab50d692738520be356db8d14661ef51ae6c2e266b87ec410c.pdf",
+        "sha256": "eaef9595d99bb0ab50d692738520be356db8d14661ef51ae6c2e266b87ec410c",
+        "pdf_pages": 148,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "rendered AR2024 PDF p29 (printed 53-54) read by eye + text p35",
+      "checks_performed": [
+        "Q4 24 mobile 28.34 m, prepaid 21.13 m, postpaid 6.23 m, wired 1.32 m, wireless 0.50 m verified_correct",
+        "5G coverage 54.70%, 5G sites 8,993, cumulative FTTH 'over 3.58 million' (p35) verified_correct (FTTH is 'over' - published as exact 3,580,000)"
+      ],
+      "defects": [
+        "C-7010-05"
+      ],
+      "verified_correct": {
+        "summary": "8/8 values correct; 3 facts carry no page"
+      },
+      "fix_plan": [
+        "Record page numbers; flag 'over 3.58 million' as a lower bound"
+      ]
+    },
+    {
+      "source_id": "stc-2023-sustainability-network-kpis",
+      "manifest": "stc-2021-2023-network-kpis.json",
+      "document": {
+        "url": "https://www.stc.com.sa/content/dam/groupsites/en/pdf/stc-sustainability-report2023englishV2.pdf",
+        "archive_path": "data/raw/SA/7010/documents/4c00b056bf0e03cb213945863636e3ca5dff60d12b25211c888fdcb7dfc24591.pdf",
+        "sha256": "4c00b056bf0e03cb213945863636e3ca5dff60d12b25211c888fdcb7dfc24591",
+        "pdf_pages": 112,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer p55/p59 (PDF pages); manifest cites printed pages 108/116",
+      "checks_performed": [
+        "5G coverage 37.75%/40.80%/47.50% (2021/22/23, stc KSA), 4G 93.99%/98%/98%, 5G sites 8,470 (2023), network traffic 17,810/20,364/24,386 PB (stc KSA column, first of three) verified_correct; 5G 2021-2023 values also agree with AR2024 p35 chart"
+      ],
+      "defects": [
+        "C-7010-05"
+      ],
+      "verified_correct": {
+        "summary": "10/10 values verified_correct; page numbers are printed numbers (108/116 vs PDF 55/59, 112-page PDF so 116 does not exist)"
+      },
+      "fix_plan": [
+        "Record PDF page numbers"
+      ]
+    },
+    {
+      "source_id": "stc-FY2020-2023-five-year-summary",
+      "manifest": "stc-2020-2023-annual-history.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/stc/stc-annual-report-2024/financial-statements.html",
+        "archive_path": null,
+        "archived": false,
+        "substitute_document_used": "data/raw/SA/7010/documents/eaef9595d99bb0ab50d692738520be356db8d14661ef51ae6c2e266b87ec410c.pdf",
+        "substitute_note": "The same five-year tables are printed in the archived AR2024 PDF p73-74 (printed 141-144); the figures were compared against that PDF."
+      },
+      "status": "done",
+      "verification_basis": "AR2024 PDF p73 (income statement five-year summary) and p74 (OCI, balance sheet, cash flow summary)",
+      "checks_performed": [
+        "revenue 58,953,318 / 63,007,986 / 67,431,546 / 71,777,161; total profit of activity 33,954,395 / 33,794,029 / 37,393,255 / 34,740,066; operating profit 12,731,125 / 13,127,755 / 15,088,441 / 13,161,291; net profit attributable to stc 10,994,875 / 11,311,342 / 12,170,537 / 13,295,381; net profit incl NCI 11,185,197 / 11,594,697 / 12,386,922 / 13,419,479; total assets, liabilities, equity for 2020-2023; operating cash flow 28,324,705 / 11,220,155 / 26,354,390 / 22,417,558 - ALL verified_correct (36/36)",
+        "Caveat: AR table headers say '2020-2022 Consolidated Revised' and '2023* Revised' - these are the restated values, not the figures printed in the original FY2020-FY2022 annual reports (not archived)",
+        "operating_cash_flow 2021 11,220,155 looks low next to 2020/2022 (~26-28bn) but is exactly what AR2024 p74 prints"
+      ],
+      "defects": [
+        "C-7010-05"
+      ],
+      "verified_correct": {
+        "count": 36,
+        "of": 36
+      },
+      "missing_fields_in_document_not_extracted": {
+        "printed_p73_74_not_published": [
+          "investing and financing cash flow 2020-2024",
+          "cash at end of year",
+          "current assets / fixed and intangible / other non-current assets",
+          "current liabilities / long-term loans / other non-current liabilities",
+          "paid capital, equity attributable, NCI",
+          "OCI totals and total comprehensive income",
+          "2024 column (published only via FY2025 comparatives)"
+        ]
+      },
+      "fix_plan": [
+        "Archive the HTML/PDF source the manifest cites; add investing/financing cash flow, equity split, comprehensive income for 2020-2023",
+        "Cite AR2024 PDF page 73/74 instead of p77-p170"
+      ]
+    },
+    {
+      "source_id": "stc-2023-quarterly-deck-Q1-2024",
+      "manifest": "stc-2023-quarterly-history.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/EarningsPresentationQ1-2024En.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": "C-7010-06",
+      "related_findings": [
+        "C-7010-06"
+      ],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-2024-quarterly-deck-FY2024",
+      "manifest": "stc-2024-quarterly-profit.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/earnings-presentation2024en.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": null,
+      "related_findings": [],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-2024-quarterly-deck-Q1-2025",
+      "manifest": "stc-2024-quarterly-revenue.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/EarningsPresentationQ1-2025En.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": "C-7010-07",
+      "related_findings": [
+        "C-7010-07"
+      ],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-Q1-2025-deck",
+      "manifest": "stc-2025-q1.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/EarningsPresentationQ1-2025En.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": null,
+      "related_findings": [],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-Q2-2025-deck",
+      "manifest": "stc-2025-q2.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/EarningsPresentationQ2-2025En.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": null,
+      "related_findings": [],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-Q3-2025-deck",
+      "manifest": "stc-2025-q3.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/EarningsPresentationQ3-2025EnV2.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": null,
+      "related_findings": [],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-Q4-2025-deck",
+      "manifest": "stc-2025-q4.json",
+      "document": {
+        "url": "https://www.stc.com/content/dam/groupsites/en/pdf/EarningsPresentationQ4-2025En.pdf",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "source PDF is not archived in data/raw (archive-index has no entry); cannot be compared with the original",
+      "indirect_evidence_only": "Quarter sums vs audited FY (arithmetic reconciliation, NOT proof): 2025 revenue 77.819 vs 77.8187 bn OK; 2025 net profit parent 14.828 vs 14.82803 OK; 2024 net profit parent 24.689 vs 24.68865 OK; 2024 revenue 75.838 vs 75.8934 (-0.07%); 2023 revenue 72.34 vs 71.777 (+0.78%, basis mix).",
+      "scope": null,
+      "related_findings": [],
+      "fix_plan": [
+        "Archive the presentation PDF (official stc IR URL) so the printed charts (pages cited in the manifest) can be re-read",
+        "Values are chart labels rounded to 2-3 decimals of SAR bn: precision loss vs SAR thousands in the audited statements"
+      ]
+    },
+    {
+      "source_id": "stc-H1-2026-interim-FS",
+      "manifest": "stc-2026-q2.json",
+      "document": {
+        "url": "https://www.saudiexchange.sa/Resources/fsPdf/23192_480_2026-07-29_11-19-33_en.pdf",
+        "archive_path": "data/raw/SA/7010/documents/0f09bdc60326169636537a58f078496bd58aeefc5c733380b54de6db2784d7b0.pdf",
+        "archived": false,
+        "archive_index_lists_it_but_file_missing": true
+      },
+      "status": "pending",
+      "reason": "archived file absent from repo and all sibling worktrees",
+      "related_findings": [
+        "C-7010-08"
+      ],
+      "fix_plan": [
+        "Restore the PDF into data/raw and re-audit 15 facts; publish Q1-2026 and discrete Q2-2026"
+      ]
+    },
+    {
+      "source_id": "stc-market-price-history",
+      "manifest": "telecom-market-history-7010-through-2026-09-22.json",
+      "document": {
+        "url": "https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports?locale=en",
+        "archive_path": "origin/claude/telecom-shared-gap-closers:data/raw/SA/7010/market/saudi-exchange-historical-2026-09-22.json (1,248 rows)",
+        "archived": "partially (other branch only)"
+      },
+      "status": "done",
+      "scope_of_check": "market data, not financial statements; included because published",
+      "checks_performed": [
+        "All 1,248 rows of the raw JSON (2021-2026 window) equal the manifest's open/high/low/close(lastTradePrice)/volume/turnover byte for byte; the raw field 'previousClosePrice' equals that day's close (misnamed by the exchange API) and the manifest uses lastTradePrice correctly",
+        "Self-consistency of all 6,062 rows: sorted, no duplicate dates, no gaps >10 days, 1 row with open/high/low/volume/turnover null (2016-10-02 close 22.25), 7 rows whose turnover/volume lies outside the day's low-high by >3% (2009-05-24, 2009-06-03, 2010-02-28, 2010-03-09, 2017-10-02, 2017-12-05 ...)"
+      ],
+      "verified_correct": {
+        "summary": "2021-2026 window: verified_correct against raw archive. 2003-2020: unverified (raw archive for those rows not in any audited branch)"
+      },
+      "defects": [],
+      "fix_plan": [
+        "Archive the full-history export used for rows before the 2021 window"
+      ]
+    },
+    {
+      "source_id": "stc-regulation-and-industry-context",
+      "manifest": "stc-telecom-regulation.json; stc-2024-industry-context.json",
+      "document": {
+        "url": "cst.gov.sa",
+        "archived": false
+      },
+      "status": "done",
+      "reason": "zero numeric facts (document-only manifests); nothing to compare numerically",
+      "defects": []
+    }
+  ]
+}

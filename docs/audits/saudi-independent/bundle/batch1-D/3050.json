@@ -1,0 +1,168 @@
+{
+ "schema_version": 1,
+ "symbol": "3050",
+ "company_id": "sa:3050",
+ "company_name": "Southern Province Cement Company",
+ "auditor": "Claude Sonnet 5.5 (independent audit batch1-D)",
+ "audit_date": "2026-10-03",
+ "audited_published_branch": "origin/codex/telecom-95pct",
+ "audited_published_commit": "ec610f3de3aca3a02c1a65526b666f315254b16e",
+ "resumable": true,
+ "resume_instructions": "Each entry in sources[] has status pending|done|blocked. Re-run only sources not 'done'. Evidence cites pdf_page and the issuer's printed page separately.",
+ "rejected_facts": {
+  "status": "unverified",
+  "note": "No rejection/quarantine ledger for this company exists in the repository or in the repo's data/financial.sqlite3 snapshot (exceptions table has no rows for it). The AWS production DB was out of bounds for this audit, so server-side rejected facts were not reviewed."
+ },
+ "dimensions": {
+  "numeric_correctness": {
+   "status": "verified_correct",
+   "scope": "all 103 facts (full Saudi riyals, scale 1)",
+   "note": "Values read from scanned statement renders at zoom 1.6; sign, restated FY2024 column and scale all confirmed."
+  },
+  "document_completeness": {
+   "status": "defective",
+   "note": "The balance sheet carries a third column (1 January 2024 restated = 31 Dec 2023) that is not extracted; debt issued/repaid and OCI are also missing."
+  },
+  "company_coverage": {
+   "status": "unverified",
+   "note": "FY2025 and FY2024 (restated) only; the 31 Dec 2023 balance sheet exists in the document but is not published; no interim periods; no expected-period list in the repo."
+  }
+ },
+ "sources": [
+  {
+   "source_id": "3050-fy2025-audited-fs",
+   "status": "done",
+   "manifest": "data/imports/southern-province-cement-2025-fy.json",
+   "manifest_last_commit": "d8ec99c",
+   "manifest_sha256_prefix": "033f58d63efe1d46",
+   "document": "data/raw/SA/3050/documents/25c47e79e1906fafa75c4b40f84c260ec662059feb1c5668b62e0b44fcf09acb.pdf",
+   "document_url": "https://www.saudiexchange.sa/Resources/fsPdf/427_0_2026-04-07_21-05-53_En.pdf",
+   "document_pdf_pages": 47,
+   "page_offset_note": "PDF 7 = printed 6 (financial position), PDF 8 = printed 7 (P&L/OCI), PDF 10 = printed 9 (cash flows)",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p7: 'SOUTHERN PROVINCE CEMENT COMPANY (A Saudi Joint Stock Company) STATEMENT OF FINANCIAL POSITION As at 31 December 2025 (Saudi Riyal)'; standalone statements."
+   },
+   "periods_in_document": [
+    "FY2025",
+    "FY2024 (Restated - Note 34)",
+    "balances 31 Dec 2025, 31 Dec 2024 (restated), 1 Jan 2024 (restated)"
+   ],
+   "checks_performed": [
+    {
+     "check": "balance sheet",
+     "page": "printed 6 (PDF 7)",
+     "line_item": "all lines x 2 columns",
+     "result": "verified_correct",
+     "evidence": "PPE 3,563,082,488 / 3,054,889,423 (restated); Total assets 4,759,119,246 / 4,326,076,425; Total liabilities 1,693,351,050 / 1,084,326,647; equity 3,065,768,196 / 3,241,749,778"
+    },
+    {
+     "check": "P&L and OCI",
+     "page": "printed 7 (PDF 8)",
+     "line_item": "Revenues 867,338,252 / 935,028,850 (restated) ... (Loss)/Profit (48,512,243)/193,026,957; TCI (42,981,582)/205,295,029; EPS (0.35)/1.38",
+     "result": "verified_correct",
+     "evidence": "restated FY2024 column is the one taken, consistent with the document; negative 2025 lines have correct sign"
+    },
+    {
+     "check": "cash flow",
+     "page": "printed 9 (PDF 10)",
+     "line_item": "OCF 41,887,408/165,369,847; ICF (642,024,764)/(438,408,521); FCF 514,649,639/96,356,121; cash 186,413,978->100,926,261; 363,096,531->186,413,978",
+     "result": "verified_correct",
+     "evidence": "D&A 200,385,522+139,448=200,524,970 and 207,683,544+20,813=207,704,357; capex (657,830,346)/(445,708,827); interest paid (63,869,339)/(23,277,499); zakat (19,975,132)/(19,212,402); dividends (102,308,046)/(191,637,389)"
+    },
+    {
+     "check": "restated comparatives (which column)",
+     "page": "printed 6-9",
+     "line_item": "column '2024 (Restated - Note 34)'",
+     "result": "verified_correct (restated column used and labelled '(restated)')"
+    },
+    {
+     "check": "scale",
+     "page": "headers '(Saudi Riyal)'",
+     "line_item": "full riyals",
+     "result": "verified_correct (scale 1)"
+    }
+   ],
+   "facts_audited": 103,
+   "verified_correct": {
+    "count": 103,
+    "detail": "all facts"
+   },
+   "defects": [
+    {
+     "id": "3050-D1",
+     "class": "metadata_filed_at_is_board_approval_date",
+     "severity": "low",
+     "metric": "manifest header filed_at",
+     "published_value": "2026-03-30",
+     "correct_value": "public on Saudi Exchange 2026-04-07 (URL upload stamp)",
+     "evidence": "manifest notes cite board approval 30 March 2026; source_url .../fsPdf/427_0_2026-04-07_21-05-53_En.pdf",
+     "root_cause": "RC-FILED-AT",
+     "fix_plan": "Set filed_at_basis=official_exchange_url_upload_timestamp and filed_at to the URL upload date (as stc-2026-q2.json already does) through Codex's publish path; detector: finengine.audit_consistency.filing_date_before_exchange_upload."
+    },
+    {
+     "id": "3050-D2",
+     "class": "missing_period_present_in_document",
+     "severity": "medium",
+     "metric": "balance sheet at 2023-12-31 (1 January 2024 restated)",
+     "published_value": "absent",
+     "correct_value": "e.g. PPE 2,816,864,176; total assets 4,011,801,700; total equity 3,197,454,749; cash 363,096,531",
+     "evidence": "PDF p7 third column '1 January 2024 (Restated - Note 34)'",
+     "root_cause": "RC-THIRD-BALANCE-SHEET-COLUMN",
+     "fix_plan": "extract the third column as instant 2023-12-31 (its cash 363,096,531 already equals the published FY2024 cash_beginning)"
+    }
+   ],
+   "missing_fields": [
+    {
+     "field": "debt_issued / debt_repaid",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 9 (PDF 10)",
+     "line_item": "Proceeds from loans 624,251,341 / 287,993,510; Repayment from facilities (7,293,656) / -"
+    },
+    {
+     "field": "OCI remeasurement of employee benefits",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 7",
+     "line_item": "5,530,661 / 12,268,072"
+    },
+    {
+     "field": "intangible additions, quarry provision paid, disposal proceeds, finance income received, WC lines",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 9",
+     "line_item": "(273,552)/(926,770); (237,501)/(236,350); 589,825/661,600; 2,726,810/7,840,577"
+    },
+    {
+     "field": "statement of changes in equity",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 8",
+     "line_item": "whole statement"
+    },
+    {
+     "field": "original (pre-restatement) FY2024",
+     "periods": [
+      "FY2024"
+     ],
+     "page": "Note 34",
+     "line_item": "only restated values are published; pre-restatement values not retained"
+    }
+   ],
+   "missing_periods": [
+    "31 Dec 2023 instant (3050-D2)",
+    "No FY2023 duration or earlier; no interim periods"
+   ],
+   "fix_plan": "No numeric fix. Add the 31 Dec 2023 balance and the missing cash-flow lines in a new reviewed manifest; correct filed_at."
+  }
+ ]
+}

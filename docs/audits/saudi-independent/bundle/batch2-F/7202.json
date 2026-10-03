@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "symbol": "7202",
+  "company_id": "sa:7202",
+  "name": "Arabian Internet and Communication Services Company (solutions by stc)",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "12-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch2-F)",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "method": "Archived source PDF read from data/raw (SHA-256 recomputed and equal to data/raw/archive-index.json content_hash). Scanned pages (PDF pp9-12: P&L, OCI, balance sheet, equity) rendered and read by eye line by line, both columns; the cash-flow page (PDF p13) read from the render and cross-checked with its text layer (tools/f_textlayer_check.py: 30/30 digital-page facts found). Values transcribed independently (tools/f_transcripts/7202.json) and compared with every published fact by tools/f_compare.py (128/128 match); composites re-added. Notes 43, 44, 45, 40 and the auditor's report date read. Offline; no data/**, AWS, Supabase touched.",
+    "tools": [
+      "docs/audits/saudi-independent/tools/f_compare.py",
+      "docs/audits/saudi-independent/tools/f_textlayer_check.py",
+      "docs/audits/saudi-independent/tools/f_filed_at_check.py",
+      "docs/audits/saudi-independent/tools/f_transcripts/7202.json",
+      "tests/test_audit_batch2_f_3060_7202.py"
+    ],
+    "rejected_facts_note": "No excluded/rejected-fact files exist in the repo for this symbol; a production rejected-fact registry (AWS DB) was out of bounds, so rejected facts are unverified.",
+    "other_manifests_checked": "Exactly one published manifest (data/imports/stc-solutions-2025-fy.json); telecom-market-history manifests are for 7010-7040 only. config/companies.json identity (Technology/IT Services) matches the document.",
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong, mislabelled or undisclosed against the printed page",
+      "verified_correct_with_caveat": "value correct as printed; label or semantics need a note",
+      "unverified": "not checked; nothing claimed"
+    }
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "verified_correct",
+      "summary": "128/128 published facts (FY2025 64, FY2024 64) equal the printed statements: P&L PDF p9 (printed 7), OCI p10 (8), financial position p11 (9), cash flows p13 (11). 0 mismatches; scale 1000 (SAR thousands) is correct. Composites re-added in both years: contract_liabilities (1,878,758+320,145; 2,089,636+467,349) and depreciation_amortization (254,536+91,444; 242,657+44,347). Caveat: FY2024 balance-sheet comparatives are the PPA-adjusted figures of Note 43 (F-7202-1).",
+      "defect_ids": ["F-7202-1"]
+    },
+    "document_completeness": {
+      "status": "defective_minor",
+      "summary": "One document, all primary statements present, every balance-sheet line extracted. Printed but not extracted: basic EPS 12.62/13.42 (only diluted 12.52/13.31), OCI components and attribution (parent 1,457,710/1,389,043; NCI 13,160/(7,822); EOSI remeasurement (58,292)/(53,184); FX translation 17,820/(168,411)), 'Total operating expenses' (1,036,482)/(1,122,419), 'Total other income' 3,330/(18,781), cash-flow detail (short term murabaha net 2,205,000/(1,725,000), finance income received 120,975/107,643, EOSI paid (73,535)/(55,215), dividends from investee 4,000, acquisition of subsidiary (14,714) in 2024, NCI proceeds 1,182/(663), non-cash additions), statement of changes in equity, segment note 40 (revenue by entity).",
+      "defect_ids": ["F-7202-3"]
+    },
+    "company_coverage": {
+      "status": "defective",
+      "present": {
+        "annual": "FY2025 with FY2024 comparatives only",
+        "quarterly": "none",
+        "market": "none"
+      },
+      "missing": [
+        "any annual before FY2024",
+        "all interim/quarterly results",
+        "originally reported FY2024 balance sheet",
+        "price history"
+      ],
+      "note": "Whether Saudi Exchange offers more was not checked (no network use).",
+      "defect_ids": ["F-7202-4"]
+    }
+  },
+  "findings": [
+    {
+      "id": "F-7202-1",
+      "defect_class": "undisclosed_adjusted_comparatives",
+      "severity": "low-medium",
+      "status": "defective",
+      "manifest": "stc-solutions-2025-fy.json",
+      "metric": "intangible_assets, accounts_payable, noncontrolling_interests, total_assets, total_liabilities, total_equity (FY2024, 2024-12-31)",
+      "published_value": "intangible_assets 559,813; accounts_payable 3,885,729; noncontrolling_interests 25,502 (SAR thousands, as currently reported)",
+      "correct_value": "Each is correct as printed in the FY2025 report, but the FY2024 balance sheet was adjusted versus the FY2024 filing: intangible assets and goodwill 557,229 -> 559,813; trade payables, accruals and other liabilities 3,886,613 -> 3,885,729; non-controlling interest 22,034 -> 25,502 (original FY2024 total assets therefore 12,040,098 versus 12,042,682 published).",
+      "evidence": "Note 43 COMPARATIVES (PDF p64, printed 62): purchase price allocation for LABS completed, comparatives at 31 December 2024 adjusted (table above). Note 20 (PDF p45) footnote: 'Prior period figures adjusted following completion of the Purchase Price Allocation exercise for LABS'. The full manifest notes text contains no mention of Note 43, PPA, restatement or adjustment, whereas the 3060 manifest flags its restated comparatives.",
+      "fix": "Add a sentence on the Note 43 adjustment to the manifest notes and tag the three FY2024 facts as adjusted. Test test_7202_notes_disclose_comparative_adjustment (strict xfail; remove marker once fixed)."
+    },
+    {
+      "id": "F-7202-2",
+      "defect_class": "filed_at_semantics",
+      "severity": "medium-low",
+      "status": "defective",
+      "manifest": "stc-solutions-2025-fy.json",
+      "metric": "filed_at",
+      "published_value": "2026-02-15",
+      "correct_value": "on or after 2026-02-19 (audit report) and 2026-02-23 (publication)",
+      "evidence": "filed_at is the Board approval date (Note 45, PDF p64: 27 Shaaban 1447H / 15 February 2026). The Deloitte report is signed 2 Ramadan 1447 AH / February 19, 2026 (PDF p8) and the Saudi Exchange file name carries 2026-02-23_17-47-49.",
+      "fix": "Same as F-3060-2; the strict xfail test covers both manifests."
+    },
+    {
+      "id": "F-7202-3",
+      "defect_class": "missing_fields",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "stc-solutions-2025-fy.json",
+      "metric": "basic EPS and others",
+      "published_value": "eps_diluted 12.52 / 13.31; basic absent",
+      "correct_value": "Basic 12.62 / 13.42 is also printed",
+      "evidence": "P&L PDF p9 (printed 7): EPS rows 'Basic 12.62 | 13.42' and 'Diluted 12.52 | 13.31'. OCI components (PDF p10) and cash-flow detail (PDF p13) are also not extracted (see completeness summary).",
+      "fix": "Add basic_eps; optionally OCI and cash-flow detail."
+    },
+    {
+      "id": "F-7202-4",
+      "defect_class": "coverage_only_two_fiscal_years",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "(none)",
+      "metric": "all",
+      "evidence": "One manifest and one archived PDF for sa:7202; nothing else in data/imports or data/raw.",
+      "fix": "Collect earlier annual and interim statements and the original FY2024 filing."
+    },
+    {
+      "id": "F-7202-5",
+      "defect_class": "label_semantics_and_page_convention",
+      "severity": "info",
+      "status": "verified_correct_with_caveat",
+      "manifest": "stc-solutions-2025-fy.json",
+      "metric": "accounts_payable; fact.page",
+      "evidence": "The printed line is 'Trade payables, accruals and other liabilities' (4,511,601 / 3,885,729), broader than trade payables; documented in notes. fact.page is the printed page (7, 8, 9, 11) = PDF page minus 2.",
+      "fix": "None beyond documentation; store PDF page."
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "7202-FY2025-audited-FS",
+      "manifest": "stc-solutions-2025-fy.json",
+      "document": {
+        "url": "https://www.saudiexchange.sa/Resources/fsPdf/2302_0_2026-02-23_17-47-49_En.pdf",
+        "archive_path": "data/raw/SA/7202/documents/287f14a69420bbc31ddb70ab916b1aef480ffe14ac951fc1622d7a0e9ab2e2ca.pdf",
+        "sha256": "287f14a69420bbc31ddb70ab916b1aef480ffe14ac951fc1622d7a0e9ab2e2ca",
+        "sha256_verified": true,
+        "pdf_pages": 64,
+        "archived": true,
+        "note": "PDF pp9-12 (P&L, OCI, BS, equity) are scanned and were eyeballed; cash flow p13 and notes are digital. The archive-index description is accurate for this document."
+      },
+      "status": "done",
+      "checks_performed": [
+        "Identity: 'Arabian Internet and Communication Services Company (A Saudi Joint Stock Company)', year ended 31 December 2025, Deloitte and Touche & Co.: matches 7202",
+        "Units: 'All amounts in Saudi Riyal thousands unless otherwise stated' so scale 1000 is correct",
+        "P&L PDF p9 both columns; other income re-adds 106,365-88,968+11,665-25,732 = 3,330",
+        "OCI PDF p10: total comprehensive income 1,470,870 / 1,381,221",
+        "Balance sheet PDF p11 every published line both years; parent equity 1,200,000-299,846-144,831+3,532,017 = 4,287,340",
+        "Cash flow PDF p13 every published line; opening+change+FX = closing both years (1,127,133+618,821+3,019 = 1,748,973; 2,588,169-1,425,084-35,952 = 1,127,133); closing equals balance-sheet cash",
+        "Notes 43/44/45 read (PPA adjustment, SAR 8/share dividend proposal, approval 15 February 2026)",
+        "Quarter versus cumulative: not applicable (only full-year documents exist)"
+      ],
+      "verified_correct": {"count": 128, "of": 128}
+    }
+  ]
+}
