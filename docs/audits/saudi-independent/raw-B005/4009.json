@@ -1,0 +1,106 @@
+{
+ "schema_version": 1,
+ "symbol": "4009",
+ "name": "Saudi German Health (Middle East Healthcare Co, MEAHCO)",
+ "audit": {
+  "audited_on": "2026-10-03",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B005)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/check_transcripts.py",
+   "transcripts/<symbol>.json"
+  ],
+  "method": "All 3 files recomputed SHA-256 (match inventory). Pages 38-40 of both English reports rendered/read by eye, Arabic report checked by text layer. Rounded-millions identities (tolerance 1) in tools/check_transcripts.py pass."
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "board_report_summaries_only_no_statement_values",
+   "summary": "No primary financial statement exists in any of the 3 files, so no statement-level value can be verified. What exists are board-report summary tables in SAR million (rounded): FY2024 report pdf p38 (printed 74-75) income summary 2020-2024: revenue 1,750/1,872/2,151/2,653(restated)/2,882, gross profit 578/608/680/1,014/1,113, operating profit 107/54/140/323/440, net income after zakat 82/17/75/17/282; p39 (printed 76-77) balance items: total assets 3,599/3,974/4,499/5,134(R)/5,125, liabilities 2,324/2,679/3,091/3,769/3,451, equity 1,275/1,295/1,408/1,365/1,674, minority 43/38/43/46/48; p40 (printed 78) cash flow 2020-2024: CFO (263)/77/76/191/939, CFI (291)/(417)/(249)/(242)/(507), CFF 517/352/161/80/(424), net change (37)/11/(12)/29/8, cash end 17/28/16/44/52. Identities hold within rounding (BS identity exact all 5 years; cash roll exact except 2023R 16+29=45 vs 44, rounding). 2023 is marked Restated in the FY2024 report; the original FY2023 values are not in any collected file, so restatement size is unknown. EPS 2024 3.06 (282/92.04m shares), 2023R 0.19. Stated 2023 net income 17 equals 2021 net income 17 (coincidence of rounded figures, noted not an error).",
+   "not_read": [
+    "Arabic report tables rendered (text layer headline numbers 2,882 / 282 / 939 / 3.06 only)",
+    "notes, segment, dividend and credit-facility sections of both reports",
+    "all other pages of the three PDFs"
+   ]
+  },
+  "document_completeness": {
+   "status": "no_primary_statement_file_inventory_flags_wrong",
+   "summary": "All three files are board annual reports (50 pdf pages, spreads), none contains the auditor-signed balance sheet / income / cash-flow / equity statements; the report says the statements are in a separate section that is not present (p43 holds the zakat note and auditor section heading only). Inventory marks 18b5195e and d5b082ec 'annual_report_with_statements' with financial_position p39 and income p38: false positive, those pages are the board-report 'Financial Analysis' summary tables. 0b46088f (Arabic) was labelled no-statements with cash_flows p40/equity p39: same tables, correctly non-statement. MAJOR LABEL DEFECT: d5b082ec is labelled and titled FY2025 ('Annual Report 2025 A Year in Review', chairman paragraph 'our financial performance in 2025') but the financial tables on pdf p38-40 are the FY2024 numbers verbatim (2024 revenue 2,882 / NI 282 shown under 2024, cash flow 2021-2025 headers over what are the 2020-2024 values, EPS 3.06 labelled 2025; the chairman message on p4 still says 'fiscal year ending December 31, 2024'). Treat d5b082ec as a FY2024 duplicate with partly re-dated text; it carries NO FY2025 values.",
+   "defect_ids": [
+    "B005-4009-1",
+    "B005-4009-2"
+   ]
+  },
+  "company_coverage": {
+   "status": "none_confirmed",
+   "present_with_statements": [],
+   "summary_only": [
+    "2024|FY (en 18b5195e and ar 0b46088f board report 5-year summary 2020-2024)",
+    "'2025|FY' file d5b082ec: stale FY2024 content, not FY2025"
+   ],
+   "missing": [
+    "every statement for every period 2016|Q1 to 2026|H1 (41 expected, 0 with statements); 2025|FY announcements 93636 and 93287 exist on Saudi Exchange but no file collected",
+    "all interims",
+    "FY2016-FY2023 annual statements"
+   ],
+   "inventory_confirmed": "coverage_class none (0 of 41). Inventory counted 2025|FY as partial_statements; corrected to: no FY2025 data present."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "0b46088f315b46d6c96473f81bfa2f3f4b1a405ed90c3487e56910c0e6587b94",
+   "actual_period": "FY2024 Arabic board report",
+   "label_ok": true,
+   "statement_file": false,
+   "reading": "text layer headlines only"
+  },
+  {
+   "sha256": "18b5195e4ef2d27c2cca2173e6bbab14bfbb6b4249ddd1496ac855de24e695f1",
+   "actual_period": "FY2024 English board report",
+   "label_ok": true,
+   "statement_file": false,
+   "pdf_pages": {
+    "is_summary": 38,
+    "bs_summary": 39,
+    "cf_summary": 40
+   },
+   "printed_pages": {
+    "is_summary": "74-75",
+    "bs_summary": "76-77",
+    "cf_summary": "78-79"
+   },
+   "units": "SAR million rounded",
+   "reading": "visual + text"
+  },
+  {
+   "sha256": "d5b082ec485c3f0ef5b469020be3530035bcd5ecc1bc733b934aeafa4857d8e0",
+   "actual_period": "labelled FY2025, financial content is FY2024 verbatim",
+   "label_ok": false,
+   "statement_file": false,
+   "pdf_pages": {
+    "is_summary": 38,
+    "bs_summary": 39,
+    "cf_summary": 40
+   },
+   "reading": "visual p38,p40; number-set comparison p38-40 vs 18b5195e identical except headers/page numbers"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B005-4009-1",
+   "text": "Board-report summary pages classified as financial_position/income statements (2 files)."
+  },
+  {
+   "id": "B005-4009-2",
+   "text": "d5b082ec 'FY2025' annual report carries FY2024 numbers under shifted headers; using it would silently put FY2024 data into FY2025."
+  }
+ ],
+ "unread_items": [
+  "notes and other pages of all 3 files",
+  "Arabic tables visual",
+  "original (pre-restatement) FY2023 values: not in any collected file"
+ ]
+}
