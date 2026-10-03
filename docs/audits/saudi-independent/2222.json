@@ -1,0 +1,523 @@
+{
+ "symbol": "2222",
+ "audited_branch": "origin/codex/telecom-95pct @ ec610f3 (data/imports identical to origin/main for these companies)",
+ "audited_at": "2026-10-03",
+ "auditor": "claude/audit-saudi-batch1-B",
+ "dimensions_note": "(1) numeric correctness of published values, (2) document completeness, (3) company coverage are reported separately and never blended",
+ "name": "Saudi Arabian Oil Company (Aramco)",
+ "numeric_correctness_summary": "2025-sourced manifests: values are in the archived 2025 annual report (income statement printed p172 / pdf p174 verified line by line: revenue 1,559,342 ... net income 350,210, EPS 1.44); page citations wrong for that block; every other manifest unverified (source not archived)",
+ "document_completeness_summary": "no quarterly data for 2025; statements represented through derived annual-metrics, gap-fill and notes manifests",
+ "coverage": {
+  "have": [
+   "FY2019-FY2025 annual metrics",
+   "2026 Q1 (8 facts) and Q2 (12 facts) interim"
+  ],
+  "absent": [
+   "2025 and earlier quarters",
+   "source PDFs for the FY2019-FY2024 reports, the FY2025 full-financials PDF (5a3db2...), Q1-2026 and H1-2026 interim reports are not in any branch (only 78bb678e... = 2025 annual report is archived)"
+  ]
+ },
+ "sources": [
+  {
+   "source_document": {
+    "manifest": "aramco-2019-fy-historical.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2019-12-31",
+    "published_facts": 14,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2020-fy-historical.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2020-12-31",
+    "published_facts": 14,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2021-annual-metrics.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2021-12-31",
+    "published_facts": 24,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2021-fy-historical.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2021-12-31",
+    "published_facts": 7,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2022-annual-metrics.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2022-12-31",
+    "published_facts": 24,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2022-fy-historical.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2022-12-31",
+    "published_facts": 7,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2023-annual-metrics.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\4ae156d697ffb78a78c781dda39dd5259dd1c30317233b7565c8622f14875c21.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2023-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2023-12-31",
+    "published_facts": 28,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2023-fy.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\4ae156d697ffb78a78c781dda39dd5259dd1c30317233b7565c8622f14875c21.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2023-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2023-12-31",
+    "published_facts": 4,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2024-annual-metrics.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\2626b292eb4fd236ba9bbf0930794350d99146d161a30f993d731f36113dd1f6.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2024-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2024-12-31",
+    "published_facts": 24,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2024-full-notes-comparative.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\5a3db2a93fb91a484184a65be49d2043b730d30c8e7b986b26e1d552aa54b8f4.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2024-12-31",
+    "published_facts": 28,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2024-fy-comparative.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\5a3db2a93fb91a484184a65be49d2043b730d30c8e7b986b26e1d552aa54b8f4.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2024-12-31",
+    "published_facts": 7,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-annual-metrics.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 176,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "15 consolidated income-statement facts verified line by line on pdf p174 (signs, SAR-million scale)",
+    "value locator: 167 of 176 present in the archived annual report; 9 not printed as such (base dividends 317,159 = 320,447 - 3,288 derived; one-decimal rounded operating metrics)"
+   ],
+   "anchors": {
+    "values_present_in_archived_2025_annual_report": 167,
+    "facts": 176
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct_values_defective_citations",
+   "defects": [
+    {
+     "id": "ARA-1",
+     "defect_class": "wrong_page_citation",
+     "severity": "low",
+     "summary": "160 of 176 facts cite a page on which the value does not occur. Income-statement facts cite page 177 but sit on pdf page 174 (printed 172); cash-flow/other facts cite 177-180 vs pdf 176/178; dividends and EPS cite 243/244 vs pdf 177/235/174. The cited numbers fit neither pdf index nor printed page.",
+     "evidence": "pdf p174 rows: Revenue 1,559,342; Other income related to sales 111,862; Net income 350,210; Earnings per share 1.44",
+     "fix": "derive the page from the archived PDF when regenerating; add a test that the cited page contains the value"
+    }
+   ]
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-contingencies-disclosure.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 0,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "not_applicable",
+   "note": "qualitative/disclosure manifest without numeric facts; text content not audited in this batch"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-customer-concentration-disclosure.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 0,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "not_applicable",
+   "note": "qualitative/disclosure manifest without numeric facts; text content not audited in this batch"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-deep-dimensional-notes.json",
+    "archived_path": null,
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": null,
+    "published_facts": 171,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-full-notes.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\5a3db2a93fb91a484184a65be49d2043b730d30c8e7b986b26e1d552aa54b8f4.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 27,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-fy.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\5a3db2a93fb91a484184a65be49d2043b730d30c8e7b986b26e1d552aa54b8f4.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 7,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-gap-fill.json",
+    "archived_path": null,
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": null,
+    "published_facts": 75,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-governance-risk.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 0,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "not_applicable",
+   "note": "qualitative/disclosure manifest without numeric facts; text content not audited in this batch"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-guidance-targets.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 0,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "not_applicable",
+   "note": "qualitative/disclosure manifest without numeric facts; text content not audited in this batch"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-lease-interest.json",
+    "archived_path": null,
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 2,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {},
+   "numeric_correctness": "unverified_partial",
+   "note": "archived source document is not present in the checkout (git history of audited branch/main)"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-operational-precision.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 3,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "value presence only: values found in the archived 2025 annual report text (gap-fill 75/75, deep notes 168/171, full notes 26/27, fy/fy-comparative 7/7, lease 2/2, operational 3/3); row/column semantics NOT verified - the manifest source (full-financials PDF 5a3db2...) is not archived"
+   ],
+   "anchors": {
+    "values_present_in_archived_2025_annual_report": 3,
+    "facts": 3
+   },
+   "unanchored": [],
+   "numeric_correctness": "unverified_partial"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-other-reserve-components.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 14,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "all values located on the cited pdf page with matching label; scale SAR millions per page heading"
+   ],
+   "anchors": {
+    "values_present_in_archived_2025_annual_report": 14,
+    "facts": 14
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2025-segment-ebitda-inputs.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2025-12-31",
+    "published_facts": 9,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [
+    "all values located on the cited pdf page with matching label; scale SAR millions per page heading"
+   ],
+   "anchors": {
+    "values_present_in_archived_2025_annual_report": 9,
+    "facts": 9
+   },
+   "unanchored": [],
+   "numeric_correctness": "verified_correct"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2026-q1.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\e3f8215a49ca2568df65c178ef0b681fdd6c43aa20558032424bc9e033c46191.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2026/q1/saudi-aramco-q1-2026-interim-report-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2026-03-31",
+    "published_facts": 8,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-2026-q2.json",
+    "archived_path": "data\\raw\\SA\\2222\\documents\\4773cfe444de7e9734a65a59d8e1dd301229d9aa05164729e2b8f983d81cfb41.pdf",
+    "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2026/h1/saudi-aramco-h1-2026-interim-report-english.pdf",
+    "kind": "financial_statements_pdf",
+    "period_end": "2026-06-30",
+    "published_facts": 12,
+    "excluded_facts": 0
+   },
+   "status": "pending",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "unverified",
+   "note": "source PDF (older annual report / 2026 interim) is not archived in any branch; cannot be compared with its source"
+  },
+  {
+   "source_document": {
+    "manifest": "aramco-market-prices-2026-09-04.json",
+    "archived_path": "data\\raw\\SA\\2222\\market\\saudi-exchange-historical-2026-09-04.json",
+    "source_url": "https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports?locale=en",
+    "kind": "financial_statements_pdf",
+    "period_end": "2026-09-03",
+    "published_facts": 0,
+    "excluded_facts": 0
+   },
+   "status": "done",
+   "checks": [],
+   "anchors": {},
+   "numeric_correctness": "not_applicable",
+   "note": "market-price/non-statement artifact (no financial-statement facts)"
+  }
+ ],
+ "progress": {
+  "total": 27,
+  "done": 9,
+  "pending": [
+   "aramco-2019-fy-historical.json",
+   "aramco-2020-fy-historical.json",
+   "aramco-2021-annual-metrics.json",
+   "aramco-2021-fy-historical.json",
+   "aramco-2022-annual-metrics.json",
+   "aramco-2022-fy-historical.json",
+   "aramco-2023-annual-metrics.json",
+   "aramco-2023-fy.json",
+   "aramco-2024-annual-metrics.json",
+   "aramco-2024-full-notes-comparative.json",
+   "aramco-2024-fy-comparative.json",
+   "aramco-2025-deep-dimensional-notes.json",
+   "aramco-2025-full-notes.json",
+   "aramco-2025-fy.json",
+   "aramco-2025-gap-fill.json",
+   "aramco-2025-lease-interest.json",
+   "aramco-2026-q1.json",
+   "aramco-2026-q2.json"
+  ]
+ }
+}
