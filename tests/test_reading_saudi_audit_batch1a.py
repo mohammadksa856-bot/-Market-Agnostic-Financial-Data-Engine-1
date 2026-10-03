@@ -151,6 +151,12 @@ class TitleYearsDoNotShiftPeriodColumnsTests(unittest.TestCase):
         self.assertEqual(StatementReader._header_row_hits(one_line), one_line)
         with_title = [(300.0, 76.0), (345.0, 76.0)] + one_line
         self.assertEqual(sorted(StatementReader._header_row_hits(with_title)), sorted(one_line))
+        # side-by-side panels with equally many periods at different heights are kept
+        panels = [(300.0, 100.0), (360.0, 100.0), (700.0, 112.0), (760.0, 112.0)]
+        self.assertEqual(sorted(StatementReader._header_row_hits(panels)), sorted(panels))
+        # a third column whose header sits 13pt higher (anb-2017-q2 balance sheet) is kept
+        staggered = [(368.0, 109.0), (459.0, 109.0), (541.0, 96.0)]
+        self.assertEqual(sorted(StatementReader._header_row_hits(staggered)), sorted(staggered))
 
 
 @unittest.skipUnless(HAVE_PYMUPDF, "requires pymupdf")

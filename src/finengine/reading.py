@@ -1204,8 +1204,7 @@ class StatementReader:
         stray year centres do not align with the amount columns; kept, they
         shift the period pairing so a three-month column is read as the
         nine-month column. When period tokens sit on several text lines, the
-        line carrying the most of them is the header (the lowest such line on a
-        tie); one-line pages are unchanged.
+        lines carrying the most of them are the header (ties are all kept); one-line pages are unchanged.
         """
         if not candidates:
             return []
@@ -1219,8 +1218,11 @@ class StatementReader:
         if len(lines) == 1:
             return list(candidates)
         best = max(len({round(x, 1) for x, _ in line}) for line in lines)
-        chosen = [line for line in lines if len({round(x, 1) for x, _ in line}) == best]
-        return list(chosen[-1])
+        header_y = max(line[0][1] for line in lines
+                       if len({round(x, 1) for x, _ in line}) == best)
+        # Only lines well above the header (a title) are dropped: staggered
+        # column headers and side-by-side panels sit within a few lines of it.
+        return [item for line in lines if line[0][1] >= header_y - 30.0 for item in line]
 
     @staticmethod
     def _column_blocks(page, words) -> list[list[float]]:
