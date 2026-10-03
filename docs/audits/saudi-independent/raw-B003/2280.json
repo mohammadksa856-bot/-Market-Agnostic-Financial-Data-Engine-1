@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "symbol": "2280",
+  "name": "Almarai Company",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B003)",
+    "scope": "raw files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, AWS, Supabase",
+    "method": "SHA-256 recomputed per file read; image-only statement pages rendered and read by eye (FY2025, FY2023, H1 2026); born-digital FY2024 and FY2022 read from the text layer and cross-checked against comparatives read visually in the next filing; the three scanned results announcements viewed (Q4 2023, Q1 2024). Identities in tools/check_transcripts.py pass (BS identity, cash-flow sum, roll with FX, NI split).",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/head.py", "tools/survey.py", "tools/tl.py", "tools/check_transcripts.py", "transcripts/2280.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_5_filings",
+      "summary": "SAR thousand. Verified: FY2025 (+FY2024 comparative, both read visually), FY2024 (text, equal to the visual FY2024 comparatives in the FY2025 filing: revenue 20,979,512, profit 2,313,667, CFO 6,028,482, equity 18,791,132 - no restatement), FY2023 (+FY2022 comparative; read visually), FY2022 original (+FY2021 comparatives), H1 2026 (3M and 6M, read visually; includes 2025 comparatives). One restatement found: FY2022 cash flows in the FY2022 filing (CFO 3,829,349, CFI (1,987,280)) differ from the same year re-presented in the FY2023 filing (CFO 3,829,649, CFI (1,987,580)); net change (19,067) and all P&L/BS totals unchanged. Statements also show the new riyal symbol in FY2025 and H1 2026 headers (units remain SAR thousand). H1 2026 includes an acquisition (Note 11: purchase consideration USD 1,012,223 thousand, goodwill 328,108; cash outflow shown as (1,010,094) in the FY2025 cash flow, 'Acquisition of Subsidiary, Net of Cash Acquired'), so FY2025 and 2026 scope differs from earlier years. Balance-sheet cash equals cash-flow closing cash in every period (overdrafts shown as a separate liability). Interim income statement has quarter and cumulative columns; cash flows cumulative only. No discontinued operations in any statement read. Scanned announcements (not statements): Q4 2023 quarter revenue 4,919,738, operating profit 528,895, net profit after zakat and tax 370,719 (page 1 of 523b3c36, read visually); Q1 2024 revenue 5,458,641, net profit 692,227 (5d9384a8). These are quarter values in announcement tables, not primary statements.",
+      "not_read": ["notes in all files", "equity statements other than the FY2025 page", "text-layer interims 2022 H1 and 2023 H1", "image-only interims 2022 Q1/9M, 2023 9M, 2024 Q1/H1/9M, 2025 H1/9M (statement pages present as images per page layout, not read)", "FY2019 d67ef2ce (2 page extract: balance sheet only, not read)", "all 37 announcements/presentations (not statements; only 3 viewed)"]
+    },
+    "document_completeness": {
+      "status": "defective_labels_and_flags",
+      "summary": "(a) PERIOD LABELS WRONG: 4c69cb4f labelled 2023|FY is FY2022 (cover 'year ended 31 December 2022'); 79604d62 labelled 2024|FY is FY2023; 5fa17637 labelled 2025|FY is FY2024; 6e4fd37a labelled 2026|FY is FY2025. The inventory flag period_mismatch_candidate is a true positive on all four. Consequently the inventory believes FY2022-FY2025 are partial/missing. (b) INVENTORY FLAGS WRONG: 79604d62 and 6e4fd37a are flagged 'partial: income only / missing cash flows' but pdf pages 8-13 (FY2023) and 9-14 (FY2025) are image-only and contain balance sheet, P&L, OCI, equity and cash flows in full (read). Interims flagged partial (2022-2025 9M, H1, Q1; 2026 H1) have image-only statement pages at pdf 5-9 (H1 2026 read: BS p5, P&L p6, CF p9 are all present; equity and OCI pages not individually viewed). (c) The five 'scanned_unreadable' files (e271fe50 2023 9M, 523b3c36 2023 FY, b3abae94 2024 H1, 5d9384a8 2024 Q1, b467f1fb 2025 H1; 4 to 6 pages) are scanned Tadawul results announcements (2-column tables with current vs prior quarter), not statements: reclassify. 523b3c36 labelled 2023|FY is the Q4 2023 announcement (quarter figures, text says 'year ended 31st December 2023'). (d) 37 of 58 files are announcements/presentations/other; the 18 slots 2018-2021 contain only announcements, so those years have no statements at all. (e) Duplicate announcements exist per slot (e.g. 2019 9M x2, 2021 Q1 x2). Wrong-company files: none seen.",
+      "defect_ids": ["B003-2280-1", "B003-2280-2", "B003-2280-3"]
+    },
+    "company_coverage": {
+      "status": "sparse_confirmed",
+      "present_with_statements_verified": ["FY2022", "FY2023", "FY2024", "FY2025", "2026 H1"],
+      "present_per_inventory_not_read": ["2022 H1", "2023 H1", "2022 Q1/9M, 2023 9M, 2024 Q1/H1/9M, 2025 H1/9M (image interims)", "FY2019 extract"],
+      "announcement_only": ["2018-2021 all periods", "2023 Q1, 2024 FY (announcement), 2025 Q1 and several others"],
+      "missing": ["2026 Q1 statements (only announcement and presentation)", "2025 Q1 statements (announcement only)", "everything before 2018 (inventory expects 77 periods from 2006|9M; 4 complete)", "FY2018-FY2021 statements"],
+      "inventory_correction": "inventory complete count 4 of 77; true count is at least 5 verified (FY2022-FY2025, H1 2026) plus likely 10+ image interims. First-observed 2006|9M confirmed only by announcement ids, not by files."
+    }
+  },
+  "documents": [
+    {"sha256": "6e4fd37a...", "inventory_label": "2026|FY", "actual_period": "FY2025", "label_ok": false, "pdf_pages": {"bs": 9, "is": 10, "equity": [11, 13], "cf": 14}},
+    {"sha256": "5fa17637...", "inventory_label": "2025|FY", "actual_period": "FY2024", "label_ok": false, "pdf_pages": {"bs": 8, "is": 9, "cf": 13}},
+    {"sha256": "79604d62...", "inventory_label": "2024|FY", "actual_period": "FY2023", "label_ok": false, "pdf_pages": {"bs": 8, "is": 9, "cf": 13}, "printed_pages": {"bs": 6, "is": 7, "cf": 11}},
+    {"sha256": "4c69cb4f...", "inventory_label": "2023|FY", "actual_period": "FY2022", "label_ok": false, "pdf_pages": {"bs": 10, "is": 11, "cf": 15}},
+    {"sha256": "ab3a5278...", "inventory_label": "2026|H1", "actual_period": "H1 2026", "label_ok": true, "pdf_pages": {"bs": 5, "is": 6, "cf": 9}},
+    {"sha256": "523b3c36...", "inventory_label": "2023|FY", "actual_period": "Q4 2023 results announcement (scanned)", "label_ok": false},
+    {"sha256": "5d9384a8...", "inventory_label": "2024|Q1", "actual_period": "Q1 2024 results announcement (scanned)", "label_ok": true}
+  ],
+  "defects": [
+    {"id": "B003-2280-1", "class": "period_label_publication_year", "severity": "high", "evidence": "Four annual FS PDFs labelled with the year after the fiscal year; 523b3c36 is a Q4 announcement labelled FY."},
+    {"id": "B003-2280-2", "class": "inventory_flag_image_statements", "severity": "medium", "evidence": "Image-only statement pages classified as partial/income-only; scanned announcements classified as unreadable statements."},
+    {"id": "B003-2280-3", "class": "restated_comparatives_not_tracked", "severity": "low", "evidence": "FY2022 CFO 3,829,349 (original) vs 3,829,649 (re-presented in FY2023 filing); CFI offsets by 300."}
+  ],
+  "unread_items": ["see value_correctness.not_read"],
+  "conclusion": "NOT complete as a company. FY2022-FY2025 and H1 2026 verified; 2018-2021 have no statements; 2026 Q1 and 2025 Q1 statements absent."
+}
