@@ -1426,6 +1426,7 @@ class StatementReader:
                      and not _NOTE_REFERENCE.match(w[4])),
                     default=None)
                 text_tokens, number_tokens = [], []
+                raw_by_center: dict[float, str] = {}
                 for w in panel_words:
                     token = w[4]
                     center = (w[0] + w[2]) / 2
@@ -1433,6 +1434,7 @@ class StatementReader:
                         value = _parse_number(token)
                         if value is not None:
                             number_tokens.append((center, value))
+                            raw_by_center[center] = token
                     elif _PERCENT.match(token) and center > max(columns) + 25:
                         continue  # comparison/change column, not part of the row label
                     elif _NOTE_REFERENCE.match(token) and (
@@ -1469,9 +1471,27 @@ class StatementReader:
                 for group, kind in self._period_column_groups(
                         words, statement, columns, default_flow_kind):
                     current = group[0]
-                    center, value = min(number_tokens, key=lambda t: abs(t[0] - current))
+                    ordered_columns = sorted(columns)
+                    ordered_tokens = sorted(number_tokens)
+                    if (len(ordered_tokens) == len(ordered_columns) > 2
+                            and current in ordered_columns):
+                        # A full row (one figure per column) is assigned left to
+                        # right. Right-aligned figures in a tight multi-column
+                        # layout can sit nearer the NEXT header centre than their
+                        # own ("9,037" under 6M-2008 vs "7,273" under 6M-2007).
+                        center, value = ordered_tokens[ordered_columns.index(current)]
+                    else:
+                        center, value = min(number_tokens, key=lambda t: abs(t[0] - current))
                     if abs(center - current) >= 45:
                         continue  # this period's cell is blank; never borrow a neighbour's figure
+                    raw = raw_by_center.get(center, "")
+                    if "per share" in label.lower() and re.fullmatch(r"\(?-?\d{1,2},\d{2}\)?", raw):
+                        # Per-share figures printed with a decimal comma ("2,02")
+                        # are not grouped thousands: no per-share amount has a
+                        # two-digit final group. Monetary rows are unaffected.
+                        value = Decimal(raw.strip("()").replace(",", "."))
+                        if raw.startswith("("):
+                            value = -value
                     magnitudes.append(abs(value))
                     parsed_rows.append((label, kind, value))
         if not magnitudes:
