@@ -1,0 +1,173 @@
+{
+ "schema_version": 1,
+ "symbol": "3030",
+ "company_id": "sa:3030",
+ "company_name": "Saudi Cement Company",
+ "auditor": "Claude Sonnet 5.5 (independent audit batch1-D)",
+ "audit_date": "2026-10-03",
+ "audited_published_branch": "origin/codex/telecom-95pct",
+ "audited_published_commit": "ec610f3de3aca3a02c1a65526b666f315254b16e",
+ "resumable": true,
+ "resume_instructions": "Each entry in sources[] has status pending|done|blocked. Re-run only sources not 'done'. Evidence cites pdf_page and the issuer's printed page separately.",
+ "rejected_facts": {
+  "status": "unverified",
+  "note": "No rejection/quarantine ledger for this company exists in the repository or in the repo's data/financial.sqlite3 snapshot (exceptions table has no rows for it). The AWS production DB was out of bounds for this audit, so server-side rejected facts were not reviewed."
+ },
+ "dimensions": {
+  "numeric_correctness": {
+   "status": "verified_correct",
+   "scope": "all 104 facts",
+   "note": "Primary statements are scanned images; every value was read from page renders (zoom 1.5-1.6) and matched to the published value."
+  },
+  "document_completeness": {
+   "status": "defective",
+   "note": "OCI components, debt movement, lease repayments, intangible additions, working-capital lines and the statement of changes in equity are in the document but not extracted."
+  },
+  "company_coverage": {
+   "status": "unverified",
+   "note": "Only FY2025 (+FY2024 comparatives). No other FY and no interim periods published; no expected-period list exists in the repo."
+  }
+ },
+ "sources": [
+  {
+   "source_id": "3030-fy2025-audited-fs",
+   "status": "done",
+   "manifest": "data/imports/saudi-cement-2025-fy.json",
+   "manifest_last_commit": "d8ec99c",
+   "manifest_sha256_prefix": "5711b0a6c6dc26bf",
+   "document": "data/raw/SA/3030/documents/799306475fca27d3cf24a9300db797e973b753662f1f2fe1bda250a7b57103ab.pdf",
+   "document_url": "https://www.saudiexchange.sa/Resources/fsPdf/425_0_2026-03-16_10-20-05_En.pdf",
+   "document_pdf_pages": 44,
+   "page_offset_note": "printed FS page N = PDF page N+1 (PDF 7 = printed 6 financial position; 8 = 7 P&L/OCI; 9 = 8 equity; 10 = 9 cash flows)",
+   "identity": {
+    "result": "verified_correct",
+    "evidence": "PDF p7: 'SAUDI CEMENT COMPANY (A Saudi Joint Stock Company) CONSOLIDATED STATEMENT OF FINANCIAL POSITION AS AT DECEMBER 31, 2025 (Expressed in Saudi Riyals in thousands)'"
+   },
+   "periods_in_document": [
+    "FY2025",
+    "FY2024",
+    "balances 31 Dec 2025 / 2024"
+   ],
+   "checks_performed": [
+    {
+     "check": "balance sheet",
+     "page": "printed 6 (PDF 7)",
+     "line_item": "27 lines x 2 years",
+     "result": "verified_correct",
+     "evidence": "PPE 1,817,971/1,867,429; Total assets 3,082,130/3,136,952; Total equity 2,219,855/2,240,513; Total liabilities 862,275/896,439; other_current_liabilities = Dividend payable 222,763 + Contract liabilities 11,153 = 233,916 (2025) and 227,447+9,959 = 237,406 (2024)"
+    },
+    {
+     "check": "income statement + comprehensive income",
+     "page": "printed 7 (PDF 8)",
+     "line_item": "Revenue 1,671,202/1,675,807 ... Net profit 363,683/421,874; Total comprehensive income 361,842/425,452; EPS 2.38/2.76",
+     "result": "verified_correct"
+    },
+    {
+     "check": "cash flow",
+     "page": "printed 9 (PDF 10)",
+     "line_item": "OCF 555,882/580,841; ICF (171,684)/(77,936); FCF (461,187)/(496,852); cash 120,969->43,980 and 114,916->120,969; capex (158,704)/(82,031); interest paid (16,473)/(24,904); zakat paid (20,528)/(19,115); dividends (387,184)/(342,893)",
+     "result": "verified_correct"
+    },
+    {
+     "check": "D&A composite",
+     "page": "printed 9",
+     "line_item": "Depreciation PPE + ROU + amortisation of intangibles",
+     "result": "verified_correct",
+     "evidence": "208,162+7,356+1,192 = 216,710; 210,671+6,855+646 = 218,172"
+    },
+    {
+     "check": "current vs prior column",
+     "page": "printed 6-9",
+     "line_item": "2025 first, 2024 second",
+     "result": "verified_correct"
+    },
+    {
+     "check": "quarter-vs-cumulative",
+     "page": "n/a",
+     "line_item": "annual only",
+     "result": "not_applicable"
+    }
+   ],
+   "facts_audited": 104,
+   "verified_correct": {
+    "count": 104,
+    "detail": "all facts"
+   },
+   "defects": [
+    {
+     "id": "3030-D1",
+     "class": "metadata_filed_at_is_board_approval_date",
+     "severity": "low",
+     "metric": "manifest header filed_at",
+     "published_value": "2026-03-09",
+     "correct_value": "public on Saudi Exchange 2026-03-16 (URL upload stamp)",
+     "evidence": "Note 36 board authorisation 9 March 2026; source_url .../fsPdf/425_0_2026-03-16_10-20-05_En.pdf",
+     "root_cause": "RC-FILED-AT",
+     "fix_plan": "Set filed_at_basis=official_exchange_url_upload_timestamp and filed_at to the URL upload date (as stc-2026-q2.json already does) through Codex's publish path; detector: finengine.audit_consistency.filing_date_before_exchange_upload."
+    },
+    {
+     "id": "3030-D2",
+     "class": "definition_inconsistency_across_companies",
+     "severity": "low",
+     "metric": "capex",
+     "published_value": "-158,704 / -82,031 (PP&E additions only)",
+     "correct_value": "label faithful; PP&E + intangibles would be -171,684 / -85,842 (intangible additions (12,980)/(3,811) on the same page)",
+     "evidence": "PDF p10 'Additions to intangible assets 8 (12,980) (3,811)'; peer 3010 includes intangibles",
+     "root_cause": "RC-CAPEX-DEFINITION",
+     "fix_plan": "align capex definition across cement peers (see 3010-D2)"
+    }
+   ],
+   "missing_fields": [
+    {
+     "field": "OCI components and total OCI",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 7",
+     "line_item": "re-measurement (1,754)/3,555; associate OCI (87)/23; total (1,841)/3,578"
+    },
+    {
+     "field": "debt movement",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 9",
+     "line_item": "Net movement in short term loans (65,000)/(145,000)"
+    },
+    {
+     "field": "lease_payments",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 9",
+     "line_item": "Repayment of lease liability (9,003)/(8,959)"
+    },
+    {
+     "field": "intangible additions, disposal proceeds, employees' benefits paid, working-capital lines",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 9",
+     "line_item": "(12,980)/(3,811); -/7,906; (12,291)/(7,027); six WC lines"
+    },
+    {
+     "field": "statement of changes in equity",
+     "periods": [
+      "FY2025",
+      "FY2024"
+     ],
+     "page": "printed 8 (PDF 9)",
+     "line_item": "whole statement (incl. 459,000 statutory-reserve transfer in FY2024)"
+    }
+   ],
+   "missing_periods": [
+    "No FY2023 or earlier; no interim periods"
+   ],
+   "fix_plan": "No numeric fix. Add missing fields via a new manifest; fix filed_at."
+  }
+ ]
+}
