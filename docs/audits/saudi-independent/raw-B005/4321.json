@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "symbol": "4321",
+  "name": "Cenomi Centers (Arabian Centres Company)",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B005)",
+    "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+    "method": "SHA-256 recomputed by pg.py for every file opened (sha_ok true). Statement pages of 5 filings rendered and read by eye (FY2025 and H1 2026 image-only pages, FY2024 scan, FY2023 and the 2022 transition-period statements as low-quality renders). tools/check_transcripts.py identities (BS identity, cash-flow sum and roll, NI split) pass for every transcribed column; subtotals re-added by hand. transcripts/4321.json holds the values; tools/mk4321.py regenerates it.",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/flat.py", "tools/sheet.py", "tools/head.py", "tools/survey.py", "tools/tl.py", "tools/check_transcripts.py", "tools/mk4321.py", "transcripts/4321.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_5_filings",
+      "summary": "Verified in whole SAR: FY2025 (EY), FY2024, FY2023, the nine-month transition period 2022-04-01 to 2022-12-31, and H1 2026 (3M and 6M). FY2025: revenue 2,288,296,428; gross profit 1,934,616,283; profit before net finance costs 2,015,142,759 (includes net fair value gain on investment properties 501,171,226 and other operating income 312,959,295); profit before zakat 1,323,159,842; profit 1,276,159,843 (owners 1,266,893,372, NCI 9,266,471); EPS 2.67; total assets 36,892,157,366; liabilities 21,326,767,102; equity 15,565,390,264; CFO 1,783,562,209; CFI -1,157,982,696; CFF 2,997,668,216; cash 4,293,589,740 (rolls exactly, no FX line). FY2024: revenue 2,344,038,571; profit 1,224,163,900; total assets 31,452,545,879; CFO 1,006,385,476. FY2023: revenue 2,253,673,262; profit 1,500,995,182 (includes gain on disposal of investment property 238,668,127 in cash flow); total assets 27,751,227,420; CFO 1,383,597,758. Transition 9M 2022: revenue 1,687,534,280; profit 836,993,094; total assets 25,876,858,984. H1 2026: revenue 1,151,923,190; profit 592,623,857; total assets 35,134,671,838; cash 614,362,718 after repaying 3.28 billion of loans from the 2025 cash balance; Q2 2026 as printed: revenue 569,373,497, profit 389,362,050. Cash flows are year-to-date (H1 2026 cash flow is six months only; no quarterly cash flow is printed), income statements of interims carry both 3M and 6M columns. Revenue of one fiscal year is not comparable with another across the March to December fiscal change: the filings themselves say so (note 1).",
+      "restatements_and_representations": [
+        "Nine-month period to 2022-12-31 re-presented in the FY2023 filing (310cb87e): gross profit 1,411,536,752 -> 1,401,744,254 (cost of revenue 275,997,528 -> 285,790,026), CFO 871,508,353 -> 818,678,082 and CFI -336,600,425 -> -283,770,154 (52,830,271 development-property additions moved from investing into operating); profit unchanged 836,993,094, CFF unchanged -480,589,882. Both transcribed (64c5dbde original, 310cb87e re-presented).",
+        "FY2023 cash flow re-presented in the FY2024 filing (0fa3978a): CFO 1,383,597,758 -> 1,390,236,167, CFI -681,118,473 -> -688,965,821, CFF -1,227,929,247 -> -1,226,720,308; net change and cash unchanged (-525,449,962).",
+        "FY2024 income statement re-presented in the FY2025 filing (18a0b461): 'profit before net finance costs' 1,965,365,971 -> 1,962,969,589, net finance costs -690,112,863 -> -687,716,481 (modification loss 53,571,680 and related-party finance income 17,055,722 moved above the line, with new line items); profit 1,224,163,900 unchanged, CFO 1,006,385,476 unchanged.",
+        "Prior-year comparatives in the transition-period filing (31 March 2022 balance sheet and year ended 31 March 2022, 'Restated - Note 36') differ from the originally filed FY Mar-2022 numbers; the original March-2022 statements were not located in the collected files (inventory FY labels 2021/2022 hold press releases only), so restatement size is not measurable."
+      ],
+      "not_read": [
+        "notes to the statements in every file (including note 36 restatement, note 35 loan restructuring, segment and investment-property valuation notes)",
+        "statements of changes in equity except H1 2026 (read) ; OCI statements only glanced",
+        "interim filings never opened: d796a798 (3M/6M to 2022-09-30), 98b1f598 (3M to 2022-06-30), ea58c636 (H1 2023), the scanned image files 47e41c1c, 1d675c4d, c38a2296, aa56af2d, 97eea52f, 4879193d, d288393b (9M 2024), 0496d1ff (H1 2025), efa0b314 (9M 2025), 0f1c059e (Q1 2026)",
+        "all press-release and presentation files (revenue and net profit headlines only, no statement values)",
+        "Arabic-language FS files if any: none identified, language not checked per file"
+      ]
+    },
+    "document_completeness": {
+      "status": "primary_statements_present_in_all_read_files_inventory_flags_wrong_and_fiscal_calendar_unmodelled",
+      "summary": "All five read filings contain the full BS, P&L, OCI, equity and cash-flow statements. The inventory misclassifies them for image-only or scanned pages: 0fa3978a (complete audited FY2024 FS, 58 pages, pages 9-58 textless) is 'other_no_statements_found'; 78e4dbd4 (H1 2026) is 'partial' (statement pages 4-10 textless); 47e41c1c, 1d675c4d, c38a2296 (35 to 37 page scanned interims) are 'scanned_unreadable' and aa56af2d, 97eea52f 'partial' with a single page recognised; 98b1f598, d288393b, 0496d1ff, 4879193d are 'other_no_statements_found' but are 31 to 33 page interim FS by their covers. PERIOD LABELS ARE UNRELIABLE FOR TWO REASONS. (1) Fiscal year ended 31 March until 2022 and changed to 31 December from the nine-month period to 2022-12-31: collector labels assume a March year end for earlier files (press release 'FY2022' is the year ended 2022-03-31; 4e2b90de labelled 2021|9M is the Q3 FY2021 release for 2020-12-31) and inventory fiscal_year_end_month is 3 with an expected window to 2027|Q1, which misstates expected periods after 2022. (2) Annual FS carry the label of the following year: 64c5dbde (nine months to 2022-12-31) is 2023|FY, 310cb87e (FY2023) is 2024|FY, 0fa3978a (FY2024) is 2025|FY, 18a0b461 (FY2025) is 2026|FY. Interim labels of the Dec-year-end era match their covers (78e4dbd4 2026|H1 'ended 30 June 2026', efa0b314 2025|9M, 0496d1ff 2025|H1 verified from cover text). Press releases (many files, 3 to 10 pages) are classified financial_statements or presentation in several cases (e.g. 4e2b90de, 8bc1ceef, d778d94f, ad6e7617 labelled 2027|H1 = H1 2026 release) although none contain statements. Duplicates: none identified among statement files; ad6e7617 (labelled 2027|H1) is a release for the same H1 2026.",
+      "defect_ids": ["B005-4321-1", "B005-4321-2", "B005-4321-3"]
+    },
+    "company_coverage": {
+      "status": "sparse_confirmed_but_understated_for_dec_year_end_era",
+      "present_with_statements_verified": ["transition 9M to 2022-12-31 (labelled 2023|FY)", "FY2023", "FY2024", "FY2025", "2026|H1"],
+      "present_with_statements_unread": ["FY Mar-2023 interims (3M to 2022-06-30, 3M/6M to 2022-09-30; H1 2023 ea58c636 is 6M to 2023-06-30)", "2023|Q1 scanned c38a2296 (period unconfirmed)", "2023|9M scanned 1d675c4d (period unconfirmed)", "2024|Q1, H1, 9M scanned or partial files", "2025|Q1, H1, 9M", "2026|Q1"],
+      "derivable_comparatives": ["year ended 2022-03-31 restated P&L, cash flow and 2022-03-31 / 2021-04-01 balance sheets from the transition-period file", "FY2024 and FY2023 prior columns in the following-year filings", "H1 2025 and H1 2026 three and six month columns"],
+      "missing": ["all statements for fiscal years ending March 2019 to March 2022 (inventory first observed 2019|FY; only press releases collected)", "2026|9M and 2026|FY not yet due", "inventory expected-period grid for 2023 to 2027 uses a March year end, so its 7 'absent' periods cannot be trusted"],
+      "inventory_confirmed": "coverage_class sparse (3 of 30 complete) stands as a statement about the inventory, but its expected-period denominator is wrong after the 2022 fiscal-year change; after reading, 5 filings are verified and about 10 more Dec-era filings are present with statements but unread."
+    }
+  },
+  "documents": [
+    {"sha256": "18a0b461", "actual_period": "FY ended 2025-12-31 audited (EY)", "label_ok": false, "label_in_inventory": "2026|FY", "pdf_pages": {"bs": 10, "is": 11, "cf": [14, 15]}, "printed_pages": {"bs": 7, "is": 8, "cf": [11, 12]}, "units": "SAR", "reading": "visual"},
+    {"sha256": "0fa3978a", "actual_period": "FY ended 2024-12-31 audited, scanned complete FS", "label_ok": false, "label_in_inventory": "2025|FY", "label_class_wrong": "inventory: other_no_statements_found", "pdf_pages": {"bs": 9, "is": 10, "cf": [13, 14]}, "printed_pages": {"bs": 6, "is": 7, "cf": [10, 11]}, "units": "SAR", "reading": "visual"},
+    {"sha256": "310cb87e", "actual_period": "FY ended 2023-12-31 audited (KPMG)", "label_ok": false, "label_in_inventory": "2024|FY", "pdf_pages": {"bs": 9, "is": 10, "cf": [13, 14]}, "printed_pages": {"bs": 6, "is": 7, "cf": [10, 11]}, "units": "SAR", "reading": "visual"},
+    {"sha256": "64c5dbde", "actual_period": "nine-month transition period ended 2022-12-31 audited (KPMG)", "label_ok": false, "label_in_inventory": "2023|FY", "pdf_pages": {"bs": 9, "is": 10, "cf": [13, 14]}, "printed_pages": {"bs": 6, "is": 7, "cf": [10, 11]}, "units": "SAR", "reading": "visual"},
+    {"sha256": "78e4dbd4", "actual_period": "3M and 6M ended 2026-06-30 reviewed (EY)", "label_ok": true, "label_class_wrong": "inventory: partial_statements", "pdf_pages": {"bs": 5, "is": 6, "eq": 8, "cf": [9, 10]}, "printed_pages": {"bs": 2, "is": 3, "eq": 5, "cf": [6, 7]}, "units": "SAR", "reading": "visual"}
+  ],
+  "defects": [
+    {"id": "B005-4321-1", "text": "Fiscal year changed from March to December in 2022 (nine-month transition period); collector labels and inventory expected-period grid keep a March calendar, so the same statement can be labelled with the wrong FY and slot and expected periods after 2022 are misstated (grid extends to 2027|Q1)."},
+    {"id": "B005-4321-2", "text": "Annual FS carry the label of the following year (transition period as 2023|FY, FY2023 as 2024|FY, FY2024 as 2025|FY, FY2025 as 2026|FY); the 9-month transition period would be wrongly treated as a full year."},
+    {"id": "B005-4321-3", "text": "Scanned or image-only statement files misclassified as no statements / unreadable / partial (0fa3978a, 78e4dbd4 and about 9 interim files); re-presented comparatives change gross profit, CFO and CFI of the transition period, FY2023 and FY2024; press releases classified as financial_statements."}
+  ],
+  "unread_items": [
+    "notes in all files",
+    "about 10 Dec-era and 3 FY-Mar-2023 interim filings not opened",
+    "original statements of year ended 2022-03-31 not located",
+    "press releases and presentations (no statement content assessed)",
+    "equity statements except H1 2026"
+  ]
+}
