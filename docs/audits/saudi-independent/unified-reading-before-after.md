@@ -731,3 +731,13 @@ Format: field (period kind): old -> new. added = absent under base. Labels and p
 - Base ec610f3: 1 failed, 527 passed, 1 skipped, 42 errors (571 tests, 32m34s).
 - Unified: 1 failed, 538 passed, 1 skipped, 42 errors (582 tests, 32m30s). The +11 passes are the two audit test files (A: test_reading_saudi_audit_batch1a.py, B: test_audit_alinma_interim_columns.py).
 - The set of failing/erroring test ids is identical on both (diff empty): 0 failures attributable to this change. Pre-existing: tests/test_monitoring.py::MonitoringTests::test_interim_pdf_is_held_until_period_semantics_are_proven (pdf_extraction_failed vs interim_period_semantics_required) and 42 setup errors in tests/test_factory_18_category_contract.py.
+
+## Addendum: fixes for the two new wrong facts
+
+Reader change (src/finengine/reading.py) and tests/test_reading_unified_columns_and_eps.py (both tests fail before, pass after):
+1. A row with exactly one figure per column (more than two columns) is assigned to columns left to right instead of by nearest header centre. aljazira-2008-q2: exchange_income ytd 7273 -> 9037, trading_income ytd 11841 -> 1784, dividend_income ytd 6602 -> 6330, other_income ytd 3787 -> 2717, eps_diluted ytd 1.70 -> 0.84; all now equal the 6M-2008 column printed on page 4.
+2. Per-share rows with a decimal-comma figure matching d{1,2},dd are decimals: anb-2019-annual-report eps_diluted fy 202 -> 2.02. Monetary rows (and thousands separators, verified on 3,021,812 / 7,632,624 in the test) are unchanged.
+
+Side effect, also correct: aljazira-2008-q2 other_expense. The page row is "Other operating expenses 21 289 367 1,273" and the column totals prove Q2-08 = 21 (read as a note reference, so no quarter fact), 6M-08 = 367. Base had ytd 289 (wrong), the pre-addendum unified had quarter -289 and ytd -1273 (both wrong); now ytd = -367 (correct) and the wrong quarter fact is gone. The missing Q2-08 value 21 is a remaining limitation (value indistinguishable from a note number).
+
+Re-read of all 175 manifests with the fixed reader (tools/unified_reread.py, work file unified2.json) versus the pre-fix unified output: exactly 8 fact differences, all in the two manifests above; no other manifest changed. New regressions vs base: 0. New wrong facts: 0 (the 6 listed above are resolved). Targeted suites (test_reading*, audit batch1a, alinma, verification): 103 passed.

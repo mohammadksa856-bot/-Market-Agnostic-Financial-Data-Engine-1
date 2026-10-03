@@ -39,7 +39,8 @@
   "borderline": 1,
   "new_wrong_facts": 6,
   "added_facts_value_printed_on_cited_page": 296,
-  "changed_facts_value_printed_on_cited_page": 156
+  "changed_facts_value_printed_on_cited_page": 156,
+  "new_wrong_facts_after_addendum": 0
  },
  "regressions": [],
  "borderline": [
@@ -4411,5 +4412,57 @@
    "disappeared": [],
    "added": []
   }
+ },
+ "addendum_fixes": {
+  "commit_note": "tight-column left-to-right assignment + decimal-comma EPS",
+  "resolved_new_wrong_facts": {
+   "aljazira-2008-q2.json": {
+    "exchange_income|ytd": [
+     "7273",
+     "9037"
+    ],
+    "trading_income|ytd": [
+     "11841",
+     "1784"
+    ],
+    "dividend_income|ytd": [
+     "6602",
+     "6330"
+    ],
+    "other_income|ytd": [
+     "3787",
+     "2717"
+    ],
+    "eps_diluted|ytd": [
+     "1.70",
+     "0.84"
+    ],
+    "other_expense|ytd": [
+     "-1273 (base 289)",
+     "-367"
+    ],
+    "other_expense|quarter": [
+     "-289",
+     "(removed; page value 21 is unreadable as a note ref)"
+    ]
+   },
+   "anb-2019-annual-report.json": {
+    "eps_diluted|fy": [
+     "202",
+     "2.02"
+    ]
+   }
+  },
+  "reread_diff_vs_prefix_unified": {
+   "facts_differing": 8,
+   "manifests": [
+    "aljazira-2008-q2.json",
+    "anb-2019-annual-report.json"
+   ]
+  },
+  "new_regressions": 0,
+  "new_wrong_facts": 0,
+  "targeted_suites": "103 passed",
+  "tests_added": "tests/test_reading_unified_columns_and_eps.py (2 tests)"
  }
 }
