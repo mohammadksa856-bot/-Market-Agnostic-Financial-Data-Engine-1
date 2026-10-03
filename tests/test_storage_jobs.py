@@ -33,7 +33,8 @@ class StorageAndJobsTests(unittest.TestCase):
 
     def fact(self, source, value, period_end="2025-12-31", kind=PeriodKind.FY,
              quarter=None, dimensions=None):
-        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", "2025-01-01",
+        start = f"2025-{(quarter - 1) * 3 + 1:02d}-01" if kind == PeriodKind.QUARTER and quarter else "2025-01-01"
+        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", start,
                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
                     source.filed_at, dimensions=dimensions or {})
 

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date, timedelta
 from decimal import Decimal
 
 from .models import Fact, PeriodKind
@@ -598,6 +599,21 @@ class Calculator:
             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
             if len(rows) >= 4 and rows[-1].period_end in target_periods:
                 last = rows[-4:]
+                # Four available observations are not necessarily four
+                # consecutive quarters. Reject gaps, overlaps and YTD values
+                # accidentally labelled as discrete quarters.
+                try:
+                    spans = [(date.fromisoformat(f.period_start), date.fromisoformat(f.period_end)) for f in last]
+                except (TypeError, ValueError):
+                    continue
+                if any(not 80 <= (end - start).days + 1 <= 100 for start, end in spans):
+                    continue
+                if any(spans[i][0] != spans[i-1][1] + timedelta(days=1) for i in range(1, 4)):
+                    continue
+                # Calendar years and 52/53-week fiscal years are supported;
+                # longer sequences must never be labelled trailing 12 months.
+                if not 350 <= (spans[-1][1] - spans[0][0]).days + 1 <= 371:
+                    continue
                 base = last[-1]
                 out.append(Fact(
                     base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
