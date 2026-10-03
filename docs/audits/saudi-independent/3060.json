@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "symbol": "3060",
+  "company_id": "sa:3060",
+  "name": "Yanbu Cement Company",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "12-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch2-F)",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "method": "Archived source PDF read from data/raw (SHA-256 recomputed and equal to data/raw/archive-index.json content_hash). Every printed primary-statement page (P&L, OCI, balance sheet, cash flow) rendered and read by eye line by line, both columns; values transcribed independently (tools/f_transcripts/3060.json) and compared with every published fact by tools/f_compare.py; composite facts re-added from their components; the born-digital text layer used as a second reader (tools/f_textlayer_check.py: 118/118 values found on the cited page). Notes 40 and 41 read for restatement and approval date; auditor's report read for its date. Offline; no data/**, AWS, Supabase touched.",
+    "tools": [
+      "docs/audits/saudi-independent/tools/f_compare.py",
+      "docs/audits/saudi-independent/tools/f_textlayer_check.py",
+      "docs/audits/saudi-independent/tools/f_filed_at_check.py",
+      "docs/audits/saudi-independent/tools/f_transcripts/3060.json",
+      "tests/test_audit_batch2_f_3060_7202.py"
+    ],
+    "rejected_facts_note": "No excluded/rejected-fact files exist in the repo for this symbol; a production rejected-fact registry (AWS DB) was out of bounds, so rejected facts are unverified.",
+    "other_manifests_checked": "Exactly one published manifest (data/imports/yanbu-cement-2025-fy.json). config/companies.json identity (name, sector Materials/Construction Materials) matches the document.",
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong or mislabelled against the printed page",
+      "verified_correct_with_caveat": "value correct as printed; label or semantics need a note",
+      "unverified": "not checked; nothing claimed"
+    }
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "verified_correct",
+      "summary": "118/118 published facts (FY2025 59, FY2024 59) equal the printed statements: P&L p4, OCI p5, financial position p6, cash flows p8 (PDF pages 6, 7, 8, 10). 0 mismatches, 0 sign/scale/period errors. Composite facts re-added from printed lines and match in both years: depreciation_amortization (168,373,282+890,426; 165,177,250+698,099), capex (24,397,172+4,327,411; 29,671,570+16,825,154), debt_repaid (27,101,753+578,061,295; 28,334,948+344,871,568), current_debt (27,199,960+120,195,912; 27,301,713+255,315,909). FY2024 values are the RESTATED/reclassified comparatives as printed (Note 40); the manifest discloses this.",
+      "defect_ids": []
+    },
+    "document_completeness": {
+      "status": "defective_minor",
+      "summary": "One document (FY2025 audited consolidated FS), all five primary statements present, every balance-sheet line extracted. Printed but not extracted: OCI component (re-measurement loss on EOSB (1,316,459)/(6,164,977)), basic EPS as its own fact (printed 'Basic and diluted' 0.66/1.00, stored only as eps_diluted), weighted shares (157,500,000 derivable from 1,575,000,000 at par 10), employees benefits paid (13,844,438)/(10,582,809), working-capital and non-cash adjustment lines, FVTPL purchases/proceeds ((5,000,000)/15,578,616 and (43,000,000)/115,070,984), disposal proceeds 6,813,043 (2024), statement of changes in equity (dividends 196,875,000 both years), all notes (revenue/segment detail, Note 40 original-versus-restated amounts).",
+      "defect_ids": ["F-3060-3"]
+    },
+    "company_coverage": {
+      "status": "defective",
+      "present": {
+        "annual": "FY2025 with FY2024 restated comparatives only",
+        "quarterly": "none",
+        "market": "none"
+      },
+      "missing": [
+        "any annual before FY2024",
+        "all interim/quarterly results",
+        "originally reported (pre-restatement) FY2024 values",
+        "price history"
+      ],
+      "note": "Whether Saudi Exchange offers more was not checked (no network use).",
+      "defect_ids": ["F-3060-4"]
+    }
+  },
+  "findings": [
+    {
+      "id": "F-3060-1",
+      "defect_class": "provenance_description_wrong",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "yanbu-cement-2025-fy.json",
+      "metric": "(notes, reader, archive-index capture_method, docs/data/cement-sector-batch2.md)",
+      "evidence": "The manifest notes, the reader tag 'scanned-primary-statements', the archive-index capture_method and docs/data/cement-sector-batch2.md all say the primary statements (printed pp4-8) are scanned images transcribed at 2.7x. In the archived PDF, pages 6-10 (the five statements) have a full born-digital text layer (PDF p6 text contains 'Revenue ... 1,083,964,180'); only the auditor's report (PDF pp3-5, printed 1-3) is scanned (empty text layer; the p5 render shows the BDO report signed 11 March 2026).",
+      "fix": "Correct notes/reader/capture_method: statements are digital text, the auditor's report is scanned. The text layer can then serve as an automatic cross-check."
+    },
+    {
+      "id": "F-3060-2",
+      "defect_class": "filed_at_semantics",
+      "severity": "medium-low",
+      "status": "defective",
+      "manifest": "yanbu-cement-2025-fy.json",
+      "metric": "filed_at",
+      "published_value": "2026-03-03",
+      "correct_value": "on or after 2026-03-11",
+      "evidence": "filed_at is the Board approval date (Note 41, PDF p46: 14 Ramadan 1447H / 3 March 2026). The unqualified audit report is dated 22 Ramadan 1447H / 11 March 2026 (PDF p5) and the Saudi Exchange file name carries 2026-03-11_16-20-46. The audited document therefore did not exist on 2026-03-03; filed_at drives fact ranking and as-of logic.",
+      "fix": "Derive filed_at from the URL publication timestamp or audit-report date and keep the board date in notes. Test tests/test_audit_batch2_f_3060_7202.py::test_filed_at_not_before_publication (strict xfail; remove the marker once fixed)."
+    },
+    {
+      "id": "F-3060-3",
+      "defect_class": "missing_fields",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "yanbu-cement-2025-fy.json",
+      "metric": "basic EPS, OCI components, employee benefits paid, weighted shares, investing and working-capital detail",
+      "evidence": "PDF p6 EPS row 'Basic and diluted earnings per share 0.66 | 1.00' stored only as eps_diluted; p7 'Re-measurement loss on provision for employees' defined benefits obligations (1,316,459) | (6,164,977)'; p10 'Employees benefits paid (13,844,438) | (10,582,809)', 'Additions to investments at FVTPL (5,000,000) | (43,000,000)', 'Proceeds from investments at FVTPL 15,578,616 | 115,070,984' are not extracted.",
+      "fix": "Add the facts if line-level analysis is wanted; store basic_eps."
+    },
+    {
+      "id": "F-3060-4",
+      "defect_class": "coverage_only_two_fiscal_years",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "(none)",
+      "metric": "all",
+      "evidence": "The repository holds one manifest (FY2025 plus restated FY2024 comparatives) and one archived PDF for 3060; nothing else in data/imports or data/raw. Note 40.1 (PDF p45) shows the originally reported FY2024 revenue was 876,126,630 versus restated 876,749,280, so the as-originally-filed FY2024 is a separate, missing document.",
+      "fix": "Collect earlier annual and interim statements and the original FY2024 filing."
+    },
+    {
+      "id": "F-3060-5",
+      "defect_class": "page_reference_printed_not_pdf",
+      "severity": "info",
+      "status": "verified_correct_with_caveat",
+      "manifest": "yanbu-cement-2025-fy.json",
+      "metric": "(all facts)",
+      "evidence": "fact.page is the printed page (4, 5, 6, 8) = PDF page minus 2 (PDF 6, 7, 8, 10). Documented in the manifest notes but inconsistent with a PDF-page convention.",
+      "fix": "Store the PDF page and keep the printed page in metadata."
+    }
+  ],
+  "semantic_caveats_not_defects": [
+    "other_current_assets is the 'Financial derivative' line and other_current_liabilities is 'Dividends payable': narrow mappings, documented in notes",
+    "FY2024 capex 46,496,724 includes 6,634,550 of carbon-credit certificates moved from operating to investing by Note 40 (restated cash flow, as printed)",
+    "depreciation_amortization is stored negative while the add-back is printed positive (repo convention)"
+  ],
+  "sources": [
+    {
+      "source_id": "3060-FY2025-audited-FS",
+      "manifest": "yanbu-cement-2025-fy.json",
+      "document": {
+        "url": "https://www.saudiexchange.sa/Resources/fsPdf/428_0_2026-03-11_16-20-46_En.pdf",
+        "archive_path": "data/raw/SA/3060/documents/7aa24367df35cb17de610dc6b94d1d0be084c710ad44eb5a1f6cb3cf607343b9.pdf",
+        "sha256": "7aa24367df35cb17de610dc6b94d1d0be084c710ad44eb5a1f6cb3cf607343b9",
+        "sha256_verified": true,
+        "pdf_pages": 46,
+        "archived": true
+      },
+      "status": "done",
+      "checks_performed": [
+        "Identity: 'YANBU CEMENT COMPANY (A SAUDI JOINT STOCK COMPANY)', year ended 31 December 2025, BDO Dr. Mohamed Al-Amri & Co. (PDF p5): matches 3060",
+        "Currency and scale: SAR, full riyals (scale 1), per-share in SAR",
+        "P&L PDF p6: all 17 lines, both years",
+        "OCI PDF p7: total comprehensive income 103,151,498 / 150,955,508",
+        "Balance sheet PDF p8: all lines both years incl. restated 2024 column; subtotals re-add (e.g. current liabilities 45,324,701+27,199,960+120,195,912+86,137,015+95,515,644+20,334,407 = 394,707,639)",
+        "Cash flow PDF p10: every published line; closing cash equals balance-sheet 'Bank balances'; opening+change=closing both years",
+        "Notes 40/41 (PDF pp45-46): restatement is classification-only with no effect on profit, total assets or equity; Board approval 3 March 2026",
+        "Quarter versus cumulative: not applicable (only full-year documents exist)"
+      ],
+      "verified_correct": {"count": 118, "of": 118}
+    }
+  ]
+}
