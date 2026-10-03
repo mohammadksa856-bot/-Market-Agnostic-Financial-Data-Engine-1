@@ -1,0 +1,1363 @@
+{
+ "symbol": "1111",
+ "name": "Saudi Tadawul Group Holding Company (Tadawul Group)",
+ "batch": "B001",
+ "auditor_session": "claude/audit-saudi-raw-B001",
+ "fiscal_year_end": "31 December (confirmed on pages); listed Dec 2021",
+ "method": "Text layer (PyMuPDF) plus page rendering. New tool stmt_pages.py: a statement counts as text-confirmed only if a page has the statement title near the top AND >=12 numeric tokens; image-only pages listed. Arithmetic cross-foots (A=L+E, CF end cash = BS cash, Q1+Q2 = 6M).",
+ "dimension_1_value_correctness": {
+  "summary": "Extractable and verified from rendered pages: FY2025 (with FY2024 comparatives), Q1 2026, H1 2026, FY2024 balance sheet (original issue). Not read: the other issuer statement sets (structure/presence only), annual reports, Arabic twins. Units: Saudi Riyals, full units; consolidated; per-share SAR.",
+  "transcriptions": [
+   {
+    "doc": "162f5418 (identical statements 06965f63) FY2025",
+    "pdf_pages": "BS 19, P&L 20, equity 21 (rotated, not read), CF 22-23 (printed 6,7,8,9,10); EY report 2 Mar 2026 pp14-18",
+    "values": {
+     "total_assets": [
+      8637958460,
+      9141225301
+     ],
+     "total_non_current_assets": [
+      1930622308,
+      1682147150
+     ],
+     "total_current_assets": [
+      6707336152,
+      7459078151
+     ],
+     "clearing_participant_financial_assets": [
+      3801571111,
+      4409323509
+     ],
+     "clearing_participant_financial_liabilities": [
+      3776616264,
+      4382226111
+     ],
+     "time_deposits": [
+      2248191004,
+      1234207295
+     ],
+     "cash": [
+      102340053,
+      352183946
+     ],
+     "total_liabilities": [
+      5194981701,
+      5649488136
+     ],
+     "total_equity": [
+      3442976759,
+      3491737165
+     ],
+     "equity_parent": [
+      3442814887,
+      3491737165
+     ],
+     "nci": [
+      161872,
+      0
+     ],
+     "share_capital": [
+      1200000000,
+      1200000000
+     ],
+     "borrowings_total": [
+      418134802,
+      191882468
+     ],
+     "operating_revenue": [
+      1261233519,
+      1446558786
+     ],
+     "gross_profit": [
+      716324598,
+      911796308
+     ],
+     "operating_profit": [
+      322730332,
+      566128997
+     ],
+     "investment_income": [
+      176248838,
+      151115912
+     ],
+     "profit_before_zakat": [
+      453884043,
+      680719382
+     ],
+     "zakat": [
+      -59284923,
+      -59833376
+     ],
+     "net_profit": [
+      394599120,
+      620886006
+     ],
+     "profit_parent": [
+      395608265,
+      621842981
+     ],
+     "nci_profit": [
+      -1009145,
+      -956975
+     ],
+     "total_comprehensive_income": [
+      381972787,
+      622214078
+     ],
+     "eps_basic_diluted": [
+      3.3,
+      5.18
+     ],
+     "cfo": [
+      514423806,
+      624899201
+     ],
+     "cfi": [
+      -490868140,
+      -2163075334
+     ],
+     "cff": [
+      -273399559,
+      -160253995
+     ],
+     "net_change_cash": [
+      -249843893,
+      -1698430128
+     ],
+     "cash_end": [
+      102340053,
+      352183946
+     ],
+     "dividends_paid": [
+      -402000000,
+      -276000000
+     ]
+    },
+    "checks": "A = L+E (5,194,981,701+3,442,976,759 = 8,637,958,460); CFO+CFI+CFF = -249,843,893; 352,183,946-249,843,893 = 102,340,053 = BS cash; net profit - NCI = parent (394,599,120+1,009,145 = 395,608,265); acquisition (purchase consideration 175,500,000) in investing CF"
+   },
+   {
+    "doc": "86b50501 Q1 2026",
+    "pdf_pages": "BS 15, P&L 16, equity 17 (not read), CF 18-19",
+    "values": {
+     "total_assets": [
+      8817743734,
+      8637958460
+     ],
+     "total_liabilities": [
+      5323842650,
+      5194981701
+     ],
+     "total_equity": [
+      3493901084,
+      3442976759
+     ],
+     "cash": [
+      293478063,
+      102340053
+     ],
+     "clearing_assets": [
+      3860006217
+     ],
+     "time_deposits": [
+      1705497747
+     ],
+     "operating_revenue": [
+      294560177,
+      328239794
+     ],
+     "gross_profit": [
+      140668122,
+      190701436
+     ],
+     "operating_profit": [
+      39140974,
+      107589375
+     ],
+     "profit_before_zakat": [
+      71904196,
+      138455539
+     ],
+     "net_profit": [
+      55627918,
+      120343959
+     ],
+     "profit_parent": [
+      55625244,
+      120508206
+     ],
+     "eps": [
+      0.46,
+      1.0
+     ],
+     "cfo": [
+      -36112038,
+      150317929
+     ],
+     "cfi": [
+      257479843,
+      -583863316
+     ],
+     "cff": [
+      -30229795,
+      273576237
+     ],
+     "net_change": [
+      191138010,
+      -159969150
+     ],
+     "cash_end": [
+      293478063,
+      192214796
+     ]
+    },
+    "checks": "CFO+CFI+CFF = 191,138,010; 102,340,053+191,138,010 = 293,478,063 = BS cash; A=L+E"
+   },
+   {
+    "doc": "941073b4 H1 2026",
+    "pdf_pages": "BS 15, P&L 16, CF 19 (CFO/CFI page 18 not read), printed 2,3,6",
+    "values": {
+     "total_assets": [
+      8826295281,
+      8637958460
+     ],
+     "total_liabilities": [
+      5516132755,
+      5194981701
+     ],
+     "total_equity": [
+      3310162526,
+      3442976759
+     ],
+     "cash": [
+      236268890
+     ],
+     "revenue_Q2": [
+      322572889,
+      318855572
+     ],
+     "revenue_6M": [
+      617133066,
+      647095366
+     ],
+     "gross_profit_6M": [
+      312852215,
+      363056087
+     ],
+     "operating_profit_6M": [
+      109748850,
+      185711254
+     ],
+     "profit_before_zakat_6M": [
+      176126595,
+      248057424
+     ],
+     "net_profit_Q2": [
+      92148965,
+      96239508
+     ],
+     "net_profit_6M": [
+      147776883,
+      216583467
+     ],
+     "profit_parent_6M": [
+      147701883,
+      216756792
+     ],
+     "eps_6M": [
+      1.23,
+      1.81
+     ],
+     "cff_6M": [
+      -346990797,
+      -164098352
+     ],
+     "net_change_6M": [
+      133928837,
+      473900097
+     ],
+     "cash_end_6M": [
+      236268890,
+      826084043
+     ],
+     "dividends_paid_6M": [
+      -276000000,
+      -402000000
+     ]
+    },
+    "checks": "Q1 profit 55,627,918 + Q2 92,148,965 = 147,776,883; Q1 revenue 294,560,177 + Q2 322,572,889 = 617,133,066; 102,340,053+133,928,837 = 236,268,890 = BS cash; A=L+E. CFO/CFI split for 6M not read."
+   },
+   {
+    "doc": "bac70ea0 FY2024 original",
+    "pdf_pages": "BS PDF p8 (printed 6); P&L/CF p9-12 not read",
+    "values": {
+     "total_assets": [
+      9141225301,
+      7665359414
+     ],
+     "total_liabilities": [
+      5649488136,
+      4507868100
+     ],
+     "total_equity": [
+      3491737165,
+      3157491314
+     ],
+     "cash": [
+      352183946,
+      2050614074
+     ]
+    },
+    "checks": "FY2024 balance sheet equals the comparatives in the FY2025 report (no 2024 restatement); Dec-2023 column labelled Restated"
+   }
+  ],
+  "sign_and_scale_notes": "Statements are in full SAR; investor bulletins are in SAR thousands and use scrambled row/column order in the Cash Flows snapshot, so bulletins must not be used as a value source. Balance sheet grosses up clearing-participant financial assets/liabilities (about SAR 3.8bn each side): total assets are not comparable to a normal operating company.",
+  "bulletin_vs_statement_check": "FY2024 bulletin snapshot: total assets 9,141,225.3k, revenue 1,446,558.8k, EPS 5.18 agree with the audited statements."
+ },
+ "dimension_2_document_completeness": {
+  "files_total": 68,
+  "summary": "Roughly 44 files are full issuer statement sets (English and Arabic twins per period), ~16 are summary bulletins that the inventory counted as financial_statements (7pp) or statements (12pp), 4 are annual reports, ~7 earnings/press releases (2 of them unrelated news).",
+  "defects": [
+   {
+    "id": "B001-1111-IMAGEONLY",
+    "what": "In essentially every issuer/Saudi-Exchange FS PDF the primary statements are image-only pages with NO text layer (e.g. interim: PDF p3-p7/8; FY2025: p19-23; FY2024: p7-11), while notes and the auditor report have text. The inventory statement_pages entries for these files point at TOC, notes or bulletin summary pages, so the files_with_all_three_primary_statements / text_extractable counts overstate machine-readability: text extraction yields zero statement rows for them. Rendering confirmed the statements exist (Q1 2022 twin scans, Q2 2023, FY2024, FY2025, Q1 2026, H1 2026)."
+   },
+   {
+    "id": "B001-1111-BULLETIN-CLASS",
+    "what": "7-page Investor Bulletins (FY23, FY24, Q1/Q3 24, H1 24, Q1/H1/Q3 25, Q1-Q3 23) and the 12-page Q1/H1 2026 bulletins are not statements; the 12-page ones say \"& Financial Statements\" in the title but contain none (rendered). Bulletin tables are SAR thousands snapshots."
+   },
+   {
+    "id": "B001-1111-LABEL-FY",
+    "what": "Saudi-Exchange-sourced FY files carry the publication year: 57e17fb2 (FY2022) as 2023|FY, 8dcecc8f (FY2023) as 2024|FY, bac70ea0 (FY2024) as 2024|FY and 2025|FY, 162f5418 (FY2025) as 2025|FY and 2026|FY. 9eef690e (Arabic FY2024) has no label."
+   },
+   {
+    "id": "B001-1111-DUP",
+    "what": "FY2025: 162f5418 and 06965f63 are two issues (2026-03-02, 2026-03-12) with pixel-identical statements; 9M 2025: d386113d and fc0faf3a have identical text; Q1 2022: 8f9bf3d9 mis-classed non-statement although it is the English twin of scan 1124dfba."
+   },
+   {
+    "id": "B001-1111-WRONGCONTENT",
+    "what": "ddb32fdd (labelled 2022|9M) and dea96424 (2022|H1) are Arabic corporate-news press releases, not results."
+   }
+  ]
+ },
+ "dimension_3_company_coverage": {
+  "inventory_claim": "coverage_class sparse; first observed period 2021|FY (listing Dec 2021)",
+  "corrected_from_pages": "Every period Q1 2022 - H1 2026 (18 interim) and FY2022-FY2025 (4 annual) has at least one full statement set in raw (English; Arabic twin for most), but the statements are image pages needing OCR or visual reading. FY2021 (listing year) and anything earlier is absent; Q4 discrete periods must be derived (FY minus 9M). No 2026 FY expected. Only FY2025, FY2024 (BS), Q1 2026, H1 2026 were read for values; the rest are structure-confirmed (rendered: Q1 2022 x2, Q2 2023).",
+  "annual_reports": "AR 2022, 2023, 2024, 2025 present; AR 2025 has text-layer statements (PDF p101-107)"
+ },
+ "unread_items": [
+  "Equity statements (all)",
+  "Notes (all)",
+  "Value transcription of 9M/H1/Q1 2022-2025 sets, FY2022, FY2023",
+  "Arabic twins (not rendered)",
+  "AR 2022 statements location",
+  "H1 2026 CFO/CFI page 18",
+  "FY2024 P&L/CF original pages",
+  "12-page bulletins beyond montage"
+ ],
+ "files": [
+  {
+   "sha256": "9eef690e0d38fdf5e72d9374ccbd813a7dbc5130a093116c4102007bb2aaa30f",
+   "collector_label": "None|None",
+   "inventory_class": "financial_statements",
+   "pages": 66,
+   "inventory_flags": [
+    "unclassified_period"
+   ],
+   "actual_period": "FY2024 Arabic consolidated statements (66pp)",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; no collector label (unclassified_period); belongs to FY2024",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "56bb876e6254d4e5272731cab8314f72aa5083f0be7f606939168e86fd73c504",
+   "collector_label": "2022|9M",
+   "inventory_class": "partial_statements",
+   "pages": 32,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "9M 2022",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "aeac122733319c1adf787b28d2d674bdc00a6ea31fad57fd6ef3c06b29ba6800",
+   "collector_label": "2022|9M",
+   "inventory_class": "financial_statements",
+   "pages": 34,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "9M 2022",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "ddb32fdd83ff18ef0d7d050683a072b8255f26dbfa7bf1f580d5d4da0e78f607",
+   "collector_label": "2022|9M",
+   "inventory_class": "other_no_statements_found",
+   "pages": 5,
+   "inventory_flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "not 9M 2022 results: Arabic press release on single-stock futures launch",
+   "language": "ar",
+   "document_kind": "press release unrelated to financial results: wrong content for the labelled period",
+   "verdict": "WRONG_CONTENT; WRONG_CONTENT for 2022|9M",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "fbd2ff0ebd8d4a4f7e221e64964ece60d40e136081d656be8ebdfaddbb40dcea",
+   "collector_label": "2022|9M",
+   "inventory_class": "results_announcement",
+   "pages": 5,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "9M 2022 earnings release",
+   "language": "en",
+   "document_kind": "earnings release / press release: NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "87fb36362e4d1cb69f6e03feb9abf7db22aaf91321a4726f0daf620dbd0ea58f",
+   "collector_label": "2022|FY",
+   "inventory_class": "annual_report_no_statements_found",
+   "pages": 93,
+   "inventory_flags": [
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "FY2022 annual report (label 2022|FY correct)",
+   "language": "en",
+   "document_kind": "annual report containing the audited statements",
+   "verdict": "statements_inside_annual_report; statements not located in text; not read",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "14ff0a0fff42bdcfe6ca50ec5568cb98ea6533eebff70516ccb5fc4bf07eed89",
+   "collector_label": "2022|H1",
+   "inventory_class": "financial_statements",
+   "pages": 31,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "H1 2022",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "470388b912f2c472d37af0640a4955a35c825ee2c559433d40987d11a51c522a",
+   "collector_label": "2022|H1",
+   "inventory_class": "partial_statements",
+   "pages": 31,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "H1 2022",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered; structure (image pages 3-7, TOC) only",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "dea96424c81fc6fb3c50f63676e483b6b80b0c099baba56001559f4b60e888a3",
+   "collector_label": "2022|H1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 5,
+   "inventory_flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "not H1 2022 results: Arabic press release about the Shariah advisory committee",
+   "language": "ar",
+   "document_kind": "press release unrelated to financial results: wrong content for the labelled period",
+   "verdict": "WRONG_CONTENT; WRONG_CONTENT for 2022|H1",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "f921df6973a84eb7d3967d0e8ddfc4e0efd76cc5374c3c7d144ae7d6bb9580cc",
+   "collector_label": "2022|H1",
+   "inventory_class": "results_announcement",
+   "pages": 5,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "H1 2022 earnings release",
+   "language": "en",
+   "document_kind": "earnings release / press release: NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "1124dfba9845a2341893d71ba30818a8a83c9c75364d7081920d4eac67dbd353",
+   "collector_label": "2022|Q1",
+   "inventory_class": "scanned_unreadable",
+   "pages": 33,
+   "inventory_flags": [
+    "zero_text_scan_needs_visual_reading"
+   ],
+   "actual_period": "Q1 2022",
+   "language": "ar",
+   "document_kind": "full interim statement set, fully scanned (no text layer)",
+   "verdict": "complete_statements_scanned; scan read at montage level: BS, P&L, equity, CF present; Arabic twin of 8f9bf3d9",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "5c9edd2cc912a8fe87c0636571eb1728e33f2abf2e8bad5f234b8613a6f8719d",
+   "collector_label": "2022|Q1",
+   "inventory_class": "excluded_after_download",
+   "pages": 6,
+   "inventory_flags": [],
+   "actual_period": "Q1 2022 earnings release",
+   "language": "en",
+   "document_kind": "earnings release / press release: NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "8f9bf3d9ad60a1ae5e0e6a5378c41b94ed4d153bde9ab6ff27e9dec3b4af33e8",
+   "collector_label": "2022|Q1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 33,
+   "inventory_flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements"
+   ],
+   "actual_period": "Q1 2022 (3M to 31 Mar 2022)",
+   "language": "en",
+   "document_kind": "full interim statement set, fully scanned (no text layer)",
+   "verdict": "complete_statements_scanned; INVENTORY_FLAG_WRONG: classed other_no_statements; rendered: cover, TOC, BS, P&L, equity, CF present (PDF p4-p7)",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "c237f299295d1e6b7ab4960464bde861c9d4e23ca77d92bd0375bc40b65faa3c",
+   "collector_label": "2022|Q1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 6,
+   "inventory_flags": [
+    "not_financial_statements",
+    "period_mismatch_candidate:detected=2021-12-31,labelled=2022-03-31",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2022 earnings release (Arabic); inventory period_mismatch is the release quoting Dec-2021 balances",
+   "language": "ar",
+   "document_kind": "earnings release / press release: NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "75ae5843b659b0c72ca867d3df7d34264466f8b435cdff9a2046637935a37936",
+   "collector_label": "2023|9M",
+   "inventory_class": "financial_statements",
+   "pages": 37,
+   "inventory_flags": [],
+   "actual_period": "9M 2023",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "926ef912f8dc599a43f832e7a52d4541db3630c3e0bd545dbd8474064b7f8135",
+   "collector_label": "2023|9M",
+   "inventory_class": "partial_statements",
+   "pages": 37,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "9M 2023",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "9f1b6cc0590d99387ee8d00b6218db292a526f3899de5efc1e8214ecb6376244",
+   "collector_label": "2023|9M",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "9M 2023 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "cebb80640b6b577e0fbdf96fdbdb97cb5f26d0e8472695526e57308f7751a336",
+   "collector_label": "2023|9M",
+   "inventory_class": "partial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "9M 2023 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "23811c98795bfdbd9a78991c0bbcdf05f91c8badf2e4f0799b49ea9711b0d3f8",
+   "collector_label": "2023|FY",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2023 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "57e17fb2c3daf3b4c463dd61cf601a3d2f284c356fc8af053eeb5b1b83a71c2b",
+   "collector_label": "2023|FY",
+   "inventory_class": "partial_statements",
+   "pages": 52,
+   "inventory_flags": [
+    "partial_statements_only",
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2022-12-31,labelled=2023-12-31"
+   ],
+   "actual_period": "FY2022 (YE 31 Dec 2022)",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; MISLABELLED_PERIOD: label 2023|FY is the publication year",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "b45dd042433658c31147f1522b539ed1d6b9ea78a1007ec45abab724387076dc",
+   "collector_label": "2023|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 106,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2023 annual report (label correct)",
+   "language": "en",
+   "document_kind": "annual report containing the audited statements",
+   "verdict": "statements_inside_annual_report; not read",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "0f0d6571c7bfbe4eca34a6359bbd136a36ce087e7b32ae20cea4f58eedb4349f",
+   "collector_label": "2023|H1",
+   "inventory_class": "partial_statements",
+   "pages": 37,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "H1 2023",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; RENDERED PDF p3-p8: review report, BS, P&L, equity, CF, notes start - complete",
+   "value_status": "statements_present_confirmed_visually_values_not_transcribed"
+  },
+  {
+   "sha256": "27f16bbe3cf0874a56b45949551ee7634a3a4bae17e560c4729b4111d1d7d1e3",
+   "collector_label": "2023|H1",
+   "inventory_class": "results_announcement",
+   "pages": 6,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "H1 2023 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "50c9b346a0c5a73749458a73f673adb7f418c8604dbe2098fbeed49c7f589fe8",
+   "collector_label": "2023|H1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 6,
+   "inventory_flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "H1 2023 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "ee432f21fdea4dad2c168d484c967086df8dc5c72b10d965045411b39d680a0f",
+   "collector_label": "2023|H1",
+   "inventory_class": "financial_statements",
+   "pages": 38,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "H1 2023",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; Arabic text layer is reversed/garbled (presentation-form glyphs); not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "dea0917715ff51b5304760d4d2987dfcec86ae3e1137b47c5a63b0bef8fb84b9",
+   "collector_label": "2023|Q1",
+   "inventory_class": "partial_statements",
+   "pages": 32,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "Q1 2023",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "e22385ce134b1e70d728b45169e0d7d35e67bd8c6f7f41b7638a7924da10014a",
+   "collector_label": "2023|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 31,
+   "inventory_flags": [],
+   "actual_period": "Q1 2023",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "e7529eca7fb8b1feab0524795774e236676fddb5eb4f3b2350f1b5430ddffe28",
+   "collector_label": "2023|Q1",
+   "inventory_class": "partial_statements",
+   "pages": 6,
+   "inventory_flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2023 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "f8d74f038384d17b31bd0252c33d61ebbb36e711460a4d7a285664e60e42cc33",
+   "collector_label": "2023|Q1",
+   "inventory_class": "results_announcement",
+   "pages": 6,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "Q1 2023 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "24ed65fe0956b1d4188d04dddf9f388e6437dd127e804e0eef2cc1c69fc8a374",
+   "collector_label": "2024|9M",
+   "inventory_class": "financial_statements",
+   "pages": 43,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|9M"
+   ],
+   "actual_period": "9M 2024",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "26b3e189b63bc0042244add3a0e7afa25b56aee07f1b6251583c586210566b57",
+   "collector_label": "2024|9M",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|9M"
+   ],
+   "actual_period": "9M 2024 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "c76c44a7fc4ffa275db2ab714b7c388e79a2d2697ae4dd3a3e48cbf73c225e0f",
+   "collector_label": "2024|9M",
+   "inventory_class": "partial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "9M 2024 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "e2da93c49524e2bbf4db2fadaabb505012b7efb2c16315125c3be7f0da78a79e",
+   "collector_label": "2024|9M",
+   "inventory_class": "financial_statements",
+   "pages": 41,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "9M 2024",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "3a32385c832e96efdd34f6ec8582673a801d83b498cfdb14f5e87788edf07fd4",
+   "collector_label": "2024|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 122,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2024 annual report (label correct)",
+   "language": "en",
+   "document_kind": "annual report containing the audited statements",
+   "verdict": "statements_inside_annual_report; not read",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "4b289d81b040765a86eaf7899efe797347b2c3099dbb3c3602abf50b2f4853b1",
+   "collector_label": "2024|FY",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|FY"
+   ],
+   "actual_period": "FY2024 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "8dcecc8f057501a5c3e0c61abd049c8afd039d66c83ded9c1978283583cf9d9f",
+   "collector_label": "2024|FY",
+   "inventory_class": "financial_statements",
+   "pages": 56,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+    "multiple_same_language_same_period:2024|FY"
+   ],
+   "actual_period": "FY2023 (YE 31 Dec 2023)",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; MISLABELLED_PERIOD: label 2024|FY is the publication year",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "7e780c7bc23139b3da6190a4a3ca54459c064858838fb494b269fcb8dcf4e364",
+   "collector_label": "2024|H1",
+   "inventory_class": "financial_statements",
+   "pages": 43,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|H1"
+   ],
+   "actual_period": "H1 2024",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "8d5c56279364f4e2362558a1698fb93496bca6e9fdf7d23dfae40c281cdcf45a",
+   "collector_label": "2024|H1",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "missing_primary_statement:cash_flows",
+    "primary_statement_pages_may_be_image_only",
+    "multiple_same_language_same_period:2024|H1"
+   ],
+   "actual_period": "H1 2024 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "9921f71cc0caa47a85fa5a83820e6aa0a60390946f8b632b056aa81166e4bf4e",
+   "collector_label": "2024|H1",
+   "inventory_class": "financial_statements",
+   "pages": 41,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "H1 2024",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "17f988fbe85299b07f6821a961d1ea2002361ae0baf300fb302461c99063dfb8",
+   "collector_label": "2024|Q1",
+   "inventory_class": "partial_statements",
+   "pages": 35,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "Q1 2024",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "45a4d09da1044259765d7800a682a68c9873f976f7bcacbc31e0852eefcb9ab8",
+   "collector_label": "2024|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 38,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|Q1"
+   ],
+   "actual_period": "Q1 2024",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "754f1848a3f9e55f4bb90429da8a108e03324faaa8ffd7a5033e03d9e7df3e2a",
+   "collector_label": "2024|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|Q1"
+   ],
+   "actual_period": "Q1 2024 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "3eda10e29fad3c67e41d6ced8b69fe00ef58bf221d69b3583e0526fe08879371",
+   "collector_label": "2025|9M",
+   "inventory_class": "financial_statements",
+   "pages": 43,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "9M 2025",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "b6f5ecdbb3671f62e9ae26496df276e1252e34d20f4628836515bd31dd6d59a2",
+   "collector_label": "2025|9M",
+   "inventory_class": "other_no_statements_found",
+   "pages": 7,
+   "inventory_flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "9M 2025 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "d386113d258ce3852848cff48b4dd1591bb82067d100f2e7d3037e90692bfed1",
+   "collector_label": "2025|9M",
+   "inventory_class": "financial_statements",
+   "pages": 42,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:fc0faf3a9a",
+    "multiple_same_language_same_period:2025|9M"
+   ],
+   "actual_period": "9M 2025",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; duplicate text of fc0faf3a (different source: saudiexchange vs issuer site)",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "fc0faf3a9aa8cdcbfeb45f04ab1e5a5a4b1ec33e6109f56e53d97cfabcfa7d71",
+   "collector_label": "2025|9M",
+   "inventory_class": "financial_statements",
+   "pages": 42,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:d386113d25",
+    "multiple_same_language_same_period:2025|9M"
+   ],
+   "actual_period": "9M 2025",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; duplicate text of d386113d",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "ff832be3db6be1eb429af09c0559e1d59ac89c529e36d922c903c071427abdb8",
+   "collector_label": "2025|9M",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|9M"
+   ],
+   "actual_period": "9M 2025 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "06965f63dab77712e6019d8e8916ac5cbe2f1473fb07c6ecf250ff404290467c",
+   "collector_label": "2025|FY",
+   "inventory_class": "financial_statements",
+   "pages": 71,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|FY"
+   ],
+   "actual_period": "FY2025 (published 2026-03-02), earlier issue of the same bulletin+FS",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; statement pages pixel-identical to 162f5418 (0 pixel differences on p19-23); p2 text differs",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "ad8fa1db1f6914b6b7dd0f563f1f5400d7db5262c7dd40f5003151737599102c",
+   "collector_label": "2025|FY",
+   "inventory_class": "financial_statements",
+   "pages": 72,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "FY2025 Arabic bulletin + statements (72pp)",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "b05cfd8501c9cbb0af68c158d267c00cffca59bae34d305d15e128d12df4b0e6",
+   "collector_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 138,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "FY2025 annual report (138pp), statements at PDF p101-p107 with text layer",
+   "language": "en",
+   "document_kind": "annual report containing the audited statements",
+   "verdict": "statements_inside_annual_report; text layer confirms BS/P&L/CF/equity pages; not transcribed",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "bac70ea068e2161896c49b4fcb878c237d2ed7849736aa7366756b2b3573ba02",
+   "collector_label": "2025|FY",
+   "inventory_class": "financial_statements",
+   "pages": 62,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "multiple_same_language_same_period:2025|FY",
+    "multiple_same_language_same_period:2024|FY"
+   ],
+   "actual_period": "FY2024 (YE 31 Dec 2024), EY report dated 2 Mar 2025",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; MISLABELLED_PERIOD: filed under 2024|FY and 2025|FY; RENDERED PDF p8 BS (printed 6): total assets 9,141,225,301",
+   "value_status": "statements_present_confirmed_visually_values_not_transcribed"
+  },
+  {
+   "sha256": "0438947f4e54df9516fa6b5cf806be016ba08493eebecd0fef7af87df8bc66b0",
+   "collector_label": "2025|H1",
+   "inventory_class": "financial_statements",
+   "pages": 45,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "H1 2025",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "12fd45712385ccc2d77022bcd69a2b966365ee30e9d12902a19bc52573115316",
+   "collector_label": "2025|H1",
+   "inventory_class": "financial_statements",
+   "pages": 42,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|H1"
+   ],
+   "actual_period": "H1 2025",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "9a8edad9f4c2e693c777b88e774e3fc31c674a7411bc74e15211c90ff8c67e03",
+   "collector_label": "2025|H1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 7,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "H1 2025 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "f350fed158e7bd4b04f898d3a46bc62887413b1998e07b35ee79392fcb2cdc66",
+   "collector_label": "2025|H1",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|H1"
+   ],
+   "actual_period": "H1 2025 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "07d6f9512ddf55675a4dd7e8293f485755ba3b7345ec5c1b10f78ffd6ce71199",
+   "collector_label": "2025|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 40,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "Q1 2025",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "3b2badaf6bd3c562702e19217cd19cf130032d26549f1e8488bf6122969dd721",
+   "collector_label": "2025|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 40,
+   "inventory_flags": [
+    "multiple_same_language_same_period:2025|Q1"
+   ],
+   "actual_period": "Q1 2025",
+   "language": "en",
+   "document_kind": "full statement set with text layer",
+   "verdict": "complete_statements_text; text layer confirms BS p4, P&L p5, equity p6, CF p8; not transcribed",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "ac6d20043193442199a81a3d1e5d7fd82933c1378fe7157f27d836f34d844f17",
+   "collector_label": "2025|Q1",
+   "inventory_class": "partial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2025 bulletin (Arabic)",
+   "language": "ar",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "c9d07d27c11d90c63b6b47a023f2104a9dbdc8867ef148dbf8b8d52e545e03a1",
+   "collector_label": "2025|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 7,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|Q1"
+   ],
+   "actual_period": "Q1 2025 bulletin",
+   "language": "en",
+   "document_kind": "Investor Bulletin (7 pp): MD&A plus BS/P&L/CF SNAPSHOT tables in SAR thousands; NOT primary statements",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "162f541829716db65abbe82d49451426e593b18c6e61349fd5156c87a0b927a7",
+   "collector_label": "2026|FY",
+   "inventory_class": "financial_statements",
+   "pages": 71,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|FY"
+   ],
+   "actual_period": "FY2025 (YE 31 Dec 2025), EY report 2 Mar 2026; republished 2026-03-12",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; MISLABELLED/DUPLICATE: filed under 2025|FY and 2026|FY; TRANSCRIBED from rendered PDF p19-p23 (printed 6-10); statements pixel-identical to 06965f63, only bulletin commentary on p2 differs",
+   "value_status": "extractable_and_verified_from_images"
+  },
+  {
+   "sha256": "2b35a767c9a76be092537effca94111d9ca4601018498d3e2ff4dba1b7b06d9c",
+   "collector_label": "2026|H1",
+   "inventory_class": "financial_statements",
+   "pages": 56,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:a02e650fe4"
+   ],
+   "actual_period": "H1 2026 Arabic bulletin+statements (56pp)",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "7ac2de60c6dbf104c07353ff982c9fad0d504aa574236b63e09643364c25aed4",
+   "collector_label": "2026|H1",
+   "inventory_class": "results_announcement",
+   "pages": 12,
+   "inventory_flags": [
+    "not_financial_statements",
+    "duplicate_text_candidate_of:941073b4d0"
+   ],
+   "actual_period": "H1 2026 bulletin (12pp)",
+   "language": "en",
+   "document_kind": "12-page Investor Bulletin: commentary and segment tables only, NO financial statements despite the title \"& Financial Statements\"",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "941073b4d011c1389f6c4b00574f97873f947b725f8002f89096d8ec7afae0b3",
+   "collector_label": "2026|H1",
+   "inventory_class": "financial_statements",
+   "pages": 56,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:7ac2de60c6"
+   ],
+   "actual_period": "H1 2026 (3M and 6M to 30 Jun 2026)",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; TRANSCRIBED from rendered PDF p15, 16, 19 (printed 2, 3, 6)",
+   "value_status": "extractable_and_verified_from_images"
+  },
+  {
+   "sha256": "a02e650fe4d3f32b39a03cd5802382eb77fd63880b80a628a5d2a8a44a739c52",
+   "collector_label": "2026|H1",
+   "inventory_class": "partial_statements",
+   "pages": 12,
+   "inventory_flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check",
+    "duplicate_text_candidate_of:2b35a767c9"
+   ],
+   "actual_period": "H1 2026 bulletin (12pp, Arabic)",
+   "language": "ar",
+   "document_kind": "12-page Investor Bulletin: commentary and segment tables only, NO financial statements despite the title \"& Financial Statements\"",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "86b50501e9ceba639a85eb7e68809dd056924ca94d449fdda9c16d090601cb05",
+   "collector_label": "2026|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 52,
+   "inventory_flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:e59bb598b8"
+   ],
+   "actual_period": "Q1 2026 (3M to 31 Mar 2026), EY review report 28 Apr 2026",
+   "language": "en",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; TRANSCRIBED from rendered PDF p15, 16, 18, 19 (printed 2, 3, 5, 6)",
+   "value_status": "extractable_and_verified_from_images"
+  },
+  {
+   "sha256": "90e9c90d43f68ad8472f5268e271ec90c9ca8665e718bdbcae6dd005f533601a",
+   "collector_label": "2026|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 52,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "duplicate_text_candidate_of:e2ac9ec0e4",
+    "multiple_same_language_same_period:2026|Q1"
+   ],
+   "actual_period": "Q1 2026 Arabic bulletin+statements (52pp)",
+   "language": "ar",
+   "document_kind": "full statement set (auditor/review report, BS, P&L, equity, CF, notes); statements are IMAGE-ONLY pages (no text layer), notes have text",
+   "verdict": "complete_statements_on_image_pages; not rendered",
+   "value_status": "structure_checked_not_read"
+  },
+  {
+   "sha256": "e2ac9ec0e46b58ec24ba98e7208ffaedb43475138375ffc16bece695e0c423e5",
+   "collector_label": "2026|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 12,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "duplicate_text_candidate_of:90e9c90d43",
+    "multiple_same_language_same_period:2026|Q1"
+   ],
+   "actual_period": "Q1 2026 bulletin (12pp, Arabic)",
+   "language": "ar",
+   "document_kind": "12-page Investor Bulletin: commentary and segment tables only, NO financial statements despite the title \"& Financial Statements\"",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "e59bb598b8fd1a54c54130134f4ad1cdd141cdc90dd0609214cdbbbfd5c25cbf",
+   "collector_label": "2026|Q1",
+   "inventory_class": "results_announcement",
+   "pages": 12,
+   "inventory_flags": [
+    "not_financial_statements",
+    "duplicate_text_candidate_of:86b50501e9"
+   ],
+   "actual_period": "Q1 2026 bulletin (12pp)",
+   "language": "en",
+   "document_kind": "12-page Investor Bulletin: commentary and segment tables only, NO financial statements despite the title \"& Financial Statements\"",
+   "verdict": "NOT_primary_statements",
+   "value_status": "not_applicable"
+  }
+ ]
+}
