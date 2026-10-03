@@ -1,0 +1,3049 @@
+{
+ "symbol": "1211",
+ "company_id": "sa:1211",
+ "name": "MAADEN",
+ "batch": "B002",
+ "base_branch": "origin/claude/audit-saudi-raw-coverage",
+ "raw_root": "C:\\Users\\Mohammed856\\finengine-raw-odd (read-only)",
+ "method": "Every file scanned page by page (sha256 recomputed = inventory). Statement pages of the FY2024/FY2025 annual FS are image-only and were rendered and read by eye; 2026 interims are text and were read through the text layer with arithmetic re-added; the six 'scanned_unreadable' files were rendered and are earnings releases. Annual reports 2011-2021 and 2023-2025 integrated reports were classified by page scan only.",
+ "dimension_1_value_correctness": {
+  "verdict": "extractable_and_verified for FY2025 (BS/P&L/CF, image pages, arithmetic exact), H1 2026 (BS/P&L/CF, text, exact), Q1 2026 (totals), FY2024 balance sheet (original equals FY2025 comparative); not read for the other 35 files.",
+  "verified": [
+   "FY2025 (d76aaa7c pdf p13/15/17-18): revenue 38,577,730,228; profit 8,527,980,356 (parent 7,347,878,280; NCI 1,180,102,076); total assets 119,757,152,175; equity 67,814,366,490; CFO 10,927,067,206; closing cash 10,583,548,481 = SOFP cash.",
+   "H1 2026 (6ae1825e pdf p6/8/11): revenue 19,725,787 and profit 4,069,923 (thousands); Q2 revenue 10,939,233, Q2 profit 2,281,578; total assets 125,720,012; cash 10,079,712; CFO 2,083,447; net change (503,836) reconciles.",
+   "Q1 2026 (ab707031): revenue 8,786,554, profit 1,788,345; Q1+Q2 = H1 exactly.",
+   "FY2024 SOFP original (cbabed5a pdf p13): total assets 115,089,370,018 = FY2025 comparative."
+  ],
+  "not_read": [
+   "OCI (p14) and equity (p16) pages of FY2025",
+   "P&L and CF of FY2024 original; FY2023/FY2022 statements (183ee2cf, 6e169104 not value-read)",
+   "annual reports 2011, 2015-2021, 2023 (front section), 2024, integrated report 2025 (statements inside, not read)",
+   "all 2022-2025 interims other than 2026",
+   "notes"
+  ],
+  "currency_units": "ANNUAL statements in FULL Saudi Riyals; INTERIM statements in SAR THOUSANDS. Each document also prints supplementary USD columns at fixed 3.75 which are NOT the reporting currency.",
+  "hazards": [
+   "1000x unit hazard between annual and interim files.",
+   "USD columns beside SAR columns: a column-position parser can read USD as SAR.",
+   "Income tax is a credit (+129,138,478 FY2025) while zakat and severance fees are separate charges.",
+   "FY2025 cover marked 'Classification: Top Secret' and interims 'Restricted' (metadata of a public filing).",
+   "Label 'Proceeds from redemption of time deposits' carries negative values in interim CF (net placement)."
+  ]
+ },
+ "dimension_2_document_completeness": {
+  "verdict": "42 files, all Ma'aden. By page: 18 FS documents (14 interims 2022-2026 + 4 annuals FY2022-FY2025), 11 annual/integrated reports (2011, 2015-2021, 2023-2025), 13 earnings releases/decks (6 of them image-only releases the inventory called 'scanned unreadable'). 4b407f21 is a 6-page SE results announcement containing only a condensed P&L for 2018 (partial, not FS).",
+  "label_defects": "SE annual FS PDFs labelled with publication year: 183ee2cf '2023|FY' = FY2022; 6e169104 '2024|FY' = FY2023; cbabed5a '2025|FY' = FY2024; d76aaa7c '2026|FY' = FY2025. Annual reports and releases are labelled with the fiscal year, so a single FY label can hold FY(n) report and FY(n-1) statements (2023|FY: 183ee2cf FY2022 statements, c516717e annual report 2023, 90efa3ce FY2023 release). 4 labels are wrong; the 2018 and 2011 files are correct."
+ },
+ "dimension_3_company_coverage": {
+  "verdict": "Collected at statement level: every period Q1 2022-H1 2026 (18 of 18) incl. FY2022-FY2025, plus annual reports for FY2011 and FY2015-FY2021. FY2012-FY2014 annuals and all 2011-2021 interims are NOT collected (never targeted, not shown to be unavailable). FY2018-FY2021 statements exist only inside the annual report PDFs (not read).",
+  "inventory_expected": 52,
+  "inventory_complete": 15,
+  "inventory_correction": "Inventory 15 complete/6 partial/1 scanned/30 absent: the 'scanned_only' period (2023 scans) is an earnings release, not a statement; label correction adds FY2022 (in 2023|FY) and removes the apparent 2022|FY gap.",
+  "page_based_period_table": {
+   "first_collected_period": "2011|FY",
+   "expected_from_first_collected_to_2026_H1": 62,
+   "periods_with_statement_file": 26,
+   "periods_without_statement_file": [
+    "2011|Q1",
+    "2011|H1",
+    "2011|9M",
+    "2012|Q1",
+    "2012|H1",
+    "2012|9M",
+    "2012|FY",
+    "2013|Q1",
+    "2013|H1",
+    "2013|9M",
+    "2013|FY",
+    "2014|Q1",
+    "2014|H1",
+    "2014|9M",
+    "2014|FY",
+    "2015|Q1",
+    "2015|H1",
+    "2015|9M",
+    "2016|Q1",
+    "2016|H1",
+    "2016|9M",
+    "2017|Q1",
+    "2017|H1",
+    "2017|9M",
+    "2018|Q1",
+    "2018|H1",
+    "2018|9M",
+    "2019|Q1",
+    "2019|H1",
+    "2019|9M",
+    "2020|Q1",
+    "2020|H1",
+    "2020|9M",
+    "2021|Q1",
+    "2021|H1",
+    "2021|9M"
+   ],
+   "table": {
+    "2011|FY": {
+     "statement_files": [
+      {
+       "sha8": "90597509",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2011|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2015|FY": {
+     "statement_files": [
+      {
+       "sha8": "78c403b5",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2015|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2016|FY": {
+     "statement_files": [
+      {
+       "sha8": "811f0416",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2016|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2017|FY": {
+     "statement_files": [
+      {
+       "sha8": "cb6946f1",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2017|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2018|FY": {
+     "statement_files": [
+      {
+       "sha8": "3d31e342",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2018|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "4b407f21",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2018|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2019|FY": {
+     "statement_files": [
+      {
+       "sha8": "1b8e6586",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2019|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2020|FY": {
+     "statement_files": [
+      {
+       "sha8": "41c1d6f6",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2020|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2021|FY": {
+     "statement_files": [
+      {
+       "sha8": "64e139a6",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2021|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2022|9M": {
+     "statement_files": [
+      {
+       "sha8": "c78d08f1",
+       "kind": "financial_statements",
+       "collector_label": "2022|9M",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2022|H1": {
+     "statement_files": [
+      {
+       "sha8": "abb4b3ad",
+       "kind": "financial_statements",
+       "collector_label": "2022|H1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2022|Q1": {
+     "statement_files": [
+      {
+       "sha8": "034a91fe",
+       "kind": "financial_statements",
+       "collector_label": "2022|Q1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2023|9M": {
+     "statement_files": [
+      {
+       "sha8": "d9639ea6",
+       "kind": "financial_statements",
+       "collector_label": "2023|9M",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "30437eb4",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2023|9M",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2022|FY": {
+     "statement_files": [
+      {
+       "sha8": "183ee2cf",
+       "kind": "financial_statements",
+       "collector_label": "2023|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2023|FY": {
+     "statement_files": [
+      {
+       "sha8": "c516717e",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2023|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      },
+      {
+       "sha8": "6e169104",
+       "kind": "financial_statements",
+       "collector_label": "2024|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "90efa3ce",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2023|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2023|H1": {
+     "statement_files": [
+      {
+       "sha8": "d6c0cbac",
+       "kind": "financial_statements",
+       "collector_label": "2023|H1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "469a7c57",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2023|H1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2023|Q1": {
+     "statement_files": [
+      {
+       "sha8": "435a17db",
+       "kind": "financial_statements",
+       "collector_label": "2023|Q1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2024|9M": {
+     "statement_files": [
+      {
+       "sha8": "554d5a52",
+       "kind": "financial_statements",
+       "collector_label": "2024|9M",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "7527d009",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2024|9M",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2024|FY": {
+     "statement_files": [
+      {
+       "sha8": "4c3a5ba5",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2024|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      },
+      {
+       "sha8": "cbabed5a",
+       "kind": "financial_statements",
+       "collector_label": "2025|FY",
+       "period_from_page": true,
+       "read": "extractable_and_verified"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "28c42225",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2024|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      },
+      {
+       "sha8": "d0f22df4",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2024|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2024|H1": {
+     "statement_files": [
+      {
+       "sha8": "7f1ece6d",
+       "kind": "financial_statements",
+       "collector_label": "2024|H1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "4f7eaeea",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2024|H1",
+       "period_from_page": false,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2024|Q1": {
+     "statement_files": [
+      {
+       "sha8": "edd8ae6a",
+       "kind": "financial_statements",
+       "collector_label": "2024|Q1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "8abb5d45",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2024|Q1",
+       "period_from_page": false,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2025|9M": {
+     "statement_files": [
+      {
+       "sha8": "cc9bd8c8",
+       "kind": "financial_statements",
+       "collector_label": "2025|9M",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2025|FY": {
+     "statement_files": [
+      {
+       "sha8": "dae44e05",
+       "kind": "annual_report_or_long_pack",
+       "collector_label": "2025|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      },
+      {
+       "sha8": "d76aaa7c",
+       "kind": "financial_statements",
+       "collector_label": "2026|FY",
+       "period_from_page": true,
+       "read": "extractable_and_verified"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "52e2a2b4",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2025|FY",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2025|H1": {
+     "statement_files": [
+      {
+       "sha8": "d2d43f7d",
+       "kind": "financial_statements",
+       "collector_label": "2025|H1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2025|Q1": {
+     "statement_files": [
+      {
+       "sha8": "9f2dde6b",
+       "kind": "financial_statements",
+       "collector_label": "2025|Q1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ],
+     "other_files": []
+    },
+    "2026|H1": {
+     "statement_files": [
+      {
+       "sha8": "6ae1825e",
+       "kind": "financial_statements",
+       "collector_label": "2026|H1",
+       "period_from_page": true,
+       "read": "extractable_and_verified"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "a3c28a98",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2026|H1",
+       "period_from_page": false,
+       "read": "not_read"
+      },
+      {
+       "sha8": "f84cdfc9",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2026|H1",
+       "period_from_page": false,
+       "read": "not_read"
+      }
+     ]
+    },
+    "2026|Q1": {
+     "statement_files": [
+      {
+       "sha8": "ab707031",
+       "kind": "financial_statements",
+       "collector_label": "2026|Q1",
+       "period_from_page": true,
+       "read": "extractable_and_verified"
+      }
+     ],
+     "other_files": [
+      {
+       "sha8": "5b6caf5f",
+       "kind": "results_release_or_presentation",
+       "collector_label": "2026|Q1",
+       "period_from_page": true,
+       "read": "not_read"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "inventory_flag_confirmations": [
+  "CORRECTED: six 'scanned_unreadable' files are earnings releases (no statements by design).",
+  "CONFIRMED: d76aaa7c '2026|FY' period mismatch candidate is a label artefact; its 'detected 2026-02-28' date is the issue date, true period 31 Dec 2025.",
+  "CONFIRMED: 'missing cash flows' in cbabed5a is because statements are image pages (pdf p13-18), not because cash flow is absent (not read, expected on image pages 17-18).",
+  "CORRECTED: 2025|FY 52e2a2b4 'presentation' = FY2025 results deck, correct label but no statements."
+ ],
+ "defects": [
+  {
+   "id": "B002-1211-1",
+   "cls": "unit scale",
+   "severity": "high",
+   "detail": "Annual FS in full SAR, interims in SAR thousands, USD columns alongside.",
+   "evidence": "d76aaa7c pdf p13 '(All amounts in Saudi Riyals unless otherwise stated)' vs 6ae1825e pdf p6 'in thousands of Saudi Riyals'"
+  },
+  {
+   "id": "B002-1211-2",
+   "cls": "period label",
+   "severity": "medium",
+   "detail": "SE FS PDFs carry publication-year FY labels; label '2023|FY' mixes FY2022 statements, annual report 2023 and FY2023 release.",
+   "evidence": "cover period text of 183ee2cf, 6e169104, cbabed5a, d76aaa7c"
+  },
+  {
+   "id": "B002-1211-3",
+   "cls": "inventory false negative",
+   "severity": "medium",
+   "detail": "FY2025 and FY2024 annual FS statements are image pages so cash flows etc. were flagged missing; six scans are releases.",
+   "evidence": "scan/1211.json image_only_pages 13-18 (FY2025)"
+  },
+  {
+   "id": "B002-1211-4",
+   "cls": "duplicate",
+   "severity": "low",
+   "detail": "FY2024 earnings release stored twice (28c42225, d0f22df4); FY2023 2023|FY label has three document types.",
+   "evidence": "renders of both"
+  }
+ ],
+ "unread_items": [
+  "FY2025 OCI and equity statements",
+  "FY2022 and FY2023 statements by value",
+  "2011-2021 annual reports' embedded statements",
+  "all 2022-2025 interims by value",
+  "notes",
+  "13 earnings releases/decks"
+ ],
+ "files": [
+  {
+   "sha256": "905975095e8042542caa70a58b5b3f1d74a11fa56ac115d5f3683883222cd162",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/905975095e8042542caa70a58b5b3f1d74a11fa56ac115d5f3683883222cd162.pdf",
+   "size_bytes": 4641860,
+   "pages": 123,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2011-annual-report.pdf",
+   "pdf_created": "D:20120620132127+03'00'",
+   "collector_label": "2011|FY",
+   "page_derived_period": "2011|FY",
+   "period_evidence": "Annual Report 2011",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    22,
+    27,
+    84,
+    86
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      22,
+      27,
+      93
+     ],
+     "income": [
+      19,
+      23,
+      93,
+      96,
+      119
+     ],
+     "cash_flows": [
+      91
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "78c403b59ad3ab3b31cc3d7dd6055043ce4339db381ef83c5b307f38989f3349",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/78c403b59ad3ab3b31cc3d7dd6055043ce4339db381ef83c5b307f38989f3349.pdf",
+   "size_bytes": 4655019,
+   "pages": 168,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2015-annual-report-en.pdf",
+   "pdf_created": "D:20160426094957+03'00'",
+   "collector_label": "2015|FY",
+   "page_derived_period": "2015|FY",
+   "period_evidence": "Annual Report 2015",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    2,
+    3,
+    4,
+    9,
+    27,
+    33,
+    107,
+    160,
+    161,
+    167,
+    168
+   ],
+   "statement_title_pages_text": [
+    99,
+    104,
+    117
+   ],
+   "inventory": {
+    "file_class": "annual_report_no_statements_found",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements",
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "income": [
+      99,
+      118
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "811f04160691bf33fd050d7542c05575972b81053b4b5498d6c59b3871944641",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/811f04160691bf33fd050d7542c05575972b81053b4b5498d6c59b3871944641.pdf",
+   "size_bytes": 10084751,
+   "pages": 192,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2016-annual-report-en.pdf",
+   "pdf_created": "D:20170407113506+03'00'",
+   "collector_label": "2016|FY",
+   "page_derived_period": "2016|FY",
+   "period_evidence": "Annual Report 2016",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    2,
+    4,
+    10,
+    11,
+    13,
+    15,
+    21,
+    24,
+    25,
+    26,
+    32,
+    38,
+    39,
+    44,
+    45,
+    58,
+    73,
+    91,
+    110,
+    111,
+    123,
+    180,
+    181,
+    188,
+    189,
+    191,
+    192
+   ],
+   "statement_title_pages_text": [
+    113,
+    120,
+    134
+   ],
+   "inventory": {
+    "file_class": "annual_report_no_statements_found",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements",
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "income": [
+      113,
+      153
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "cb6946f12facf7e18f57eb5dc77d13ca175195d454ba23735766012fb05ad4e2",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/cb6946f12facf7e18f57eb5dc77d13ca175195d454ba23735766012fb05ad4e2.pdf",
+   "size_bytes": 6975110,
+   "pages": 290,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2017-annual-report-en.pdf",
+   "pdf_created": "D:20180605153317+03'00'",
+   "collector_label": "2017|FY",
+   "page_derived_period": "2017|FY",
+   "period_evidence": "Annual Report 2017",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    2,
+    4,
+    19,
+    33,
+    41,
+    49,
+    75,
+    79,
+    107,
+    111,
+    133,
+    156,
+    283,
+    289,
+    290
+   ],
+   "statement_title_pages_text": [
+    132,
+    136,
+    141,
+    143,
+    157,
+    171,
+    172,
+    176,
+    180,
+    182,
+    183,
+    184,
+    203,
+    225,
+    227,
+    236,
+    268
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      141,
+      167,
+      176,
+      180,
+      197,
+      203,
+      234,
+      262,
+      264,
+      268,
+      278
+     ],
+     "income": [
+      136,
+      157,
+      182,
+      183,
+      184,
+      186,
+      190,
+      199,
+      202,
+      225,
+      227,
+      228
+     ],
+     "cash_flows": [
+      143
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "3d31e342deff0997a0c5f6cac37fd317d775db5874ea1e25219a9856331b31de",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/3d31e342deff0997a0c5f6cac37fd317d775db5874ea1e25219a9856331b31de.pdf",
+   "size_bytes": 11495464,
+   "pages": 276,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2018-annual-report-en.pdf",
+   "pdf_created": "D:20190907210108+03'00'",
+   "collector_label": "2018|FY",
+   "page_derived_period": "2018|FY",
+   "period_evidence": "Annual Report 2018",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    10,
+    11,
+    26,
+    38,
+    44,
+    70,
+    71,
+    74,
+    94,
+    95,
+    105,
+    112,
+    113,
+    128,
+    129,
+    268,
+    269,
+    273,
+    274,
+    275,
+    276
+   ],
+   "statement_title_pages_text": [
+    132,
+    139,
+    141,
+    153,
+    154,
+    156,
+    158,
+    175,
+    207,
+    210,
+    216,
+    218
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      139,
+      154,
+      207,
+      216
+     ],
+     "income": [
+      132,
+      146,
+      153,
+      175,
+      208,
+      210,
+      218,
+      250
+     ],
+     "cash_flows": [
+      141,
+      158
+     ],
+     "equity": [
+      156
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "4b407f2176d618486824eb04e733dd6d369e947cce1fe1b5affd907a79cd8d07",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/4b407f2176d618486824eb04e733dd6d369e947cce1fe1b5affd907a79cd8d07.pdf",
+   "size_bytes": 465194,
+   "pages": 6,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/5622_370_2019-01-24_15-38-37_en.pdf",
+   "pdf_created": "D:20190124152640+03'00'",
+   "collector_label": "2018|FY",
+   "page_derived_period": "2018|FY",
+   "period_evidence": "ended 31 December 2018",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    5
+   ],
+   "inventory": {
+    "file_class": "partial_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "partial_statements_only"
+    ],
+    "statement_pages": {
+     "income": [
+      5
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "1b8e65865e17172ba810d6ea171b84fba0d4f3a0a1049a729814a529e46a1bdc",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/1b8e65865e17172ba810d6ea171b84fba0d4f3a0a1049a729814a529e46a1bdc.pdf",
+   "size_bytes": 13148467,
+   "pages": 352,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2019-annual-report-en.pdf",
+   "pdf_created": "D:20201116103928+03'00'",
+   "collector_label": "2019|FY",
+   "page_derived_period": "2019|FY",
+   "period_evidence": "Annual Report 2019",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    2,
+    3,
+    6,
+    8,
+    10,
+    12,
+    14,
+    24,
+    25,
+    38,
+    50,
+    51,
+    58,
+    59,
+    84,
+    85,
+    88,
+    112,
+    118,
+    122,
+    126,
+    130,
+    134,
+    139,
+    142,
+    160,
+    166,
+    201,
+    352
+   ],
+   "statement_title_pages_text": [
+    164,
+    188,
+    206
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      197,
+      220,
+      230,
+      234,
+      274,
+      276,
+      286,
+      288
+     ],
+     "income": [
+      203,
+      224,
+      233,
+      234,
+      235,
+      290,
+      292
+     ],
+     "cash_flows": [
+      164
+     ],
+     "equity": [
+      206,
+      207,
+      234
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "41c1d6f6cf7dc017f29a5575c7be0746525de7a1c930390c01bc5c2f921064cb",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/41c1d6f6cf7dc017f29a5575c7be0746525de7a1c930390c01bc5c2f921064cb.pdf",
+   "size_bytes": 9292182,
+   "pages": 169,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2020-annual-report-en.pdf",
+   "pdf_created": "D:20210802151432+03'00'",
+   "collector_label": "2020|FY",
+   "page_derived_period": "2020|FY",
+   "period_evidence": "Annual Report 2020",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    11,
+    16,
+    22,
+    24,
+    30,
+    35,
+    39,
+    43,
+    46,
+    52,
+    62,
+    168,
+    169
+   ],
+   "statement_title_pages_text": [
+    83,
+    122,
+    123,
+    130,
+    159
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "missing_primary_statement:cash_flows"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      64,
+      122,
+      123,
+      128
+     ],
+     "income": [
+      64,
+      84,
+      86,
+      92,
+      130,
+      159
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "64e139a68298c9f499e08593ed96f6bbbf83c01da4451a9f616e5386047a5ec5",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/64e139a68298c9f499e08593ed96f6bbbf83c01da4451a9f616e5386047a5ec5.pdf",
+   "size_bytes": 15337703,
+   "pages": 154,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/ma%27aden-annual-report-2021.pdf",
+   "pdf_created": "D:20221018160223+03'00'",
+   "collector_label": "2021|FY",
+   "page_derived_period": "2021|FY",
+   "period_evidence": "Annual Report 2021",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    1,
+    12,
+    16,
+    21,
+    23,
+    32,
+    35,
+    39,
+    43,
+    55
+   ],
+   "statement_title_pages_text": [
+    63
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "missing_primary_statement:cash_flows"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      57
+     ],
+     "income": [
+      57,
+      84,
+      109,
+      111,
+      116,
+      117
+     ],
+     "equity": [
+      63
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "c78d08f136449ed4aee1197019fcfdd00a2514982d7de3e165086bfce3e61a5f",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/c78d08f136449ed4aee1197019fcfdd00a2514982d7de3e165086bfce3e61a5f.pdf",
+   "size_bytes": 1943087,
+   "pages": 34,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2022-11-06_09-27-17_En.pdf",
+   "pdf_created": "D:20221103084209+03'00'",
+   "collector_label": "2022|9M",
+   "page_derived_period": "2022|9M",
+   "period_evidence": "ended 30 September 2022",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    5
+   ],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      8
+     ],
+     "income": [
+      6,
+      7,
+      21
+     ],
+     "cash_flows": [
+      10,
+      11
+     ],
+     "equity": [
+      9
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "abb4b3add3fc45904844a9d6675894d610b79e9babb07aa4dbdc8c382d230bf1",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/abb4b3add3fc45904844a9d6675894d610b79e9babb07aa4dbdc8c382d230bf1.pdf",
+   "size_bytes": 3255968,
+   "pages": 141,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2022-08-16_12-14-54_En.pdf",
+   "pdf_created": "D:20220814174945+03'00'",
+   "collector_label": "2022|H1",
+   "page_derived_period": "2022|H1",
+   "period_evidence": "cover: Consolidated ... for the quarter and six months ended 30 June 2022 (141 pages, statements p6-12)",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    5
+   ],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      8,
+      60,
+      76,
+      85,
+      86,
+      87,
+      138
+     ],
+     "income": [
+      6,
+      7,
+      74,
+      77,
+      88,
+      89,
+      90
+     ],
+     "cash_flows": [
+      11,
+      12
+     ],
+     "equity": [
+      9,
+      10
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "034a91fee8a4bb98478a4268d04fbb40f0ad935147f2a3ca7d3babfe2423e042",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/034a91fee8a4bb98478a4268d04fbb40f0ad935147f2a3ca7d3babfe2423e042.pdf",
+   "size_bytes": 2811363,
+   "pages": 140,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2022-04-29_16-13-14_En.pdf",
+   "pdf_created": "D:20220428153406+03'00'",
+   "collector_label": "2022|Q1",
+   "page_derived_period": "2022|Q1",
+   "period_evidence": "ended 31 March 2022",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4
+   ],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      5,
+      8,
+      60,
+      76,
+      84,
+      85,
+      86,
+      137
+     ],
+     "income": [
+      5,
+      6,
+      7,
+      24,
+      74,
+      77,
+      78,
+      87,
+      88,
+      89
+     ],
+     "cash_flows": [
+      11,
+      12
+     ],
+     "equity": [
+      9,
+      10
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "30437eb42c7fc531482db1d7da4615d4a75c364431450ae86e7ec8dc1d552512",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/30437eb42c7fc531482db1d7da4615d4a75c364431450ae86e7ec8dc1d552512.pdf",
+   "size_bytes": 1542685,
+   "pages": 9,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/16913_370_2023-10-31_09-12-51_en.pdf",
+   "pdf_created": "D:20231031090824+03'00'",
+   "collector_label": "2023|9M",
+   "page_derived_period": "2023|9M",
+   "period_evidence": "rendered: 'MA'ADEN REPORTS THIRD QUARTER 2023 RESULTS' (image-only earnings release)",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "scanned_unreadable",
+    "completeness": "unknown_scanned",
+    "flags": [
+     "zero_text_scan_needs_visual_reading"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "d9639ea6a9b688ef5203eaad6dde6d0fef666933dec004d66d0fb9ff296003a4",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/d9639ea6a9b688ef5203eaad6dde6d0fef666933dec004d66d0fb9ff296003a4.pdf",
+   "size_bytes": 2729973,
+   "pages": 38,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2023-11-05_12-01-52_En.pdf",
+   "pdf_created": "D:20231101155356+03'00'",
+   "collector_label": "2023|9M",
+   "page_derived_period": "2023|9M",
+   "period_evidence": "ended 30 September 2023",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "entity_name_not_in_front_pages_check",
+     "missing_primary_statement:cash_flows"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      5
+     ],
+     "income": [
+      5
+     ],
+     "equity": [
+      5
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "183ee2cf2095c035bb12c59f8b79b1d9db493a13be4755fcc5b591155bc5689d",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/183ee2cf2095c035bb12c59f8b79b1d9db493a13be4755fcc5b591155bc5689d.pdf",
+   "size_bytes": 2839848,
+   "pages": 140,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2023-02-20_13-05-07_En.pdf",
+   "pdf_created": "D:20230212211621+03'00'",
+   "collector_label": "2023|FY",
+   "page_derived_period": "2022|FY",
+   "period_evidence": "ended 31 December 2022",
+   "label_check": "collector_label_wrong",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    5
+   ],
+   "statement_title_pages_text": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "period_mismatch_candidate:detected=2022-12-31,labelled=2023-12-31",
+     "entity_name_not_in_front_pages_check",
+     "multiple_same_language_same_period:2023|FY"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      13,
+      87,
+      88,
+      136
+     ],
+     "income": [
+      11,
+      12,
+      43,
+      77,
+      78,
+      79,
+      80,
+      89,
+      90
+     ],
+     "cash_flows": [
+      15,
+      16
+     ],
+     "equity": [
+      14
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "90efa3ce096f28a5635c2cbcea02a894d75614997dcf566b170e95ed06a8f402",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/90efa3ce096f28a5635c2cbcea02a894d75614997dcf566b170e95ed06a8f402.pdf",
+   "size_bytes": 1547075,
+   "pages": 10,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/16913_370_2024-02-26_09-28-32_en.pdf",
+   "pdf_created": "D:20240226043106+03'00'",
+   "collector_label": "2023|FY",
+   "page_derived_period": "2023|FY",
+   "period_evidence": "rendered: 'REPORTS FOURTH QUARTER AND FULL YEAR 2023 RESULTS' dated 26 Feb 2024",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "scanned_unreadable",
+    "completeness": "unknown_scanned",
+    "flags": [
+     "zero_text_scan_needs_visual_reading"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "c516717ec00581565e065debe97ed62b6cb3335d160c9795e0b1700685f6d42c",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/c516717ec00581565e065debe97ed62b6cb3335d160c9795e0b1700685f6d42c.pdf",
+   "size_bytes": 4933114,
+   "pages": 161,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/ma%27aden_ar23_front-section.pdf",
+   "pdf_created": "D:20240808102053+04'00'",
+   "collector_label": "2023|FY",
+   "page_derived_period": "2023|FY",
+   "period_evidence": "Annual Report 2023",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    39,
+    64,
+    132,
+    160,
+    161
+   ],
+   "statement_title_pages_text": [
+    57,
+    69,
+    70,
+    71,
+    72
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check",
+     "multiple_same_language_same_period:2023|FY"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      19,
+      57
+     ],
+     "income": [
+      69,
+      70,
+      104,
+      107,
+      112,
+      125
+     ],
+     "cash_flows": [
+      72
+     ],
+     "equity": [
+      71
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "469a7c5714cd103eaf3bf68d70d6fdadfd48d3c5b1906e05e841d8075fe3742a",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/469a7c5714cd103eaf3bf68d70d6fdadfd48d3c5b1906e05e841d8075fe3742a.pdf",
+   "size_bytes": 1491813,
+   "pages": 9,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8474_370_2023-08-13_09-09-37_en.pdf",
+   "pdf_created": "D:20230810215215+03'00'",
+   "collector_label": "2023|H1",
+   "page_derived_period": "2023|H1",
+   "period_evidence": "rendered: 'REPORTS SECOND QUARTER 2023 RESULTS' dated 13 Aug 2023",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "scanned_unreadable",
+    "completeness": "unknown_scanned",
+    "flags": [
+     "zero_text_scan_needs_visual_reading"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "d6c0cbacd605ddd835ab1f8846eba39a8ef9d4364a5898c1ff6571fc90a6a5bd",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/d6c0cbacd605ddd835ab1f8846eba39a8ef9d4364a5898c1ff6571fc90a6a5bd.pdf",
+   "size_bytes": 2909652,
+   "pages": 37,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2023-08-15_12-40-25_En.pdf",
+   "pdf_created": "D:20230813093155+03'00'",
+   "collector_label": "2023|H1",
+   "page_derived_period": "2023|H1",
+   "period_evidence": "ended 30 June 2023",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "other_no_statements_found",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "435a17db2fe19c11cb62ddad3fce0360aba25624402b5203b15371808a3782e7",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/435a17db2fe19c11cb62ddad3fce0360aba25624402b5203b15371808a3782e7.pdf",
+   "size_bytes": 1236937,
+   "pages": 34,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2023-05-24_09-15-08_En.pdf",
+   "pdf_created": "D:20230523114820+03'00'",
+   "collector_label": "2023|Q1",
+   "page_derived_period": "2023|Q1",
+   "period_evidence": "ended 31 March 2023",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    5
+   ],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      8
+     ],
+     "income": [
+      6,
+      7
+     ],
+     "cash_flows": [
+      10,
+      11
+     ],
+     "equity": [
+      9
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "554d5a52440abe0734063321951943ef4c3bcec4c4bdf14d3b593109855b26c2",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/554d5a52440abe0734063321951943ef4c3bcec4c4bdf14d3b593109855b26c2.pdf",
+   "size_bytes": 2973167,
+   "pages": 34,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2024-11-11_16-05-03_En.pdf",
+   "pdf_created": "D:20241111121313+03'00'",
+   "collector_label": "2024|9M",
+   "page_derived_period": "2024|9M",
+   "period_evidence": "ended 30 September 2024",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "entity_name_not_in_front_pages_check",
+     "missing_primary_statement:cash_flows"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      5
+     ],
+     "income": [
+      5
+     ],
+     "equity": [
+      5
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "7527d0095489577c6db4e960ed20eec26ed1c225728f91d35ac8c1ccc708d962",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/7527d0095489577c6db4e960ed20eec26ed1c225728f91d35ac8c1ccc708d962.pdf",
+   "size_bytes": 1690887,
+   "pages": 11,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/16913_370_2024-11-06_15-37-27_en.pdf",
+   "pdf_created": "D:20241106143246+03'00'",
+   "collector_label": "2024|9M",
+   "page_derived_period": "2024|9M",
+   "period_evidence": "rendered: 'REPORTS THIRD QUARTER AND NINE MONTHS 2024 RESULTS' dated 6 Nov 2024",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "scanned_unreadable",
+    "completeness": "unknown_scanned",
+    "flags": [
+     "zero_text_scan_needs_visual_reading"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "28c422253b0ac28941966ab0dbdb5e6f9848b12203e90eede0d4f210bb0b78d2",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/28c422253b0ac28941966ab0dbdb5e6f9848b12203e90eede0d4f210bb0b78d2.pdf",
+   "size_bytes": 1914478,
+   "pages": 11,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/17552_370_2025-03-10_15-47-44_en.pdf",
+   "pdf_created": "D:20250310141937+03'00'",
+   "collector_label": "2024|FY",
+   "page_derived_period": "2024|FY",
+   "period_evidence": "rendered: 'REPORTS FOURTH QUARTER AND FULL YEAR 2024 RESULTS' dated 6 Mar 2025 (duplicate of d0f22df4)",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "scanned_unreadable",
+    "completeness": "unknown_scanned",
+    "flags": [
+     "zero_text_scan_needs_visual_reading"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "4c3a5ba54f0b62fa1c1c675bd1c01431de8c17420aaec981ac47ddc926d2f32d",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/4c3a5ba54f0b62fa1c1c675bd1c01431de8c17420aaec981ac47ddc926d2f32d.pdf",
+   "size_bytes": 16018198,
+   "pages": 156,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/2024-annual-report.pdf",
+   "pdf_created": "D:20250416110041+04'00'",
+   "collector_label": "2024|FY",
+   "page_derived_period": "2024|FY",
+   "period_evidence": "ANNUAL REPORT 2024",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    1,
+    40,
+    72,
+    145
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "entity_name_not_in_front_pages_check",
+     "missing_primary_statement:cash_flows",
+     "multiple_same_language_same_period:2024|FY"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      22,
+      64,
+      142
+     ],
+     "income": [
+      111,
+      114,
+      115,
+      116
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "6e169104820c27fd5172b9539508c1012da53053f9272ac3c8b388d82a453b92",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/6e169104820c27fd5172b9539508c1012da53053f9272ac3c8b388d82a453b92.pdf",
+   "size_bytes": 4098136,
+   "pages": 132,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2024-03-04_14-54-39_En.pdf",
+   "pdf_created": "D:20240303155200+03'00'",
+   "collector_label": "2024|FY",
+   "page_derived_period": "2023|FY",
+   "period_evidence": "ended 31 December 2023",
+   "label_check": "collector_label_wrong",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+     "entity_name_not_in_front_pages_check",
+     "multiple_same_language_same_period:2024|FY"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      94,
+      95,
+      130
+     ],
+     "income": [
+      70,
+      80,
+      81,
+      83,
+      85,
+      86,
+      96,
+      97
+     ],
+     "cash_flows": [
+      39
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "d0f22df4e3346d408d45a1258af7db292ae9c3d1dd5487fe2d6d631c793c447c",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/d0f22df4e3346d408d45a1258af7db292ae9c3d1dd5487fe2d6d631c793c447c.pdf",
+   "size_bytes": 1939128,
+   "pages": 11,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/17552_370_2025-03-06_15-17-26_en.pdf",
+   "pdf_created": "D:20250306130333+03'00'",
+   "collector_label": "2024|FY",
+   "page_derived_period": "2024|FY",
+   "period_evidence": "rendered: same release as 28c42225",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "scanned_unreadable",
+    "completeness": "unknown_scanned",
+    "flags": [
+     "zero_text_scan_needs_visual_reading"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "4f7eaeeafc5f3b6dcf6df9fa5febfa11f4ad5f42c4dc59b461709e404a3d27ad",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/4f7eaeeafc5f3b6dcf6df9fa5febfa11f4ad5f42c4dc59b461709e404a3d27ad.pdf",
+   "size_bytes": 1762234,
+   "pages": 10,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/16913_370_2024-08-11_11-13-25_en.pdf",
+   "pdf_created": "D:20240810152652+03'00'",
+   "collector_label": "2024|H1",
+   "page_derived_period": null,
+   "period_evidence": null,
+   "label_check": "not_determinable_from_page",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "presentation",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "7f1ece6de61a94312c637ed2738f2a6c84658203934650153dfe522133f94218",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/7f1ece6de61a94312c637ed2738f2a6c84658203934650153dfe522133f94218.pdf",
+   "size_bytes": 1407014,
+   "pages": 32,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2024-08-13_15-24-34_En.pdf",
+   "pdf_created": "D:20240811122614+03'00'",
+   "collector_label": "2024|H1",
+   "page_derived_period": "2024|H1",
+   "period_evidence": "ended 30 June 2024",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      5,
+      8
+     ],
+     "income": [
+      5,
+      6,
+      7
+     ],
+     "cash_flows": [
+      10,
+      11
+     ],
+     "equity": [
+      5,
+      9
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "8abb5d4528cafcd154b533913a28c79e27d6c12392fad469a452de65bccf8286",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/8abb5d4528cafcd154b533913a28c79e27d6c12392fad469a452de65bccf8286.pdf",
+   "size_bytes": 1581712,
+   "pages": 9,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/16913_370_2024-05-13_15-24-48_en.pdf",
+   "pdf_created": "D:20240513151923+03'00'",
+   "collector_label": "2024|Q1",
+   "page_derived_period": null,
+   "period_evidence": null,
+   "label_check": "not_determinable_from_page",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "presentation",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements",
+     "entity_name_not_in_front_pages_check"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "edd8ae6a562c023255bdb607dfe39d9c07cfbe6d5060e337fb596429fb3b5892",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/edd8ae6a562c023255bdb607dfe39d9c07cfbe6d5060e337fb596429fb3b5892.pdf",
+   "size_bytes": 2569051,
+   "pages": 34,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2024-05-16_13-53-57_En.pdf",
+   "pdf_created": "D:20240516121545+03'00'",
+   "collector_label": "2024|Q1",
+   "page_derived_period": "2024|Q1",
+   "period_evidence": "ended 31 March 2024",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "entity_name_not_in_front_pages_check",
+     "missing_primary_statement:cash_flows"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      5
+     ],
+     "income": [
+      5
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "cc9bd8c85afcb2880b9808b2e91af3925412246a50df85efc6c6147336ed0725",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/cc9bd8c85afcb2880b9808b2e91af3925412246a50df85efc6c6147336ed0725.pdf",
+   "size_bytes": 2725818,
+   "pages": 36,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2025-11-11_15-02-50_En.pdf",
+   "pdf_created": "",
+   "collector_label": "2025|9M",
+   "page_derived_period": "2025|9M",
+   "period_evidence": "ended 30 September 2025",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [],
+    "statement_pages": {
+     "financial_position": [
+      9
+     ],
+     "income": [
+      7,
+      8
+     ],
+     "cash_flows": [
+      11,
+      12
+     ],
+     "equity": [
+      10
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "52e2a2b4e50f5aa7d54428d06ddee6fcb70f22208ec61712879fa95e88efce9f",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/52e2a2b4e50f5aa7d54428d06ddee6fcb70f22208ec61712879fa95e88efce9f.pdf",
+   "size_bytes": 335766,
+   "pages": 5,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/31073_370_2026-03-05_15-41-48_en.pdf",
+   "pdf_created": "D:20260305150046+03'00'",
+   "collector_label": "2025|FY",
+   "page_derived_period": "2025|FY",
+   "period_evidence": "ended 31 December 2025",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "presentation",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "cbabed5a1f25fc8331596d7277a7d1118ac8216e57af602dba3b843a984e70d7",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/cbabed5a1f25fc8331596d7277a7d1118ac8216e57af602dba3b843a984e70d7.pdf",
+   "size_bytes": 4412986,
+   "pages": 126,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2025-03-13_13-01-24_En.pdf",
+   "pdf_created": "D:20250313013145+03'00'",
+   "collector_label": "2025|FY",
+   "page_derived_period": "2024|FY",
+   "period_evidence": "ended 31 December 2024",
+   "label_check": "collector_label_wrong",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+     "entity_name_not_in_front_pages_check",
+     "missing_primary_statement:cash_flows",
+     "multiple_same_language_same_period:2025|FY"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      89,
+      102,
+      123
+     ],
+     "income": [
+      75,
+      77,
+      79,
+      80,
+      90,
+      91
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "extractable_and_verified",
+    "read_method": "rendered images pdf p13 (financial position) and p14 (changes in equity) read by eye; P&L/CF not re-read (values match FY2025 comparative columns)",
+    "units": "FULL Saudi Riyals",
+    "identity": "Ma'aden consolidated FS (all amounts in full Saudi Riyals)",
+    "period_read": "FY2024 (2024-12-31) with FY2023 comparatives",
+    "statements": [
+     {
+      "name": "financial_position",
+      "pdf_page": 13,
+      "printed_page": 12,
+      "values": {
+       "total_assets": [
+        115089370018,
+        111873624423
+       ],
+       "total_equity": [
+        60156231527,
+        56815265134
+       ],
+       "total_liabilities": [
+        54933138491,
+        55058359289
+       ]
+      },
+      "arithmetic_checks_passed": 2
+     }
+    ],
+    "observations": [
+     "FY2024 SOFP equals the 2024 column of the FY2025 file (115,089,370,018 total assets): no restatement visible at total level."
+    ]
+   },
+   "document_completeness": {
+    "primary_statements_present_in_file": [
+     "financial_position"
+    ],
+    "note": ""
+   }
+  },
+  {
+   "sha256": "dae44e050e70e412049516a4caea688f9ff0cd918cab44b393ee86ecaf4b02a6",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/dae44e050e70e412049516a4caea688f9ff0cd918cab44b393ee86ecaf4b02a6.pdf",
+   "size_bytes": 10216122,
+   "pages": 216,
+   "source_url": "https://axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com/maaden-website-assets/reports/annual-reports/maaden-ar-updated-ver---mar-26-eng-ver_compressed.pdf",
+   "pdf_created": "D:20260326172527+04'00'",
+   "collector_label": "2025|FY",
+   "page_derived_period": "2025|FY",
+   "period_evidence": "cover: INTEGRATED REPORT 2025",
+   "label_check": "match",
+   "document_kind_from_pages": "annual_report_or_long_pack",
+   "image_only_pages": [
+    1,
+    215,
+    216
+   ],
+   "statement_title_pages_text": [
+    112
+   ],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "missing_primary_statement:cash_flows",
+     "multiple_same_language_same_period:2025|FY"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      13,
+      14,
+      112,
+      177,
+      186
+     ],
+     "income": [
+      169,
+      172,
+      178,
+      179
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   },
+   "override_note": "classification/period set by auditor from rendered pages (see notes)"
+  },
+  {
+   "sha256": "d2d43f7d499a4281a686da1cd92ab4ccab00a7eb10d33a10625a0e24343b7d76",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/d2d43f7d499a4281a686da1cd92ab4ccab00a7eb10d33a10625a0e24343b7d76.pdf",
+   "size_bytes": 2297388,
+   "pages": 36,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2025-08-13_13-39-02_En.pdf",
+   "pdf_created": "D:20250804174305+03'00'",
+   "collector_label": "2025|H1",
+   "page_derived_period": "2025|H1",
+   "period_evidence": "ended 30 June 2025",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [],
+    "statement_pages": {
+     "financial_position": [
+      9
+     ],
+     "income": [
+      7,
+      8
+     ],
+     "cash_flows": [
+      11
+     ],
+     "equity": [
+      10
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "9f2dde6bbe571eca828539a84b59a6c0d7c413451a123419d073b0a525310b3b",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/9f2dde6bbe571eca828539a84b59a6c0d7c413451a123419d073b0a525310b3b.pdf",
+   "size_bytes": 2130379,
+   "pages": 33,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2025-05-13_16-13-00_En.pdf",
+   "pdf_created": "D:20250511125920+03'00'",
+   "collector_label": "2025|Q1",
+   "page_derived_period": "2025|Q1",
+   "period_evidence": "ended 31 March 2025",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [],
+    "statement_pages": {
+     "financial_position": [
+      9
+     ],
+     "income": [
+      7,
+      8
+     ],
+     "cash_flows": [
+      11
+     ],
+     "equity": [
+      10
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "d76aaa7c371da4a0c3a23edbfb0663339590bfa959e1c8396350bf27dcc6767e",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/d76aaa7c371da4a0c3a23edbfb0663339590bfa959e1c8396350bf27dcc6767e.pdf",
+   "size_bytes": 8681557,
+   "pages": 126,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2026-03-11_15-58-59_En.pdf",
+   "pdf_created": "D:20260308143625+03'00'",
+   "collector_label": "2026|FY",
+   "page_derived_period": "2025|FY",
+   "period_evidence": "ended 31 December 2025",
+   "label_check": "collector_label_wrong",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [
+    4,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "annual_report_with_statements",
+    "completeness": "primary_statements_partial",
+    "flags": [
+     "weak_period_classification:text_year_only",
+     "period_mismatch_candidate:detected=2026-02-28,labelled=2026-12-31",
+     "missing_primary_statement:cash_flows"
+    ],
+    "statement_pages": {
+     "financial_position": [
+      92,
+      104
+     ],
+     "income": [
+      33,
+      71,
+      76,
+      77,
+      79,
+      81,
+      82,
+      93,
+      94
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "extractable_and_verified",
+    "read_method": "statement pages pdf p13 (P&L), p15 (financial position), p17-18 (cash flows) are image-only and were read by eye from renders; p14 OCI and p16 equity NOT read",
+    "units": "FULL Saudi Riyals (not thousands); supplementary USD columns at fixed 3.75 are NOT the reporting currency; EPS in SAR",
+    "identity": "SAUDI ARABIAN MINING COMPANY (MAADEN), consolidated FS, Deloitte audit report; cover says 'Classification: Top Secret' (label printed on a public filing)",
+    "period_read": "FY2025 (2025-12-31) with FY2024 comparatives",
+    "statements": [
+     {
+      "name": "financial_position",
+      "pdf_page": 15,
+      "printed_page": 14,
+      "values": {
+       "total_assets": [
+        119757152175,
+        115089370018
+       ],
+       "total_non_current_assets": [
+        93932323767,
+        86123823734
+       ],
+       "total_current_assets": [
+        25824828408,
+        28965546284
+       ],
+       "cash": [
+        10583548481,
+        15215248369
+       ],
+       "total_equity": [
+        67814366490,
+        60156231527
+       ],
+       "equity_parent": [
+        61592974285,
+        51886151363
+       ],
+       "nci": [
+        6221392205,
+        8270080164
+       ],
+       "total_liabilities": [
+        51942785685,
+        54933138491
+       ]
+      },
+      "arithmetic_checks_passed": 9
+     },
+     {
+      "name": "profit_or_loss",
+      "pdf_page": 13,
+      "printed_page": 12,
+      "values": {
+       "revenue": [
+        38577730228,
+        32546157340
+       ],
+       "gross_profit": [
+        14791898380,
+        9244158362
+       ],
+       "operating_profit": [
+        10352777787,
+        6254633661
+       ],
+       "profit_before_zakat_tax_severance": [
+        10030111809,
+        4686806653
+       ],
+       "income_tax": [
+        129138478,
+        115709626
+       ],
+       "zakat": [
+        -373242718,
+        -503042854
+       ],
+       "severance_fees": [
+        -1258027213,
+        -165581161
+       ],
+       "net_income": [
+        8527980356,
+        4133892264
+       ],
+       "net_income_parent": [
+        7347878280,
+        2871544808
+       ],
+       "net_income_nci": [
+        1180102076,
+        1262347456
+       ],
+       "eps_sar": [
+        1.91,
+        0.78
+       ]
+      },
+      "arithmetic_checks_passed": 7
+     },
+     {
+      "name": "cash_flows",
+      "pdf_page": 17,
+      "printed_page": 16,
+      "values": {
+       "cfo": [
+        10927067206,
+        10318622866
+       ],
+       "cfi": [
+        -10120345838,
+        -3198347250
+       ],
+       "cff": [
+        -5438421256,
+        -2205907704
+       ],
+       "net_change": [
+        -4631699888,
+        4914367912
+       ],
+       "cash_end": [
+        10583548481,
+        15215248369
+       ]
+      },
+      "arithmetic_checks_passed": 5
+     }
+    ],
+    "observations": [
+     "Cash-flow statement spans pdf p17-18 (printed 16-17). Income tax is a BENEFIT (+129,138,478) while zakat and severance fees are expenses; Maaden prints three separate lines between profit-before and profit. The FY2025 file sits in the collector under label 2026|FY (publication year); the 'Proceeds from redemption of time deposits' label in interim CF carries a negative number meaning net placement."
+    ]
+   },
+   "document_completeness": {
+    "primary_statements_present_in_file": [
+     "financial_position",
+     "profit_or_loss",
+     "cash_flows"
+    ],
+    "note": ""
+   }
+  },
+  {
+   "sha256": "6ae1825e71a2e262a3599aefb1ee449269c960f3eed87ccf0a22bd7b6d21e444",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/6ae1825e71a2e262a3599aefb1ee449269c960f3eed87ccf0a22bd7b6d21e444.pdf",
+   "size_bytes": 3230030,
+   "pages": 34,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2026-08-10_15-14-32_En.pdf",
+   "pdf_created": "",
+   "collector_label": "2026|H1",
+   "page_derived_period": "2026|H1",
+   "period_evidence": "ended 30 June 2026",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [],
+    "statement_pages": {
+     "financial_position": [
+      5,
+      8
+     ],
+     "income": [
+      5,
+      6,
+      7,
+      14,
+      27
+     ],
+     "cash_flows": [
+      10,
+      11
+     ],
+     "equity": [
+      9,
+      27
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "extractable_and_verified",
+    "read_method": "text layer pdf p6,7,8,10,11 (no image-only pages); arithmetic re-added; p9/p10 CF operating section only read at total level; changes in equity NOT read",
+    "units": "SAR THOUSANDS (printed 'in thousands of Saudi Riyals'); USD columns supplementary",
+    "identity": "MAADEN condensed consolidated interim FS (unaudited), cover 'Classification: Restricted'",
+    "period_read": "H1 2026 (quarter and six months to 2026-06-30)",
+    "statements": [
+     {
+      "name": "financial_position",
+      "pdf_page": 8,
+      "printed_page": 7,
+      "values": {
+       "total_assets": [
+        125720012,
+        119757152
+       ],
+       "total_equity": [
+        71434847,
+        67814366
+       ],
+       "total_liabilities": [
+        54285165,
+        51942786
+       ],
+       "cash": [
+        10079712,
+        10583548
+       ]
+      },
+      "arithmetic_checks_passed": 7
+     },
+     {
+      "name": "profit_or_loss",
+      "pdf_page": 6,
+      "printed_page": 5,
+      "values": {
+       "revenue_q2": [
+        10939233,
+        9415768
+       ],
+       "revenue_h1": [
+        19725787,
+        17926682
+       ],
+       "gross_profit_h1": [
+        6513645,
+        6714683
+       ],
+       "operating_profit_h1": [
+        4896035,
+        4840166
+       ],
+       "net_income_q2": [
+        2281578,
+        2327989
+       ],
+       "net_income_h1": [
+        4069923,
+        4094777
+       ],
+       "net_income_parent_h1": [
+        3811084,
+        3471799
+       ],
+       "eps_h1": [
+        0.98,
+        0.91
+       ],
+       "eps_q2": [
+        0.56,
+        0.51
+       ]
+      },
+      "arithmetic_checks_passed": 5
+     },
+     {
+      "name": "cash_flows",
+      "pdf_page": 11,
+      "printed_page": 10,
+      "values": {
+       "cfo_h1": [
+        2083447,
+        3562520
+       ],
+       "cfi_h1": [
+        -3043538,
+        -6092738
+       ],
+       "cff_h1": [
+        456255,
+        -2691843
+       ],
+       "net_change": [
+        -503836,
+        -5222061
+       ],
+       "cash_end": [
+        10079712,
+        9993187
+       ]
+      },
+      "arithmetic_checks_passed": 4
+     }
+    ],
+    "observations": [
+     "Q1 2026 (ab707031) revenue 8,786,554 + Q2 10,939,233 = H1 19,725,787; Q1 NI 1,788,345 + Q2 2,281,578 = 4,069,923. Note: statutory reserve fully eliminated (157,733 -> nil) and issued share capital unchanged. Interim figures are thousands: loading them next to the FY full-SAR values without scale normalisation would produce a 1000x error."
+    ]
+   },
+   "document_completeness": {
+    "primary_statements_present_in_file": [
+     "financial_position",
+     "profit_or_loss",
+     "cash_flows"
+    ],
+    "note": ""
+   }
+  },
+  {
+   "sha256": "a3c28a98ec42122172c944f783b2963a43e86d55df9f3c4a858788dcf79f8a06",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/a3c28a98ec42122172c944f783b2963a43e86d55df9f3c4a858788dcf79f8a06.pdf",
+   "size_bytes": 195505,
+   "pages": 5,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/17552_370_2026-08-09_15-29-43_en.pdf",
+   "pdf_created": "D:20260809152503+03'00'",
+   "collector_label": "2026|H1",
+   "page_derived_period": null,
+   "period_evidence": "SECOND QUARTER 2026",
+   "label_check": "not_determinable_from_page",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "presentation",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "f84cdfc960a341b167e8090dc827430bc2fec1defa8495d24035fd091f4ff476",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/f84cdfc960a341b167e8090dc827430bc2fec1defa8495d24035fd091f4ff476.pdf",
+   "size_bytes": 195440,
+   "pages": 5,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/17552_370_2026-08-09_15-29-34_en.pdf",
+   "pdf_created": "D:20260809152540+03'00'",
+   "collector_label": "2026|H1",
+   "page_derived_period": null,
+   "period_evidence": "SECOND QUARTER 2026",
+   "label_check": "not_determinable_from_page",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "presentation",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "5b6caf5fe0e83a2dcb422aab85ca53288365bc6c4bdeca22e6ddc91186231655",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/5b6caf5fe0e83a2dcb422aab85ca53288365bc6c4bdeca22e6ddc91186231655.pdf",
+   "size_bytes": 259442,
+   "pages": 4,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/17552_370_2026-05-03_16-12-39_en.pdf",
+   "pdf_created": "D:20260503160224+03'00'",
+   "collector_label": "2026|Q1",
+   "page_derived_period": "2026|Q1",
+   "period_evidence": "ended 31 March 2026",
+   "label_check": "match",
+   "document_kind_from_pages": "results_release_or_presentation",
+   "image_only_pages": [],
+   "statement_title_pages_text": [],
+   "inventory": {
+    "file_class": "results_announcement",
+    "completeness": "none_found",
+    "flags": [
+     "not_financial_statements"
+    ],
+    "statement_pages": {}
+   },
+   "value_correctness": {
+    "status": "not_read",
+    "note": "values not transcribed; file classified only by page scan (titles, image-only pages, cover/period text)"
+   }
+  },
+  {
+   "sha256": "ab70703172af7e1357888e68b8877d47e51bd5c144c51635378e5a8d087c78f4",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1211/ab70703172af7e1357888e68b8877d47e51bd5c144c51635378e5a8d087c78f4.pdf",
+   "size_bytes": 3497269,
+   "pages": 33,
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/370_0_2026-05-05_12-18-38_En.pdf",
+   "pdf_created": "",
+   "collector_label": "2026|Q1",
+   "page_derived_period": "2026|Q1",
+   "period_evidence": "ended 31 March 2026",
+   "label_check": "match",
+   "document_kind_from_pages": "financial_statements",
+   "image_only_pages": [],
+   "statement_title_pages_text": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "inventory": {
+    "file_class": "financial_statements",
+    "completeness": "primary_statements_all",
+    "flags": [],
+    "statement_pages": {
+     "financial_position": [
+      5,
+      8
+     ],
+     "income": [
+      5,
+      6,
+      7,
+      26
+     ],
+     "cash_flows": [
+      10,
+      11
+     ],
+     "equity": [
+      9,
+      26
+     ]
+    }
+   },
+   "value_correctness": {
+    "status": "extractable_and_verified",
+    "read_method": "text layer key lines pdf p6,8,10,11",
+    "units": "SAR thousands",
+    "identity": "MAADEN condensed consolidated interim FS",
+    "period_read": "Q1 2026 (quarter to 2026-03-31)",
+    "statements": [
+     {
+      "name": "financial_position",
+      "pdf_page": 8,
+      "printed_page": 7,
+      "values": {
+       "total_assets": [
+        123764163,
+        119757152
+       ],
+       "total_equity": [
+        69172848,
+        67814366
+       ],
+       "total_liabilities": [
+        54591315,
+        51942786
+       ]
+      },
+      "arithmetic_checks_passed": 1
+     },
+     {
+      "name": "profit_or_loss",
+      "pdf_page": 6,
+      "printed_page": 5,
+      "values": {
+       "revenue": [
+        8786554,
+        8510914
+       ],
+       "gross_profit": [
+        3125031,
+        3191369
+       ],
+       "operating_profit": [
+        2533330,
+        2280260
+       ],
+       "net_income": [
+        1788345,
+        1766788
+       ]
+      },
+      "arithmetic_checks_passed": 0
+     },
+     {
+      "name": "cash_flows",
+      "pdf_page": 10,
+      "printed_page": 9,
+      "values": {
+       "cfo": [
+        1342943,
+        1737209
+       ],
+       "cfi": [
+        -765995,
+        -5554850
+       ],
+       "cff": [
+        1702682,
+        385920
+       ]
+      },
+      "arithmetic_checks_passed": 0
+     }
+    ],
+    "observations": []
+   },
+   "document_completeness": {
+    "primary_statements_present_in_file": [
+     "financial_position",
+     "profit_or_loss",
+     "cash_flows"
+    ],
+    "note": ""
+   }
+  }
+ ]
+}
