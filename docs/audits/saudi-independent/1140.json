@@ -1,0 +1,2716 @@
+{
+ "symbol": "1140",
+ "company": "Bank Albilad",
+ "audited_branch_commit": "origin/codex/telecom-95pct @ ec610f3de3aca3a02c1a65526b666f315254b16e",
+ "other_branches_checked": "Authoritative = origin/codex/telecom-95pct. origin/claude/data-banking-notes-1 and -profiles-1 carry OLDER copies of the 2025 FY manifests + alrajhi-supplement.json (not audited as authoritative). origin/claude/aramco-alrajhi-gap-closure adds alrajhi-2025-annual-notes/company-profile/q4-supplement.json (audited read-only via git show: annual-notes 8 facts verified numerically; q4-supplement 1161/1188 values match workbook, 27 = EPS rounding).",
+ "resumable_status": {
+  "done": 60,
+  "pending": 0,
+  "documents_total": 60
+ },
+ "dimension_1_numeric_correctness": {
+  "text_pdf_facts": 1158,
+  "value_on_page_label_period_ok": 1137,
+  "other_text_pdf": 21,
+  "pillar3_facts_checked(published+rejected)": 1840,
+  "pillar3_ok": 1840,
+  "status": "defective"
+ },
+ "dimension_2_document_completeness": {
+  "status": "defective",
+  "unextracted_core_lines_present_in_source_documents": 149,
+  "detail": "per-document list in documents[].document_completeness_unextracted_lines_present_in_document (only PDF statements scanned; Pillar 3 only KM1 core rows; other Pillar 3 templates not extracted)"
+ },
+ "dimension_3_company_coverage": {
+  "status": "incomplete",
+  "published_period_range": "2011,2012,2018(FY)..2026-Q2",
+  "missing_periods": [
+   "2011 Q1-Q3",
+   "2012 Q1-Q3",
+   "2013-2017 all",
+   "2018 Q1-Q3",
+   "2019 Q1-Q3"
+  ],
+  "evidence": "60/60 archived documents have manifests; pre-2018 mostly absent from archive"
+ },
+ "defects": [
+  {
+   "id": "D4",
+   "symbols": [
+    "1080",
+    "1120",
+    "1140",
+    "1010"
+   ],
+   "severity": "medium",
+   "documents": [
+    "anb-2015-annual-report.json",
+    "anb-2017-annual-report.json",
+    "anb-2019-annual-report.json",
+    "anb-2020-q1.json",
+    "anb-2021-q1.json",
+    "alrajhi-2024-q2.json",
+    "albilad-2019-fy.json",
+    "albilad-2020-fy.json",
+    "albilad-2020-q1.json",
+    "albilad-2021-q3.json",
+    "albilad-2022-q1.json",
+    "albilad-2023-q1.json",
+    "albilad-2024-q1.json",
+    "riyad-2018-q2.json",
+    "riyad-2018-q3.json"
+   ],
+   "summary": "Cash-flow reconciliation rows published as income-statement facts: dividend_income negative in 6 docs (-46,277, -53,203, -84,531, -13,223, -16,162, alrajhi-2024-q2 -74,037); financing_expense = 'Special commission expense on Sukuk' (+71,460, +85,129, +18,944, +23,386: partial amount, wrong sign); depreciation/provision add-backs published positive (13 + 8 facts) while IS-sourced expenses are negative.",
+   "evidence": [
+    {
+     "doc": "anb-2017-annual-report",
+     "pdf_page": 16,
+     "line": "Dividend income (53,203); Special commission expense on sukuk 71,460",
+     "correct": "FY2017 special commission expense 1,370,441 (anb-2018 AR p11 comparative); dividend income 53,203 positive"
+    },
+    {
+     "doc": "anb-2019-annual-report",
+     "pdf_page": 9,
+     "correct": "Special commission expense 2,079,685; Dividend income 84,531"
+    }
+   ],
+   "fix": "_CASH_FLOW_REJECTED_METRICS + add-back sign flip; test CashFlowRowsDoNotPopulateIncomeStatementMetricsTests.",
+   "defect_class": "cash_flow_adjustment_row_mapped_to_income_metric"
+  },
+  {
+   "id": "D6",
+   "symbols": [
+    "1080",
+    "1010",
+    "1140"
+   ],
+   "severity": "high",
+   "documents": [
+    "anb-2018-annual-report.json",
+    "riyad-2018-fy.json",
+    "albilad-2018-fy.json"
+   ],
+   "summary": "Until FY2018 these banks charged zakat/tax to equity, so published net_income for periods <=2018 is PRE-zakat; FY2019 filings restate 2018 after zakat. Published history mixes bases and the restated comparative is not published.",
+   "evidence": [
+    {
+     "doc": "riyad-2018-fy",
+     "published": "net_income 4,716,085; EPS 1.57",
+     "later_restated": "3,092,277; EPS 1.03 (riyad-2019-fy pdf p2, 2018 Restated; also net special commission income 6,685,764->6,628,460, exchange 337,043->292,581, trading 2,717->104,560)"
+    },
+    {
+     "doc": "anb-2018-annual-report",
+     "published": "net_income 3,311,817 (equals Net income before zakat and tax)",
+     "later_restated": "3,970,659 (anb-2019 AR p9; zakat reversal 1,113,261)"
+    },
+    {
+     "doc": "albilad-2018-fy",
+     "published": "net_income 1,110,510; EPS 1.85",
+     "later_restated": "after zakat 612,693; EPS 0.82 (albilad-2019-fy p8; zakat 497,817)"
+    }
+   ],
+   "fix": "Ingest comparative columns as restated vintages (manifest_vintages) and tag net_income basis; no hand edits.",
+   "defect_class": "restated_comparative_and_zakat_basis_discontinuity"
+  },
+  {
+   "id": "D9",
+   "symbols": [
+    "1140",
+    "1010",
+    "1080",
+    "1020"
+   ],
+   "severity": "medium",
+   "documents": [
+    "*albilad",
+    "*riyad",
+    "*anb",
+    "*aljazira"
+   ],
+   "summary": "Lines present on the statement pages but not published (list per document in documents[]): Albilad 'Income from investing and financing assets' (financing_income) and '..., net'; 'Fee and commission, net'; 'Impairment charge for credit and other financial assets, net'; cash-flow subtotals missing in many interims (ANB operating CF 55 docs, Riyad cash_end 31 / D&A 37, Albilad); Riyad pre-zakat income (15).",
+   "evidence": [
+    {
+     "doc": "albilad-2019-fy",
+     "pdf_page": 8,
+     "line": "Income from investing and financing assets 20 3,355,200 2,723,748"
+    }
+   ],
+   "fix": "Add labels to BANK_LINE_MAP (planned, not applied: changes protected data on republish).",
+   "defect_class": "document_completeness_label_gaps"
+  },
+  {
+   "id": "D10",
+   "symbols": [
+    "1120",
+    "1020",
+    "1010",
+    "1140"
+   ],
+   "severity": "low",
+   "documents": [
+    "*alrajhi",
+    "*aljazira",
+    "*riyad",
+    "*albilad"
+   ],
+   "summary": "Pillar 3: all 7,569 published+rejected KM1 values match the printed cell, month and unit (45 aljazira leverage cells not locatable by row id). Only the oldest column per doc is published (vintage rule); rows 8-12, 'a' variants, LCR/NSFR for old Riyad docs and all non-KM1 templates are not extracted. Supplements: values match workbooks; EPS published at 2dp vs unrounded; Al Rajhi workbook has duplicate FY/quarter columns with different values (FY2023 DPS 1.15 col T vs 2.3 col BF; FY2021 total assets 623,126.517 vs 623,644.628) - original column published, restated column unverified.",
+   "evidence": [
+    {
+     "xlsx": "alrajhi 2Q2026 sheet '1. Income Statement' row 29 cols T and BF"
+    }
+   ],
+   "defect_class": "pillar3_and_supplement_notes"
+  }
+ ],
+ "manual_visual_checks": [
+  {
+   "doc": "albilad-2018-fy / albilad-2019-fy",
+   "pages": [
+    43,
+    8
+   ],
+   "result": "published values match; zakat restatement D6"
+  }
+ ],
+ "documents": [
+  {
+   "manifest": "albilad-2011-fy.json",
+   "filing_type": "annual-report",
+   "period_end": "2011-12-31",
+   "facts_published": 19,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "b8cc24e4ddd58f8b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 19,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "cash_end": [
+     25,
+     "Cash and cash equivalents at end of the year",
+     [
+      "24",
+      "9,007,824",
+      "3,841,864"
+     ]
+    ],
+    "cash_beginning": [
+     25,
+     "Cash and cash equivalents at beginning of the year",
+     [
+      "3,841,864",
+      "2,594,556"
+     ]
+    ],
+    "provision_expense": [
+     22,
+     "Impairment charge for other financial assets",
+     [
+      "-",
+      "47,244"
+     ]
+    ],
+    "financing_income": [
+     22,
+     "Income from investing and financing assets",
+     [
+      "17",
+      "727,934",
+      "646,192"
+     ]
+    ],
+    "net_loans": [
+     21,
+     "Financing, net",
+     [
+      "7",
+      "13,779,746",
+      "12,289,826"
+     ]
+    ],
+    "bank_investments": [
+     21,
+     "Investments, net",
+     [
+      "6",
+      "951,458",
+      "1,610,918"
+     ]
+    ],
+    "customer_deposits": [
+     21,
+     "Customer deposits",
+     [
+      "11",
+      "23,037,934",
+      "16,932,415"
+     ]
+    ],
+    "due_from_banks": [
+     21,
+     "Due from banks and other financial institutions, net",
+     [
+      "5",
+      "6,454,366",
+      "4,032,405"
+     ]
+    ],
+    "due_to_banks": [
+     21,
+     "Due to banks and other financial institutions",
+     [
+      "10",
+      "421,837",
+      "382,429"
+     ]
+    ],
+    "share_capital": [
+     21,
+     "Share capital",
+     [
+      "13",
+      "3,000,000",
+      "3,000,000"
+     ]
+    ],
+    "statutory_reserve": [
+     21,
+     "Statutory reserve",
+     [
+      "14",
+      "134,653",
+      "52,246"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2012-fy.json",
+   "filing_type": "annual-report",
+   "period_end": "2012-12-31",
+   "facts_published": 30,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "465d35e7221e2d8b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 29,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 1,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     52,
+     "Net cash (used in) from operating activities",
+     [
+      "(3,919,063)",
+      "5,288,687"
+     ]
+    ],
+    "cash_end": [
+     52,
+     "Cash and cash equivalents at end of the year",
+     [
+      "26",
+      "5,076,661",
+      "9,007,824"
+     ]
+    ],
+    "cash_beginning": [
+     52,
+     "Cash and cash equivalents at beginning of the year",
+     [
+      "9,007,824",
+      "3,841,864"
+     ]
+    ],
+    "provision_expense": [
+     49,
+     "Impairment charge for financing,net 7(a)",
+     [
+      "275,220",
+      "252,242"
+     ]
+    ],
+    "financing_income": [
+     49,
+     "Income from investing and financing assets",
+     [
+      "17",
+      "860,553",
+      "727,934"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2018-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2018-12-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "f6bf746371c2b417.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2018-fy.json",
+   "filing_type": "annual-report",
+   "period_end": "2018-12-31",
+   "facts_published": 24,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "288b9abab7bf443e.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 21,
+    "value_on_page_period_header_not_machine_readable": 2,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 1,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "depreciation_amortization": [
+     43,
+     "Depreciation and amortisation",
+     [
+      "8",
+      "108,092",
+      "96,519"
+     ]
+    ],
+    "provision_expense": [
+     43,
+     "Impairment charge for credit and other financial assets, net",
+     [
+      "490,453",
+      "378,625"
+     ]
+    ],
+    "trading_income": [
+     43,
+     "Gains on fair value through profit or loss investments, net",
+     [
+      "-",
+      "7,820"
+     ]
+    ],
+    "financing_income": [
+     43,
+     "Income from investing and financing assets",
+     [
+      "19",
+      "2,704,984",
+      "2,117,189"
+     ]
+    ],
+    "net_financing_income": [
+     43,
+     "Income from investing and financing assets, net",
+     [
+      "2,145,469",
+      "1,738,995"
+     ]
+    ],
+    "statutory_reserve": [
+     43,
+     "Statutory reserve",
+     [
+      "15",
+      "-",
+      "866,508"
+     ]
+    ]
+   },
+   "defects": [
+    "D6",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2019-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-12-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "4d768291d9ef9f78.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2019-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2019-12-31",
+   "facts_published": 32,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "b4f3e202f47d7c56.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 32,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "financing_income": [
+     8,
+     "Income from investing and financing assets",
+     [
+      "20",
+      "3,355,200",
+      "2,723,748"
+     ]
+    ],
+    "net_financing_income": [
+     8,
+     "Income from investing and financing assets, net",
+     [
+      "2,716,971",
+      "2,164,233"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2019-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-03-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "b6c04fde6169723d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2019-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-06-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "ebfeae3f007f0917.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2019-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2019-09-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "012d58e80146fe3a.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-12-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "14dc97cc8a2cd5fb.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2020-12-31",
+   "facts_published": 31,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "f4b8e2a5e1271871.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 31,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "investing_cash_flow": [
+     14,
+     "Net cash )used in( investing activities",
+     [
+      "(3,890,538)",
+      "(4,120,887)"
+     ]
+    ],
+    "financing_cash_flow": [
+     14,
+     "Net cash )used in( financing activities",
+     [
+      "(562,487)",
+      "(549,182)"
+     ]
+    ],
+    "financing_income": [
+     10,
+     "Income from investing and financing assets",
+     [
+      "20",
+      "3,626,568",
+      "3,461,992"
+     ]
+    ],
+    "net_financing_income": [
+     10,
+     "Income from investing and financing assets, net",
+     [
+      "3,292,632",
+      "2,823,763"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-03-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "45a6caef11511283.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2020-03-31",
+   "facts_published": 33,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "29c0848d27dd540d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 33,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     9,
+     "Net cash generated from / (used in) operating activities",
+     [
+      "992,252",
+      "(2,704,990)"
+     ]
+    ],
+    "financing_income": [
+     5,
+     "Income from investing and financing assets",
+     [
+      "869,176",
+      "769,739"
+     ]
+    ],
+    "net_financing_income": [
+     5,
+     "Income from investing and financing assets, net",
+     [
+      "730,548",
+      "597,091"
+     ]
+    ],
+    "due_to_banks": [
+     9,
+     "Due to banks, SAMA and other financial institutions",
+     [
+      "1,528,587",
+      "(2,018,509)"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-06-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "b635de5520cfdfa1.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2020-06-30",
+   "facts_published": 43,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "d49a8022259f711f.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 43,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash generated from / (used in) operating activities",
+     [
+      "322,698",
+      "(1,028,276)"
+     ]
+    ],
+    "investing_cash_flow": [
+     8,
+     "Net cash (used in) investing activities",
+     [
+      "(1,904,655)",
+      "(2,434,334)"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash (used in) financing activities",
+     [
+      "(498,153)",
+      "(158,851)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "916,997",
+      "845,205",
+      "1,815,703",
+      "1,648,804"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "830,221",
+      "693,099",
+      "1,590,299",
+      "1,324,050"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, SAMA and other financial institutions",
+     [
+      "5,024,140",
+      "(1,709,569)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2020-09-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "1b607038c6c4d308.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2020-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2020-09-30",
+   "facts_published": 43,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "0246f773ba97dfa5.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 43,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash generated from / (used in) operating activities",
+     [
+      "601,019",
+      "(829,902)"
+     ]
+    ],
+    "investing_cash_flow": [
+     8,
+     "Net cash (used in) investing activities",
+     [
+      "(3,050,162)",
+      "(3,143,627)"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash (used in) financing activities",
+     [
+      "(533,203)",
+      "(509,797)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "911,235",
+      "888,047",
+      "2,726,938",
+      "2,536,851"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "855,523",
+      "728,592",
+      "2,445,822",
+      "2,052,642"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, SAMA and other financial institutions",
+     [
+      "4,823,769",
+      "(2,304,547)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-12-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "1ee5c0dcd399eb8b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2021-12-31",
+   "facts_published": 29,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "4a16930762459825.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 29,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "investing_cash_flow": [
+     13,
+     "Net cash )used in( investing activities",
+     [
+      "(2,848,958)",
+      "(3,890,538)"
+     ]
+    ],
+    "financing_cash_flow": [
+     13,
+     "Net cash generated from/ )used in( financing activities",
+     [
+      "813,177",
+      "(562,487)"
+     ]
+    ],
+    "trading_income": [
+     13,
+     "Loss on FVSI investments, net",
+     [
+      "28,815",
+      "64,447"
+     ]
+    ],
+    "financing_income": [
+     9,
+     "Income from investing and financing assets",
+     [
+      "20",
+      "3,761,250",
+      "3,626,568"
+     ]
+    ],
+    "net_financing_income": [
+     9,
+     "Income from investing and financing assets, net",
+     [
+      "3,489,494",
+      "3,292,632"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-03-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "4f67d17bd6c1b0bd.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2021-03-31",
+   "facts_published": 29,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "2ba6ca0f120fc8de.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 29,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "investing_cash_flow": [
+     8,
+     "Net cash (used in) investing activities",
+     [
+      "(1,316,506)",
+      "(1,228,386)"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash (used in) financing activities",
+     [
+      "(50,752)",
+      "(62,528)"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Loss on fair value through profit and loss (FVTPL) investmen",
+     [
+      "(8,383)",
+      "(25,820)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "911,712",
+      "907,706"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "858,758",
+      "769,078"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, SAMA and other financial institutions",
+     [
+      "1,144,786",
+      "1,528,587"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-06-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "1ca837b3e30f4722.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2021-06-30",
+   "facts_published": 43,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "d90d8faf9efbbd98.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 43,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "investing_cash_flow": [
+     8,
+     "Net cash (used in) investing activities",
+     [
+      "(2,102,700)",
+      "(1,904,797)"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash generated from/ (used in) financing activities",
+     [
+      "1,970,949",
+      "(498,153)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "910,683",
+      "907,997",
+      "1,822,395",
+      "1,815,703"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "842,494",
+      "821,221",
+      "1,701,252",
+      "1,590,299"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, SAMA and other financial institutions",
+     [
+      "(339,642)",
+      "5,024,140"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2021-09-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "ac25f8a6663dc760.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2021-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2021-09-30",
+   "facts_published": 40,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "997ed6350a178305.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 40,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "investing_cash_flow": [
+     8,
+     "Net cash (used in) investing activities",
+     [
+      "(2,689,317)",
+      "(3,050,162)"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash generated from/ (used in) financing activities",
+     [
+      "848,080",
+      "(533,203)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "963,362",
+      "911,235",
+      "2,785,757",
+      "2,726,938"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, SAMA and other financial institutions",
+     [
+      "2,520,545",
+      "4,823,769"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-12-31",
+   "facts_published": 33,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "5743a013c00d927e.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2022-12-31",
+   "facts_published": 34,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "188490f5540fe4af.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 29,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 5,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "investing_cash_flow": [
+     13,
+     "Net cash )used in( investing activities",
+     [
+      "(3,046,267)",
+      "(2,848,958)"
+     ]
+    ],
+    "financing_cash_flow": [
+     13,
+     "Net cash )used in( / generated from financing activities",
+     [
+      "(219,496)",
+      "813,177"
+     ]
+    ],
+    "financing_income": [
+     9,
+     "Income from investing and financing assets",
+     [
+      "20",
+      "4,971,547",
+      "3,761,250"
+     ]
+    ],
+    "net_financing_income": [
+     9,
+     "Income from investing and financing assets, net",
+     [
+      "3,886,668",
+      "3,489,494"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-03-31",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "191607b006f6cf2f.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2022-03-31",
+   "facts_published": 35,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "c4295945c7acf902.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 35,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "trading_income": [
+     4,
+     "Gains / (losses) on FVSI Financial instruments, net",
+     [
+      "31,776",
+      "(8,383)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "1,040,747",
+      "911,712"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "944,462",
+      "858,758"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi central bank and other financial institu",
+     [
+      "(165,012)",
+      "1,144,786"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-06-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "aac87f793a63e0ad.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2022-06-30",
+   "facts_published": 45,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "2eec0cc06e5a07a2.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 45,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "financing_cash_flow": [
+     8,
+     "Net cash (used in)/generated from financing activities",
+     [
+      "(109,761)",
+      "1,970,949"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Gains/(losses) on FVSI investment, net",
+     [
+      "4,323",
+      "6,344",
+      "36,099",
+      "(2,039)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "1,139,346",
+      "910,683",
+      "2,180,093",
+      "1,822,395"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "956,658",
+      "842,494",
+      "1,901,120",
+      "1,701,252"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi central bank and other financial institu",
+     [
+      "1,625,709",
+      "(339,642)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2022-09-30",
+   "facts_published": 13,
+   "facts_rejected_or_excluded": 57,
+   "source_document": "6c4c80f7a94f4cb8.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 70,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2022-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2022-09-30",
+   "facts_published": 45,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "dedb5802cca7cf88.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 45,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "financing_cash_flow": [
+     8,
+     "Net cash (used in)/from financing activities",
+     [
+      "(166,407)",
+      "848,080"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Gains on FVSI investment, net",
+     [
+      "5,980",
+      "2,042",
+      "42,079",
+      "3"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "1,310,477",
+      "963,362",
+      "3,490,570",
+      "2,785,757"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,003,377",
+      "886,752",
+      "2,904,497",
+      "2,588,004"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi central bank and other financial institu",
+     [
+      "1,657,483",
+      "2,520,545"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-12-31",
+   "facts_published": 9,
+   "facts_rejected_or_excluded": 36,
+   "source_document": "defdc6ead331b3d4.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2023-12-31",
+   "facts_published": 35,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "c731b8da5ffc282b.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 35,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "trading_income": [
+     13,
+     "Gains on FVSI investments, net",
+     [
+      "(87,787)",
+      "(29,028)"
+     ]
+    ],
+    "financing_income": [
+     9,
+     "Income from investing and financing assets",
+     [
+      "20",
+      "7,543,782",
+      "4,971,547"
+     ]
+    ],
+    "net_financing_income": [
+     9,
+     "Income from investing and financing assets, net",
+     [
+      "4,109,839",
+      "3,886,668"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-03-31",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "aa0557b8893687b8.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2023-03-31",
+   "facts_published": 37,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "42b1142f14ea909d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 37,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "trading_income": [
+     4,
+     "Gain on fair value through statement of income (FVSI) instru",
+     [
+      "36,302",
+      "31,776"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "1,697,717",
+      "1,040,747"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,037,436",
+      "944,462"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(4,871,932)",
+      "(165,012)"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-06-30",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "f9427869efe697ee.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2023-06-30",
+   "facts_published": 49,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "c18fe42f0ae0ffdf.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 49,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash (used in) / generated from operating activities",
+     [
+      "(2,545,256)",
+      "2,049,035"
+     ]
+    ],
+    "trading_income": [
+     8,
+     "Gain on FVSI financial instruments, net",
+     [
+      "(50,384)",
+      "(36,099)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "1,840,268",
+      "1,139,346",
+      "3,537,985",
+      "2,180,093"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,016,091",
+      "956,658",
+      "2,053,527",
+      "1,901,120"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(5,395,603)",
+      "1,625,709"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2023-09-30",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "9d9ed40902780c94.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2023-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2023-09-30",
+   "facts_published": 49,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "b357c2faf064ace6.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 49,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash (used in) / generated from operating activities",
+     [
+      "(3,067,566)",
+      "5,643,192"
+     ]
+    ],
+    "trading_income": [
+     8,
+     "Gain on FVSI financial instruments, net",
+     [
+      "(70,754)",
+      "(42,079)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "1,974,939",
+      "1,310,477",
+      "5,512,924",
+      "3,490,570"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,051,990",
+      "1,003,377",
+      "3,105,517",
+      "2,904,497"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(6,577,434)",
+      "1,657,483"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-12-31",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "343ee62f89d89420.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-03-31",
+   "facts_published": 7,
+   "facts_rejected_or_excluded": 33,
+   "source_document": "5343119b2b7f6552.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 40,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2024-03-31",
+   "facts_published": 37,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "a6ce61bb5fe2be17.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 37,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash (used in) / generated from operating activities",
+     [
+      "(218,191)",
+      "414,757"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Gain on fair value through statement of income (FVSI) instru",
+     [
+      "4,254",
+      "36,302"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,060,230",
+      "1,697,717"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,044,729",
+      "1,037,436"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(244,043)",
+      "(4,871,932)"
+     ]
+    ]
+   },
+   "defects": [
+    "D4",
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-06-30",
+   "facts_published": 9,
+   "facts_rejected_or_excluded": 36,
+   "source_document": "861d68370c11b0f4.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2024-06-30",
+   "facts_published": 50,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "bb1770c6cf45be67.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 50,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash generated from / (used in) operating activities",
+     [
+      "2,348,230",
+      "(2,538,017)"
+     ]
+    ],
+    "trading_income": [
+     8,
+     "Gain on FVSI financial instruments, net",
+     [
+      "(28,506)",
+      "(50,384)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,104,692",
+      "1,840,268",
+      "4,164,922",
+      "3,537,985"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,084,774",
+      "1,016,091",
+      "2,129,503",
+      "2,053,527"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "47,512",
+      "(5,395,603)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2024-09-30",
+   "facts_published": 7,
+   "facts_rejected_or_excluded": 33,
+   "source_document": "93808188b1fb7507.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 40,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2024-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2024-09-30",
+   "facts_published": 50,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "28c429ca31baf38e.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 50,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash generated from / (used in) operating activities",
+     [
+      "8,938,695",
+      "(3,056,777)"
+     ]
+    ],
+    "trading_income": [
+     8,
+     "Gain on FVSI financial instruments, net",
+     [
+      "(19,366)",
+      "(70,754)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,204,564",
+      "1,974,939",
+      "6,369,486",
+      "5,512,924"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,159,785",
+      "1,051,990",
+      "3,289,288",
+      "3,105,517"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(166,048)",
+      "(6,577,434)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-fy-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-12-31",
+   "facts_published": 38,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "74fc7eb2d970cde2.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 75,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-fy.json",
+   "filing_type": "financial-statements",
+   "period_end": "2025-12-31",
+   "facts_published": 86,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "5dfade6ef76325b0.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 75,
+    "value_on_page_period_header_not_machine_readable": 11,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "net_fee_income": [
+     9,
+     "Fee and commission income, net",
+     [
+      "22",
+      "722,973",
+      "700,515"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-03-31",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "4b1f8551d6ea6d59.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2025-03-31",
+   "facts_published": 34,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "6c9634f146ed5ece.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 34,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash generated from / (used in) from operating activitie",
+     [
+      "859,714",
+      "(218,191)"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Gain on fair value through statement of income (FVSI) instru",
+     [
+      "2,245",
+      "4,254"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,192,276",
+      "2,060,230"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,161,996",
+      "1,044,729"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(806,697)",
+      "(244,043)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-06-30",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "c465610556fa3bd5.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2025-06-30",
+   "facts_published": 50,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "0eff8c4410513f5c.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 50,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash (used in) / generated from operating activities",
+     [
+      "(1,318,950)",
+      "2,348,230"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash from / (used in) financing activities",
+     [
+      "2,302,043",
+      "(753,290)"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Gain on FVSI Financial instruments, net",
+     [
+      "5,762",
+      "24,252",
+      "8,007",
+      "28,506"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,248,715",
+      "2,104,692",
+      "4,440,991",
+      "4,164,922"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,176,737",
+      "1,084,774",
+      "2,338,733",
+      "2,129,503"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "815,541",
+      "47,512"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-q3-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2025-09-30",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "a50e04e4cc41e1ed.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2025-q3.json",
+   "filing_type": "interim-report",
+   "period_end": "2025-09-30",
+   "facts_published": 50,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "4cd5a37726c08d3c.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 49,
+    "value_on_page_period_header_not_machine_readable": 1,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "financing_cash_flow": [
+     8,
+     "Net cash from / (used in) financing activities",
+     [
+      "1,538,637",
+      "(1,459,992)"
+     ]
+    ],
+    "trading_income": [
+     4,
+     "Gain / (loss) on FVSI Financial instruments, net",
+     [
+      "10,087",
+      "(9,140)",
+      "18,094",
+      "19,366"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,321,182",
+      "2,204,564",
+      "6,762,173",
+      "6,369,486"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,194,750",
+      "1,159,785",
+      "3,533,483",
+      "3,289,288"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "1,418,317",
+      "(166,048)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2026-q1-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2026-03-31",
+   "facts_published": 8,
+   "facts_rejected_or_excluded": 37,
+   "source_document": "98a0cbb642b89838.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2026-q1.json",
+   "filing_type": "interim-report",
+   "period_end": "2026-03-31",
+   "facts_published": 30,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "314d8b6e1590c77d.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 30,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     8,
+     "Net cash (used in) / generated from operating activities",
+     [
+      "(2,077,095)",
+      "859,714"
+     ]
+    ],
+    "investing_cash_flow": [
+     8,
+     "Net cash used in investing activities",
+     [
+      "(417,349)",
+      "(1,293,100)"
+     ]
+    ],
+    "financing_cash_flow": [
+     8,
+     "Net cash from / (used in) financing activities",
+     [
+      "1,552,721",
+      "(62,592)"
+     ]
+    ],
+    "cash_end": [
+     8,
+     "Cash and cash equivalents at the end of the period",
+     [
+      "11",
+      "6,493,479",
+      "8,231,056"
+     ]
+    ],
+    "cash_beginning": [
+     8,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "7,435,202",
+      "8,727,034"
+     ]
+    ],
+    "trading_income": [
+     8,
+     "Gain on FVSI Financial instruments, net",
+     [
+      "(8,995)",
+      "(2,245)"
+     ]
+    ],
+    "financing_income": [
+     4,
+     "Income from investing and financing assets",
+     [
+      "2,395,180",
+      "2,192,276"
+     ]
+    ],
+    "net_financing_income": [
+     4,
+     "Income from investing and financing assets, net",
+     [
+      "1,258,890",
+      "1,161,996"
+     ]
+    ],
+    "due_to_banks": [
+     8,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "(3,262,036)",
+      "(806,697)"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2026-q2-pillar3.json",
+   "filing_type": "regulatory-disclosure",
+   "period_end": "2026-06-30",
+   "facts_published": 40,
+   "facts_rejected_or_excluded": 5,
+   "source_document": "19c2bb282a7ad7fe.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "Pillar 3 row id / cell letter vs printed table cell, header month and unit checked (published and rejected facts)",
+    "verified_correct": 45,
+    "not_comparable_cell_missing": 0,
+    "mismatch": 0
+   },
+   "document_completeness_unextracted_lines_present_in_document": {},
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  },
+  {
+   "manifest": "albilad-2026-q2.json",
+   "filing_type": "interim-report",
+   "period_end": "2026-06-30",
+   "facts_published": 46,
+   "facts_rejected_or_excluded": 0,
+   "source_document": "0ba98c2d0cc54ac9.pdf",
+   "status": "done",
+   "numeric_correctness": {
+    "method": "independent PyMuPDF row/column rebuild; printed number, label, column header date/period and sign checked on the cited page",
+    "verified_correct_value_label_period": 46,
+    "value_on_page_period_header_not_machine_readable": 0,
+    "value_on_page_label_match_weak_reviewed_in_defects_or_noise": 0,
+    "not_found_on_cited_page": []
+   },
+   "document_completeness_unextracted_lines_present_in_document": {
+    "operating_cash_flow": [
+     9,
+     "Net cash generated from / (used in) operating activities",
+     [
+      "4,291,585",
+      "(1,318,950)"
+     ]
+    ],
+    "investing_cash_flow": [
+     9,
+     "Net cash used in investing activities",
+     [
+      "(1,441,851)",
+      "(3,993,220)"
+     ]
+    ],
+    "financing_cash_flow": [
+     9,
+     "Net cash (used in) / generated from financing activities",
+     [
+      "(2,451,671)",
+      "2,302,043"
+     ]
+    ],
+    "cash_end": [
+     9,
+     "Cash and cash equivalents at the end of the period",
+     [
+      "11",
+      "7,833,265",
+      "5,716,907"
+     ]
+    ],
+    "cash_beginning": [
+     9,
+     "Cash and cash equivalents at the beginning of the period",
+     [
+      "7,435,202",
+      "8,727,034"
+     ]
+    ],
+    "trading_income": [
+     5,
+     "Gain on FVSI Financial instruments, net",
+     [
+      "584",
+      "5,762",
+      "9,579",
+      "8,007"
+     ]
+    ],
+    "financing_income": [
+     5,
+     "Income from investing and financing assets",
+     [
+      "2,594,239",
+      "2,248,715",
+      "4,989,419",
+      "4,440,991"
+     ]
+    ],
+    "net_financing_income": [
+     5,
+     "Income from investing and financing assets, net",
+     [
+      "1,272,119",
+      "1,176,737",
+      "2,531,009",
+      "2,338,733"
+     ]
+    ],
+    "due_to_banks": [
+     9,
+     "Due to banks, Saudi Central Bank and other financial institu",
+     [
+      "784,097",
+      "815,541"
+     ]
+    ]
+   },
+   "defects": [
+    "D9",
+    "D10"
+   ]
+  }
+ ]
+}
