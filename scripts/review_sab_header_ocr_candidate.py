@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import sys
+import os
 from pathlib import Path
 import pymupdf
 
@@ -50,14 +51,22 @@ db=Database('/app/state/financial.sqlite3',initialize=False)
 db.conn.execute('PRAGMA query_only=ON')
 company=CompanyRegistry.combined(db.conn,'/app/config/companies.json').get('sa:1060')
 prior=Path('/app/state/reports/sab-period-correction-review/interim-batch-v1')
-root=prior.with_name('interim-header-candidate-v3')
+root=prior.with_name(os.environ.get('SAB_BATCH_ROOT', 'interim-header-candidate-v3'))
 root.mkdir(exist_ok=True)
-for review in sorted(prior.glob('*.review.json')):
-    info=json.loads(review.read_text());key=info['source_key'];digest=key.rsplit(':',1)[1]
+if os.environ.get('SAB_BATCH_KEYS'):
+    keys=json.loads(Path(os.environ['SAB_BATCH_KEYS']).read_text())
+else:
+    keys=[json.loads(p.read_text())['source_key'] for p in sorted(prior.glob('*.review.json'))]
+for key in keys:
+    digest=key.rsplit(':',1)[1]
     target=root/(digest+'.review.json')
     if target.exists():continue
     source=db.stored_source(key)
-    manifest,report,reader=cli._read_pdf_manifest(Path(source['local_path']),company,source,False)
+    try:
+        manifest,report,reader=cli._read_pdf_manifest(Path(source['local_path']),company,source,False)
+    except Exception as error:
+        target.write_text(json.dumps({'source_key':key,'error':str(error),'production_modified':False}))
+        continue
     (root/(digest+'.manifest.json')).write_text(json.dumps(manifest,indent=2,default=str))
     result={'source_key':key,'facts':len(manifest.get('facts',[])),
             'verification':report,'production_modified':False,'candidate_only':True}
