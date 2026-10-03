@@ -1,0 +1,420 @@
+{
+ "generated": "2026-10-03",
+ "branch_base": "origin/codex/telecom-95pct @ ec610f3",
+ "method": "repo data (manifest source_url, archive-index.json, audit records on origin/claude/audit-saudi-batch1-B) plus curl HEAD only and web search for official pages; no document bodies downloaded, no data/AWS/Supabase changes. Status: verified-live = HTTP 200 on HEAD; from-repo-only = URL taken from repo, not live-confirmed; unverified = URL from web search only, not live-confirmed.",
+ "files": [
+  {
+   "symbol": "2082",
+   "period": "Q2 2026 (2026-06-30)",
+   "document_type": "interim condensed consolidated FS (English)",
+   "official_url": "https://www.acwapower.com/media/rq4j2qvc/acwa-q2-2026-english-fs.pdf",
+   "expected_file_name": "90a94668088c628e9e6f96cece87c7eb51e56635870a40bb31ff4788c0530c0e.pdf",
+   "link_status": "verified-live",
+   "repo_reference": {
+    "manifests": [
+     "data/imports/acwa-2026-q2.json"
+    ],
+    "archive_index_content_hash": "90a94668088c628e9e6f96cece87c7eb51e56635870a40bb31ff4788c0530c0e",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "HTTP HEAD 200 application/pdf from this machine (no body downloaded). archive-index lists the hash and local_path data/raw/SA/2082/documents/<hash>.pdf, but the file is on no branch/worktree (all sibling worktrees searched). Match the AWS object by SHA-256 = file name."
+  },
+  {
+   "symbol": "2082",
+   "period": "FY2025 (2025-12-31)",
+   "document_type": "audited consolidated FS + KPMG auditor report",
+   "official_url": "https://www.acwapower.com/media/5ulnuxhn/api_consolidated_fs_year-end_2025-_3-03_compressed.pdf",
+   "expected_file_name": "(no hash in repo; compute SHA-256 of AWS candidates)",
+   "link_status": "verified-live",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "HTTP HEAD 200 application/pdf from this machine (no body downloaded). URL found via web search of acwapower.com. NOT referenced anywhere in the repo (no FY2025 ACWA manifest or archive entry). Candidate only; confirm the title page reads Consolidated Financial Statements for 31 December 2025."
+  },
+  {
+   "symbol": "2082",
+   "period": "FY2025 (2025-12-31)",
+   "document_type": "investor report (analytical, not the statements)",
+   "official_url": "https://www.acwapower.com/media/evgihc4e/acwa_year-end-2025_investor-report_en_compressed.pdf",
+   "expected_file_name": "(none)",
+   "link_status": "verified-live",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "HTTP HEAD 200 application/pdf from this machine (no body downloaded). Supplementary; not the audited statements."
+  },
+  {
+   "symbol": "2082",
+   "period": "FY2025 (2025-12-31)",
+   "document_type": "integrated annual report (contains the audited FS)",
+   "official_url": "https://www.acwapower.com/media/b0tnh1to/acwa-integrated-annual-report-2025-eng.pdf",
+   "expected_file_name": "(none)",
+   "link_status": "verified-live",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "HTTP HEAD 200 application/pdf from this machine (no body downloaded). Alternative if the standalone FS PDF is not in AWS. Interactive version https://iar2025.acwapower.com/ (search-listed, unchecked). IR landing page from config/companies.json: https://www.acwapower.com/en/investors/investors-overview/ (from repo, unchecked)."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2019 (2019-12-31)",
+   "document_type": "annual report incl. audited consolidated FS",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2019-english.pdf",
+   "expected_file_name": "(no hash in repo)",
+   "link_status": "unverified",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed. URL from web search listing (Annual Report 2019, published 2020-03-17, ~8.3MB). Not referenced in repo: aramco-2019-fy-historical.json cites the 2022 AR (hash 0451f1...)."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2020 (2020-12-31)",
+   "document_type": "annual report incl. audited consolidated FS",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2020-english.pdf",
+   "expected_file_name": "(no hash in repo)",
+   "link_status": "unverified",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed. URL from web search listing (published 2021-03-23, ~9.3MB). Not referenced in repo: aramco-2020-fy-historical.json cites the 2022 AR. Alternative full-financials: https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2020/q4---fy/saudi-aramco-fy-2020-full-financials-english.pdf (search-listed)."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2021 (2021-12-31)",
+   "document_type": "annual report incl. audited consolidated FS",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2021-english.pdf",
+   "expected_file_name": "(no hash in repo)",
+   "link_status": "unverified",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed. URL from web search listing (published 2022-03-21, ~7.5MB). Not referenced in repo: aramco-2021-* manifests cite the 2022 AR. Alternative full-financials: https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2021/q4---fy/saudi-aramco-fy-2021-full-financials-report-english.pdf (search-listed)."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2022 (also cited by repo for 2021/2020/2019)",
+   "document_type": "annual report incl. audited FS",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2022-english.pdf",
+   "expected_file_name": "0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2019-fy-historical.json",
+     "aramco-2020-fy-historical.json",
+     "aramco-2021-annual-metrics.json",
+     "aramco-2021-fy-historical.json",
+     "aramco-2022-annual-metrics.json",
+     "aramco-2022-fy-historical.json"
+    ],
+    "archive_index_content_hash": "0451f1531bb03cf6504ac711df2ca6474e1623edd178af903a83605cab66f353",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed. Repo URL path has /annual-reports/; a web search listed the same report at https://www.aramco.com/-/media/publications/corporate-reports/saudi-aramco-ara-2022-english.pdf (no /annual-reports/ segment) - try both."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2023",
+   "document_type": "annual report incl. audited FS",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2023-english.pdf",
+   "expected_file_name": "4ae156d697ffb78a78c781dda39dd5259dd1c30317233b7565c8622f14875c21.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2023-annual-metrics.json",
+     "aramco-2023-fy.json"
+    ],
+    "archive_index_content_hash": "4ae156d697ffb78a78c781dda39dd5259dd1c30317233b7565c8622f14875c21",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2024",
+   "document_type": "annual report incl. audited FS",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/annual-reports/saudi-aramco-ara-2024-english.pdf",
+   "expected_file_name": "2626b292eb4fd236ba9bbf0930794350d99146d161a30f993d731f36113dd1f6.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2024-annual-metrics.json"
+    ],
+    "archive_index_content_hash": "2626b292eb4fd236ba9bbf0930794350d99146d161a30f993d731f36113dd1f6",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2025 (comparative 2024)",
+   "document_type": "full-year consolidated financial statements",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-fy-2025-full-financials-english.pdf",
+   "expected_file_name": "5a3db2a93fb91a484184a65be49d2043b730d30c8e7b986b26e1d552aa54b8f4.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2024-full-notes-comparative.json",
+     "aramco-2024-fy-comparative.json",
+     "aramco-2025-full-notes.json",
+     "aramco-2025-fy.json",
+     "aramco-2025-deep-dimensional-notes.json",
+     "aramco-2025-gap-fill.json",
+     "aramco-2025-lease-interest.json"
+    ],
+    "archive_index_content_hash": "5a3db2a93fb91a484184a65be49d2043b730d30c8e7b986b26e1d552aa54b8f4",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed."
+  },
+  {
+   "symbol": "2222",
+   "period": "Q1 2026 (2026-03-31)",
+   "document_type": "interim report",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2026/q1/saudi-aramco-q1-2026-interim-report-english.pdf",
+   "expected_file_name": "e3f8215a49ca2568df65c178ef0b681fdd6c43aa20558032424bc9e033c46191.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2026-q1.json"
+    ],
+    "archive_index_content_hash": "e3f8215a49ca2568df65c178ef0b681fdd6c43aa20558032424bc9e033c46191",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed."
+  },
+  {
+   "symbol": "2222",
+   "period": "H1/Q2 2026 (2026-06-30)",
+   "document_type": "interim report",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2026/h1/saudi-aramco-h1-2026-interim-report-english.pdf",
+   "expected_file_name": "4773cfe444de7e9734a65a59d8e1dd301229d9aa05164729e2b8f983d81cfb41.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2026-q2.json"
+    ],
+    "archive_index_content_hash": "4773cfe444de7e9734a65a59d8e1dd301229d9aa05164729e2b8f983d81cfb41",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed."
+  },
+  {
+   "symbol": "2222",
+   "period": "FY2025 (already archived on main; for AWS match only)",
+   "document_type": "annual report",
+   "official_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
+   "expected_file_name": "78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "aramco-2025-annual-metrics.json",
+     "aramco-2025-governance-risk.json"
+    ],
+    "archive_index_content_hash": "78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": "78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227",
+   "sha256_if_local": "data/raw/SA/2222/documents/78bb678e8e45f5c58fa1b2402ab5a29c5ad10adfda8ba5e7ee5f4d1ad76cd227.pdf",
+   "note": "Not reachable from this machine (curl HEAD returned no response; aramco.com likely blocks scripted/this-network access); link NOT live-confirmed. File is present in the repo; SHA-256 recomputed locally and equals the file name."
+  },
+  {
+   "symbol": "8010",
+   "period": "FY2025 (2025-12-31)",
+   "document_type": "annual report incl. audited FS",
+   "official_url": "https://www.tawuniya.com/docs/2025_Annual_Report_EN.pdf",
+   "expected_file_name": "fce6dcdf382f3a476a1eb5b2e0dee0200a1791f6d5d5ae2d7b44946464f06d75.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2025-fy.json"
+    ],
+    "archive_index_content_hash": "fce6dcdf382f3a476a1eb5b2e0dee0200a1791f6d5d5ae2d7b44946464f06d75",
+    "archive_index_file": "data/raw/archive-index.json"
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/fce6dcdf382f3a476a1eb5b2e0dee0200a1791f6d5d5ae2d7b44946464f06d75.pdf",
+   "sha256_if_local": "fce6dcdf382f3a476a1eb5b2e0dee0200a1791f6d5d5ae2d7b44946464f06d75",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 20139113 bytes. archive-index on main lists this hash but the file is not on main."
+  },
+  {
+   "symbol": "8010",
+   "period": "FY2023 (2023-12-31)",
+   "document_type": "annual/board report (file BODEn.pdf)",
+   "official_url": "https://www.tawuniya.com/docs/BODEn.pdf",
+   "expected_file_name": "1975790ff3fd29669340e72aba0507fae6c6a9f2efe9676186d46965bdfdda37.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2023-fy.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/1975790ff3fd29669340e72aba0507fae6c6a9f2efe9676186d46965bdfdda37.pdf",
+   "sha256_if_local": "1975790ff3fd29669340e72aba0507fae6c6a9f2efe9676186d46965bdfdda37",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 8655949 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "Q3 2024 (2024-09-30)",
+   "document_type": "interim FS",
+   "official_url": "https://www.tawuniya.com/docs/Tawuniya_Q3_FS-English.pdf",
+   "expected_file_name": "a9707e8dba92f5580774c04a0a023f88508db41ad1819b96e9f90daf89367a85.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2024-q3.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/a9707e8dba92f5580774c04a0a023f88508db41ad1819b96e9f90daf89367a85.pdf",
+   "sha256_if_local": "a9707e8dba92f5580774c04a0a023f88508db41ad1819b96e9f90daf89367a85",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 2518051 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "Q4/FY 2024 (2024-12-31)",
+   "document_type": "FS",
+   "official_url": "https://www.tawuniya.com/docs/2024_Q4_Financial_Statements_EN.pdf",
+   "expected_file_name": "fe019c74c9a5fd1c986322bc022f148cf9268e3147f5635071b0ca33bf2b27b8.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2024-q4.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/fe019c74c9a5fd1c986322bc022f148cf9268e3147f5635071b0ca33bf2b27b8.pdf",
+   "sha256_if_local": "fe019c74c9a5fd1c986322bc022f148cf9268e3147f5635071b0ca33bf2b27b8",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 2351616 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "Q1 2025 (2025-03-31)",
+   "document_type": "interim FS",
+   "official_url": "https://www.tawuniya.com/docs/2025_Q1_Financial_Statements_EN.pdf",
+   "expected_file_name": "37f076968d3580f461982c8787e1b49dbfc9255b552691ba64ce9406dabbd263.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2025-q1.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/37f076968d3580f461982c8787e1b49dbfc9255b552691ba64ce9406dabbd263.pdf",
+   "sha256_if_local": "37f076968d3580f461982c8787e1b49dbfc9255b552691ba64ce9406dabbd263",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 3032733 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "Q2 2025 (2025-06-30)",
+   "document_type": "interim FS",
+   "official_url": "https://www.tawuniya.com/docs/2025_Q2_Financial_Statements_EN.pdf",
+   "expected_file_name": "e54081c727f82c25f3a1d5cd3a80a2322bac90ec955206f4e75cc699cb8c1788.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2025-q2.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/e54081c727f82c25f3a1d5cd3a80a2322bac90ec955206f4e75cc699cb8c1788.pdf",
+   "sha256_if_local": "e54081c727f82c25f3a1d5cd3a80a2322bac90ec955206f4e75cc699cb8c1788",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 2177611 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "Q3 2025 (2025-09-30)",
+   "document_type": "interim FS",
+   "official_url": "https://www.tawuniya.com/docs/2025_Q3_Financial_Statements_EN.pdf",
+   "expected_file_name": "1067c984c544812abc6a8225bdd12b471d65c337971807c1205b37abeb2b4348.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2025-q3.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/1067c984c544812abc6a8225bdd12b471d65c337971807c1205b37abeb2b4348.pdf",
+   "sha256_if_local": "1067c984c544812abc6a8225bdd12b471d65c337971807c1205b37abeb2b4348",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 3137521 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "Q4/FY 2025 (2025-12-31)",
+   "document_type": "FS",
+   "official_url": "https://www.tawuniya.com/docs/2025_Q4_Financial_Statements_EN.pdf",
+   "expected_file_name": "e44ceb137d421189ad7b25c46c105dffb964f50138566f05259ee722fe79e60b.pdf",
+   "link_status": "from-repo-only",
+   "repo_reference": {
+    "manifests": [
+     "tawuniya-2025-q4.json"
+    ],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": "C:/Users/Mohammed856/Documents/GitHub/finengine-insurance/data/raw/SA/8010/documents/e44ceb137d421189ad7b25c46c105dffb964f50138566f05259ee722fe79e60b.pdf",
+   "sha256_if_local": "e44ceb137d421189ad7b25c46c105dffb964f50138566f05259ee722fe79e60b",
+   "note": "Automated HEAD returned HTTP 403 (tawuniya.com blocks scripted clients); not confirmable from here, open in a normal browser. File EXISTS LOCALLY on branch claude/insurance-tawuniya-bupa-enrichment (2985be4), worktree finengine-insurance; SHA-256 recomputed and equals the file name, so match against AWS instead of downloading. Size 5721636 bytes. Not in main's archive-index."
+  },
+  {
+   "symbol": "8010",
+   "period": "FY2024 (2024-12-31)",
+   "document_type": "annual report incl. audited FY2024 statements (gap: main only has comparatives)",
+   "official_url": "https://www.tawuniya.com/docs/2024_Annual_Report_EN.pdf",
+   "expected_file_name": "(no hash in repo)",
+   "link_status": "unverified",
+   "repo_reference": {
+    "manifests": [],
+    "archive_index_content_hash": null,
+    "archive_index_file": null
+   },
+   "local_copy": null,
+   "sha256_if_local": null,
+   "note": "Listed by web search of tawuniya.com; automated HEAD 403. Not referenced in repo. Audit record says the FY2024 audited statement is missing; the Q4 2024 FS above may cover it. Q1-Q4 2023 and Q1/Q2 2024 statements are also missing; no URLs for them are in the repo and none were guessed."
+  }
+ ]
+}
