@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "symbol": "4164",
+  "name": "Nahdi Medical Company (Al Nahdi)",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B005)",
+    "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+    "method": "SHA-256 recomputed for the files opened by pg.py (sha_ok true). All 7 transcribed filings were read by rendering the statement pages and reading them by eye (annual pages 7-10 and the 2026 interim pages are image-only with no text layer). Arithmetic in tools/check_transcripts.py (BS identity, cash-flow sum and roll including FX) passes for every column; additionally each statement subtotal was re-added by hand. transcripts/4164.json holds the values; tools/mk4164.py regenerates it.",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/flat.py", "tools/sheet.py", "tools/head.py", "tools/survey.py", "tools/tl.py", "tools/check_transcripts.py", "tools/mk4164.py", "transcripts/4164.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_7_filings",
+      "summary": "Verified in whole SAR (printed in SR, not thousands): FY2022, FY2023, FY2024, FY2025 annual statements (BS, P&L/OCI, cash flows) with comparatives (so FY2021 is also available), Q1 2026, H1 2026 (3M and 6M), 9M 2025 (3M and 9M). FY2025: revenue 10,213,238,401; gross profit 3,805,571,399; operating profit 926,542,494; profit before zakat 845,906,381; zakat -15,168,821; net profit 830,737,560; EPS 6.39; total assets 6,690,882,229; equity 2,743,538,365; CFO 1,133,730,127; CFI -354,326,625; CFF -1,181,955,924; cash 554,443,212 (roll with FX 186,055 reconciles). FY2024 original: revenue 9,446,420,046; net profit 820,723,624; total assets 6,173,349,244; CFO 1,491,354,483. FY2023: revenue 8,713,675,990; net profit 892,618,140; total assets 5,371,327,292. FY2022: revenue 8,616,187,816; net profit 887,811,814; total assets 4,944,903,090; FY2021 comparative revenue 8,066,215,379, net profit 812,528,628. H1 2026: revenue 5,468,698,658, net profit 450,908,966, total assets 6,813,816,514, cash 143,679,146; Q2 2026 as printed: revenue 2,674,256,396, net profit 215,226,163. Cash flows are year-to-date cumulative only; income statements of H1 and 9M carry both quarter and cumulative columns. Consistency: Q1 2026 + Q2 2026 = H1 2026 for revenue (2,794,442,262+2,674,256,396=5,468,698,658) and net profit (235,682,803+215,226,163=450,908,966); 9M 2025 = H1 2025 + Q3 2025 for revenue (5,162,518,383+2,461,456,895=7,623,975,278). No discontinued operations in any file; the group has no non-controlling interest presented.",
+      "restatements_and_representations": [
+        "FY2022 re-presented in the FY2023 filing (71be975f): cost of revenue 5,095,295,500 -> 5,070,796,608, gross profit 3,520,892,316 -> 3,545,391,208, other operating income 51,556,435 -> 27,057,543; operating profit, pbt, net profit and total assets unchanged. Both transcribed.",
+        "FY2023 re-presented in the FY2024 filing (c063037c): cost of revenue unchanged; cash flows: CFO 1,368,728,218 -> 1,316,026,804 and CFI -384,256,526 -> -331,555,112 (interest received 52,701,414 moved from operating to investing); BS non-current assets 2,612,583,654 -> 2,623,142,091 (prepayments reclassified), current assets 2,758,743,638 -> 2,748,185,201, total unchanged.",
+        "FY2024 re-presented in the FY2025 filing (4850d417): cost of revenue 5,913,553,658 -> 5,934,073,050, gross profit 3,532,866,388 -> 3,512,346,996, selling and distribution -2,342,299,850 -> -2,321,780,458 (20,519,392 reclass); operating profit and net profit unchanged; BS non-current assets 3,062,389,988 -> 3,079,780,920, current assets 3,110,959,256 -> 3,093,568,324; CFO total unchanged 1,491,354,483, working-capital lines changed.",
+        "9M 2024 comparative in the 9M 2025 filing: CFO 1,093,933,526 (original 9M 2024 filing af076237 not read, so original-versus-comparative could not be compared)."
+      ],
+      "not_read": [
+        "notes to the statements in every file (revenue by segment, UAE operations, leases, zakat)",
+        "statements of changes in equity (headline equity only)",
+        "interim filings not opened: Q1 2022 (02aee213), H1 2022 (f69b4f3a), 9M 2022 (d1a5bebf), Q1 2023 (b2349418), H1 2023 (133c2743), 9M 2023 (ebf52c37), Q1 2024 (5d21dd05), H1 2024 (4f538b69), 9M 2024 (af076237), Q1 2025 (b58c21cd), H1 2025 (89b58c3a); their numbers are available only as comparatives inside the 2025 and 2026 filings (Q1 2025, H1 2025, 9M 2024 income and cash flow columns read)",
+        "Arabic statement files (FY2022 a9068933, FY2023 b0162b54, FY2024 8e1f3ea7, FY2025 5f39f5c8 and Arabic interims): contact-sheet viewed for structure only, numbers not read; the English filings are the transcribed source",
+        "annual reports (fc12364e, 264f2359, a309cf95, 7e2ad318, b053f0aa, b4a4d66e), factsheets and results releases"
+      ]
+    },
+    "document_completeness": {
+      "status": "primary_statements_present_in_all_read_files_inventory_flags_wrong_for_many",
+      "summary": "All annual FS files and all read interims contain the full set of primary statements (BS, P&L/OCI, equity, cash flows). The inventory misclassifies them because the statement pages have no text layer: ff6b8311 (full 9M 2025 interim) is 'other_no_statements_found', c063037c (English FY2024 audited FS) 'other_no_statements_found', 71be975f/9043db49 'partial_statements', 4850d417, 5f39f5c8 and b0162b54 (complete Arabic FY2025 and FY2023 FS, KPMG and EY audit reports present) 'scanned_unreadable', eeba86e1 'partial'. Title pages show f69b4f3a (H1 2022) and 02aee213 (Q1 2022) are full interim financial statements labelled 'results_announcement'. PERIOD LABELS: the English annual FS are labelled with the year after the fiscal year: 9043db49 (FY2022) labelled 2023|FY, 71be975f (FY2023) labelled 2024|FY, c063037c (FY2024) labelled 2025|FY, 4850d417 (FY2025) labelled 2026|FY; the Arabic annual FS carry the right label (a9068933 FY2022, b0162b54 FY2023 labelled 2023|FY, 8e1f3ea7 FY2024 labelled 2024|FY, 5f39f5c8 FY2025 labelled 2025|FY). Consequence: slot 2024|FY holds English FY2023 and Arabic FY2024; slot 2025|FY holds English FY2024 and Arabic FY2025; slot 2026|FY holds English FY2025. Interim labels (Q1/H1/9M) matched the cover text in every file checked (14 interim files cover-checked). Q1 2026 cash-flow heading misprints 'nine-month period ended 31 March 2025' although the columns are the three months ended 31 March 2026 and 2025 (issuer typo, values consistent with the BS and the Q1 2025 comparative). Non-statement files: 12 factsheets (one-page), 12 results announcements/press releases, 6 annual reports (91-143 pages, board report plus embedded FS not examined). Duplicates: Arabic and English versions of the same filing (same figures, not independent sources); two identical factsheet families.",
+      "defect_ids": ["B005-4164-1", "B005-4164-2", "B005-4164-3"]
+    },
+    "company_coverage": {
+      "status": "sparse_by_inventory_but_actually_near_full_2022_to_h1_2026",
+      "present_with_statements_verified": ["FY2022", "FY2023", "FY2024", "FY2025", "2026|Q1", "2026|H1", "2025|9M"],
+      "present_with_statements_unread": ["2022|Q1", "2022|H1", "2022|9M", "2023|Q1", "2023|H1", "2023|9M", "2024|Q1", "2024|H1", "2024|9M", "2025|Q1", "2025|H1"],
+      "derivable_comparatives": ["FY2021 BS, P&L, cash flow from the FY2022 file (revenue 8,066,215,379; net profit 812,528,628)", "Q1/H1/9M 2025 and 9M 2024 income and cash columns from 2026 and 2025 filings"],
+      "missing": ["2026|9M and 2026|FY not yet due", "pre-2021 (inventory first observed period 2021|FY; listing date unknown)", "inventory lists 1 absent expected period of 19: not identified because the inventory period map was not re-derived here"],
+      "inventory_confirmed": "inventory coverage_class sparse with 3 of 19 expected periods complete (15.8 percent) is a classification artefact: after reading, 7 filings are fully verified and 11 more interim filings are present with all statements. Whether every one of the 19 expected periods has a statement file was not re-derived; only the 7 verified plus 11 listed unread filings are claimed."
+    }
+  },
+  "documents": [
+    {"sha256": "4850d417adbb161281b5e24ff2c4ce07aed0e3e41691763b309bc1928eb74d59", "actual_period": "FY ended 2025-12-31 audited, English", "label_ok": false, "label_in_inventory": "2026|FY", "pdf_pages": {"bs": 7, "is": 8, "cf": 10}, "printed_pages": {"bs": 1, "is": 2, "cf": 4}, "units": "SAR", "reading": "visual"},
+    {"sha256": "c063037c", "actual_period": "FY ended 2024-12-31 audited, English", "label_ok": false, "label_in_inventory": "2025|FY", "pdf_pages": {"bs": 7, "is": 8, "cf": 10}, "printed_pages": {"bs": 1, "is": 2, "cf": 4}, "units": "SAR", "reading": "visual"},
+    {"sha256": "71be975f", "actual_period": "FY ended 2023-12-31 audited, English", "label_ok": false, "label_in_inventory": "2024|FY", "pdf_pages": {"bs": 7, "is": 8, "cf": 10}, "printed_pages": {"bs": 6, "is": 7, "cf": 9}, "units": "SAR", "reading": "visual"},
+    {"sha256": "9043db49", "actual_period": "FY ended 2022-12-31 audited, English", "label_ok": false, "label_in_inventory": "2023|FY", "pdf_pages": {"bs": 8, "is": 9, "cf": 11}, "printed_pages": {"bs": 6, "is": 7, "cf": 9}, "units": "SAR", "reading": "visual"},
+    {"sha256": "eeba86e1", "actual_period": "3M and 6M ended 2026-06-30 reviewed, English", "label_ok": true, "pdf_pages": {"bs": 5, "is": 6, "cf": [8, 9]}, "printed_pages": {"bs": 1, "is": 2, "cf": [4, 5]}, "units": "SAR", "reading": "visual"},
+    {"sha256": "c2d2b8f7", "actual_period": "3M ended 2026-03-31 reviewed, English", "label_ok": true, "pdf_pages": {"bs": 5, "is": 6, "cf": 8}, "printed_pages": {"bs": 1, "is": 2, "cf": 4}, "units": "SAR", "reading": "visual"},
+    {"sha256": "ff6b8311", "actual_period": "3M and 9M ended 2025-09-30 reviewed, English (full statements)", "label_ok": true, "label_class_wrong": "inventory: other_no_statements_found", "pdf_pages": {"bs": 5, "is": 6, "cf": 8}, "printed_pages": {"bs": 1, "is": 2, "cf": 4}, "units": "SAR", "reading": "visual"},
+    {"sha256": "b0162b54", "actual_period": "FY2023 Arabic audited FS (EY), complete", "label_ok": true, "label_class_wrong": "inventory: scanned_unreadable", "reading": "contact sheet only"},
+    {"sha256": "5f39f5c8", "actual_period": "FY2025 Arabic audited FS (KPMG), complete", "label_ok": true, "label_class_wrong": "inventory: scanned_unreadable", "reading": "contact sheet only"}
+  ],
+  "defects": [
+    {"id": "B005-4164-1", "text": "English annual FS labelled with the publication year (FY2022->2023, FY2023->2024, FY2024->2025, FY2025->2026), Arabic ones correct, so each of slots 2024|FY, 2025|FY holds two different fiscal years."},
+    {"id": "B005-4164-2", "text": "Image-only statements misclassified: full audited annuals and a full 9M 2025 interim flagged no statements / unreadable / partial; H1 2022 and Q1 2022 full interims classed results_announcement."},
+    {"id": "B005-4164-3", "text": "Re-presented comparatives (cost of revenue vs selling expenses, interest received moved to investing, prepayment classification) change gross profit, CFO and CFI for FY2022, FY2023, FY2024 depending on filing; both transcribed."}
+  ],
+  "unread_items": [
+    "notes in all files; equity statements",
+    "11 interim filings (2022 Q1 to 2025 H1 except 2025 9M) not opened",
+    "Arabic statements numbers; annual reports; factsheets; results releases"
+  ]
+}
