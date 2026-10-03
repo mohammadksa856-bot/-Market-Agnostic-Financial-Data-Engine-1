@@ -725,3 +725,9 @@ Format: field (period kind): old -> new. added = absent under base. Labels and p
 ### riyad-2026-q2.json (changed by A; pdf data/raw/SA/1010/documents/dbc5409a174c9091b38e8d9d14fc1a2b1dd6298f65b90ab6e5536acd22d9c32d.pdf)
 - other_expense (quarter): 21304 -> -21304  [Other operating expenses p5 -> Other operating expenses p5]
 - other_expense (ytd): 29744 -> -29744  [Other operating expenses p5 -> Other operating expenses p5]
+
+## Full test suite (python -m pytest -q, whole repo)
+
+- Base ec610f3: 1 failed, 527 passed, 1 skipped, 42 errors (571 tests, 32m34s).
+- Unified: 1 failed, 538 passed, 1 skipped, 42 errors (582 tests, 32m30s). The +11 passes are the two audit test files (A: test_reading_saudi_audit_batch1a.py, B: test_audit_alinma_interim_columns.py).
+- The set of failing/erroring test ids is identical on both (diff empty): 0 failures attributable to this change. Pre-existing: tests/test_monitoring.py::MonitoringTests::test_interim_pdf_is_held_until_period_semantics_are_proven (pdf_extraction_failed vs interim_period_semantics_required) and 42 setup errors in tests/test_factory_18_category_contract.py.
