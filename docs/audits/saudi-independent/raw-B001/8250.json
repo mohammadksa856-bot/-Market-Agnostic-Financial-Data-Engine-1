@@ -1,0 +1,547 @@
+{
+ "symbol": "8250",
+ "name": "Gulf Insurance Group (formerly AXA Cooperative Insurance Company)",
+ "batch": "B001",
+ "auditor_session": "claude/audit-saudi-raw-B001",
+ "fiscal_year_end": "31 December (confirmed on pages)",
+ "method": "Text layer + stmt_pages.py + rendering for scans and files with blank/garbled statement text. Cross-foots: A=L+E, CF end cash = BS cash, Q1+Q2 = 6M.",
+ "dimension_1_value_correctness": {
+  "summary": "Extractable and verified: FY2025 (with FY2024), H1 2026 (rendered), Q1 2026 headline, FY2024 and FY2023 headline (text), FY2022 original headline (rendered). Not read: equity statements, notes, interims 2022-2025 beyond presence (H1 2025 comparatives read). Units: Saudi Riyals THOUSANDS; EPS SAR; entity not consolidated (company-only statements, no NCI). IFRS 17 basis from the 1 Jan 2023 adoption; earlier files are IFRS 4 (premiums-based) and not comparable line by line.",
+  "transcriptions": [
+   {
+    "doc": "4af3c291 FY2025",
+    "pdf_pages": "BS 8, income 9, equity 11, CF 12-13 (printed 7, 8, ...)",
+    "values_sar_thousands": {
+     "total_assets": [
+      3034707,
+      2772598
+     ],
+     "total_liabilities": [
+      1833223,
+      1682641
+     ],
+     "total_equity": [
+      1201484,
+      1089957
+     ],
+     "cash": [
+      90467,
+      155909
+     ],
+     "short_term_deposits": [
+      273809,
+      335186
+     ],
+     "long_term_deposits": [
+      147058,
+      106574
+     ],
+     "investments": [
+      1899250,
+      1768133
+     ],
+     "insurance_contract_liabilities": [
+      1604746,
+      1407756
+     ],
+     "reinsurance_contract_assets": [
+      411624,
+      198626
+     ],
+     "goodwill": [
+      50000,
+      50000
+     ],
+     "share_capital": [
+      525000,
+      525000
+     ],
+     "statutory_reserve": [
+      190444,
+      165206
+     ],
+     "retained_earnings": [
+      437070,
+      399401
+     ],
+     "insurance_revenue": [
+      1503755,
+      1463521
+     ],
+     "insurance_service_expenses": [
+      -1386441,
+      -1230826
+     ],
+     "total_insurance_service_result": [
+      124965,
+      110738
+     ],
+     "net_insurance_finance_result": [
+      -19941,
+      -30579
+     ],
+     "investment_income": [
+      96330,
+      92353
+     ],
+     "income_before_zakat_tax": [
+      155491,
+      125453
+     ],
+     "zakat_and_tax": [
+      -29302,
+      -27258
+     ],
+     "net_income_to_shareholders": [
+      126189,
+      98195
+     ],
+     "eps": [
+      2.4,
+      1.87
+     ],
+     "cfo": [
+      63753,
+      71174
+     ],
+     "cfi": [
+      -63658,
+      -61750
+     ],
+     "cff": [
+      -65537,
+      -82306
+     ],
+     "net_change_cash": [
+      -65442,
+      -72882
+     ],
+     "cash_end": [
+      90467,
+      155909
+     ]
+    },
+    "checks": "A = L+E (1,833,223+1,201,484); CFO+CFI+CFF = -65,442; 155,909-65,442 = 90,467 = BS cash; income 155,491-29,302 = 126,189; statutory reserve +25,238 = 20% of 126,189"
+   },
+   {
+    "doc": "537dd553 H1 2026 (rendered)",
+    "pdf_pages": "BS 5, income 6, OCI 7, equity 8, CF 9-10 (printed 3, 4, ..., 8)",
+    "values_sar_thousands": {
+     "total_assets": [
+      3157205,
+      3034707
+     ],
+     "total_liabilities": [
+      1946955,
+      1833223
+     ],
+     "total_equity": [
+      1210250,
+      1201484
+     ],
+     "cash": [
+      200789,
+      90467
+     ],
+     "insurance_revenue_Q2": [
+      483314,
+      359189
+     ],
+     "insurance_revenue_6M": [
+      900969,
+      726758
+     ],
+     "total_insurance_service_result_6M": [
+      88838,
+      71458
+     ],
+     "income_before_zakat_tax_6M": [
+      101604,
+      71625
+     ],
+     "net_income_Q2": [
+      38729,
+      34139
+     ],
+     "net_income_6M": [
+      82468,
+      61232
+     ],
+     "eps_Q2": [
+      0.74,
+      0.65
+     ],
+     "eps_6M": [
+      1.57,
+      1.17
+     ],
+     "cfi_6M": [
+      -62794,
+      98431
+     ],
+     "cff_6M": [
+      -63592,
+      -63000
+     ],
+     "net_change_6M": [
+      110322,
+      -20005
+     ],
+     "cash_end_6M": [
+      200789,
+      135904
+     ]
+    },
+    "checks": "A = L+E (1,946,955+1,210,250); 90,467+110,322 = 200,789 = BS cash; CFO derived = 110,322+62,794+63,592 = 236,708 (CFO line itself on p9 not read); Q1 2026 net income implied 82,468-38,729 = 43,739 consistent with Q1 EPS 0.83"
+   },
+   {
+    "doc": "86dcd458 Q1 2026 (text)",
+    "pdf_pages": "BS 4, income 5, CF 8-9",
+    "values_sar_thousands": {
+     "total_assets": [
+      3078305,
+      3034707
+     ],
+     "total_liabilities": [
+      1851177,
+      1833223
+     ],
+     "total_equity": [
+      1227128,
+      1201484
+     ],
+     "cash": [
+      147488,
+      90467
+     ],
+     "insurance_revenue": [
+      417655,
+      367569
+     ],
+     "eps": [
+      0.83,
+      0.52
+     ],
+     "cfo": [
+      64242
+     ],
+     "cfi": [
+      -6629
+     ],
+     "cash_end": [
+      147488
+     ]
+    }
+   },
+   {
+    "doc": "f22416b4 FY2023, b73b1ef7 FY2024, a787802c FY2022 original",
+    "values_sar_thousands": {
+     "FY2024_total_assets": 2772598,
+     "FY2024_total_equity": 1089957,
+     "FY2024_insurance_revenue": 1463521,
+     "FY2024_net_income": 98195,
+     "FY2023_total_assets": 2960458,
+     "FY2023_total_equity": 1064840,
+     "FY2023_insurance_revenue": 1564749,
+     "FY2023_net_income": 128526,
+     "FY2023_eps": 2.45,
+     "FY2022_restated_total_assets": 2587332,
+     "FY2022_restated_equity": 939034,
+     "FY2022_restated_net_income": 15913,
+     "FY2022_restated_eps": 0.3,
+     "FY2022_original_total_assets": 2911050,
+     "FY2022_original_equity": 931277,
+     "FY2022_original_net_income": 75802,
+     "FY2022_original_eps": 1.52,
+     "FY2021_original_total_assets": 2991069,
+     "FY2021_original_net_income": 138523,
+     "FY2021_original_eps": 2.77
+    }
+   }
+  ],
+  "restatements": "IFRS 17 adoption: FY2022 comparatives restated in the FY2023 file - total assets 2,911,050 -> 2,587,332, equity 931,277 -> 939,034, income to shareholders 75,802 -> 15,913, EPS 1.52 -> 0.30; 1 Jan 2022 restated assets 2,760,583, equity 1,046,982 (original Dec-2021: 2,991,069 / 996,019). Share capital 500,000 in FY2022 vs 525,000 from 2024. FY2023/FY2024 values unchanged between filings. Series built from the original FY2022 or any 2022 interim file are on a different basis from FY2023+."
+ },
+ "dimension_2_document_completeness": {
+  "files_total": 18,
+  "summary": "All 18 files are statement sets of the same entity (AXA Cooperative until the 2023 rename to Gulf Insurance Group; same ticker). No wrong-company, duplicate or non-statement file. Two scans (H1 2022, 9M 2022) are complete when rendered. Four 2024-2025 interim files and the H1 2026 file have blank or garbled text on the statement pages, so extraction needs image reading.",
+  "defects": [
+   {
+    "id": "B001-8250-LABEL-FY",
+    "what": "FY files labelled with the publication year: 2023|FY=FY2022, 2024|FY=FY2023, 2025|FY=FY2024, 2026|FY=FY2025; inventory marks 2022|FY absent."
+   },
+   {
+    "id": "B001-8250-NOTEXT",
+    "what": "Statement pages of 1407fa94 (9M24), 36cbe5cb (Q1-25), b64cafe6 (H1-25), 800bfba7 (9M-25), d7182f5f (Q1-22) have no text layer; 537dd553 (H1 2026) has garbled/empty glyphs; the inventory therefore reports missing_primary_statement or no statement pages although each set is complete (rendered for 800bfba7 and 537dd553)."
+   },
+   {
+    "id": "B001-8250-ENTITY",
+    "what": "entity_name_not_in_front_ flags are the former name AXA Cooperative Insurance Company on 2022-2023 covers; confirmed same company (cover text says FORMERLY: AXA COOPERATIVE INSURANCE COMPANY)."
+   },
+   {
+    "id": "B001-8250-DURATION",
+    "what": "duration_phrase_mismatch flags on 8f421230 and 537dd553 are false: covers state three- and nine-month (six-month) periods correctly."
+   }
+  ]
+ },
+ "dimension_3_company_coverage": {
+  "inventory_claim": "sparse; first observed 2011|H1; 2022|FY absent (labels)",
+  "corrected_from_pages": "Q1 2022 - H1 2026: all 18 interim periods and FY2022-FY2025 present with complete statements (22 of 22 periods in the 2022-2026H1 window). Absent: FY2021 and all 2011-2021 periods (raw starts at Q1 2022); FY2021 comparatives exist inside the FY2022 and 2022 interim files (original IFRS 4). No FY2026 expected."
+ },
+ "unread_items": [
+  "Equity statements and notes",
+  "Q1-Q3 2022-2025 values (presence/period only; H1 2025 and Q1 2025 only via comparatives)",
+  "H1 2026 CFO line (derived), 9M/H1/Q1 2022 scan values",
+  "FY2022 CF and income detail lines",
+  "Segment/pool notes (insurance pool share of surplus)"
+ ],
+ "files": [
+  {
+   "sha256": "00f8229f9416b2cee89319e999546b0d3573dc0dd08b13a9ffe6f7dd6aa6dd25",
+   "collector_label": "2022|9M",
+   "inventory_class": "financial_statements",
+   "pages": 54,
+   "inventory_flags": [
+    "mostly_scanned_needs_visual"
+   ],
+   "actual_period": "9M 2022 (30 Sep 2022)",
+   "reporting_basis": "IFRS 4",
+   "verdict": "complete when rendered (montage p1-p6: cover, index, review report, BS, income pages); mostly scanned, no usable text layer",
+   "value_status": "statements_present_confirmed_visually_values_not_transcribed"
+  },
+  {
+   "sha256": "a0624061d9cb7cdeaf67fc50e17160c0061b01e3955e18cc15bc4a7d7c2b2c56",
+   "collector_label": "2022|H1",
+   "inventory_class": "scanned_unreadable",
+   "pages": 55,
+   "inventory_flags": [
+    "zero_text_scan_needs_visual_reading"
+   ],
+   "actual_period": "H1 2022 (30 Jun 2022; EY + RSM review report 18 Aug 2022)",
+   "reporting_basis": "IFRS 4",
+   "verdict": "INVENTORY_FLAG_CORRECT as zero-text scan but complete when rendered (montage: cover, index, review report, BS, income, equity, cash flow)",
+   "value_status": "statements_present_confirmed_visually_values_not_transcribed"
+  },
+  {
+   "sha256": "d7182f5f31787c14d02c07a1695ee143a6bc58fb213e89ad5ef8a11e682ff959",
+   "collector_label": "2022|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 44,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2022 (31 Mar 2022), filed under the former name AXA Cooperative Insurance Company",
+   "reporting_basis": "IFRS 4",
+   "verdict": "complete interim set; statement pages are image-only/blank text (pages 3-12); inventory entity_name_not_in_front flag is the pre-rename name, not a wrong-company file; not rendered",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "8f42123031dd48701e9695d6eba7862d0d6ac7a7fc0cb1c2494b7c537cd70273",
+   "collector_label": "2023|9M",
+   "inventory_class": "financial_statements",
+   "pages": 49,
+   "inventory_flags": [
+    "duration_phrase_mismatch:labelled=9M,found=[6]",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "9M 2023",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete (text); inventory duration_phrase_mismatch is benign (cover: three- and nine-month periods ended 30 September 2023)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "a787802c0fdae7f7d2924afced516f56ccc5e6f9904e9b230707a406aa4c678b",
+   "collector_label": "2023|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 99,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-03-31,labelled=2023-12-31",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "FY2022 (cover: year ended 31 December 2022)",
+   "reporting_basis": "IFRS 4 (original)",
+   "verdict": "MISLABELLED_PERIOD: label 2023|FY = publication year; statements on IMAGE pages (BS PDF p7-8, income p9-10, OCI p11, equity p12-13, CF p14). Rendered: total assets 2,911,050 (2021: 2,991,069), total equity 931,277 (996,019), share capital 500,000, income attributable to shareholders 75,802 (2021: 138,523), EPS 1.52 (2.77); net premiums written 1,425,701, earned 1,348,466 (note p93)",
+   "value_status": "pages_rendered_headline_verified"
+  },
+  {
+   "sha256": "426640a0c5c35208d668c188d993d6bb82b283bf264dcdc405700f6999388b48",
+   "collector_label": "2023|H1",
+   "inventory_class": "financial_statements",
+   "pages": 49,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "H1 2023",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete (text)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "0ddf74cbeebf795ca36e06d323cc7327458f15df7603d8326009489f24460e5f",
+   "collector_label": "2023|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 47,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2023",
+   "reporting_basis": "IFRS 17 (first IFRS 17 interim)",
+   "verdict": "complete (text)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "1407fa9483ee0ce72453cceb6f34007fb9f37fe112181c6f3827d6384a20ae04",
+   "collector_label": "2024|9M",
+   "inventory_class": "financial_statements",
+   "pages": 32,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "9M 2024",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete; statement pages 4-9 have no usable text layer (blank) - inventory partial; not rendered",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "f22416b42ca86a077658fa65c322d253a01fd8b857a63f3c1ead189a68778108",
+   "collector_label": "2024|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 109,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "FY2023 (cover: year ended 31 December 2023)",
+   "reporting_basis": "IFRS 17",
+   "verdict": "MISLABELLED_PERIOD: label 2024|FY; BS p9, income p10 (text): total assets 2,960,458 (restated Dec-2022 2,587,332; 1 Jan 2022 2,760,583), equity 1,064,840 (939,034; 1,046,982), insurance revenue 1,564,749 (1,480,637), income before zakat 155,367 (33,422), income to shareholders 128,526 (15,913), EPS 2.45 (0.30)",
+   "value_status": "pages_read_headline_verified"
+  },
+  {
+   "sha256": "14022d30641667afacbf9c25dc38c11acbb2df5cc2d5e8c6d3e9877b791df568",
+   "collector_label": "2024|H1",
+   "inventory_class": "financial_statements",
+   "pages": 31,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "H1 2024",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete (text)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "1b154f9c2c515a8a3310c128e8ff91483a05d374be3c28cdfc981d793de9b9c5",
+   "collector_label": "2024|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 34,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2024",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete (text)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "800bfba708f32b30f6d40322dcc075b1f8b5afb28d0a5b78acb90026849f1804",
+   "collector_label": "2025|9M",
+   "inventory_class": "financial_statements",
+   "pages": 33,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "9M 2025 (30 Sep 2025)",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete; statement pages 3-9 have no text layer; RENDERED BS p4 (printed 3) present, total statements visible",
+   "value_status": "statements_present_confirmed_visually_values_not_transcribed"
+  },
+  {
+   "sha256": "b73b1ef741a9962ed4d7f29c59228ca2cb5f475e529c575e21c095d75032b9e2",
+   "collector_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 105,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "FY2024 (cover: year ended 31 December 2024)",
+   "reporting_basis": "IFRS 17",
+   "verdict": "MISLABELLED_PERIOD: label 2025|FY; BS p8, income p9 (text): total assets 2,772,598 (2,960,458), equity 1,089,957 (1,064,840), insurance revenue 1,463,521 (1,564,749), EPS 1.87 (2.45); same 2024 values as FY2025 comparatives (no restatement)",
+   "value_status": "pages_read_headline_verified"
+  },
+  {
+   "sha256": "b64cafe612b67988eb00d4f04a48af892c94bc8e32c3ba6849daf2aa04ffa100",
+   "collector_label": "2025|H1",
+   "inventory_class": "financial_statements",
+   "pages": 33,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "H1 2025",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete; statement pages blank text; H1 2025 comparatives read in the H1 2026 file",
+   "value_status": "comparatives_read"
+  },
+  {
+   "sha256": "36cbe5cb4421885382440f114226b3967adc40a3374af8e01ae5622da3dc62a9",
+   "collector_label": "2025|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 31,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "Q1 2025",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete; statement pages 4-9 blank text; not rendered",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "4af3c29157dcaaa633a579ab08eb7f609c0f013ad277514267738ae2e4a79055",
+   "collector_label": "2026|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 104,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "FY2025 (cover: year ended 31 December 2025)",
+   "reporting_basis": "IFRS 17",
+   "verdict": "MISLABELLED_PERIOD: label 2026|FY; TRANSCRIBED BS p8, income p9, equity p11, CF p12-13 (printed 7, 8, ...)",
+   "value_status": "extractable_and_verified"
+  },
+  {
+   "sha256": "537dd55360eb3f021c37e5e82b864ee5d612f87b667f8b3c56ff9b373f6bd145",
+   "collector_label": "2026|H1",
+   "inventory_class": "financial_statements",
+   "pages": 38,
+   "inventory_flags": [
+    "duration_phrase_mismatch:labelled=H1,found=[3, 12]",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "H1 2026 (3M and 6M to 30 Jun 2026; KPMG review)",
+   "reporting_basis": "IFRS 17",
+   "verdict": "INVENTORY_FLAG_WRONG-ish: text layer of statement pages 5-10 is garbled (empty glyphs), so statements not detected; RENDERED BS p5, income p6, OCI p7, equity p8, CF p9-10; TRANSCRIBED",
+   "value_status": "extractable_and_verified_from_images"
+  },
+  {
+   "sha256": "86dcd4586c31b28a834bce6c9be4c4e41546bfc779464a0c097b7401d329d9d9",
+   "collector_label": "2026|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 31,
+   "inventory_flags": [
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Q1 2026",
+   "reporting_basis": "IFRS 17",
+   "verdict": "complete (text): BS p4, income p5, CF p8-9; headline read",
+   "value_status": "headline_read"
+  }
+ ]
+}
