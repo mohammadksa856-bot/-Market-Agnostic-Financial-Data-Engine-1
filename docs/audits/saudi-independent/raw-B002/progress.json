@@ -1,0 +1,13 @@
+{
+ "batch": "B002",
+ "branch": "claude/audit-saudi-raw-B002",
+ "companies": {
+  "8230": {"status": "done_with_unread_listed", "json": "8230.json"},
+  "1211": {"status": "done_with_unread_listed", "json": "1211.json"},
+  "1302": {"status": "done_with_unread_listed", "json": "1302.json"},
+  "2223": {"status": "done_with_unread_listed", "json": "2223.json"},
+  "2290": {"status": "done_with_unread_listed", "json": "2290.json"}
+ },
+ "deliverables": ["batch-B002-summary.md", "tests/test_audit_raw_b002.py"],
+ "resume_note": "Remaining value-reading work is the 'unread_items' list in each company JSON; rerun tools/build.py SYM after editing transcripts/t<SYM>.py and n<SYM>.py."
+}
