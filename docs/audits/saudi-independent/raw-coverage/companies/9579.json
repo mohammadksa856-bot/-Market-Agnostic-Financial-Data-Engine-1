@@ -1,0 +1,607 @@
+{
+ "symbol": "9579",
+ "company_id": "sa:9579",
+ "name": "RIMATH",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 7,
+   "statement_bucket_files": 7,
+   "files_with_all_three_primary_statements": 4,
+   "files_partial_statements": 2,
+   "files_no_statements_found": 1,
+   "files_unknown_scanned": 0,
+   "extractability_class": "B_mostly_text",
+   "text_extractable_statement_files": 4
+  },
+  "company_coverage": {
+   "expected_periods": 7,
+   "periods_with_complete_statements": 3,
+   "periods_with_partial_statements": 2,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 1,
+   "periods_absent": 1,
+   "pct_expected_with_complete_statements": 0.429,
+   "pct_expected_with_any_file": 0.857,
+   "coverage_class": "partial",
+   "first_observed_period_proxy_for_listing": "2023|H1",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [
+    "2023|FY"
+   ],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T01:06:51+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 56,
+    "results_announcements": 9,
+    "results_by_slot": {
+     "2026|H1": [
+      98026,
+      97948
+     ],
+     "2025|FY": [
+      94085
+     ],
+     "2025|H1": [
+      89836
+     ],
+     "2024|FY": [
+      87080,
+      86215
+     ],
+     "2024|H1": [
+      82364
+     ],
+     "2023|FY": [
+      79206
+     ],
+     "2023|H1": [
+      76176
+     ]
+    },
+    "detail_pages_checked": 9,
+    "detail_pages_with_files": 1,
+    "detail_page_failures": 0,
+    "profile_table_rows": 10,
+    "profile_table_files": 10
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [],
+   "rejected_reasons": [
+    "board_report"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-29T19:26:48+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.ioudstore.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://www.ioudstore.com",
+    "status": "ok",
+    "pages": 1,
+    "doc_links": 0,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [],
+   "rejected_reasons": [],
+   "unclassified_n": 0
+  }
+ },
+ "periods": {
+  "2023|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-06-30",
+   "status": "partial_statements",
+   "files": [
+    "d439073c965546ba1fc079c65827d3a35cdaf2d841b43986a7e4944a27c76958"
+   ],
+   "languages": [
+    "ar"
+   ]
+  },
+  "2023|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2024|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-06-30",
+   "status": "non_statement_only",
+   "files": [
+    "afee42fcbe622f457b9ba924bf96eb8187c8698897c209913564c7a0fd0a46ee"
+   ],
+   "languages": [
+    "ar"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "ff81e4572e4cfaebc1acfcf50a8e5840e17bf4d7c77f64463b1873149100d5c6"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "statements_complete",
+   "files": [
+    "f8f01a3656589048a9ec90cb53d31f98ba8a9ed849806952a99a90f350750905"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "statements_complete",
+   "files": [
+    "5ff22046c83655d7dc21fe8a0ca3a5ec6b7e735d3902a507cc2bc1b26319d849"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "partial_statements",
+   "files": [
+    "d742bb15c08966100065342510feeaa24935eec75ec64969dd3bc60a7856aac4"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "b2f6fae19564022866b8881971e84dee08d22c9f38a1c7e6905c8fd087063ded"
+   ],
+   "languages": [
+    "en"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "d439073c965546ba1fc079c65827d3a35cdaf2d841b43986a7e4944a27c76958",
+   "relpath": "archive/SA/9579/d439073c965546ba1fc079c65827d3a35cdaf2d841b43986a7e4944a27c76958.pdf",
+   "ext": "pdf",
+   "size_bytes": 563596,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2023-06-30",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 17,
+   "empty_pages": 1,
+   "text_chars": 24960,
+   "primary_statements_found": [
+    "cash_flows",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     5,
+     6
+    ],
+    "cash_flows": [
+     7
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/17071_4886_2023-10-09_15-44-42_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e86187a40a276757d5854e64eefd49067f69e3b8",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "ff81e4572e4cfaebc1acfcf50a8e5840e17bf4d7c77f64463b1873149100d5c6",
+   "relpath": "archive/SA/9579/ff81e4572e4cfaebc1acfcf50a8e5840e17bf4d7c77f64463b1873149100d5c6.pdf",
+   "ext": "pdf",
+   "size_bytes": 924539,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 47,
+   "empty_pages": 0,
+   "text_chars": 123770,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     8,
+     32,
+     47
+    ],
+    "income": [
+     9,
+     32,
+     43
+    ],
+    "cash_flows": [
+     11
+    ],
+    "equity": [
+     10
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4886_0_2024-04-15_16-43-08_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "3a155c9c2b4ebc1588fcd9b594f195ca7f79400e",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "afee42fcbe622f457b9ba924bf96eb8187c8698897c209913564c7a0fd0a46ee",
+   "relpath": "archive/SA/9579/afee42fcbe622f457b9ba924bf96eb8187c8698897c209913564c7a0fd0a46ee.pdf",
+   "ext": "pdf",
+   "size_bytes": 1766288,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 16,
+   "empty_pages": 1,
+   "text_chars": 27350,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4886_0_2024-09-05_20-18-54_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b19c63678fff88a55d7431e463cda7c696a40e4d",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "5ff22046c83655d7dc21fe8a0ca3a5ec6b7e735d3902a507cc2bc1b26319d849",
+   "relpath": "archive/SA/9579/5ff22046c83655d7dc21fe8a0ca3a5ec6b7e735d3902a507cc2bc1b26319d849.pdf",
+   "ext": "pdf",
+   "size_bytes": 2785222,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 43,
+   "empty_pages": 2,
+   "text_chars": 118300,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6,
+     30
+    ],
+    "income": [
+     7,
+     40
+    ],
+    "cash_flows": [
+     9
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4886_0_2025-04-09_16-04-29_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "5fedaa103ba172544c48d6ae0d5128bc2e76062f",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "f8f01a3656589048a9ec90cb53d31f98ba8a9ed849806952a99a90f350750905",
+   "relpath": "archive/SA/9579/f8f01a3656589048a9ec90cb53d31f98ba8a9ed849806952a99a90f350750905.pdf",
+   "ext": "pdf",
+   "size_bytes": 1238280,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 16,
+   "empty_pages": 1,
+   "text_chars": 30096,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4886_0_2025-09-07_15-22-49_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "5b8df81109854d99ea333b8d15cbe3642f5ca6b3",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "b2f6fae19564022866b8881971e84dee08d22c9f38a1c7e6905c8fd087063ded",
+   "relpath": "archive/SA/9579/b2f6fae19564022866b8881971e84dee08d22c9f38a1c7e6905c8fd087063ded.pdf",
+   "ext": "pdf",
+   "size_bytes": 3791917,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 45,
+   "empty_pages": 3,
+   "text_chars": 115424,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6,
+     32
+    ],
+    "income": [
+     7,
+     42
+    ],
+    "cash_flows": [
+     9
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4886_0_2026-03-31_15-38-10_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7c006a05f7f3da23947ac3ca4d52cd2a8b8dd5a1",
+   "all_period_labels": [
+    "2026|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "d742bb15c08966100065342510feeaa24935eec75ec64969dd3bc60a7856aac4",
+   "relpath": "archive/SA/9579/d742bb15c08966100065342510feeaa24935eec75ec64969dd3bc60a7856aac4.pdf",
+   "ext": "pdf",
+   "size_bytes": 1806267,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 24,
+   "empty_pages": 5,
+   "text_chars": 50761,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     24
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4886_0_2026-09-08_19-33-42_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "af9d5b1f157326ec78eee144c79f4a420c5e7d7b",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  }
+ ]
+}

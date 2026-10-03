@@ -1,0 +1,2422 @@
+{
+ "symbol": "6015",
+ "company_id": "sa:6015",
+ "name": "AMERICANA",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 34,
+   "statement_bucket_files": 34,
+   "files_with_all_three_primary_statements": 16,
+   "files_partial_statements": 11,
+   "files_no_statements_found": 1,
+   "files_unknown_scanned": 6,
+   "extractability_class": "B_mostly_text",
+   "text_extractable_statement_files": 26
+  },
+  "company_coverage": {
+   "expected_periods": 16,
+   "periods_with_complete_statements": 9,
+   "periods_with_partial_statements": 4,
+   "periods_scanned_only": 2,
+   "periods_non_statement_only": 0,
+   "periods_absent": 1,
+   "pct_expected_with_complete_statements": 0.562,
+   "pct_expected_with_any_file": 0.938,
+   "coverage_class": "partial",
+   "first_observed_period_proxy_for_listing": "2021|FY",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [
+    "2024|FY"
+   ],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2022|9M",
+    "2022|H1",
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T21:29:47+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 121,
+    "results_announcements": 15,
+    "results_by_slot": {
+     "2026|H1": [
+      97055
+     ],
+     "2026|Q1": [
+      94756
+     ],
+     "2025|FY": [
+      93024
+     ],
+     "2025|9M": [
+      91096
+     ],
+     "2025|H1": [
+      89094
+     ],
+     "2025|Q1": [
+      86813
+     ],
+     "2024|FY": [
+      85193
+     ],
+     "2024|9M": [
+      83248
+     ],
+     "2024|H1": [
+      81576
+     ],
+     "2024|Q1": [
+      79826
+     ],
+     "2023|FY": [
+      78245
+     ],
+     "2023|9M": [
+      76600
+     ],
+     "2023|H1": [
+      75132
+     ],
+     "2023|Q1": [
+      73373
+     ],
+     "2022|FY": [
+      72110
+     ]
+    },
+    "detail_pages_checked": 15,
+    "detail_pages_with_files": 21,
+    "detail_page_failures": 0,
+    "profile_table_rows": 20,
+    "profile_table_files": 20
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "board_report",
+    "presentation",
+    "sustainability"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-29T18:33:21+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.americanarestaurants.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://www.americanarestaurants.com",
+    "status": "ok",
+    "pages": 27,
+    "doc_links": 132,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "news",
+    "not_financial",
+    "policy_or_charter",
+    "presentation",
+    "prospectus"
+   ],
+   "unclassified_n": 2
+  }
+ },
+ "periods": {
+  "2021|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2021-12-31",
+   "status": "unreadable_scan_only",
+   "files": [
+    "16a1bd4e4f80a890d675bcf1e230b75501dc3f471d141378b8568011f2bd3fa4"
+   ],
+   "languages": [
+    "unknown"
+   ]
+  },
+  "2022|H1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "341c2d0ef9d5e09dae05dc42fa2eb1940457fac64de75a3d351bbb2f46cfb655",
+    "8338cb4962f19c9a4c81f1d972717c5aa4b378bef3961797434509efda142500"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2022|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "bff40b85c3082e713b72c7c98d90df1814f3732bff66eab01a20dc179c2465eb"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2022|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2022-12-31",
+   "status": "partial_statements",
+   "files": [
+    "7af927ef68197afbba5e5ee59956bf3f8c4e21c28be9fe333b546d3a417d7025",
+    "bf00d061bc52a68c5e5825be955d310d0c9e4bf1ce07931571b30d69a42e0e16"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2023|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-03-31",
+   "status": "unreadable_scan_only",
+   "files": [
+    "15db7206d87b198632e8d021106e741bae85ca3ee8e4bb88a7c35d4e1d7c6257",
+    "55ee8783da8a22275d0d768dd4abb935258dd83d200cb7718f3de9287d1ea269",
+    "e01e218eec9164f05d6579686c69d3604f19e9bf1aa901747a1025be988c0b16"
+   ],
+   "languages": [
+    "en",
+    "unknown"
+   ]
+  },
+  "2023|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-06-30",
+   "status": "statements_complete",
+   "files": [
+    "0aa9236fbc92989cbad4aaa0a8cd271c37c604e9b0336af06822c914599a18d9",
+    "9e93f4dfd1877f6bc782f4ae1c234962d9b5699cb74b88a8051beb897203154b",
+    "c07247cc9c2995c96c18bff59259846c544a7107e1d97d4a64950ff22fa7941b"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2023|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-09-30",
+   "status": "statements_complete",
+   "files": [
+    "3645bab3ba79b117bdc1ad39495d021c7779563879448537fa2486b866190d37",
+    "6298092b73c77691a728a2c6f71236a73e2179b520ce0f27f2c1ef9f7b1a75c6"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2023|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-12-31",
+   "status": "statements_complete",
+   "files": [
+    "3981ee52427a630e0b9e6dec211fedeab18c42077a217eb0e873287a4127295c",
+    "7210491985cc2347831ed28defaed9f2951ef6a484934bd84b16a3adc6f91891",
+    "7d3cf13223fa849293309dd06b71b828d8d297b12cdf6c957bccb56ec763a94d",
+    "d8c7a726fe89717b6f604a77fea11d2e2f56993d70a19f067296808da2be0074"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-03-31",
+   "status": "partial_statements",
+   "files": [
+    "55cd18c9ca7f90336e97d74403f1e3af56308e9461ff2488ba90e3d23c52cf38",
+    "9d10f8bf39a836e7c00036370b7460ebbedad25b1d94197baae287d094e986a3",
+    "a115e4b0661e91bdcc3ea62d477a9c9bff6a9059a736b46391c730380e9f8342"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-06-30",
+   "status": "partial_statements",
+   "files": [
+    "0d1be98d4eb473593dcf734825eec6ef20d87950790691ba06f4e64ba2ebfa2e"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2024|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-09-30",
+   "status": "partial_statements",
+   "files": [
+    "94583f06dc7c735743981b34c61e6aab1f243ff31cfbf89f8709399ccc072243"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "statements_complete",
+   "files": [
+    "4cf9220c732761d56f9ebc47db7bd6aee42198ee01407464ad4e9f70806947a0",
+    "8360cdb337303faf0ccb28552cbae0297fdde1d4efc0c31fe2267e0ad91d16b8"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "statements_complete",
+   "files": [
+    "78139441143c3557d951b006b315a5765ca45601d01364e3781d5d68916c6777"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "statements_complete",
+   "files": [
+    "6b7ac28c3995360961d7c4bc3b17d26cc288acf268b74e9519f8ac5545fe58cf"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "statements_complete",
+   "files": [
+    "e07a74a79f735094823772a4873a0e26f4a13e4b3e1cf806e5141931d2d0eec6"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "statements_complete",
+   "files": [
+    "926c4878432bd0943e92e03496a0571f4742f5d81696b4c91e10c472519ed988"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "statements_complete",
+   "files": [
+    "dd33ea234941c2def30502a2f55c4c04a86278c6ff5200c1fddb738f78d43904",
+    "e4dad39b115f11a65717b24c8dfabe12e508dc0fc55eef45fd1eba00b5a47474"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "1d753c47d8cea57c940c9ae3edf52aa033d4d15ab875d71c666e4a9c59b48c2d"
+   ],
+   "languages": [
+    "en"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "16a1bd4e4f80a890d675bcf1e230b75501dc3f471d141378b8568011f2bd3fa4",
+   "relpath": "archive/SA/6015/16a1bd4e4f80a890d675bcf1e230b75501dc3f471d141378b8568011f2bd3fa4.pdf",
+   "ext": "pdf",
+   "size_bytes": 19798488,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "unknown",
+   "language_manifest": "unknown",
+   "readability": "scanned_zero_text",
+   "pages": 63,
+   "empty_pages": 63,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2022/12/Financial-statements-for-the-years-2019-2020-2021.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "b82eafb719cb13666d90fe7cb5ea8370baa5a7acbfeab817782240fffad07496",
+   "relpath": "archive/SA/6015/b82eafb719cb13666d90fe7cb5ea8370baa5a7acbfeab817782240fffad07496.pdf",
+   "ext": "pdf",
+   "size_bytes": 1626041,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2020-12-31",
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 64,
+   "empty_pages": 0,
+   "text_chars": 151222,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     14,
+     17,
+     26,
+     46,
+     48
+    ],
+    "income": [
+     9,
+     10,
+     21,
+     27,
+     50,
+     52
+    ],
+    "cash_flows": [
+     11,
+     14,
+     29,
+     61
+    ],
+    "equity": [
+     10
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/05/%D8%A7%D9%84%D9%86%D8%AA%D8%A7%D8%A6%D8%AC-%D8%A7%D9%84%D9%85%D8%A7%D9%84%D9%8A%D8%A9-%D9%84%D9%84%D8%B3%D9%86%D9%88%D8%A7%D8%AA-%D8%A7%D9%84%D9%85%D8%A7%D9%84%D9%8A%D8%A9-2019-2020-2021.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ae2cb73a12b183af39c41d11099a05575d0ac8d8",
+   "all_period_labels": [
+    "2021|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "bff40b85c3082e713b72c7c98d90df1814f3732bff66eab01a20dc179c2465eb",
+   "relpath": "archive/SA/6015/bff40b85c3082e713b72c7c98d90df1814f3732bff66eab01a20dc179c2465eb.pdf",
+   "ext": "pdf",
+   "size_bytes": 1750252,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 1,
+   "text_chars": 85489,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     25
+    ],
+    "income": [
+     3,
+     6,
+     7,
+     14,
+     16,
+     17,
+     18,
+     26
+    ],
+    "cash_flows": [
+     10,
+     24
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2022/12/Americana-Restaurants-International-plc-Q3-2022-Financial-Statements.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d9369a7542351875349f7abac0d29791ba23cb58",
+   "all_period_labels": [
+    "2022|9M"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "7af927ef68197afbba5e5ee59956bf3f8c4e21c28be9fe333b546d3a417d7025",
+   "relpath": "archive/SA/6015/7af927ef68197afbba5e5ee59956bf3f8c4e21c28be9fe333b546d3a417d7025.pdf",
+   "ext": "pdf",
+   "size_bytes": 5327988,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 79,
+   "empty_pages": 0,
+   "text_chars": 424036,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     56,
+     71
+    ],
+    "income": [
+     67
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/03/Annual_Report__2022__.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d680194b4feadd6f172dd6aa507b9e774a8e49fe",
+   "all_period_labels": [
+    "2022|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "bf00d061bc52a68c5e5825be955d310d0c9e4bf1ce07931571b30d69a42e0e16",
+   "relpath": "archive/SA/6015/bf00d061bc52a68c5e5825be955d310d0c9e4bf1ce07931571b30d69a42e0e16.pdf",
+   "ext": "pdf",
+   "size_bytes": 4286020,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2022-12-31",
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 59,
+   "empty_pages": 59,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15069_3803_2023-02-23_01-40-33_en.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2022|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "341c2d0ef9d5e09dae05dc42fa2eb1940457fac64de75a3d351bbb2f46cfb655",
+   "relpath": "archive/SA/6015/341c2d0ef9d5e09dae05dc42fa2eb1940457fac64de75a3d351bbb2f46cfb655.pdf",
+   "ext": "pdf",
+   "size_bytes": 1029495,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 0,
+   "text_chars": 83009,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     25
+    ],
+    "income": [
+     3,
+     6,
+     7,
+     26
+    ],
+    "cash_flows": [
+     10,
+     24
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2022/12/Americana-Restaurants-ltd-H1-Q2-2022-Financial-Statements.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "17bb936d8d4cf224025922befc7bc6fdcae7be09",
+   "all_period_labels": [
+    "2022|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "8338cb4962f19c9a4c81f1d972717c5aa4b378bef3961797434509efda142500",
+   "relpath": "archive/SA/6015/8338cb4962f19c9a4c81f1d972717c5aa4b378bef3961797434509efda142500.pdf",
+   "ext": "pdf",
+   "size_bytes": 1180498,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 0,
+   "text_chars": 78347,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     25
+    ],
+    "income": [
+     6,
+     7,
+     8,
+     9,
+     14,
+     27,
+     28
+    ],
+    "cash_flows": [
+     10,
+     24,
+     33
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2022/12/%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA-%D9%85%D8%A7%D9%84%D9%8A%D8%A9-%D9%84%D9%84%D8%B1%D8%A8%D8%B9-%D8%A7%D9%84%D8%AB%D8%A7%D9%86%D9%8A-%D9%85%D9%86-%D8%B9%D8%A7%D9%85-2022.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ec2f003b10fab1416fedf146a908958e95e1af4b",
+   "all_period_labels": [
+    "2022|H1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "753a2058eacfaf5563142eb37c6b196542c335e6a7f25468f6b93ba05842b737",
+   "relpath": "archive/SA/6015/753a2058eacfaf5563142eb37c6b196542c335e6a7f25468f6b93ba05842b737.pdf",
+   "ext": "pdf",
+   "size_bytes": 1616957,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 1,
+   "text_chars": 79405,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     12,
+     25
+    ],
+    "income": [
+     3,
+     7,
+     8,
+     9,
+     14,
+     17,
+     27,
+     28
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2022/12/%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA-%D8%A7%D9%84%D9%85%D8%A7%D9%84%D9%8A%D8%A9-%D9%84%D9%84%D8%B1%D8%A8%D8%B9-%D8%A7%D9%84%D8%AB%D8%A7%D9%84%D8%AB-%D9%85%D9%86-%D8%B9%D8%A7%D9%85-2022.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "008a7fd1ffab1442729ece9e866f9e0341716326",
+   "all_period_labels": [
+    "2022|None"
+   ],
+   "flags": [
+    "unclassified_period",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "3645bab3ba79b117bdc1ad39495d021c7779563879448537fa2486b866190d37",
+   "relpath": "archive/SA/6015/3645bab3ba79b117bdc1ad39495d021c7779563879448537fa2486b866190d37.pdf",
+   "ext": "pdf",
+   "size_bytes": 2503593,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": "2023-09-30",
+   "period_end_detected_in_text": "2023-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 4,
+   "text_chars": 77909,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     25,
+     26
+    ],
+    "income": [
+     7,
+     8,
+     16
+    ],
+    "equity": [
+     9,
+     10
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15069_3803_2023-11-02_00-44-20_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "62d1cc1f100ec4e25ec6411c1dd6d123f5a9ce45",
+   "all_period_labels": [
+    "2023|9M"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "6298092b73c77691a728a2c6f71236a73e2179b520ce0f27f2c1ef9f7b1a75c6",
+   "relpath": "archive/SA/6015/6298092b73c77691a728a2c6f71236a73e2179b520ce0f27f2c1ef9f7b1a75c6.pdf",
+   "ext": "pdf",
+   "size_bytes": 2034878,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 4,
+   "text_chars": 78549,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     25,
+     26
+    ],
+    "income": [
+     7,
+     8,
+     9,
+     10,
+     16,
+     27,
+     28
+    ],
+    "cash_flows": [
+     11
+    ],
+    "equity": [
+     9,
+     10
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/11/Final-AMR-Q3-2023-financials-Arabic-1-Nov-23-Signed.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e1d7a678dec9b1d4adbc2ecbaa08201a5a202760",
+   "all_period_labels": [
+    "2023|9M"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "3981ee52427a630e0b9e6dec211fedeab18c42077a217eb0e873287a4127295c",
+   "relpath": "archive/SA/6015/3981ee52427a630e0b9e6dec211fedeab18c42077a217eb0e873287a4127295c.pdf",
+   "ext": "pdf",
+   "size_bytes": 1199417,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2023-12-31",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 60,
+   "empty_pages": 2,
+   "text_chars": 148525,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     31,
+     44,
+     45
+    ],
+    "income": [
+     13,
+     14,
+     22,
+     30,
+     48,
+     54
+    ],
+    "cash_flows": [
+     15,
+     31,
+     34,
+     41,
+     43,
+     58
+    ],
+    "equity": [
+     14
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "period_end_month",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2024/02/31-December-2023-YE-Consolidated-FS-SIGNED-Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4c88cb7e2253dd230b7313c8be825ad4651a6b9a",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "7210491985cc2347831ed28defaed9f2951ef6a484934bd84b16a3adc6f91891",
+   "relpath": "archive/SA/6015/7210491985cc2347831ed28defaed9f2951ef6a484934bd84b16a3adc6f91891.pdf",
+   "ext": "pdf",
+   "size_bytes": 17280352,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 98,
+   "empty_pages": 0,
+   "text_chars": 455762,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     64
+    ],
+    "income": [
+     65,
+     69,
+     70
+    ],
+    "cash_flows": [
+     66
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2024/03/Annual_Report__2023__.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7d956294131caff7cdb063925652fcbfebbadba0",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "7d3cf13223fa849293309dd06b71b828d8d297b12cdf6c957bccb56ec763a94d",
+   "relpath": "archive/SA/6015/7d3cf13223fa849293309dd06b71b828d8d297b12cdf6c957bccb56ec763a94d.pdf",
+   "ext": "pdf",
+   "size_bytes": 1682881,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2023-12-31",
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 60,
+   "empty_pages": 2,
+   "text_chars": 157363,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     31,
+     44,
+     45
+    ],
+    "income": [
+     12,
+     13,
+     20,
+     46
+    ],
+    "cash_flows": [
+     15
+    ],
+    "equity": [
+     14
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15069_3803_2024-02-14_23-23-17_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "55f8ada60ade5cc4dea6a797c77fdb25962e7b13",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "d8c7a726fe89717b6f604a77fea11d2e2f56993d70a19f067296808da2be0074",
+   "relpath": "archive/SA/6015/d8c7a726fe89717b6f604a77fea11d2e2f56993d70a19f067296808da2be0074.pdf",
+   "ext": "pdf",
+   "size_bytes": 4286020,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 59,
+   "empty_pages": 59,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2023-04-09_13-48-34_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "0aa9236fbc92989cbad4aaa0a8cd271c37c604e9b0336af06822c914599a18d9",
+   "relpath": "archive/SA/6015/0aa9236fbc92989cbad4aaa0a8cd271c37c604e9b0336af06822c914599a18d9.pdf",
+   "ext": "pdf",
+   "size_bytes": 4687176,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 2,
+   "text_chars": 80523,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     25,
+     26
+    ],
+    "income": [
+     4,
+     7,
+     8,
+     16
+    ],
+    "equity": [
+     9,
+     10
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/08/H1-2023-Financial-Statements_English.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7b8895fff2d937b17639e4065c0579e7405a480f",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:9e93f4dfd1",
+    "multiple_same_language_same_period:2023|H1"
+   ]
+  },
+  {
+   "sha256": "9e93f4dfd1877f6bc782f4ae1c234962d9b5699cb74b88a8051beb897203154b",
+   "relpath": "archive/SA/6015/9e93f4dfd1877f6bc782f4ae1c234962d9b5699cb74b88a8051beb897203154b.pdf",
+   "ext": "pdf",
+   "size_bytes": 825749,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2023-06-30",
+   "period_end_detected_in_text": "2023-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 2,
+   "text_chars": 80523,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     25,
+     26
+    ],
+    "income": [
+     4,
+     7,
+     8,
+     16
+    ],
+    "equity": [
+     9,
+     10
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15089_3803_2023-08-03_00-09-52_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7b8895fff2d937b17639e4065c0579e7405a480f",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:0aa9236fbc",
+    "multiple_same_language_same_period:2023|H1"
+   ]
+  },
+  {
+   "sha256": "c07247cc9c2995c96c18bff59259846c544a7107e1d97d4a64950ff22fa7941b",
+   "relpath": "archive/SA/6015/c07247cc9c2995c96c18bff59259846c544a7107e1d97d4a64950ff22fa7941b.pdf",
+   "ext": "pdf",
+   "size_bytes": 3715150,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 2,
+   "text_chars": 75705,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     25,
+     26
+    ],
+    "income": [
+     7,
+     8,
+     9,
+     10,
+     16,
+     27,
+     28
+    ],
+    "cash_flows": [
+     11,
+     33
+    ],
+    "equity": [
+     9,
+     10
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/08/H1-2023-Financial-Statements_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0a1d2ad8c7d76785cc922bcd40bb77adf32bd96f",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "15db7206d87b198632e8d021106e741bae85ca3ee8e4bb88a7c35d4e1d7c6257",
+   "relpath": "archive/SA/6015/15db7206d87b198632e8d021106e741bae85ca3ee8e4bb88a7c35d4e1d7c6257.pdf",
+   "ext": "pdf",
+   "size_bytes": 2852441,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2023-03-31",
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 35,
+   "empty_pages": 35,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15089_3803_2023-05-04_00-19-02_en.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|Q1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "55ee8783da8a22275d0d768dd4abb935258dd83d200cb7718f3de9287d1ea269",
+   "relpath": "archive/SA/6015/55ee8783da8a22275d0d768dd4abb935258dd83d200cb7718f3de9287d1ea269.pdf",
+   "ext": "pdf",
+   "size_bytes": 10025134,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "unknown",
+   "language_manifest": "unknown",
+   "readability": "scanned_zero_text",
+   "pages": 35,
+   "empty_pages": 35,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/05/Q1-2023-Financial-Statements.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|Q1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "e01e218eec9164f05d6579686c69d3604f19e9bf1aa901747a1025be988c0b16",
+   "relpath": "archive/SA/6015/e01e218eec9164f05d6579686c69d3604f19e9bf1aa901747a1025be988c0b16.pdf",
+   "ext": "pdf",
+   "size_bytes": 7175183,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "unknown",
+   "language_manifest": "unknown",
+   "readability": "scanned_zero_text",
+   "pages": 35,
+   "empty_pages": 35,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2023/05/Q1-2023-Financial-Statements_AR.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|Q1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "94583f06dc7c735743981b34c61e6aab1f243ff31cfbf89f8709399ccc072243",
+   "relpath": "archive/SA/6015/94583f06dc7c735743981b34c61e6aab1f243ff31cfbf89f8709399ccc072243.pdf",
+   "ext": "pdf",
+   "size_bytes": 1572989,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 36,
+   "empty_pages": 2,
+   "text_chars": 70813,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     23
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     24,
+     25
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2024-10-30_20-55-38_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4ba8cab5da139d592e122ab9b6028318e7e141dd",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "0d1be98d4eb473593dcf734825eec6ef20d87950790691ba06f4e64ba2ebfa2e",
+   "relpath": "archive/SA/6015/0d1be98d4eb473593dcf734825eec6ef20d87950790691ba06f4e64ba2ebfa2e.pdf",
+   "ext": "pdf",
+   "size_bytes": 1270840,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 33,
+   "empty_pages": 2,
+   "text_chars": 69211,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     23
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     14,
+     15,
+     24,
+     25
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2024-07-30_00-01-35_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "467e38d3122ca7a4375df61039c531154aaa373d",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "55cd18c9ca7f90336e97d74403f1e3af56308e9461ff2488ba90e3d23c52cf38",
+   "relpath": "archive/SA/6015/55cd18c9ca7f90336e97d74403f1e3af56308e9461ff2488ba90e3d23c52cf38.pdf",
+   "ext": "pdf",
+   "size_bytes": 1564031,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2024-03-31",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 33,
+   "empty_pages": 0,
+   "text_chars": 68570,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     23,
+     24
+    ],
+    "income": [
+     6,
+     7,
+     8,
+     9,
+     14,
+     15,
+     24,
+     25,
+     26
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2024/05/Signed-Consolidated-FS-31-March-2024-Q1-Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6f0961bfbce907b14d04ec4f50b8823ebb23084a",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "9d10f8bf39a836e7c00036370b7460ebbedad25b1d94197baae287d094e986a3",
+   "relpath": "archive/SA/6015/9d10f8bf39a836e7c00036370b7460ebbedad25b1d94197baae287d094e986a3.pdf",
+   "ext": "pdf",
+   "size_bytes": 2493837,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2024-03-31",
+   "period_end_detected_in_text": "2024-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 33,
+   "empty_pages": 1,
+   "text_chars": 69418,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     23,
+     24
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     14,
+     15
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15069_3803_2024-05-06_23-29-49_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "176746f15b3613e774fa7a0173b3e508bf888761",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:a115e4b066",
+    "multiple_same_language_same_period:2024|Q1"
+   ]
+  },
+  {
+   "sha256": "a115e4b0661e91bdcc3ea62d477a9c9bff6a9059a736b46391c730380e9f8342",
+   "relpath": "archive/SA/6015/a115e4b0661e91bdcc3ea62d477a9c9bff6a9059a736b46391c730380e9f8342.pdf",
+   "ext": "pdf",
+   "size_bytes": 2497905,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 33,
+   "empty_pages": 1,
+   "text_chars": 69510,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     23,
+     24
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     14,
+     15,
+     24
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2024-05-07_18-45-03_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "176746f15b3613e774fa7a0173b3e508bf888761",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows",
+    "duplicate_text_candidate_of:9d10f8bf39",
+    "multiple_same_language_same_period:2024|Q1"
+   ]
+  },
+  {
+   "sha256": "6b7ac28c3995360961d7c4bc3b17d26cc288acf268b74e9519f8ac5545fe58cf",
+   "relpath": "archive/SA/6015/6b7ac28c3995360961d7c4bc3b17d26cc288acf268b74e9519f8ac5545fe58cf.pdf",
+   "ext": "pdf",
+   "size_bytes": 1255492,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 37,
+   "empty_pages": 2,
+   "text_chars": 79401,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     25
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     15,
+     16,
+     26
+    ],
+    "cash_flows": [
+     10
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2025-10-30_20-40-36_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "aa15e09c2c32f769e96cfea07c155593c339d32d",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "duration_phrase_mismatch:labelled=9M,found=[3, 12]"
+   ]
+  },
+  {
+   "sha256": "e07a74a79f735094823772a4873a0e26f4a13e4b3e1cf806e5141931d2d0eec6",
+   "relpath": "archive/SA/6015/e07a74a79f735094823772a4873a0e26f4a13e4b3e1cf806e5141931d2d0eec6.pdf",
+   "ext": "pdf",
+   "size_bytes": 1529939,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 63,
+   "empty_pages": 2,
+   "text_chars": 158341,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     45
+    ],
+    "income": [
+     12,
+     13,
+     19,
+     46,
+     47
+    ],
+    "cash_flows": [
+     15
+    ],
+    "equity": [
+     14
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2025-02-12_00-24-45_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0c730f3261a6b3627506b56842b2003577098b47",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31"
+   ]
+  },
+  {
+   "sha256": "78139441143c3557d951b006b315a5765ca45601d01364e3781d5d68916c6777",
+   "relpath": "archive/SA/6015/78139441143c3557d951b006b315a5765ca45601d01364e3781d5d68916c6777.pdf",
+   "ext": "pdf",
+   "size_bytes": 842937,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 37,
+   "empty_pages": 2,
+   "text_chars": 76936,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     25
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     15,
+     16,
+     26
+    ],
+    "cash_flows": [
+     10
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2025-07-29_19-37-02_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f0c128da1675a784b81e9ab6a3c1ae7bbe4fb0b7",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "duration_phrase_mismatch:labelled=H1,found=[3, 12]"
+   ]
+  },
+  {
+   "sha256": "4cf9220c732761d56f9ebc47db7bd6aee42198ee01407464ad4e9f70806947a0",
+   "relpath": "archive/SA/6015/4cf9220c732761d56f9ebc47db7bd6aee42198ee01407464ad4e9f70806947a0.pdf",
+   "ext": "pdf",
+   "size_bytes": 899454,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 2,
+   "text_chars": 66403,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     6,
+     7,
+     8,
+     9,
+     14,
+     24,
+     25
+    ],
+    "cash_flows": [
+     10,
+     15,
+     23
+    ],
+    "equity": [
+     8,
+     9
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.americanarestaurants.com/wp-content/uploads/2025/04/Signed-Arabic-AMR-Q1-2025-Consol-FS.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "deced3ec330af92c467242a596dd16963008aa7b",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "8360cdb337303faf0ccb28552cbae0297fdde1d4efc0c31fe2267e0ad91d16b8",
+   "relpath": "archive/SA/6015/8360cdb337303faf0ccb28552cbae0297fdde1d4efc0c31fe2267e0ad91d16b8.pdf",
+   "ext": "pdf",
+   "size_bytes": 979262,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 2,
+   "text_chars": 71116,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     14,
+     24
+    ],
+    "cash_flows": [
+     23
+    ],
+    "equity": [
+     4,
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2025-04-29_21-28-32_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7f06f8c61e0836964912ecba7e4b47c0a5c98800",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "1d753c47d8cea57c940c9ae3edf52aa033d4d15ab875d71c666e4a9c59b48c2d",
+   "relpath": "archive/SA/6015/1d753c47d8cea57c940c9ae3edf52aa033d4d15ab875d71c666e4a9c59b48c2d.pdf",
+   "ext": "pdf",
+   "size_bytes": 1837911,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 60,
+   "empty_pages": 2,
+   "text_chars": 158837,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     29,
+     43
+    ],
+    "income": [
+     10,
+     11,
+     43,
+     44
+    ],
+    "cash_flows": [
+     13,
+     15
+    ],
+    "equity": [
+     12
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2026-02-08_17-59-39_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c1e762a8dc9a7e59956343f179fb8184aab7f254",
+   "all_period_labels": [
+    "2026|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31"
+   ]
+  },
+  {
+   "sha256": "dd33ea234941c2def30502a2f55c4c04a86278c6ff5200c1fddb738f78d43904",
+   "relpath": "archive/SA/6015/dd33ea234941c2def30502a2f55c4c04a86278c6ff5200c1fddb738f78d43904.pdf",
+   "ext": "pdf",
+   "size_bytes": 1386043,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 37,
+   "empty_pages": 2,
+   "text_chars": 77380,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     15,
+     24
+    ],
+    "cash_flows": [
+     9,
+     23
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2026-07-28_22-44-35_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "9ec8acf861b48da916ff3da50e7f6de5216e3f27",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "duration_phrase_mismatch:labelled=H1,found=[3]"
+   ]
+  },
+  {
+   "sha256": "e4dad39b115f11a65717b24c8dfabe12e508dc0fc55eef45fd1eba00b5a47474",
+   "relpath": "archive/SA/6015/e4dad39b115f11a65717b24c8dfabe12e508dc0fc55eef45fd1eba00b5a47474.pdf",
+   "ext": "pdf",
+   "size_bytes": 369238,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2026-06-30",
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "results_announcement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 9366,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/15069_3803_2026-07-28_22-19-00_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0790a860ec725df5378bf4a8ec2723e384304da5",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "926c4878432bd0943e92e03496a0571f4742f5d81696b4c91e10c472519ed988",
+   "relpath": "archive/SA/6015/926c4878432bd0943e92e03496a0571f4742f5d81696b4c91e10c472519ed988.pdf",
+   "ext": "pdf",
+   "size_bytes": 1307322,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 2,
+   "text_chars": 73443,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     6,
+     7,
+     15,
+     24
+    ],
+    "cash_flows": [
+     9,
+     23
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/3803_0_2026-04-28_20-10-51_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a0f8ec6acbc3365ec718c078bb03d7dc694d28cc",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": []
+  }
+ ]
+}

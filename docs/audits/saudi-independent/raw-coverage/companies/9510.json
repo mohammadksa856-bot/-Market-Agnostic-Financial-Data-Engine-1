@@ -1,0 +1,619 @@
+{
+ "symbol": "9510",
+ "company_id": "sa:9510",
+ "name": "NBM",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 6,
+   "statement_bucket_files": 6,
+   "files_with_all_three_primary_statements": 1,
+   "files_partial_statements": 0,
+   "files_no_statements_found": 0,
+   "files_unknown_scanned": 5,
+   "extractability_class": "C_scan_or_nonstatement_heavy",
+   "text_extractable_statement_files": 1
+  },
+  "company_coverage": {
+   "expected_periods": 20,
+   "periods_with_complete_statements": 0,
+   "periods_with_partial_statements": 0,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 0,
+   "periods_absent": 20,
+   "pct_expected_with_complete_statements": 0.0,
+   "pct_expected_with_any_file": 0.0,
+   "coverage_class": "none",
+   "first_observed_period_proxy_for_listing": "2018|Q1",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [
+    "2018|Q1",
+    "2018|H1",
+    "2018|9M",
+    "2018|FY",
+    "2019|Q1",
+    "2019|H1",
+    "2019|9M",
+    "2019|FY",
+    "2020|Q1",
+    "2020|FY",
+    "2021|H1",
+    "2021|9M",
+    "2021|FY",
+    "2022|H1",
+    "2022|9M",
+    "2023|H1",
+    "2024|FY",
+    "2025|H1",
+    "2025|FY",
+    "2026|H1"
+   ],
+   "internal_gaps": [],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": []
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T21:36:30+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 223,
+    "results_announcements": 21,
+    "results_by_slot": {
+     "2026|H1": [
+      97819
+     ],
+     "2025|FY": [
+      93976
+     ],
+     "2025|H1": [
+      89917
+     ],
+     "2024|FY": [
+      86241
+     ],
+     "2023|H1": [
+      75758
+     ],
+     "2022|9M": [
+      70990
+     ],
+     "2022|H1": [
+      69878
+     ],
+     "2021|FY": [
+      67326
+     ],
+     "2021|9M": [
+      65626
+     ],
+     "2021|H1": [
+      64923,
+      64870
+     ],
+     "2020|FY": [
+      62577
+     ],
+     "2020|H1": [
+      60615
+     ],
+     "2019|FY": [
+      58778
+     ],
+     "2019|9M": [
+      56909
+     ],
+     "2019|H1": [
+      56459
+     ],
+     "2019|Q1": [
+      55483
+     ],
+     "2018|FY": [
+      54356
+     ],
+     "2018|9M": [
+      52819
+     ],
+     "2018|H1": [
+      52188
+     ],
+     "2018|Q1": [
+      51419
+     ]
+    },
+    "detail_pages_checked": 6,
+    "detail_pages_with_files": 0,
+    "detail_page_failures": 0,
+    "profile_table_rows": 0,
+    "profile_table_files": 0
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [],
+   "rejected_reasons": [],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 2,
+   "finished_at": "2026-09-30T15:49:07+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "status": "ok",
+    "pages": 0,
+    "note": "manually collected via plain HTTP, browser automation hangs on this site"
+   },
+   "se_ok": true,
+   "failures": [
+    "gave_up_after_repeated_timeout",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [],
+   "unclassified_n": 6
+  }
+ },
+ "periods": {
+  "2018|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2018-03-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2018|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2018-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2018|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2018-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2018|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2018-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2019|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2019-03-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2019|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2019-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2019|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2019-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2019|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2019-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2020|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2020-03-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2020|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2020-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2021|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2021-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2021|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2021-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2021|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2021-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2022|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2022-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2022|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2022-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2023|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  }
+ },
+ "files": [
+  {
+   "sha256": "8963608adefb13e1139e11419ccfe9777e5a370cfc14e8d47fef857d0d462b0a",
+   "relpath": "archive/SA/9510/8963608adefb13e1139e11419ccfe9777e5a370cfc14e8d47fef857d0d462b0a.pdf",
+   "ext": "pdf",
+   "size_bytes": 718143,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2016,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "scanned_zero_text",
+   "pages": 14,
+   "empty_pages": 14,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "manual_http",
+   "source_url": "https://nbm.com.sa/wp-content/uploads/2025/05/2016.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2016|None"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "33765c936027a1bf0dedd75cd82b1b556492f2e25aeb2103c86d41500159d05d",
+   "relpath": "archive/SA/9510/33765c936027a1bf0dedd75cd82b1b556492f2e25aeb2103c86d41500159d05d.pdf",
+   "ext": "pdf",
+   "size_bytes": 1754552,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2017,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "scanned_zero_text",
+   "pages": 16,
+   "empty_pages": 16,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "manual_http",
+   "source_url": "https://nbm.com.sa/wp-content/uploads/2025/05/2017.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2017|None"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "d913caac57f1a56cc3b23f47de35bda7831f54bbe2b57503f7f50acd18057f3a",
+   "relpath": "archive/SA/9510/d913caac57f1a56cc3b23f47de35bda7831f54bbe2b57503f7f50acd18057f3a.pdf",
+   "ext": "pdf",
+   "size_bytes": 1731550,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2018,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "scanned_zero_text",
+   "pages": 31,
+   "empty_pages": 31,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "manual_http",
+   "source_url": "https://nbm.com.sa/wp-content/uploads/2025/05/2018-1.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2018|None"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "eadf7b6c90da3816983bc5b64839ceafec194aaab638f15b3dbf97758188d642",
+   "relpath": "archive/SA/9510/eadf7b6c90da3816983bc5b64839ceafec194aaab638f15b3dbf97758188d642.pdf",
+   "ext": "pdf",
+   "size_bytes": 4601276,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2019,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 27,
+   "empty_pages": 5,
+   "text_chars": 55453,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     7,
+     17
+    ],
+    "income": [
+     7,
+     8,
+     9,
+     13,
+     15,
+     17
+    ],
+    "cash_flows": [
+     10
+    ],
+    "equity": [
+     9
+    ]
+   },
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "manual_http",
+   "source_url": "https://nbm.com.sa/wp-content/uploads/2025/05/2019-1.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2019|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "a831cb104bd3f4e412622e423adef01276955e03f2fb496ff72a09f066486020",
+   "relpath": "archive/SA/9510/a831cb104bd3f4e412622e423adef01276955e03f2fb496ff72a09f066486020.pdf",
+   "ext": "pdf",
+   "size_bytes": 9325500,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2020,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "scanned_zero_text",
+   "pages": 31,
+   "empty_pages": 31,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "manual_http",
+   "source_url": "https://nbm.com.sa/wp-content/uploads/2025/05/2020-1.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2020|None"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "5be72911941744895343bbbd9ebe77b64b18b4774d461cebb6d1b8607276cd31",
+   "relpath": "archive/SA/9510/5be72911941744895343bbbd9ebe77b64b18b4774d461cebb6d1b8607276cd31.pdf",
+   "ext": "pdf",
+   "size_bytes": 6509655,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "scanned_zero_text",
+   "pages": 43,
+   "empty_pages": 43,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "manual_http",
+   "source_url": "https://nbm.com.sa/wp-content/uploads/2025/05/2021-1.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|None"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "unclassified_period"
+   ]
+  }
+ ]
+}

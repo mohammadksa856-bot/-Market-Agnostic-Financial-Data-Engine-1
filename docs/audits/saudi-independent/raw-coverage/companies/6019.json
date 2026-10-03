@@ -1,0 +1,1382 @@
+{
+ "symbol": "6019",
+ "company_id": "sa:6019",
+ "name": "ALMASAR ALSHAMIL",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 18,
+   "statement_bucket_files": 18,
+   "files_with_all_three_primary_statements": 14,
+   "files_partial_statements": 3,
+   "files_no_statements_found": 1,
+   "files_unknown_scanned": 0,
+   "extractability_class": "B_mostly_text",
+   "text_extractable_statement_files": 14
+  },
+  "company_coverage": {
+   "expected_periods": 4,
+   "periods_with_complete_statements": 4,
+   "periods_with_partial_statements": 0,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 0,
+   "periods_absent": 0,
+   "pct_expected_with_complete_statements": 1.0,
+   "pct_expected_with_any_file": 1.0,
+   "coverage_class": "high",
+   "first_observed_period_proxy_for_listing": "2024|FY",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2025|9M",
+    "2025|H1",
+    "2025|Q1",
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T21:02:19+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 10,
+    "results_announcements": 3,
+    "results_by_slot": {
+     "2026|H1": [
+      97487
+     ],
+     "2026|Q1": [
+      95274
+     ],
+     "2025|FY": [
+      93065
+     ]
+    },
+    "detail_pages_checked": 3,
+    "detail_pages_with_files": 2,
+    "detail_page_failures": 0,
+    "profile_table_rows": 9,
+    "profile_table_files": 9
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [],
+   "rejected_reasons": [
+    "board_report",
+    "presentation"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 2,
+   "finished_at": "2026-09-29T21:47:03+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://masareducation.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://masareducation.com",
+    "status": "ok",
+    "pages": 11,
+    "doc_links": 27,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "error"
+   ],
+   "rejected_reasons": [
+    "not_financial",
+    "presentation"
+   ],
+   "unclassified_n": 1
+  }
+ },
+ "periods": {
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "d2548a2f69c5e96596142f68145ebc0130001b8c9366e987c4de2bded073067b",
+    "d8a48356bfaee4b248449dc57ac17aef80de8fcb995f4b6648318aea17f3598f"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|Q1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "5df58feb39440ed8426f640e24900114d706e529edb326ba393407b76cc85b32",
+    "d2ef867805cd959ab18212cb5f18cc132132f839e6e764a797629f3b7fd0ec68"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|H1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "62358b97cd04b11f03233baa26a30fb2bcb3a60b8058347e3f9bfa43121dc269",
+    "beef082a79eb6eb27f6e24f85c369295c58287550bdf10f141211e628df72306"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "46e465880eacdd7967ab12fc95087ed838988a98a980620be831371b5c516c31",
+    "bf89fd4fff6f9bd7d1052cb8a81fe3e140e74ab3dde337c509c8625febf7409d"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "statements_complete",
+   "files": [
+    "4a850a89aa55a4dc48cc1a1cf1c1cff47e55cd9f4c45774dc9cd8f006f39ddec",
+    "8bdc7043a9fcd74289aa50513534051492bebcd748dbd68273faeb6b7dd969d9",
+    "b72eb2f631a071d094000b37e9886e10d0f370f2e70b2f58d3f77af89182a317",
+    "cd1c89d28b09ac0e718006c8d93f83afc8c4fd2c6153b06159cf8d6047233f7a",
+    "d8a48356bfaee4b248449dc57ac17aef80de8fcb995f4b6648318aea17f3598f"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "statements_complete",
+   "files": [
+    "05c7a91997b3a965465d491f48de72af44ecaa6441c4d35dd5c8a34de1656220",
+    "691fe1bb6ec93341413bd954f41d83635c298c5d69e9e1a6fed159189d4e2af2",
+    "d289ca8054d4c4e4355056c73e2d4855cf4a1c032719469573373a5dacbfe514"
+   ],
+   "languages": [
+    "ar",
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "statements_complete",
+   "files": [
+    "2f0a934123246fac0431c8df0190461022a8acb9a4218e0344e70385ff41b341",
+    "95e868806fb18f10c19005c611f717962deca08e492d7aaac1cefd935878521e"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "partial_statements",
+   "files": [
+    "4a850a89aa55a4dc48cc1a1cf1c1cff47e55cd9f4c45774dc9cd8f006f39ddec"
+   ],
+   "languages": [
+    "en"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "d2548a2f69c5e96596142f68145ebc0130001b8c9366e987c4de2bded073067b",
+   "relpath": "archive/SA/6019/d2548a2f69c5e96596142f68145ebc0130001b8c9366e987c4de2bded073067b.pdf",
+   "ext": "pdf",
+   "size_bytes": 1664252,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 49,
+   "empty_pages": 2,
+   "text_chars": 114952,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     9,
+     39
+    ],
+    "income": [
+     2,
+     7,
+     8,
+     10,
+     32,
+     33,
+     40,
+     48,
+     49
+    ],
+    "cash_flows": [
+     2,
+     11,
+     35
+    ],
+    "equity": [
+     10
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2024/12/Almasar-Alshamil-Education-Financial-Statements-FY24-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "42ae1fff9809e58a297b8f39e1ed4cc0b1a1f1fc",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "46e465880eacdd7967ab12fc95087ed838988a98a980620be831371b5c516c31",
+   "relpath": "archive/SA/6019/46e465880eacdd7967ab12fc95087ed838988a98a980620be831371b5c516c31.pdf",
+   "ext": "pdf",
+   "size_bytes": 2466083,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 0,
+   "text_chars": 54817,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     5,
+     18
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     19,
+     21
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2025-12-01_15-34-09_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e7b148584907414587487e8c8e79c9f23237d09d",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "bf89fd4fff6f9bd7d1052cb8a81fe3e140e74ab3dde337c509c8625febf7409d",
+   "relpath": "archive/SA/6019/bf89fd4fff6f9bd7d1052cb8a81fe3e140e74ab3dde337c509c8625febf7409d.pdf",
+   "ext": "pdf",
+   "size_bytes": 1413089,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": "2025-09-30",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 18,
+   "empty_pages": 0,
+   "text_chars": 48397,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     5
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     6,
+     10,
+     11,
+     16,
+     18
+    ],
+    "cash_flows": [
+     7,
+     14
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "period_end_month",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2025/09/Al-Masar-Arabic-Review-Report-Sep-30-2025.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "df869744ac066cb4dd4b767009cb857f4d36e7a5",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "8bdc7043a9fcd74289aa50513534051492bebcd748dbd68273faeb6b7dd969d9",
+   "relpath": "archive/SA/6019/8bdc7043a9fcd74289aa50513534051492bebcd748dbd68273faeb6b7dd969d9.pdf",
+   "ext": "pdf",
+   "size_bytes": 19627366,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 100,
+   "empty_pages": 0,
+   "text_chars": 367671,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     69,
+     73,
+     97
+    ],
+    "income": [
+     69,
+     73,
+     76,
+     79,
+     81,
+     84,
+     85,
+     89,
+     98
+    ],
+    "cash_flows": [
+     92
+    ],
+    "equity": [
+     77
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2026/03/Almasar-Alshamil-Education_2025-Annual-Report_English.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4537ff4dca81264eb56c8d6a4a7a07365ae70ab2",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "b72eb2f631a071d094000b37e9886e10d0f370f2e70b2f58d3f77af89182a317",
+   "relpath": "archive/SA/6019/b72eb2f631a071d094000b37e9886e10d0f370f2e70b2f58d3f77af89182a317.pdf",
+   "ext": "pdf",
+   "size_bytes": 1291934,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-06-30",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 63,
+   "empty_pages": 0,
+   "text_chars": 179940,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     8,
+     49,
+     62
+    ],
+    "income": [
+     5,
+     6,
+     7,
+     33,
+     39,
+     61
+    ],
+    "cash_flows": [
+     11
+    ],
+    "equity": [
+     9,
+     10
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2025-12-01_15-40-05_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "3dff1d351173923bd193fb6caf069ac4a1dc3f51",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-06-30,labelled=2025-12-31",
+    "entity_name_not_in_front_pages_check",
+    "multiple_same_language_same_period:2025|FY"
+   ]
+  },
+  {
+   "sha256": "cd1c89d28b09ac0e718006c8d93f83afc8c4fd2c6153b06159cf8d6047233f7a",
+   "relpath": "archive/SA/6019/cd1c89d28b09ac0e718006c8d93f83afc8c4fd2c6153b06159cf8d6047233f7a.pdf",
+   "ext": "pdf",
+   "size_bytes": 15300200,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 99,
+   "empty_pages": 1,
+   "text_chars": 360015,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     73
+    ],
+    "income": [
+     69,
+     76,
+     79,
+     81,
+     83,
+     84,
+     88,
+     90,
+     92,
+     96,
+     97
+    ],
+    "cash_flows": [
+     86
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2026/03/Almasar-Alshamil-Education_2025-Annual-Report_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ec80df69ceba5857fd6e082c4ec7d23ebcc401b0",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "d8a48356bfaee4b248449dc57ac17aef80de8fcb995f4b6648318aea17f3598f",
+   "relpath": "archive/SA/6019/d8a48356bfaee4b248449dc57ac17aef80de8fcb995f4b6648318aea17f3598f.pdf",
+   "ext": "pdf",
+   "size_bytes": 661961,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 59,
+   "empty_pages": 5,
+   "text_chars": 149196,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     9,
+     51
+    ],
+    "income": [
+     7,
+     8,
+     37,
+     38,
+     58
+    ],
+    "cash_flows": [
+     11,
+     45
+    ],
+    "equity": [
+     10
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2025-12-01_15-28-11_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1762ebb9eb39f7b608a9886b877f66a6ba6eb8ea",
+   "all_period_labels": [
+    "2024|FY",
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "multiple_same_language_same_period:2025|FY"
+   ]
+  },
+  {
+   "sha256": "62358b97cd04b11f03233baa26a30fb2bcb3a60b8058347e3f9bfa43121dc269",
+   "relpath": "archive/SA/6019/62358b97cd04b11f03233baa26a30fb2bcb3a60b8058347e3f9bfa43121dc269.pdf",
+   "ext": "pdf",
+   "size_bytes": 2001182,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 21,
+   "empty_pages": 13,
+   "text_chars": 8439,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     5
+    ],
+    "income": [
+     2
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2025-12-01_15-32-16_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1d37e6fb5d9e6eb678512124091041f02be15854",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "missing_primary_statement:cash_flows",
+    "primary_statement_pages_may_be_image_only"
+   ]
+  },
+  {
+   "sha256": "beef082a79eb6eb27f6e24f85c369295c58287550bdf10f141211e628df72306",
+   "relpath": "archive/SA/6019/beef082a79eb6eb27f6e24f85c369295c58287550bdf10f141211e628df72306.pdf",
+   "ext": "pdf",
+   "size_bytes": 1053626,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 18,
+   "empty_pages": 0,
+   "text_chars": 45894,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     5
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     10,
+     11,
+     16,
+     18
+    ],
+    "cash_flows": [
+     7,
+     14
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2025/06/Almasar-Alshamil-Education-Financial-Statements-Q225-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e98fffa561d94329f02211a0b4c0e535da471542",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "99667792d191ae1a3580d027403830c30613d165b9d105b37c132434544f337a",
+   "relpath": "archive/SA/6019/99667792d191ae1a3580d027403830c30613d165b9d105b37c132434544f337a.pdf",
+   "ext": "pdf",
+   "size_bytes": 2028675,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 49,
+   "empty_pages": 2,
+   "text_chars": 140394,
+   "primary_statements_found": [
+    "cash_flows",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     6,
+     7,
+     28,
+     31,
+     32,
+     35,
+     39,
+     48,
+     49
+    ],
+    "cash_flows": [
+     27,
+     34
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2026/02/Al-Masar-Consolidated-Arabic-FS-2025.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "911fd24d7ac9c4e50b1775b525de946cd7322d80",
+   "all_period_labels": [
+    "2025|None"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "unclassified_period",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "5df58feb39440ed8426f640e24900114d706e529edb326ba393407b76cc85b32",
+   "relpath": "archive/SA/6019/5df58feb39440ed8426f640e24900114d706e529edb326ba393407b76cc85b32.pdf",
+   "ext": "pdf",
+   "size_bytes": 884563,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 17,
+   "empty_pages": 0,
+   "text_chars": 40454,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     5
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     16
+    ],
+    "cash_flows": [
+     2,
+     7,
+     14
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2025/03/Almasar-Alshamil-Education-Financial-Statements-Q125-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4861102d0c16a484fd93852f4528736e7634c9ba",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "d2ef867805cd959ab18212cb5f18cc132132f839e6e764a797629f3b7fd0ec68",
+   "relpath": "archive/SA/6019/d2ef867805cd959ab18212cb5f18cc132132f839e6e764a797629f3b7fd0ec68.pdf",
+   "ext": "pdf",
+   "size_bytes": 602820,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 20,
+   "empty_pages": 0,
+   "text_chars": 44991,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     5,
+     18
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     20
+    ],
+    "cash_flows": [
+     7,
+     15
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2025-12-01_15-30-49_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ed7ca14660445802816bee181de461b23dd1b855",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "4a850a89aa55a4dc48cc1a1cf1c1cff47e55cd9f4c45774dc9cd8f006f39ddec",
+   "relpath": "archive/SA/6019/4a850a89aa55a4dc48cc1a1cf1c1cff47e55cd9f4c45774dc9cd8f006f39ddec.pdf",
+   "ext": "pdf",
+   "size_bytes": 2522670,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 52,
+   "empty_pages": 1,
+   "text_chars": 160224,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     6,
+     7,
+     18,
+     25,
+     32,
+     33,
+     41,
+     51
+    ],
+    "cash_flows": [
+     10,
+     39
+    ],
+    "equity": [
+     9
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2026-02-11_08-48-29_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "89f0bb16bce2db315972ab50a20c1bd9e99cee74",
+   "all_period_labels": [
+    "2025|FY",
+    "2026|FY"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "2f0a934123246fac0431c8df0190461022a8acb9a4218e0344e70385ff41b341",
+   "relpath": "archive/SA/6019/2f0a934123246fac0431c8df0190461022a8acb9a4218e0344e70385ff41b341.pdf",
+   "ext": "pdf",
+   "size_bytes": 1607961,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 20,
+   "empty_pages": 1,
+   "text_chars": 49891,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     6,
+     12,
+     17,
+     19
+    ],
+    "cash_flows": [
+     2,
+     7,
+     15
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2026/08/Almasar-Alshamil-Education-Financial-Statements-%E2%80%93-Q2-2026-AR.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "716e1bd78e7e572c29c9709b459c9d5d9cc6d770",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "95e868806fb18f10c19005c611f717962deca08e492d7aaac1cefd935878521e",
+   "relpath": "archive/SA/6019/95e868806fb18f10c19005c611f717962deca08e492d7aaac1cefd935878521e.pdf",
+   "ext": "pdf",
+   "size_bytes": 1302086,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 1,
+   "text_chars": 51769,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     22
+    ],
+    "cash_flows": [
+     7,
+     17
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2026-08-11_10-49-34_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "8b2a4bbead3330e40a491b5c321cbcedf31ee4cb",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "05c7a91997b3a965465d491f48de72af44ecaa6441c4d35dd5c8a34de1656220",
+   "relpath": "archive/SA/6019/05c7a91997b3a965465d491f48de72af44ecaa6441c4d35dd5c8a34de1656220.pdf",
+   "ext": "pdf",
+   "size_bytes": 1304331,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 18,
+   "empty_pages": 1,
+   "text_chars": 41205,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     6,
+     11,
+     16,
+     18
+    ],
+    "cash_flows": [
+     2,
+     7,
+     14
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2026/05/Al-Masar-Signed-Arabic-Review-Report-Q1-2026.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "328fcd91f1f486901f21dfd00cd17c4628015b06",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "691fe1bb6ec93341413bd954f41d83635c298c5d69e9e1a6fed159189d4e2af2",
+   "relpath": "archive/SA/6019/691fe1bb6ec93341413bd954f41d83635c298c5d69e9e1a6fed159189d4e2af2.pdf",
+   "ext": "pdf",
+   "size_bytes": 1614176,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 1,
+   "text_chars": 45979,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     19
+    ],
+    "income": [
+     2,
+     3,
+     4,
+     20,
+     22
+    ],
+    "cash_flows": [
+     7,
+     16
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/8307_0_2026-05-12_10-23-14_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "2e12bceb8effa5c47b24e0a296a1d4410c2084a2",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "d289ca8054d4c4e4355056c73e2d4855cf4a1c032719469573373a5dacbfe514",
+   "relpath": "archive/SA/6019/d289ca8054d4c4e4355056c73e2d4855cf4a1c032719469573373a5dacbfe514.pdf",
+   "ext": "pdf",
+   "size_bytes": 572661,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 7,
+   "empty_pages": 1,
+   "text_chars": 12574,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://masareducation.com/wp-content/uploads/2026/05/%D8%A7%D9%84%D9%85%D8%B3%D8%A7%D8%B1-%D8%A7%D9%84%D8%B4%D8%A7%D9%85%D9%84-%D9%84%D9%84%D8%AA%D8%B9%D9%84%D9%8A%D9%85-%D8%AA%D8%B3%D8%AC%D9%91%D9%84-%D8%A3%D8%AF%D8%A7%D8%A1%D9%8B-%D9%82%D9%88%D9%8A%D8%A7%D9%8B-%D9%81%D9%8A-%D8%A7%D9%84%D8%B1%D8%A8%D8%B9-%D8%A7%D9%84%D8%A3%D9%88%D9%84-%D9%85%D9%86-%D8%B9%D8%A7%D9%85-2026.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "caae49ff93dbd90e02fb4b6ca72ab0d1e65a6b7d",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ]
+  }
+ ]
+}

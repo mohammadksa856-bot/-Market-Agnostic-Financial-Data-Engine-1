@@ -1,0 +1,2932 @@
+{
+ "symbol": "6017",
+ "company_id": "sa:6017",
+ "name": "JAHEZ",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 47,
+   "statement_bucket_files": 47,
+   "files_with_all_three_primary_statements": 15,
+   "files_partial_statements": 12,
+   "files_no_statements_found": 15,
+   "files_unknown_scanned": 5,
+   "extractability_class": "C_scan_or_nonstatement_heavy",
+   "text_extractable_statement_files": 22
+  },
+  "company_coverage": {
+   "expected_periods": 14,
+   "periods_with_complete_statements": 12,
+   "periods_with_partial_statements": 2,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 0,
+   "periods_absent": 0,
+   "pct_expected_with_complete_statements": 0.857,
+   "pct_expected_with_any_file": 1.0,
+   "coverage_class": "good",
+   "first_observed_period_proxy_for_listing": "2021|Q1",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2021|9M",
+    "2021|Q1",
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T21:09:23+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 91,
+    "results_announcements": 17,
+    "results_by_slot": {
+     "2026|H1": [
+      97437
+     ],
+     "2026|Q1": [
+      95215
+     ],
+     "2025|FY": [
+      93928,
+      93909
+     ],
+     "2025|9M": [
+      91362
+     ],
+     "2025|H1": [
+      89426
+     ],
+     "2025|Q1": [
+      87150
+     ],
+     "2024|FY": [
+      85659
+     ],
+     "2024|9M": [
+      83340
+     ],
+     "2024|H1": [
+      81966
+     ],
+     "2023|FY": [
+      78820
+     ],
+     "2023|H1": [
+      75709
+     ],
+     "2022|FY": [
+      72496
+     ],
+     "2022|H1": [
+      70304,
+      70126,
+      70023
+     ],
+     "2021|FY": [
+      67199
+     ]
+    },
+    "detail_pages_checked": 17,
+    "detail_pages_with_files": 15,
+    "detail_page_failures": 0,
+    "profile_table_rows": 21,
+    "profile_table_files": 21
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "board_report",
+    "presentation",
+    "sustainability"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-29T18:21:11+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.jahezgroup.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://www.jahezgroup.com",
+    "status": "ok",
+    "pages": 17,
+    "doc_links": 92,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "news",
+    "not_financial",
+    "presentation"
+   ],
+   "unclassified_n": 3
+  }
+ },
+ "periods": {
+  "2021|Q1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "unreadable_scan_only",
+   "files": [
+    "173b86c85039b240c76fce4c8db8f2bbd047179a6fa2a210e7a01179c75815d1",
+    "20340c2ddf9760ac0d0a859d8d0220d62a42f8a85a3a8e71400ed2785008b240"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2021|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "unreadable_scan_only",
+   "files": [
+    "a5f55fee94686324af391ce9e04ce2670497fb8f2af59146173553d3d256e6d3",
+    "f1bf9a70bceea2aa8183fd09a8592de310800aa327b8207d9a61ecd073b09fcb"
+   ],
+   "languages": [
+    "bilingual",
+    "en"
+   ]
+  },
+  "2021|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2021-12-31",
+   "status": "statements_via_annual_report",
+   "files": [
+    "1c5f265777b857d68da33e8d19f42de9f3c90c6adbab51189ce47728fb1ad1de",
+    "3c4a04706c39736bdf5b1a88a8dd9f569ce83d8aeec338cdc0e3a8b9384eb1d5",
+    "a50fda5ae1256d865c40c37ee01ee9a30a1edb63c084d0a73d37e714cd955e31"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2022|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2022-06-30",
+   "status": "partial_statements",
+   "files": [
+    "dd39d39615e930be92eaa2cb8b6acbbdd5d9dcb96dfd48466c40d2e0b94b9a79"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2022|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2022-12-31",
+   "status": "statements_via_annual_report",
+   "files": [
+    "115c111e98ef0385205f822652587a6cb0e39e325338c4651ab2e819bafffd02",
+    "6a873d510fd5ba6eb4cb55b75a90e1bc2f1d4f97295255fcf004f69809a72d97",
+    "a1c9b64ee80cc2ef5b42f031455cac7550f2ccdd50293a98806deb52d3acbe11"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2023|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-06-30",
+   "status": "statements_complete",
+   "files": [
+    "5765e521eb93f8ef72934c9eed90b94eeac9edf9bbf6ddbc334481343aa1c86b",
+    "5c9f4d812a27ae9ece417ee656a7eee8abf7a66f084efdbe012c043c01014618",
+    "f09b1e06ca9ea36fceb8dc71b6e78030fd375cc22f84b7734409b20cf1a750e8"
+   ],
+   "languages": [
+    "bilingual",
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2023|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-12-31",
+   "status": "statements_via_annual_report",
+   "files": [
+    "45e8750ad2e96d5e46faf46c475f158b1376e34987c0bd2143a165474c5c2c58",
+    "a1c9b64ee80cc2ef5b42f031455cac7550f2ccdd50293a98806deb52d3acbe11",
+    "cbe8b24980fb9da55ba50a97d81c1c09b96d92132e6d24445163ea540fcaa825",
+    "cf05c4f6564fc6ce878564626912df64eb121345a6293d5127dd6613ff3bb270"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-06-30",
+   "status": "statements_complete",
+   "files": [
+    "aa9f730fe1259ae06903d72b98af5eb5fecbd2e345c0d23856728c722711507b"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-09-30",
+   "status": "statements_complete",
+   "files": [
+    "40714a013365da3150d16dec426709a137bc82a1dbc00d021f055da2dbf6d01b",
+    "8ecf9eadcf0862563b6e6ef52fb874f4b694706b8f0d46645d5f95817924a031"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "20131ae27395069a1c051450a0179619d3470c1a7e8ebef883097229e7fd3f13",
+    "cbe8b24980fb9da55ba50a97d81c1c09b96d92132e6d24445163ea540fcaa825"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "statements_complete",
+   "files": [
+    "61a37bdace0ab37456196ac8093add296c24e2f646f928f11d3be39f6642646b",
+    "8e04397e14437a8c3f9aa9cb35a9b69d1076dd21b3e70ae2540cf74dfe366f17",
+    "c2b379c01e2b6f71ccf486374b0effd9aa9b72a74bd2a8e2cd3755da21cf6945"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "statements_complete",
+   "files": [
+    "3fdcd6b406086334e89e7c4f7454769f77ed34ebfafa69be07d6d5b4d9b54148",
+    "401e901462327144609d18b3a1229e593dc30cb9494d1e1a68c86235138f704c",
+    "8cbc7cce802e913b2ef8df80e24dd4ea9528cf06bc09320ef7127bdaf3856642"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "statements_complete",
+   "files": [
+    "3520c1fadd93da828444981cfba016f3c34d55ff73cde5dc7afe1dca5ce61a68",
+    "8875c6834a32e64127f67fd276703b29083dcf52726e0ae49459b1ddcbc82d92",
+    "a01f2b203a42fcc5c1cdf3bfc555cf9dcda7aa1bd4f9d44545604e6ac0ac2ead"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "statements_complete",
+   "files": [
+    "1df358ca908564f56163728bc58c7a6ea37b06473e42e27025ef31946d8d44f1",
+    "20131ae27395069a1c051450a0179619d3470c1a7e8ebef883097229e7fd3f13",
+    "4b45d999e6512b5e0c97b72e62e1fa68f6ff432641d4a4c0de02b21e30b338ed",
+    "67d08e3a6b54d1303c7268df53bd13de2e41d3bb61c189d253bb93eb1116866b",
+    "8eab568d839e2f34fa8d638ab17158c940b92d8ff457aee607ac2015cbb3492d",
+    "c6efe6fce16161c722433c380057e5971e916e3c81c44af234cf3e5dc5568ba3",
+    "d9587e85923fae25970aa6629b7b69be855702a6dfc4a72f6fffadf85aae4502"
+   ],
+   "languages": [
+    "ar",
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "partial_statements",
+   "files": [
+    "482cce525f036326b148bbc6cc1eaef4b5658c757c9c74eb5436231fa7d896a6",
+    "4ae12a55a51098fbb18662b242b22e20d9cd8d4722d881ef5dbb77fcd97a43ba",
+    "707a731fba17ff32acd574284d4f7f0c868c4b60707b7d1e17dfdb9e29e9a927"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "statements_complete",
+   "files": [
+    "1e407fc618d96cb13c4fb2277699ffed463a3ae1cdb3910c87d16bae6da5e844",
+    "84626d33bdd1a3522689fa3ac5192e6eca6841dd14140768ea44886ab9dc7c28",
+    "e23ee07f4c95e4ff05b619947506902ac2bfc324d6a65f47f56dd39cf243924a",
+    "fedb8d5cdc8970522d3d1aec387a1d32c419edb2e42af7152c4d4ab0a09ac79e"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "unreadable_scan_only",
+   "files": [
+    "b9421e85e260dcedeaefccdf69bbff6ed07ada645e434fb113dbd58790297c9b"
+   ],
+   "languages": [
+    "en"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "a5f55fee94686324af391ce9e04ce2670497fb8f2af59146173553d3d256e6d3",
+   "relpath": "archive/SA/6017/a5f55fee94686324af391ce9e04ce2670497fb8f2af59146173553d3d256e6d3.pdf",
+   "ext": "pdf",
+   "size_bytes": 2055201,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 29,
+   "empty_pages": 29,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/3rd-Quarter-2021_-En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|9M"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "f1bf9a70bceea2aa8183fd09a8592de310800aa327b8207d9a61ecd073b09fcb",
+   "relpath": "archive/SA/6017/f1bf9a70bceea2aa8183fd09a8592de310800aa327b8207d9a61ecd073b09fcb.pdf",
+   "ext": "pdf",
+   "size_bytes": 1465584,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual",
+   "language_manifest": "bilingual",
+   "readability": "mostly_scanned",
+   "pages": 26,
+   "empty_pages": 25,
+   "text_chars": 3279,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/3rd-Quarter-2021_-Ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|9M"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "1c5f265777b857d68da33e8d19f42de9f3c90c6adbab51189ce47728fb1ad1de",
+   "relpath": "archive/SA/6017/1c5f265777b857d68da33e8d19f42de9f3c90c6adbab51189ce47728fb1ad1de.pdf",
+   "ext": "pdf",
+   "size_bytes": 7893372,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2021-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 87,
+   "empty_pages": 2,
+   "text_chars": 360515,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     54,
+     66,
+     78
+    ],
+    "income": [
+     69,
+     74
+    ],
+    "cash_flows": [
+     54
+    ],
+    "equity": [
+     70
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/JAHEZ-AR-ENG-V3.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7d10f889f18c596071d8833a2b9f630b48c36a36",
+   "all_period_labels": [
+    "2021|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "3c4a04706c39736bdf5b1a88a8dd9f569ce83d8aeec338cdc0e3a8b9384eb1d5",
+   "relpath": "archive/SA/6017/3c4a04706c39736bdf5b1a88a8dd9f569ce83d8aeec338cdc0e3a8b9384eb1d5.pdf",
+   "ext": "pdf",
+   "size_bytes": 8391035,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 43,
+   "empty_pages": 43,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/Year-End-2021_-En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "a50fda5ae1256d865c40c37ee01ee9a30a1edb63c084d0a73d37e714cd955e31",
+   "relpath": "archive/SA/6017/a50fda5ae1256d865c40c37ee01ee9a30a1edb63c084d0a73d37e714cd955e31.pdf",
+   "ext": "pdf",
+   "size_bytes": 10974967,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 85,
+   "empty_pages": 4,
+   "text_chars": 317742,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     54,
+     56,
+     69,
+     80
+    ],
+    "income": [
+     69,
+     70,
+     77,
+     80
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/JAHEZ_AR21_V5-ARB01.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f475b29859efab05aac2d99e3cfa44d168abd2d6",
+   "all_period_labels": [
+    "2021|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "9671e9d03213529ff6261a5c2ae5ece36404d02eb07b4e17170a13a393f175d2",
+   "relpath": "archive/SA/6017/9671e9d03213529ff6261a5c2ae5ece36404d02eb07b4e17170a13a393f175d2.pdf",
+   "ext": "pdf",
+   "size_bytes": 7182589,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "bilingual",
+   "readability": "mostly_scanned",
+   "pages": 40,
+   "empty_pages": 32,
+   "text_chars": 10082,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     7
+    ],
+    "income": [
+     7,
+     8,
+     9
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/Year-End-2021_-Ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|None"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "unclassified_period",
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "primary_statement_pages_may_be_image_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "173b86c85039b240c76fce4c8db8f2bbd047179a6fa2a210e7a01179c75815d1",
+   "relpath": "archive/SA/6017/173b86c85039b240c76fce4c8db8f2bbd047179a6fa2a210e7a01179c75815d1.pdf",
+   "ext": "pdf",
+   "size_bytes": 1561576,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 27,
+   "empty_pages": 25,
+   "text_chars": 1263,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/1st-Quarter-2021_-Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "cfc76b6882d7c7f24115c26d442b44c1a34a13c0",
+   "all_period_labels": [
+    "2021|Q1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "20340c2ddf9760ac0d0a859d8d0220d62a42f8a85a3a8e71400ed2785008b240",
+   "relpath": "archive/SA/6017/20340c2ddf9760ac0d0a859d8d0220d62a42f8a85a3a8e71400ed2785008b240.pdf",
+   "ext": "pdf",
+   "size_bytes": 1994900,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 31,
+   "empty_pages": 31,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2022/05/1st-Quarter-2021_-En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2021|Q1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "115c111e98ef0385205f822652587a6cb0e39e325338c4651ab2e819bafffd02",
+   "relpath": "archive/SA/6017/115c111e98ef0385205f822652587a6cb0e39e325338c4651ab2e819bafffd02.pdf",
+   "ext": "pdf",
+   "size_bytes": 2165999,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 168,
+   "empty_pages": 4,
+   "text_chars": 335141,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     99,
+     112,
+     124,
+     145,
+     156
+    ],
+    "income": [
+     145
+    ],
+    "cash_flows": [
+     128
+    ],
+    "equity": [
+     126
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2023/06/JAHEZ_AR22_English.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "907530b6e0836c16c02f7c48c149f0980096f31f",
+   "all_period_labels": [
+    "2022|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "6a873d510fd5ba6eb4cb55b75a90e1bc2f1d4f97295255fcf004f69809a72d97",
+   "relpath": "archive/SA/6017/6a873d510fd5ba6eb4cb55b75a90e1bc2f1d4f97295255fcf004f69809a72d97.pdf",
+   "ext": "pdf",
+   "size_bytes": 2167773,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 168,
+   "empty_pages": 7,
+   "text_chars": 293321,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     99,
+     112,
+     124,
+     145,
+     156
+    ],
+    "income": [
+     126,
+     145,
+     148
+    ],
+    "cash_flows": [
+     112,
+     128,
+     156,
+     158
+    ],
+    "equity": [
+     126
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2023/06/JAHEZ_AR22_Arabic.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2022|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "dd39d39615e930be92eaa2cb8b6acbbdd5d9dcb96dfd48466c40d2e0b94b9a79",
+   "relpath": "archive/SA/6017/dd39d39615e930be92eaa2cb8b6acbbdd5d9dcb96dfd48466c40d2e0b94b9a79.pdf",
+   "ext": "pdf",
+   "size_bytes": 7217879,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 33,
+   "empty_pages": 3,
+   "text_chars": 82827,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3
+    ],
+    "income": [
+     3
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/2663_0_2022-09-14_21-03-30_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a7003c2ec72e2f28b468287fa0ebcacb764dff6c",
+   "all_period_labels": [
+    "2022|H1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "45e8750ad2e96d5e46faf46c475f158b1376e34987c0bd2143a165474c5c2c58",
+   "relpath": "archive/SA/6017/45e8750ad2e96d5e46faf46c475f158b1376e34987c0bd2143a165474c5c2c58.pdf",
+   "ext": "pdf",
+   "size_bytes": 5000924,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 220,
+   "empty_pages": 4,
+   "text_chars": 425927,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     139,
+     192
+    ],
+    "income": [
+     4,
+     139,
+     197
+    ],
+    "cash_flows": [
+     162
+    ],
+    "equity": [
+     160
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2024/04/Jahez_AR23_English_Final.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0ab73788f8069c965e7d851c4d8d36fb5ce4fe00",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "a1c9b64ee80cc2ef5b42f031455cac7550f2ccdd50293a98806deb52d3acbe11",
+   "relpath": "archive/SA/6017/a1c9b64ee80cc2ef5b42f031455cac7550f2ccdd50293a98806deb52d3acbe11.pdf",
+   "ext": "pdf",
+   "size_bytes": 2941670,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 48,
+   "empty_pages": 47,
+   "text_chars": 3003,
+   "primary_statements_found": [
+    "cash_flows"
+   ],
+   "statement_pages": {
+    "cash_flows": [
+     10
+    ]
+   },
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/2663_0_2023-03-22_15-27-57_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2022|FY",
+    "2023|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2022-12-31,labelled=2023-12-31",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "cf05c4f6564fc6ce878564626912df64eb121345a6293d5127dd6613ff3bb270",
+   "relpath": "archive/SA/6017/cf05c4f6564fc6ce878564626912df64eb121345a6293d5127dd6613ff3bb270.pdf",
+   "ext": "pdf",
+   "size_bytes": 4903715,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 222,
+   "empty_pages": 5,
+   "text_chars": 366603,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     139,
+     192,
+     209
+    ],
+    "income": [
+     4,
+     139,
+     141,
+     158,
+     159,
+     160,
+     162,
+     192,
+     197,
+     214
+    ],
+    "cash_flows": [
+     162,
+     209,
+     211
+    ],
+    "equity": [
+     4,
+     160
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2024/04/Jahez_AR23_Arabic_Final.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1471c0d848ab0135e523acbeaa6df45430ed83c0",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "5765e521eb93f8ef72934c9eed90b94eeac9edf9bbf6ddbc334481343aa1c86b",
+   "relpath": "archive/SA/6017/5765e521eb93f8ef72934c9eed90b94eeac9edf9bbf6ddbc334481343aa1c86b.pdf",
+   "ext": "pdf",
+   "size_bytes": 2414538,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 29,
+   "empty_pages": 0,
+   "text_chars": 69860,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     29
+    ],
+    "income": [
+     5,
+     12,
+     29
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/2663_0_2023-09-04_18-51-01_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "530616170b277e21b1e32cf51a891a20aacb3f91",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "5c9f4d812a27ae9ece417ee656a7eee8abf7a66f084efdbe012c043c01014618",
+   "relpath": "archive/SA/6017/5c9f4d812a27ae9ece417ee656a7eee8abf7a66f084efdbe012c043c01014618.pdf",
+   "ext": "pdf",
+   "size_bytes": 271059,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2023-06-30",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "results_announcement",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 8,
+   "empty_pages": 1,
+   "text_chars": 14598,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/13918_2663_2023-09-03_00-27-32_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6fe47937d59ef73ec46179d25291a04196879b7e",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "f09b1e06ca9ea36fceb8dc71b6e78030fd375cc22f84b7734409b20cf1a750e8",
+   "relpath": "archive/SA/6017/f09b1e06ca9ea36fceb8dc71b6e78030fd375cc22f84b7734409b20cf1a750e8.pdf",
+   "ext": "pdf",
+   "size_bytes": 4436177,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual",
+   "language_manifest": "bilingual",
+   "readability": "mostly_scanned",
+   "pages": 32,
+   "empty_pages": 30,
+   "text_chars": 416,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2023/11/H1-2023-1.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "40714a013365da3150d16dec426709a137bc82a1dbc00d021f055da2dbf6d01b",
+   "relpath": "archive/SA/6017/40714a013365da3150d16dec426709a137bc82a1dbc00d021f055da2dbf6d01b.pdf",
+   "ext": "pdf",
+   "size_bytes": 1568979,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 0,
+   "text_chars": 92633,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/2663_0_2024-11-11_17-29-29_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "bae09c23121fde132d0ad85fafc78cab21432b7f",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "same_hash_under_other_symbol:9526",
+    "multiple_same_language_same_period:2024|9M"
+   ]
+  },
+  {
+   "sha256": "8ecf9eadcf0862563b6e6ef52fb874f4b694706b8f0d46645d5f95817924a031",
+   "relpath": "archive/SA/6017/8ecf9eadcf0862563b6e6ef52fb874f4b694706b8f0d46645d5f95817924a031.pdf",
+   "ext": "pdf",
+   "size_bytes": 1431868,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 28,
+   "empty_pages": 0,
+   "text_chars": 86967,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     4
+    ],
+    "income": [
+     2,
+     5,
+     6,
+     12
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/11/JAHEZ_Q3-2024-Arabic-REVIEW-REPORT.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a1aa1eff2ccc323135d7820b2c8300716b73452b",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "same_hash_under_other_symbol:9526",
+    "multiple_same_language_same_period:2024|9M"
+   ]
+  },
+  {
+   "sha256": "cbe8b24980fb9da55ba50a97d81c1c09b96d92132e6d24445163ea540fcaa825",
+   "relpath": "archive/SA/6017/cbe8b24980fb9da55ba50a97d81c1c09b96d92132e6d24445163ea540fcaa825.pdf",
+   "ext": "pdf",
+   "size_bytes": 4139287,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 57,
+   "empty_pages": 6,
+   "text_chars": 126978,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     38,
+     48
+    ],
+    "income": [
+     38
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/2663_0_2024-03-27_11-19-01_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0a5dc8a3c2891049e04c8dfd4f1efd41de9e0b7a",
+   "all_period_labels": [
+    "2023|FY",
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+    "missing_primary_statement:cash_flows",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "aa9f730fe1259ae06903d72b98af5eb5fecbd2e345c0d23856728c722711507b",
+   "relpath": "archive/SA/6017/aa9f730fe1259ae06903d72b98af5eb5fecbd2e345c0d23856728c722711507b.pdf",
+   "ext": "pdf",
+   "size_bytes": 3477872,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 0,
+   "text_chars": 91109,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/2663_0_2024-08-15_14-44-14_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "06f07a3af0fa74ce74ece5239747866f614d2a2e",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "08d6f0e34e924a6064cd27f5f8b32af0ad222f4984d24e1aed57441b5b1288dc",
+   "relpath": "archive/SA/6017/08d6f0e34e924a6064cd27f5f8b32af0ad222f4984d24e1aed57441b5b1288dc.pdf",
+   "ext": "pdf",
+   "size_bytes": 500211,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 14,
+   "empty_pages": 0,
+   "text_chars": 36210,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/03/%D8%A8%D9%8A%D8%A7%D9%86-%D8%A7%D9%84%D8%A3%D8%B1%D8%A8%D8%A7%D8%AD-%D9%84%D9%84%D8%B1%D8%A8%D8%B9-%D8%A7%D9%84%D8%AB%D8%A7%D9%84%D8%AB-2024_.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b730922c8ac02f8a456c8a954bcfecc7d225eb29",
+   "all_period_labels": [
+    "2024|None"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "unclassified_period",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "ac541842d6d5e66d3d24de1cd1c6794a60d348ce11601f88ef8d463af0c64f54",
+   "relpath": "archive/SA/6017/ac541842d6d5e66d3d24de1cd1c6794a60d348ce11601f88ef8d463af0c64f54.pdf",
+   "ext": "pdf",
+   "size_bytes": 3598469,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "mostly_scanned",
+   "pages": 29,
+   "empty_pages": 27,
+   "text_chars": 757,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/03/%D8%B9%D8%B1%D8%B6-%D8%A7%D9%84%D9%86%D8%AA%D8%A7%D8%A6%D8%AC-%D8%A7%D9%84%D9%85%D8%A7%D9%84%D9%8A%D8%A9-%D9%84%D9%84%D9%86%D8%B5%D9%81-%D8%A7%D9%84%D8%A3%D9%88%D9%84-2024_.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2024|None"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "unclassified_period",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "3520c1fadd93da828444981cfba016f3c34d55ff73cde5dc7afe1dca5ce61a68",
+   "relpath": "archive/SA/6017/3520c1fadd93da828444981cfba016f3c34d55ff73cde5dc7afe1dca5ce61a68.pdf",
+   "ext": "pdf",
+   "size_bytes": 580255,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": "2025-09-30",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 18,
+   "empty_pages": 0,
+   "text_chars": 36947,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/19333_6727_2025-11-09_01-25-30_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "8e2bffa76fa8bfbf5db9158e1ecf6dc21be9319a",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "8875c6834a32e64127f67fd276703b29083dcf52726e0ae49459b1ddcbc82d92",
+   "relpath": "archive/SA/6017/8875c6834a32e64127f67fd276703b29083dcf52726e0ae49459b1ddcbc82d92.pdf",
+   "ext": "pdf",
+   "size_bytes": 1788826,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 30,
+   "empty_pages": 0,
+   "text_chars": 77940,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     5,
+     6
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/11/Jahez-Arabic-FSs.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c97ad5935be891d53f80d8db4b7c5e754792551a",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526",
+    "multiple_same_language_same_period:2025|9M"
+   ]
+  },
+  {
+   "sha256": "a01f2b203a42fcc5c1cdf3bfc555cf9dcda7aa1bd4f9d44545604e6ac0ac2ead",
+   "relpath": "archive/SA/6017/a01f2b203a42fcc5c1cdf3bfc555cf9dcda7aa1bd4f9d44545604e6ac0ac2ead.pdf",
+   "ext": "pdf",
+   "size_bytes": 1674290,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 0,
+   "text_chars": 85238,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     21
+    ],
+    "income": [
+     5
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2025-11-16_21-56-29_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "9c2ba9c71e5125dc811ec4a93eced68c4faf0996",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows",
+    "same_hash_under_other_symbol:9526",
+    "multiple_same_language_same_period:2025|9M"
+   ]
+  },
+  {
+   "sha256": "1df358ca908564f56163728bc58c7a6ea37b06473e42e27025ef31946d8d44f1",
+   "relpath": "archive/SA/6017/1df358ca908564f56163728bc58c7a6ea37b06473e42e27025ef31946d8d44f1.pdf",
+   "ext": "pdf",
+   "size_bytes": 3128506,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2025-12-31",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 15,
+   "empty_pages": 0,
+   "text_chars": 36226,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/13918_6727_2026-03-30_08-30-26_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6200d049979b732585e67bd1fd1c4fec936860c6",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "20131ae27395069a1c051450a0179619d3470c1a7e8ebef883097229e7fd3f13",
+   "relpath": "archive/SA/6017/20131ae27395069a1c051450a0179619d3470c1a7e8ebef883097229e7fd3f13.pdf",
+   "ext": "pdf",
+   "size_bytes": 1917781,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 61,
+   "empty_pages": 0,
+   "text_chars": 155791,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     7,
+     42,
+     52
+    ],
+    "income": [
+     8,
+     42
+    ],
+    "cash_flows": [
+     10
+    ],
+    "equity": [
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2025-03-17_08-25-11_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a81f0bf31b083286af01b976edcf3bdce37c0b73",
+   "all_period_labels": [
+    "2024|FY",
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "4b45d999e6512b5e0c97b72e62e1fa68f6ff432641d4a4c0de02b21e30b338ed",
+   "relpath": "archive/SA/6017/4b45d999e6512b5e0c97b72e62e1fa68f6ff432641d4a4c0de02b21e30b338ed.pdf",
+   "ext": "pdf",
+   "size_bytes": 14965233,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 114,
+   "empty_pages": 0,
+   "text_chars": 472560,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     80,
+     85
+    ],
+    "income": [
+     80,
+     85,
+     99
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/04/6727_0_2025-03-29_17-13-07_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0605cbe0dbd4513849cf0fa4f8b3221e819416d7",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "missing_primary_statement:cash_flows",
+    "same_hash_under_other_symbol:9526",
+    "multiple_same_language_same_period:2025|FY"
+   ]
+  },
+  {
+   "sha256": "67d08e3a6b54d1303c7268df53bd13de2e41d3bb61c189d253bb93eb1116866b",
+   "relpath": "archive/SA/6017/67d08e3a6b54d1303c7268df53bd13de2e41d3bb61c189d253bb93eb1116866b.pdf",
+   "ext": "pdf",
+   "size_bytes": 15299176,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 114,
+   "empty_pages": 0,
+   "text_chars": 421969,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     80,
+     85,
+     87
+    ],
+    "income": [
+     80,
+     85,
+     87,
+     96,
+     97,
+     99,
+     111
+    ],
+    "cash_flows": [
+     85,
+     88
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/04/6727_0_2025-03-29_17-13-07_Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6a9729d1b13fdcdc6535a98af05af7c7832c5cb3",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "8eab568d839e2f34fa8d638ab17158c940b92d8ff457aee607ac2015cbb3492d",
+   "relpath": "archive/SA/6017/8eab568d839e2f34fa8d638ab17158c940b92d8ff457aee607ac2015cbb3492d.pdf",
+   "ext": "pdf",
+   "size_bytes": 8880811,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 121,
+   "empty_pages": 1,
+   "text_chars": 449221,
+   "primary_statements_found": [
+    "cash_flows",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     3,
+     87,
+     96
+    ],
+    "cash_flows": [
+     3,
+     55,
+     90,
+     97,
+     116,
+     117
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2021/10/20260610_Jahez_AR25_Arabic__.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "871e0b8d3cf48e4d6bfb877d03c650056b1e96b2",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "c6efe6fce16161c722433c380057e5971e916e3c81c44af234cf3e5dc5568ba3",
+   "relpath": "archive/SA/6017/c6efe6fce16161c722433c380057e5971e916e3c81c44af234cf3e5dc5568ba3.pdf",
+   "ext": "pdf",
+   "size_bytes": 3520518,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 15,
+   "empty_pages": 0,
+   "text_chars": 43767,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2026/04/Jahez-Q4-2025_ER-Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d9276a3e2441faacf1df68b09886b62c36b1ce82",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "d9587e85923fae25970aa6629b7b69be855702a6dfc4a72f6fffadf85aae4502",
+   "relpath": "archive/SA/6017/d9587e85923fae25970aa6629b7b69be855702a6dfc4a72f6fffadf85aae4502.pdf",
+   "ext": "pdf",
+   "size_bytes": 7599693,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 121,
+   "empty_pages": 0,
+   "text_chars": 506358,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     32,
+     87,
+     95,
+     108
+    ],
+    "income": [
+     87
+    ],
+    "cash_flows": [
+     97
+    ],
+    "equity": [
+     96
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2021/10/20260610_Jahez-AR25_English.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6fde845283c12b329e1b4c89d47b03aad146cfdd",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_under_other_symbol:9526",
+    "multiple_same_language_same_period:2025|FY"
+   ]
+  },
+  {
+   "sha256": "3fdcd6b406086334e89e7c4f7454769f77ed34ebfafa69be07d6d5b4d9b54148",
+   "relpath": "archive/SA/6017/3fdcd6b406086334e89e7c4f7454769f77ed34ebfafa69be07d6d5b4d9b54148.pdf",
+   "ext": "pdf",
+   "size_bytes": 527648,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2025-06-30",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 15,
+   "empty_pages": 0,
+   "text_chars": 30574,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/19333_6727_2025-08-10_01-50-34_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "124fef15b2bbb1576a66da1b6594d3335e03f76b",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "401e901462327144609d18b3a1229e593dc30cb9494d1e1a68c86235138f704c",
+   "relpath": "archive/SA/6017/401e901462327144609d18b3a1229e593dc30cb9494d1e1a68c86235138f704c.pdf",
+   "ext": "pdf",
+   "size_bytes": 1532281,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 35,
+   "empty_pages": 0,
+   "text_chars": 89985,
+   "primary_statements_found": [
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     5
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2025-08-12_11-18-57_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ccfd5754e0acd7242d846cc1e7437c1e48ec18d0",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "8cbc7cce802e913b2ef8df80e24dd4ea9528cf06bc09320ef7127bdaf3856642",
+   "relpath": "archive/SA/6017/8cbc7cce802e913b2ef8df80e24dd4ea9528cf06bc09320ef7127bdaf3856642.pdf",
+   "ext": "pdf",
+   "size_bytes": 1952846,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 31,
+   "empty_pages": 0,
+   "text_chars": 82179,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     5,
+     6
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/08/Jahez-FS-H1-2025-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "5f5cf2b9b6d41eb5eb629ec0f30b8ae1acd4350b",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "61a37bdace0ab37456196ac8093add296c24e2f646f928f11d3be39f6642646b",
+   "relpath": "archive/SA/6017/61a37bdace0ab37456196ac8093add296c24e2f646f928f11d3be39f6642646b.pdf",
+   "ext": "pdf",
+   "size_bytes": 2345858,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2025-03-31",
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 16,
+   "empty_pages": 14,
+   "text_chars": 153,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/19333_6727_2025-05-11_02-43-27_en.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "8e04397e14437a8c3f9aa9cb35a9b69d1076dd21b3e70ae2540cf74dfe366f17",
+   "relpath": "archive/SA/6017/8e04397e14437a8c3f9aa9cb35a9b69d1076dd21b3e70ae2540cf74dfe366f17.pdf",
+   "ext": "pdf",
+   "size_bytes": 1313404,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 29,
+   "empty_pages": 0,
+   "text_chars": 73067,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     5,
+     6,
+     19
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2025/05/Jahez-Q1-2025-Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "58e01d3f2ca8709a1c7c2a3c7bfa0c1a4c434f31",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "c2b379c01e2b6f71ccf486374b0effd9aa9b72a74bd2a8e2cd3755da21cf6945",
+   "relpath": "archive/SA/6017/c2b379c01e2b6f71ccf486374b0effd9aa9b72a74bd2a8e2cd3755da21cf6945.pdf",
+   "ext": "pdf",
+   "size_bytes": 1546177,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 32,
+   "empty_pages": 0,
+   "text_chars": 79584,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2025-05-15_13-44-44_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "82b31a373892ce78af5b61fb3796540fb1faeb54",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "b9421e85e260dcedeaefccdf69bbff6ed07ada645e434fb113dbd58790297c9b",
+   "relpath": "archive/SA/6017/b9421e85e260dcedeaefccdf69bbff6ed07ada645e434fb113dbd58790297c9b.pdf",
+   "ext": "pdf",
+   "size_bytes": 4560477,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 64,
+   "empty_pages": 64,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2026-04-07_10-47-50_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "1e407fc618d96cb13c4fb2277699ffed463a3ae1cdb3910c87d16bae6da5e844",
+   "relpath": "archive/SA/6017/1e407fc618d96cb13c4fb2277699ffed463a3ae1cdb3910c87d16bae6da5e844.pdf",
+   "ext": "pdf",
+   "size_bytes": 1276218,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 38,
+   "empty_pages": 2,
+   "text_chars": 86563,
+   "primary_statements_found": [
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     5
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2026-08-16_16-57-36_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b96df8ffb4958e758f00a695a7a99c110c866541",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "84626d33bdd1a3522689fa3ac5192e6eca6841dd14140768ea44886ab9dc7c28",
+   "relpath": "archive/SA/6017/84626d33bdd1a3522689fa3ac5192e6eca6841dd14140768ea44886ab9dc7c28.pdf",
+   "ext": "pdf",
+   "size_bytes": 485416,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "results_announcement",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 15,
+   "empty_pages": 0,
+   "text_chars": 42284,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2021/10/Jahez-Q2-2026-Ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "fd3853e8addec16d2ded727a8c15567aa39b402e",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "e23ee07f4c95e4ff05b619947506902ac2bfc324d6a65f47f56dd39cf243924a",
+   "relpath": "archive/SA/6017/e23ee07f4c95e4ff05b619947506902ac2bfc324d6a65f47f56dd39cf243924a.pdf",
+   "ext": "pdf",
+   "size_bytes": 1178936,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 34,
+   "empty_pages": 0,
+   "text_chars": 88051,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     5,
+     6
+    ],
+    "cash_flows": [
+     7,
+     16
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2021/10/Jahez-H1-2026-signed-Arabic-FS-with-review-report.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "366379c73dd34193c57a940ccf70ff7a39c79523",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "fedb8d5cdc8970522d3d1aec387a1d32c419edb2e42af7152c4d4ab0a09ac79e",
+   "relpath": "archive/SA/6017/fedb8d5cdc8970522d3d1aec387a1d32c419edb2e42af7152c4d4ab0a09ac79e.pdf",
+   "ext": "pdf",
+   "size_bytes": 1528126,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2026-06-30",
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 15,
+   "empty_pages": 0,
+   "text_chars": 37358,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/19333_6727_2026-08-09_21-09-12_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a31223f4acf75432894a1eeb7a8eff730bd86d07",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "482cce525f036326b148bbc6cc1eaef4b5658c757c9c74eb5436231fa7d896a6",
+   "relpath": "archive/SA/6017/482cce525f036326b148bbc6cc1eaef4b5658c757c9c74eb5436231fa7d896a6.pdf",
+   "ext": "pdf",
+   "size_bytes": 491710,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2026-03-31",
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 15,
+   "empty_pages": 0,
+   "text_chars": 35607,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/19333_6727_2026-05-10_21-00-41_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "2a8a724809436d6838834fa6ec87c1b2e6a21a65",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "4ae12a55a51098fbb18662b242b22e20d9cd8d4722d881ef5dbb77fcd97a43ba",
+   "relpath": "archive/SA/6017/4ae12a55a51098fbb18662b242b22e20d9cd8d4722d881ef5dbb77fcd97a43ba.pdf",
+   "ext": "pdf",
+   "size_bytes": 1885741,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 32,
+   "empty_pages": 0,
+   "text_chars": 78693,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     4,
+     5,
+     6,
+     21,
+     25
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://jahezgroup.com/wp-content/uploads/2026/05/Jahez-Q1-2026-Arabic-FULL-FS-with-review-report.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1bae0e503f84e89ea982aeb525ef8f189f28bddd",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "same_hash_under_other_symbol:9526"
+   ]
+  },
+  {
+   "sha256": "707a731fba17ff32acd574284d4f7f0c868c4b60707b7d1e17dfdb9e29e9a927",
+   "relpath": "archive/SA/6017/707a731fba17ff32acd574284d4f7f0c868c4b60707b7d1e17dfdb9e29e9a927.pdf",
+   "ext": "pdf",
+   "size_bytes": 1939742,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 33,
+   "empty_pages": 0,
+   "text_chars": 83501,
+   "primary_statements_found": [
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     5
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6727_0_2026-05-18_01-55-29_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "56a5e97c869d9db2ff5a5079eb700e523fa24c91",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "same_hash_under_other_symbol:9526"
+   ]
+  }
+ ]
+}

@@ -124,6 +124,25 @@ def main():
             if "duplicate_text_candidate_of" in fl or "multiple_same_language_same_period" in fl:
                 dups.append({"symbol": c["symbol"], "sha256": f["sha256"], "label": f"{f['fiscal_year']}|{f['period_slot']}",
                              "flags": [x for x in f["flags"] if x.startswith(("duplicate", "multiple"))]})
+    mm_break = Counter()
+    for w in wrong_period:
+        m = re.search(r"detected=(\d{4})-(\d\d-\d\d),labelled=(\d{4})-(\d\d-\d\d)", w["detail"])
+        if m:
+            dy, dmd, ly, lmd = int(m.group(1)), m.group(2), int(m.group(3)), m.group(4)
+            if dmd == lmd and ly == dy + 1:
+                mm_break["label_is_one_year_after_detected_period"] += 1
+            elif dmd == lmd and ly == dy - 1:
+                mm_break["label_is_one_year_before_detected_period"] += 1
+            elif dy == ly:
+                mm_break["same_year_different_period_end"] += 1
+            else:
+                mm_break["other"] += 1
+    pair_counts = Counter()
+    for h, syms in cross_hash.items():
+        pair_counts["+".join(syms)] += 1
+    cov_lists = defaultdict(list)
+    for c in comps:
+        cov_lists[c["dimensions"]["company_coverage"]["coverage_class"]].append(c["symbol"])
     json.dump(visual, open(OUT / "visual-reading-queue.json", "w", encoding="utf8"), indent=1, ensure_ascii=False)
     json.dump({"period_mismatch_candidates": wrong_period, "not_financial_statements_in_statement_bucket": nonstmt,
                "duplicate_candidates": dups, "cross_company_identical_hash": cross_hash, "cross_company_identical_front_text": cross_digest},
@@ -190,7 +209,11 @@ def main():
         "expected_period_slots": {"total_expected": exp_total, "status_counts": dict(per_status.most_common()),
                                   "pct_with_complete_statements": round(ok_total / exp_total, 4) if exp_total else None},
         "anomaly_classes": {k: {"files": v, "companies": len(flag_cos[k])} for k, v in flags.most_common()},
-        "cross_company": {"identical_sha256_in_multiple_companies": len(cross_hash), "identical_front_text_digest_in_multiple_companies": len(cross_digest)},
+        "cross_company": {"identical_sha256_in_multiple_companies": len(cross_hash), "identical_front_text_digest_in_multiple_companies": len(cross_digest),
+                          "symbol_groups_sharing_identical_files": dict(pair_counts.most_common(40)),
+                          "note": "Groups are largely renamed/duplicate registry symbols (e.g. 4344/4703, 4700/4702, 6017/9526) where one document is filed under both symbols."},
+        "period_mismatch_breakdown": dict(mm_break),
+        "companies_by_coverage_class": {k: sorted(v) for k, v in cov_lists.items()},
         "queues": {"visual_reading_files": len(visual), "period_mismatch_candidate_files": len(wrong_period),
                    "non_statement_files_in_statement_bucket": len(nonstmt), "duplicate_candidate_files": len(dups)},
         "batch_plan": {"batches": len(batch_plan), "visual_batches": sum(1 for b in batch_plan if b["visual_reading_batch"]),
@@ -220,6 +243,8 @@ def main():
     L += ["", "## File classes", ""] + [f"- {k}: {v}" for k, v in fclass.most_common()]
     L += ["", "## Readability", ""] + [f"- {k}: {v}" for k, v in read.most_common()]
     L += ["", "## Anomaly classes (flag kind: files / companies)", ""] + [f"- {k}: {v['files']} / {v['companies']}" for k, v in summ["anomaly_classes"].items()]
+    L += ["", "Period-label mismatch candidates (detected period end in text vs collector label): " + ", ".join(f"{k}={v}" for k, v in mm_break.most_common()),
+          "Most are collector `text_year_only` fiscal-year labels taken from the publication year (label one year after the period actually shown)."]
     L += ["", f"Cross-company identical sha256: {len(cross_hash)}; identical front-text digest: {len(cross_digest)}.", "",
           "## Batch plan", "", f"{len(batch_plan)} batches of 5 ({summ['batch_plan']['visual_batches']} visual-reading batches). Companies without statement files: {', '.join(summ['batch_plan']['companies_without_statement_files']) or 'none'}.", ""]
     for b in batch_plan:
