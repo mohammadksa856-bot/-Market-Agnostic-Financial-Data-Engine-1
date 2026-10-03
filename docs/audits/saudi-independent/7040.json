@@ -1,0 +1,237 @@
+{
+  "schema_version": 1,
+  "symbol": "7040",
+  "company_id": "sa:7040",
+  "name": "Etihad Atheeb Telecommunication Company (GO Telecom)",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "03-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch1-C)",
+    "method": "Archived source PDFs under data/raw/SA/<symbol>/documents (SHA-256 re-computed and equal to data/raw/archive-index.json for all 26 archived files). Digital pages: text layer read and the printed figure located. Scanned pages (stc, Zain, Elm primary statements): pages rendered to PNG with PyMuPDF and read by eye, line by line, both columns. Findings are proven with page and line item; 'verified_correct' is claimed only where the printed page was read. Internal arithmetic (subtotals, reconciliations) used only as a secondary check, never as proof. Offline; no AWS, no Supabase, no data/raw edits.",
+    "tools_added_on_branch": [
+      "src/finengine/manifest_audit.py",
+      "tests/test_manifest_audit.py",
+      "scripts/audit_manifest_provenance.py",
+      "docs/audits/saudi-independent/batch1-C-provenance-scan.json (machine scan of every fact vs its cited page)"
+    ],
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong or mislabelled against the printed page",
+      "unverified": "source not available/archived or not readable here; nothing is claimed",
+      "verified_correct_with_caveat": "value correct as printed but label/semantics need a note (no value change required)",
+      "pending (source status)": "document is not archived or not present locally, so the source cannot be re-read; resumable once archived"
+    },
+    "rejected_facts_note": "No manifest of these symbols contains 'excluded_facts'/rejected records on telecom-95pct, and data/financial.sqlite3 in the repo has zero rows for them. A production rejected-fact registry (AWS DB) was out of bounds for this audit -> rejected facts: unverified.",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "why_authoritative": "origin/codex/telecom-95pct is the newest lineage of the telecom manifests. origin/claude/telecom-shared-gap-closers (a8245ac) forks at 3980d36 and carries OLDER copies of stc-2025-fy.json, stc-2025-segments-financial-notes.json, stc-2025-company-profile.json and zain-ksa-2025-notes-segments.json (fewer facts); its mobily-2025-fy.json, zain-ksa-2025-fy.json and go-telecom-2021-2025-fy-history.json are byte-identical to the audited ones. It additionally holds the raw Saudi Exchange market archives (data/raw/SA/70x0/market) and *-market-prices-2026-09-23.json manifests that are NOT on telecom-95pct; those raw archives were read via 'git show' (read-only) to audit the price manifests. origin/claude/data-tech-1 (a10e790) elm-2025-fy.json is byte-identical to the audited Elm manifest. origin/claude/data-telecom-1 (f778594) holds the first, shorter stc/Zain FY2025 manifests (superseded).",
+    "batch": "1-C"
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "defective",
+      "summary": "MINOR defect only. FY2021-FY2025 summary tables: 65/66 values verified_correct against the Board annual report (the 66th is an 'over 30%' lower bound stored as exact). Quarterly series (19 + 7 facts) UNVERIFIED (announcements not archived); one reconciliation gap of -0.63% on FY2025 net profit.",
+      "defect_ids": [
+        "C-7040-02"
+      ],
+      "unverified_ids": [
+        "C-7040-04"
+      ]
+    },
+    "document_completeness": {
+      "status": "defective",
+      "summary": "The archived document is a Board report with five-year summary tables, not the audited statements. Even so, many rows printed in the five-year tables are not extracted (C-7040-01); no line-item balance sheet/cash flow exists in the repo for any year."
+    },
+    "company_coverage": {
+      "status": "partial",
+      "present": {
+        "annual": "FY2021-FY2025 (fiscal years ending 31 March; summary subset)",
+        "quarterly": "12 discrete quarters FY2023 Q1..FY2025 Q4 (revenue; net profit only for FY2024 Q1-Q3 and FY2025 Q1-Q4) + FY2026 Q1 (Apr-Jun 2025)"
+      },
+      "missing": [
+        "FY2026 Q2-Q4 and the FY2026 audited year (March 2026 year-end had passed by 2026-10-03)",
+        "FY2009-FY2020",
+        "net profit for FY2023 quarters, FY2024 Q4",
+        "line-item statements for any period"
+      ]
+    }
+  },
+  "shared_root_cause_refs": [
+    "RC3",
+    "RC4",
+    "RC8"
+  ],
+  "findings": [
+    {
+      "id": "C-7040-01",
+      "defect_class": "document_completeness_multi_year_lines_not_extracted",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "go-telecom-2021-2025-fy-history.json",
+      "metric": "net_income, comprehensive_income, cost_of_revenue, operating_expenses, other_income, segment_revenue",
+      "period": "FY2021-FY2024 (fiscal years ending 31 March)",
+      "page": {
+        "pdf_page": "31, 32, 33, 35"
+      },
+      "evidence": "PDF p31/p32/p33 print five fiscal years side by side. The manifest publishes all five years only for revenue, gross profit, operating profit, profit before zakat, operating cash flow, cash end and the balance-sheet totals; for FY2021-FY2024 it omits: total operating expenses (136,690,984 ... 160,603,720), total comprehensive income (-39,002,488; -37,743,544; 42,079,695; 192,837,570), cost of services and other income (p32 FY2025 vs FY2024 only), investing and financing cash flows (e.g. FY2024 (54,629,222)/203,240,450), net change in cash (381,936,033 for FY2024 ...), and the segment revenue split for FY2021-FY2024 (Broadband 604,365,166 / 485,762,421 / 300,457,599 / 249,183,505; Voice and interconnection 411,753,569 / 144,577,369 / 78,096,166 / 32,916,164). net_income exists for FY2025 only (p35 zakat table: 220,932,941; FY2024 200,663,054 there equals the pre-zakat profit).",
+      "fix": "Add the missing multi-year rows from the same tables (p31-p33)."
+    },
+    {
+      "id": "C-7040-02",
+      "defect_class": "approximate_statement_stored_as_exact_value",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "go-telecom-2021-2025-fy-history.json",
+      "metric": "five_g_coverage",
+      "period": "2025-03-31",
+      "page": {
+        "pdf_page": 22,
+        "cited": 22
+      },
+      "evidence": "p22: 'GO deployed its 5G network across 18 cities, covering over 30% of the population' - a lower bound stored as the exact ratio 0.30 (the company-profile manifest keeps '>30%'). The cited page 22 is correct for the sentence; the machine scan flags p33 only because '0.30' matches an unrelated figure.",
+      "fix": "Store as lower bound (qualifier 'greater_than') or drop from numeric facts."
+    },
+    {
+      "id": "C-7040-03",
+      "defect_class": "label_sign_ambiguity",
+      "severity": "low",
+      "status": "verified_correct_with_caveat",
+      "manifest": "go-telecom-2021-2025-fy-history.json",
+      "metric": "operating_cash_flow",
+      "period": "FY2021-FY2025",
+      "page": {
+        "pdf_page": 32
+      },
+      "evidence": "The issuer's row is titled 'Net Cash Used in Operating Activities' but the values are inflows in FY2022-FY2025 (+63,072,393; +5,245,776; +233,324,805; +215,804,057) and the only outflow is FY2021 (-16,173,557). Published signs equal the printed signs; arithmetic proof for FY2025: 215,804,057 - 59,836,437 - 29,297,425 = 126,670,195 = printed increase in cash. source_label keeps the confusing issuer wording.",
+      "fix": "No value change; add note that the issuer's label is misleading."
+    },
+    {
+      "id": "C-7040-04",
+      "defect_class": "quarter_sum_does_not_match_year",
+      "severity": "low",
+      "status": "unverified",
+      "manifest": "go-telecom-2023-2025-quarterly-history.json vs go-telecom-2021-2025-fy-history.json",
+      "metric": "net_income",
+      "period": "FY2025 (Apr 2024-Mar 2025)",
+      "published_value": {
+        "quarters_mn": "46.730 + 58.607 + 55.2 + 59 = 219.537",
+        "fy": "220,932,941"
+      },
+      "evidence": "Gap -1.40m (-0.63%): FY less (Q1+Q2+Q3) = 60.40 vs published Q4 59 ('reported as previous quarter' on the FY2026-Q1 announcement, rounded to millions). Revenue reconciles (1,461.79 vs 1,462.14). The announcements are not archived: cannot decide whether Q4 59 or the FY figure carries a reclassification.",
+      "fix": "Archive announcement 89304 and 85165 and compare the Q4/FY net profit; derive Q4 as FY minus 9M for consistency with the other Q4 values."
+    },
+    {
+      "id": "C-7040-05",
+      "defect_class": "fiscal_year_convention",
+      "severity": "info",
+      "status": "verified_correct_with_caveat",
+      "manifest": "all GO manifests",
+      "metric": "fiscal_year / period labels",
+      "period": "all",
+      "evidence": "GO's fiscal year ends 31 March. period_start/period_end are correct (e.g. FY2025 = 2024-04-01..2025-03-31) and fiscal_year = calendar year of the end date, applied consistently to annual, quarterly (FY2026 Q1 = Apr-Jun 2025) and balance-sheet instants. A consumer comparing 'FY2025' across companies compares Apr-24..Mar-25 for GO with Jan-Dec 2025 for the others.",
+      "fix": "Document the convention in the coverage layer."
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "go-FY2025-board-annual-report-financial-summary",
+      "manifest": "go-telecom-2021-2025-fy-history.json",
+      "document": {
+        "url": "https://www.go.com.sa/en/Resources/2/2025-2024-E.pdf",
+        "archive_path": "data/raw/SA/7040/documents/d76f55f907fc95a16d3fc852616c135f9a0e61d7d698e96c9ab2cc52e0ef34fe.pdf",
+        "sha256": "d76f55f907fc95a16d3fc852616c135f9a0e61d7d698e96c9ab2cc52e0ef34fe",
+        "pdf_pages": 60,
+        "archived": true,
+        "note": "A 60-page Board annual report. It contains summary five-year tables (p31-p33, p35), NOT the full audited statements - note that p32 labels the cash flow 'Preliminary Cash Flow Statement'."
+      },
+      "status": "done",
+      "verification_basis": "digital text (Arabic-Indic digits normalised on p35)",
+      "checks_performed": [
+        "p31 balance sheet totals for 31 Mar 2021-2025 (current assets 1,026,110,671; non-current 629,577,950; total assets 1,655,688,621; current liabilities 746,884,819; non-current 123,815,738; total liabilities 870,700,557; equity 784,988,064 and the four earlier years) - all verified_correct",
+        "p31 income statement summary: gross profit 431,124,663 / 305,470,474 / 182,688,170 / 91,843,765 / 160,051,833; profit from main operations 229,153,792 / 199,044,364 / 57,899,790 / (15,492,740) / (32,552,370) - verified_correct",
+        "p32 cash-flow summary: profit before zakat, operating, investing, financing, net change, closing cash for FY2021-FY2025 - verified_correct (FY2025 foots)",
+        "p33 revenue 1,462,135,970 / 1,016,118,735 / 630,339,790 / 378,553,765 / 282,099,669 and FY2025 segment revenue 673,846,798 + 751,396,842 + 32,943,760 + 3,948,570 = 1,462,135,970 - verified_correct",
+        "p35: net profit for the year 220,932,941 (Arabic-Indic digits ٢٢٠٬٩٣٢٬٩٤١), net book value of PPE 564,694,095, loans nil - verified_correct",
+        "Currency SAR in full riyals (scale none/1) confirmed by the table header 'ريال'; period labelling confirmed ('For the Year Ended March 31')"
+      ],
+      "verified_correct": {
+        "count": 65,
+        "of": 66,
+        "summary": "65 facts verified_correct; five_g_coverage is an 'over 30%' lower bound stored as exact (C-7040-02)"
+      },
+      "defects": [
+        "C-7040-02"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "see": "C-7040-01"
+      },
+      "fix_plan": [
+        "Add missing multi-year rows (C-7040-01)",
+        "Obtain the full audited financial statements of FY2025 (not in the Board report) to publish line-item statements"
+      ]
+    },
+    {
+      "source_id": "go-FY2025-AR-company-profile-governance",
+      "manifest": "go-telecom-2025-company-profile.json; go-telecom-2025-governance-outlook.json",
+      "document": {
+        "archive_path": "data/raw/SA/7040/documents/d76f55f907fc95a16d3fc852616c135f9a0e61d7d698e96c9ab2cc52e0ef34fe.pdf",
+        "sha256": "d76f55f907fc95a16d3fc852616c135f9a0e61d7d698e96c9ab2cc52e0ef34fe",
+        "archived": true
+      },
+      "status": "done",
+      "verification_depth": "sample",
+      "checks_performed": [
+        "commercial registration 1010263273 (p8), auditor Crowe + fee SAR 925,000 (p52), dividend SAR 10,199,970 = 0.30 x 33,999,900 shares (p17/p50; total stored in cash_amount - consistent with stc/Mobily convention), 21 cities / 18 5G cities (p21), 5G >30% (p22)",
+        "governance-outlook numeric facts: data_centers_count 1 'primary data center' cites p22 (text on p22), network_coverage 21 and 18 cities cite p21 (printed on p21) - page values plausible; machine scan flags them only because small integers occur on many pages"
+      ],
+      "verified_correct": {
+        "summary": "sampled items verified_correct; remainder unverified"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "go-quarterly-announcements",
+      "manifest": "go-telecom-2023-2025-quarterly-history.json; go-telecom-2026-q1.json",
+      "document": {
+        "url": "saudiexchange.sa announcements 71909, 78168, 83216, 85165, 89304",
+        "archive_path": null,
+        "archived": false
+      },
+      "status": "pending",
+      "reason": "not archived (archive-index has no entry)",
+      "related_findings": [
+        "C-7040-04"
+      ],
+      "indirect_evidence_only": "revenue FY2023/FY2024 quarters sum exactly to the audited FY (630,339,790; 1,016,118,735 - Q4 derived); FY2025 revenue within 0.02%; FY2025 net profit gap -0.63% (C-7040-04). FY2026-Q1: revenue 435, gross profit 120, operating profit 69, net profit 62, EBITDA 87, equity 827 (SAR m), EPS 1.81 cannot be checked.",
+      "fix_plan": [
+        "Archive the announcements"
+      ]
+    },
+    {
+      "source_id": "go-market-price-history",
+      "manifest": "telecom-market-history-7040-through-2026-09-22.json",
+      "document": {
+        "archive_path": "origin/claude/telecom-shared-gap-closers:data/raw/SA/7040/market/saudi-exchange-historical-2026-09-22-partial-2024-2026.csv (516 rows)",
+        "archived": "partially (other branch only; file name says partial)"
+      },
+      "status": "done",
+      "scope_of_check": "market data",
+      "checks_performed": [
+        "All 516 raw rows equal the manifest",
+        "4,162 rows: 887 early rows have a close without open/high/low (2009 ...), a trading gap 2011-05-24 -> 2012-03-24 (consistent with a suspension, unverified), 7 daily moves >15% in 2011-2012"
+      ],
+      "verified_correct": {
+        "summary": "2024-2026 window verified_correct; 2009-2023 unverified"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "go-no-numeric-manifests",
+      "manifest": "(none other)",
+      "status": "done",
+      "reason": "no regulation/industry manifests exist for 7040",
+      "defects": []
+    }
+  ]
+}

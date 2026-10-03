@@ -1,0 +1,593 @@
+{
+  "schema_version": 1,
+  "symbol": "7020",
+  "company_id": "sa:7020",
+  "name": "Etihad Etisalat Company (Mobily)",
+  "reporting_currency": "SAR",
+  "fiscal_year_end": "12-31",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, batch1-C)",
+    "method": "Archived source PDFs under data/raw/SA/<symbol>/documents (SHA-256 re-computed and equal to data/raw/archive-index.json for all 26 archived files). Digital pages: text layer read and the printed figure located. Scanned pages (stc, Zain, Elm primary statements): pages rendered to PNG with PyMuPDF and read by eye, line by line, both columns. Findings are proven with page and line item; 'verified_correct' is claimed only where the printed page was read. Internal arithmetic (subtotals, reconciliations) used only as a secondary check, never as proof. Offline; no AWS, no Supabase, no data/raw edits.",
+    "tools_added_on_branch": [
+      "src/finengine/manifest_audit.py",
+      "tests/test_manifest_audit.py",
+      "scripts/audit_manifest_provenance.py",
+      "docs/audits/saudi-independent/batch1-C-provenance-scan.json (machine scan of every fact vs its cited page)"
+    ],
+    "status_vocabulary": {
+      "verified_correct": "printed page read; value, sign, period column, scale and unit match",
+      "defective": "proven wrong or mislabelled against the printed page",
+      "unverified": "source not available/archived or not readable here; nothing is claimed",
+      "verified_correct_with_caveat": "value correct as printed but label/semantics need a note (no value change required)",
+      "pending (source status)": "document is not archived or not present locally, so the source cannot be re-read; resumable once archived"
+    },
+    "rejected_facts_note": "No manifest of these symbols contains 'excluded_facts'/rejected records on telecom-95pct, and data/financial.sqlite3 in the repo has zero rows for them. A production rejected-fact registry (AWS DB) was out of bounds for this audit -> rejected facts: unverified.",
+    "branch_audited": "origin/codex/telecom-95pct",
+    "commit_audited": "ec610f3",
+    "why_authoritative": "origin/codex/telecom-95pct is the newest lineage of the telecom manifests. origin/claude/telecom-shared-gap-closers (a8245ac) forks at 3980d36 and carries OLDER copies of stc-2025-fy.json, stc-2025-segments-financial-notes.json, stc-2025-company-profile.json and zain-ksa-2025-notes-segments.json (fewer facts); its mobily-2025-fy.json, zain-ksa-2025-fy.json and go-telecom-2021-2025-fy-history.json are byte-identical to the audited ones. It additionally holds the raw Saudi Exchange market archives (data/raw/SA/70x0/market) and *-market-prices-2026-09-23.json manifests that are NOT on telecom-95pct; those raw archives were read via 'git show' (read-only) to audit the price manifests. origin/claude/data-tech-1 (a10e790) elm-2025-fy.json is byte-identical to the audited Elm manifest. origin/claude/data-telecom-1 (f778594) holds the first, shorter stc/Zain FY2025 manifests (superseded).",
+    "batch": "1-C"
+  },
+  "dimensions": {
+    "numeric_correctness": {
+      "status": "defective",
+      "summary": "FY2025 (48 + 70 + 11 facts), FY2021/FY2023/FY2024 headlines and all 36 quarterly facts verified_correct against the archived PDFs. One proven numeric defect: FY2022 EBITDA 6,179 (printed 6,161 in the cited AR2022; 6,179 is the restated figure from AR2023) - mixed vintage. Page references are wrong/inconsistent for several manifests (provenance defect, values right).",
+      "defect_ids": [
+        "C-7020-01"
+      ],
+      "other_ids": [
+        "C-7020-02",
+        "C-7020-03"
+      ]
+    },
+    "document_completeness": {
+      "status": "defective",
+      "summary": "FY2025 annual report: current-year columns largely extracted across three manifests, but the entire FY2024 comparative column and the equity statement are not. FY2021-FY2024: each archived annual report/deck prints full statements; only revenue, EBITDA and net income were extracted. No Q4 discrete quarter in any year (FY less Q1-Q3 would be derivable but is not published)"
+    },
+    "company_coverage": {
+      "status": "partial",
+      "present": {
+        "annual": "FY2021-FY2024 headline (3 metrics); FY2025 full statements",
+        "quarterly": "Q1-Q3 for 2021, 2022, 2023, 2024 (revenue, EBITDA, net income); no Q4, no Q1-Q3 2025, no 2026",
+        "interim_2025_2026": "none (as of 2026-10-03 Q1-Q3 2025 and Q1-Q2 2026 results exist publicly but are not published)"
+      },
+      "missing": [
+        "FY2020 and earlier (listed 2004)",
+        "balance sheet and cash flow for FY2021-FY2024",
+        "all quarters of 2025 and 2026",
+        "Q4 of every year",
+        "H1/9M cumulative statements"
+      ]
+    }
+  },
+  "shared_root_cause_refs": [
+    "RC1",
+    "RC2",
+    "RC3",
+    "RC4"
+  ],
+  "findings": [
+    {
+      "id": "C-7020-01",
+      "defect_class": "mixed_vintage_original_and_restated_in_one_manifest",
+      "severity": "medium",
+      "status": "defective",
+      "manifest": "mobily-2022-fy.json",
+      "metric": "ebitda",
+      "period": "FY2022",
+      "page": {
+        "pdf_page": "4 and 22 (cited: 12)"
+      },
+      "line_item": "Financial Highlights / Financial performance table 'EBITDA' 2022",
+      "published_value": {
+        "value": "6179",
+        "scale": "1000000",
+        "currency": "SAR"
+      },
+      "correct_value": {
+        "value": "6161",
+        "scale": "1000000",
+        "currency": "SAR",
+        "margin_printed": "39.3%"
+      },
+      "evidence": "The manifest's source is the FY2022 annual report (e42befe5). Its p4 'Financial Highlights' and p22 table print FY2022 EBITDA = 6,161 (SAR m), revenue 15,669, net profit 1,657. 6,179 does not occur anywhere in that PDF. 6,179 is the RESTATED FY2022 comparative printed in the FY2023 annual report (62cf5d09 p3 and p22: 2022 revenue 15,717, EBITDA 6,179, net income 1,657). The manifest therefore combines the original revenue (15,669) and net income with the restated EBITDA from another document.",
+      "fix": "Either set EBITDA to 6161 (AR2022 vintage, consistent with revenue 15,669) or republish all FY2022 headline facts from the AR2023 comparative column (15,717 / 6,179 / 1,657) with source_url = AR2023; add a basis flag."
+    },
+    {
+      "id": "C-7020-02",
+      "defect_class": "page_reference_wrong",
+      "severity": "low",
+      "status": "defective",
+      "manifest": "mobily-2022-fy.json; mobily-2023-fy.json; mobily-2023-q1.json; mobily-2025-fy.json; mobily-2025-deep-financial-notes.json; mobily-2025-issuer-expansion.json",
+      "metric": "(many)",
+      "period": "various",
+      "evidence": "Values are present in the PDFs but not on the cited page: FY2022 cites p12 (printed on PDF p4 and p22), FY2023 cites p8 (PDF p3 and p22), Q1-2023 deck cites p8 for all three facts (PDF p9, p11, p15 - p8 is an ESG slide). mobily-2025-fy uses PDF page numbers (116/117/144) while mobily-2025-deep-financial-notes and issuer-expansion use printed spread numbers (230-286: PDF p = (printed+2)/2), so 80 facts have page numbers beyond the 144-page file; five_g_coverage cites p13 but the statement ('over 96% ... 7 main cities') is on p9. (Machine scan flags 4G/3G coverage 'wrong_page' by false positive: those are printed as '98%'/'99%' on the cited p9 - manually confirmed.)",
+      "fix": "Use PDF page numbers throughout and keep printed numbers in metadata; re-run scripts/audit_manifest_provenance.py."
+    },
+    {
+      "id": "C-7020-03",
+      "defect_class": "ambiguous_metric_two_capex_measures",
+      "severity": "low",
+      "status": "verified_correct_with_caveat",
+      "manifest": "mobily-2025-fy.json",
+      "metric": "capex vs network_capex",
+      "period": "FY2025",
+      "evidence": "capex -3,227,074 = cash purchases of PPE (3,006,276) + intangibles (220,798) from cash flow p117 (derived sum, labelled as such); network_capex 5,827,780 = 'Capital expenditures' in the segment note p144 (accrual additions incl. the 120 MHz licence). Both are correct as printed but differ by SAR 2.6bn; consumers must not treat them as the same measure.",
+      "fix": "Rename network_capex -> segment_capex_additions or add a dimension/basis label."
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "mobily-FY2025-AR-primary-statements-and-KPIs",
+      "manifest": "mobily-2025-fy.json",
+      "document": {
+        "url": "https://ir.mobily.link/2025/pdfs/Mobily%20Annual%20Report%202025%20-%20English.pdf",
+        "archive_path": "data/raw/SA/7020/documents/6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6.pdf",
+        "sha256": "6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6",
+        "pdf_pages": 144,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "digital text layer of PDF p116 (profit or loss, financial position) and p117 (cash flows, OCI) read in full; KPI sentences p9/p25",
+      "checks_performed": [
+        "P&L 2025: revenue 19,641,705, cost (8,900,205), gross profit 10,741,500, G&A (1,604,356), operating profit 3,847,018, finance income 202,614, finance costs (674,960), PBT 3,556,394, net profit 3,466,423, EPS basic 4.51 / diluted 4.50",
+        "Balance sheet 2025: cash 3,161,691, inventories 132,329, intangibles 8,292,154, current assets 10,428,382, non-current assets 32,026,939, total assets 42,455,321, share capital 7,700,000, other reserves 54,302, retained earnings 12,732,522, equity 20,327,601, NCL 10,888,816, CL 11,238,904, total liabilities 22,127,720",
+        "Cash flow 2025: operating 6,654,847, investing (1,488,260), financing (3,404,438), net change 1,762,149, opening 1,399,542, closing 3,161,691, zakat paid (58,739), capex lines (3,006,276)/(220,798)",
+        "Segment revenue p144: Consumer 12,361,085 / Business 4,660,345 / Wholesale 2,178,294 / Others 441,981 = 19,641,705",
+        "KPIs: 14.4 m mobile (12.3 prepaid + 2.1 postpaid), 0.305 m FTTH (p25); 98% 3G / 99% 4G / 7,668 5G sites / 96% of 7 main cities (p9)",
+        "Units: header 'All amounts in Saudi Riyals thousands'; EPS label says '(in %)' [sic] but is SAR per share - published as SAR/share correctly",
+        "net_income_parent = net profit 3,466,423 (no NCI exists) - correct"
+      ],
+      "verified_correct": {
+        "count": 48,
+        "of": 48,
+        "summary": "all 48 values match the source; 8 page references defective (C-7020-02); capex is a documented derived sum"
+      },
+      "defects": [
+        "C-7020-02",
+        "C-7020-03"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "FY2024_comparative_column": "p116/p117 print the whole 2024 column (revenue 18,206,447; cost 8,312,421; GP 9,894,026; operating profit 3,530,417; PBT 3,193,053; net profit 3,106,848; EPS 4.03; total assets 38,645,574; equity 18,875,492; cash 1,399,542; operating CF 6,336,758; investing (1,956,254); financing (4,622,268) ...) - NONE of it is published in the three FY2025 manifests",
+        "primary_lines_only_in_deep_notes": [
+          "PPE 20,245,407",
+          "ROU 3,236,430",
+          "borrowings",
+          "lease liabilities",
+          "payables"
+        ],
+        "never_extracted": [
+          "selling and marketing in this manifest (it is in deep-notes)",
+          "statement of comprehensive income OCI lines (total in deep notes)",
+          "statement of changes in equity",
+          "dividends paid by period in this manifest"
+        ]
+      },
+      "fix_plan": [
+        "Extract the 2024 column of all statements",
+        "Fix page references",
+        "Label the two capex measures"
+      ]
+    },
+    {
+      "source_id": "mobily-FY2025-AR-deep-notes",
+      "manifest": "mobily-2025-deep-financial-notes.json",
+      "document": {
+        "url": "https://ir.mobily.link/2025/pdfs/Mobily%20Annual%20Report%202025%20-%20English.pdf",
+        "archive_path": "data/raw/SA/7020/documents/6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6.pdf",
+        "sha256": "6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6",
+        "pdf_pages": 144,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "digital text; printed spread page -> PDF page = (printed+2)/2; every value located and its label read",
+      "checks_performed": [
+        "Statement lines (S&M (1,501,862), impairment (7,801), D&A (3,780,463), total opex (6,894,482), share of JV 117,950, other income 63,772, zakat (89,971), diluted EPS 4.50, comprehensive income 3,453,486, PPE 20,245,407, ROU 3,236,430, JV 118,870, murabaha 614,800, AR 4,029,138, treasury (159,223), borrowings 529,158/5,195,964, leases 1,150,945/2,543,642, payables, accruals, provisions, EOSB 673,179, cash-flow lines) = verified_correct",
+        "Notes: goodwill 1,466,865, licences 6,414,355, IRU 404,468, additions 1,751,979, amortisation 405,858 (p131); weighted average shares 769,053 thousand basic / 770,000 diluted (p143); finance cost by type 393,568 / 164,094 (p142); revenue by product 18,397,720 + 1,243,985 (p141); RPO 1,803,496; commitments SAR 3,065 million, guarantees 649 million (stored 3,065,000 / 649,000 x1000 = correct); key management 177,951 (p134); related-party receivables/payables 141,726 / 248,904",
+        "related_party_revenue 128,415 = 'Interconnection and roaming services rendered' 117,936 + 'Other telecommunication services' 10,479 (aggregate of two printed lines; label wording only names the first line)"
+      ],
+      "verified_correct": {
+        "count": 70,
+        "of": 70,
+        "summary": "all 70 values correct; all page references are printed spread numbers, not PDF pages (C-7020-02)"
+      },
+      "defects": [
+        "C-7020-02"
+      ],
+      "missing_fields_in_document_not_extracted": {
+        "note": "2024 comparatives for every table (e.g. segment revenue 2024 Consumer 11,590,528; finance cost 2024 borrowings 459,715; PPE roll-forward 2024) are printed but unpublished."
+      },
+      "fix_plan": [
+        "Convert page numbers; add 2024 comparatives"
+      ]
+    },
+    {
+      "source_id": "mobily-FY2025-AR-issuer-expansion",
+      "manifest": "mobily-2025-issuer-expansion.json",
+      "document": {
+        "url": "https://ir.mobily.link/2025/pdfs/Mobily%20Annual%20Report%202025%20-%20English.pdf",
+        "archive_path": "data/raw/SA/7020/documents/6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6.pdf",
+        "sha256": "6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6",
+        "pdf_pages": 144,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "digital text",
+      "verified_correct": {
+        "count": 11,
+        "of": 11
+      },
+      "checks_performed": [
+        "G&A, finance income/cost, inventories, other financial assets/liabilities (672,724 / 19,245 / 384,660 / 1,917,311), dividends received 51,500, opening cash 1,399,542, total spectrum 'bringing total spectrum assets to 440 MHz' (p21; manifest cites p39 = printed page) verified_correct"
+      ],
+      "defects": [
+        "C-7020-02"
+      ],
+      "fix_plan": [
+        "Convert page references"
+      ]
+    },
+    {
+      "source_id": "mobily-FY2025-AR-company-profile",
+      "manifest": "mobily-2025-company-profile.json",
+      "document": {
+        "url": "https://ir.mobily.link/2025/pdfs/Mobily%20Annual%20Report%202025%20-%20English.pdf",
+        "archive_path": "data/raw/SA/7020/documents/6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6.pdf",
+        "sha256": "6368c06e2379afdb844861d843bd7b136508b393a1babb210dfdb8640b7e22b6",
+        "pdf_pages": 144,
+        "archived": true
+      },
+      "status": "done",
+      "verification_depth": "sample (identity, capital, ownership, dividends, headcount)",
+      "checks_performed": [
+        "ISIN SA000A0DM9P2 (p16), Etisalat Emirates Group 27.99% = 215,523,000 of 770,000,000 shares (p7/16), share capital 7.7bn / par 10 (BS), employees 2,573 (p76-77), CEO named, H1/H2 dividends: 1.20 x 770m = 924m; H2-2025 '1,228 million (1.60 per share on 767.5 million shares)' (p144) - verified_correct"
+      ],
+      "verified_correct": {
+        "summary": "sample verified_correct; remainder unverified"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "mobily-FY2021-annual-headlines",
+      "manifest": "mobily-2021-fy.json",
+      "document": {
+        "url": "https://ir.mobily.link/2021/assets/img/pdfs/mobily_ar21_eng.pdf",
+        "archive_path": "data/raw/SA/7020/documents/d39d3c57d16b9019ea8b4c172cbdb921f9b963909f6f149fef529ef6f3357725.pdf",
+        "sha256": "d39d3c57d16b9019ea8b4c172cbdb921f9b963909f6f149fef529ef6f3357725",
+        "pdf_pages": 190,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer of the cited headline pages",
+      "checks_performed": [
+        "revenue 14,834.056 (SAR m, exactly 14,834,056 thousand p142) and net income 1,071.541 (p142, p37) verified_correct; headline AR value EBITDA 5,594 not published (FY2022 AR restates FY2021 EBITDA to 5,581)"
+      ],
+      "defects": [],
+      "verified_correct": {
+        "count": 2,
+        "of": 2
+      },
+      "missing_fields_in_document_not_extracted": {
+        "note": "Only 3 headline metrics per year (revenue, EBITDA, net income). The same document prints complete statements (e.g. AR2021 p142 profit or loss, cash flow, balance sheet) - none published."
+      },
+      "fix_plan": [
+        "Extract full primary statements for FY2021-FY2024 from the archived annual reports (FY2021-FY2023 are archived; FY2024 only the earnings deck is archived - archive the FY2024 annual report/FS)"
+      ]
+    },
+    {
+      "source_id": "mobily-FY2022-annual-headlines",
+      "manifest": "mobily-2022-fy.json",
+      "document": {
+        "url": "https://ir.mobily.link/2022/assets/img/pdfs/Mobily%20AR_2022_English.pdf",
+        "archive_path": "data/raw/SA/7020/documents/e42befe5f4129e3b6a9d6679215e0fb96349889753873b4f485525dc7f450fde.pdf",
+        "sha256": "e42befe5f4129e3b6a9d6679215e0fb96349889753873b4f485525dc7f450fde",
+        "pdf_pages": 99,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer of the cited headline pages",
+      "checks_performed": [
+        "revenue 15,669 and net income 1,657 verified_correct (p4, p22); EBITDA 6,179 DEFECTIVE (printed 6,161) - C-7020-01"
+      ],
+      "defects": [
+        "C-7020-01",
+        "C-7020-02"
+      ],
+      "verified_correct": {
+        "count": 2,
+        "of": 3
+      },
+      "missing_fields_in_document_not_extracted": {
+        "note": "Only 3 headline metrics per year (revenue, EBITDA, net income). The same document prints complete statements (e.g. AR2021 p142 profit or loss, cash flow, balance sheet) - none published."
+      },
+      "fix_plan": [
+        "Extract full primary statements for FY2021-FY2024 from the archived annual reports (FY2021-FY2023 are archived; FY2024 only the earnings deck is archived - archive the FY2024 annual report/FS)"
+      ]
+    },
+    {
+      "source_id": "mobily-FY2023-annual-headlines",
+      "manifest": "mobily-2023-fy.json",
+      "document": {
+        "url": "https://ir.mobily.link/2023/assets/img/pdfs/AR2023_English.pdf",
+        "archive_path": "data/raw/SA/7020/documents/62cf5d09d66b28e404b1ceed630b8947496af1f2f76c6990031433bc6337ea9b.pdf",
+        "sha256": "62cf5d09d66b28e404b1ceed630b8947496af1f2f76c6990031433bc6337ea9b",
+        "pdf_pages": 107,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer of the cited headline pages",
+      "checks_performed": [
+        "revenue 16,763, EBITDA 6,625, net income 2,232 verified_correct (p3, p22); page cited 8 is wrong"
+      ],
+      "defects": [
+        "C-7020-02"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "missing_fields_in_document_not_extracted": {
+        "note": "Only 3 headline metrics per year (revenue, EBITDA, net income). The same document prints complete statements (e.g. AR2021 p142 profit or loss, cash flow, balance sheet) - none published."
+      },
+      "fix_plan": [
+        "Extract full primary statements for FY2021-FY2024 from the archived annual reports (FY2021-FY2023 are archived; FY2024 only the earnings deck is archived - archive the FY2024 annual report/FS)"
+      ]
+    },
+    {
+      "source_id": "mobily-FY2024-annual-headlines",
+      "manifest": "mobily-2024-fy.json",
+      "document": {
+        "url": "https://www.mobily.com.sa/wps/wcm/connect/a3751ebe-adea-4054-8cdb-d1dc5c6f51aa/Earnings%2BPresentation%2BFY%2B2024.pdf",
+        "archive_path": "data/raw/SA/7020/documents/571ca176b2225e5da7ef1a7e1f80db0127af5b5424360c654120e051ebd56280.pdf",
+        "sha256": "571ca176b2225e5da7ef1a7e1f80db0127af5b5424360c654120e051ebd56280",
+        "pdf_pages": null,
+        "archived": true
+      },
+      "status": "done",
+      "verification_basis": "text layer of the cited headline pages",
+      "checks_performed": [
+        "revenue 18,206, EBITDA 7,195, net income 3,107 verified_correct (deck p9); consistent with AR2025 comparatives 18,206,447 / 3,106,848"
+      ],
+      "defects": [],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "missing_fields_in_document_not_extracted": {
+        "note": "Only 3 headline metrics per year (revenue, EBITDA, net income). The same document prints complete statements (e.g. AR2021 p142 profit or loss, cash flow, balance sheet) - none published."
+      },
+      "fix_plan": [
+        "Extract full primary statements for FY2021-FY2024 from the archived annual reports (FY2021-FY2023 are archived; FY2024 only the earnings deck is archived - archive the FY2024 annual report/FS)"
+      ]
+    },
+    {
+      "source_id": "mobily-2021-Q1/2022-Q1-earnings-deck",
+      "manifest": "mobily-2021-q1.json; mobily-2022-q1.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/4b41416d58e1e3b9de9a7a84c1c663f8fb646b63bcfce33cf06f16b5ef1d36d0.pdf",
+        "sha256": "4b41416d58e1e3b9de9a7a84c1c663f8fb646b63bcfce33cf06f16b5ef1d36d0",
+        "archived": true,
+        "title": "Earnings Presentation Q1 2022"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 2021-Q1: 3,603 / 1,365 / 226; 2022-Q1: 3,811 / 1,445 / 319. Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 6,
+        "of": 6
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2021-Q2/2022-Q2-earnings-deck",
+      "manifest": "mobily-2021-q2.json; mobily-2022-q2.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/6cbad9df1bc49d28e5a83f1bfcfebf0e0525315c6fb60c9761c5c53cbf78608b.pdf",
+        "sha256": "6cbad9df1bc49d28e5a83f1bfcfebf0e0525315c6fb60c9761c5c53cbf78608b",
+        "archived": true,
+        "title": "Earnings Presentation 2Q22"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 2021-Q2: 3,728 / 1,344 / 244; 2022-Q2: 3,899 / 1,482 / 360 (text: 'quarterly Revenues ... SAR 3,899 million', H1 7,710). Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 6,
+        "of": 6
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2021-Q3/2022-Q3-earnings-deck",
+      "manifest": "mobily-2021-q3.json; mobily-2022-q3.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/bdc4e76314534ab8245b6764e349f75216c7f80d3bd48a8b0b3d66ab8d92d02a.pdf",
+        "sha256": "bdc4e76314534ab8245b6764e349f75216c7f80d3bd48a8b0b3d66ab8d92d02a",
+        "archived": true,
+        "title": "Earnings Presentation 3Q22"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 2021-Q3: 3,606 / 1,389 / 281; 2022-Q3: 3,828 / 1,487 / 373 (9M printed 10,937 / 11,537). Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 6,
+        "of": 6
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2023-Q1-earnings-deck",
+      "manifest": "mobily-2023-q1.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/7a809070788fc715d4230b95567e1e747c2e601b33d898aa10f261953ddd2a27.pdf",
+        "sha256": "7a809070788fc715d4230b95567e1e747c2e601b33d898aa10f261953ddd2a27",
+        "archived": true,
+        "title": "Earnings Presentation Q1 2023"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 4,051 / 1,554 / 465 on PDF p9, p11, p15 (manifest cites p8 = ESG slide -> C-7020-02). Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "defects": [
+        "C-7020-02"
+      ],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2023-Q2-earnings-deck",
+      "manifest": "mobily-2023-q2.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/446bb353968255660d65c91b9ae93af8b538c9b55a9c314e9740fe8ff7797553.pdf",
+        "sha256": "446bb353968255660d65c91b9ae93af8b538c9b55a9c314e9740fe8ff7797553",
+        "archived": true,
+        "title": "Earnings Presentation Q2 2023"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 4,248 / 1,586 / 497. Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2023-Q3-earnings-deck",
+      "manifest": "mobily-2023-q3.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/e2141e26d0579e1c15193d54d021423e1596d26c51d37cbe3c232483f997e3b0.pdf",
+        "sha256": "e2141e26d0579e1c15193d54d021423e1596d26c51d37cbe3c232483f997e3b0",
+        "archived": true,
+        "title": "Earnings Presentation Q3 2023"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 4,100 / 1,596 / 524. Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2024-Q1-earnings-deck",
+      "manifest": "mobily-2024-q1.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/12c2bc0572926c048b49226d30dd1269c78152bb1acc2949888e2a9c9a77deb1.pdf",
+        "sha256": "12c2bc0572926c048b49226d30dd1269c78152bb1acc2949888e2a9c9a77deb1",
+        "archived": true,
+        "title": "Earnings Presentation Q1 2024"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 4,545 / 1,651 / 638. Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2024-Q2-earnings-deck",
+      "manifest": "mobily-2024-q2.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/c5217ba45e0abf2c0e8bbdf5a28cebde27c7135fde799bef959d058e6377feb7.pdf",
+        "sha256": "c5217ba45e0abf2c0e8bbdf5a28cebde27c7135fde799bef959d058e6377feb7",
+        "archived": true,
+        "title": "Earnings Presentation Q2 2024"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 4,465 / 1,650 / 661. Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-2024-Q3-earnings-deck",
+      "manifest": "mobily-2024-q3.json",
+      "document": {
+        "url": "see manifest source_url",
+        "archive_path": "data/raw/SA/7020/documents/88788a9d4699832dc2e6c8a0c0816cb9658214717d18eb6bdb0e314110ea4c8f.pdf",
+        "sha256": "88788a9d4699832dc2e6c8a0c0816cb9658214717d18eb6bdb0e314110ea4c8f",
+        "archived": true,
+        "title": "Earnings Presentation Q3 2024"
+      },
+      "status": "done",
+      "verification_basis": "digital text of the cited slides (value + label + 'YoY/QoQ' wording read)",
+      "checks_performed": [
+        "revenue / EBITDA / net income standalone-quarter values: 4,499 / 1,846 / 829. Values are discrete quarters, not YTD (9M and H1 printed separately and equal the sum of quarters, e.g. 9M-2022 11,537 vs 3,811+3,899+3,828 = 11,538)"
+      ],
+      "verified_correct": {
+        "count": 3,
+        "of": 3
+      },
+      "defects": [],
+      "note": "2021 quarters are the prior-year comparative column of the 2022 decks (labelled so in the manifest notes) - correct column used (2021 value, not 2022)."
+    },
+    {
+      "source_id": "mobily-market-price-history",
+      "manifest": "telecom-market-history-7020-through-2026-09-22.json",
+      "document": {
+        "url": "https://www.saudiexchange.sa/wps/portal/saudiexchange/newsandreports/reports-publications/historical-reports?locale=en",
+        "archive_path": "origin/claude/telecom-shared-gap-closers:data/raw/SA/7020/market/saudi-exchange-historical-2026-09-22.csv (496 rows)",
+        "archived": "partially (other branch only)"
+      },
+      "status": "done",
+      "scope_of_check": "market data (published, not a financial statement)",
+      "checks_performed": [
+        "All 496 raw CSV rows (2024-09..2026-09 window) equal manifest open/high/low/close and the volume,turnover prefix of the raw tail (the CSV prints thousands separators unquoted, so volume/turnover/trades must be parsed positionally)",
+        "Self-consistency of all 5,495 rows: 49 rows 2014-2015 with only a close (open/high/low/volume/turnover null), 4 turnover/volume vs high-low outliers (2008-11-23, 2009-07-21, 2010-07-17, 2012-12-17)"
+      ],
+      "verified_correct": {
+        "summary": "window verified_correct; 2004-2024 rows unverified (raw archive not on audited branches)"
+      },
+      "defects": []
+    },
+    {
+      "source_id": "mobily-regulation-industry-context",
+      "manifest": "mobily-telecom-regulation.json; mobily-2024-industry-context.json",
+      "document": {
+        "archived": false
+      },
+      "status": "done",
+      "reason": "no numeric facts",
+      "defects": []
+    }
+  ]
+}
