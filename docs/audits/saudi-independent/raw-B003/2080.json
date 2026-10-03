@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "symbol": "2080",
+  "name": "National Gas and Industrialization Company (GASCO); 'Holding' in H1 2026 filing",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B003)",
+    "scope": "raw files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, AWS, Supabase",
+    "method": "SHA-256 recomputed for every file read; every primary-statement page of the nine documents in transcripts/2080.json rendered and read by eye (statements are image-only pages in all English filings except H1 2026, which is text and was spot-rendered); arithmetic identities (BS, cash-flow sums and rolls, NI split) pass in tools/check_transcripts.py; cross-filing comparison of comparatives for restatement.",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/head.py", "tools/survey.py", "tools/check_transcripts.py", "transcripts/2080.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_9_filings",
+      "summary": "Whole SAR (not thousands). Verified: FY2025, FY2024 (original), FY2023, FY2022 (original) with one comparative year each (FY2021 restated, FY2022 restated), Q1/H1/9M 2025, Q1 2026, H1 2026. Identities pass for every column. Restatements found on the pages: (1) FY2024 comparatives in the FY2025 filing are reclassified (Note 38, p84): Tier 1 perpetual securities SAR 138m moved from amortised cost to FVTPL, related cash flows reclassified. Effect: FY2024 CFO original 194,097,339 -> restated 155,794,865; CFI (148,299,863) -> (109,997,389); total assets, equity, net income 248,749,238 unchanged; current FVTPL 116,272,717 -> 216,551,545, current amortised cost 100,716,421 -> 437,593. (2) FY2022: original CFO 379,760,632 / CFI (26,567,701) -> restated in the FY2023 filing 392,882,058 / (39,689,127) (rent and finance income reclassified; net change 112,483,287 unchanged); original non-current assets 1,805,723,032 -> 1,833,573,379. (3) FY2023 balance sheet liabilities re-split in the FY2024 filing (accrued expenses 243,851,178 -> contract liabilities 44,263,897 + accrued 199,587,281), totals unchanged. (4) FY2021 comparatives marked restated (Note 39). Interim income statements carry quarter and cumulative columns; cash flows cumulative only. Q1 2026 -> H1 2026: entity name changes to 'Holding' and a subsidiary is acquired (goodwill 36.5m, NCI 89.5m; Note 1), so 2026 is not like-for-like with 2025 consolidation scope. FY2025 income statement already includes 'investment income' and no discontinued operations are reported anywhere read.",
+      "not_read": ["notes in all files", "Q1 2025 balance sheet (p4)", "equity statements", "FY2014-2017 Arabic annual reports (statements embedded in Arabic RTL text layers, not read)", "Arabic financial bulletins 2021-2025 (results summaries; text layers not read)", "9M 2025 income page is rotated 90 degrees; read at 1.5x, internally consistent (NI = PBT - zakat; 9M = H1 + Q3)"]
+    },
+    "document_completeness": {
+      "status": "defective_labels_and_inventory_flags",
+      "summary": "(a) PERIOD LABELS WRONG for four audited FS PDFs: cf033c71 labelled 2023|FY is FY2022 (statements 'ended 31 December 2022'); ad3ee92b labelled 2024|FY is FY2023; 5d1889bf labelled 2025|FY is FY2024; 2bacf26b labelled 2026|FY is FY2025. The collector used the publication year. Consequence: inventory shows FY2022 (labelled slot 2022|FY holds only the board annual report ce467097), FY2023, FY2024, FY2025 as missing/annual-report-only although audited statements exist, and invents '2026|FY'. (b) INVENTORY FLAGS WRONG: every English filing marked 'partial/missing cash flows' (Q1 2022-Q1 2026, 9M 2024-2025, FY files) has image-only statement pages (pdf 4-8 for interims, 8-12 for FY) that contain BS, income/OCI, equity and cash flows in full; the inventory only saw note text. Reading confirms completeness for the nine files in the transcript. (c) Arabic financial bulletins (النشرة المالية; e.g. 9d77d6e9, 3ef7bc70, a631bab2) are classified 'financial_statements' for 2024 slots but are results presentations, not statements. (d) 21c13de8 has no period label; it is the FY2023 financial bulletin (title 'نتائج العام 2023م'). (e) Several slots hold duplicates in two languages (e.g. 2024 Q1/H1/9M English FS + Arabic bulletin); not wrong-company. (f) Annual reports 382366b9 (2025), 75d18035 (2025 Arabic), e5795c09 (2024 Arabic) are board/annual reports; correct labels, statements for those years are the FS PDFs above.",
+      "defect_ids": ["B003-2080-1", "B003-2080-2"]
+    },
+    "company_coverage": {
+      "status": "better_than_inventory_but_incomplete",
+      "present_with_statements_verified": ["FY2022", "FY2023", "FY2024", "FY2025", "2025 Q1 (income/cash flow)", "2025 H1", "2025 9M", "2026 Q1", "2026 H1"],
+      "present_unread_but_exist_as_image_statements": ["2022 Q1/H1/9M", "2023 Q1/H1/9M", "2024 Q1/H1/9M (English filings, image-only statement pages, same template)"],
+      "missing": ["FY2018-FY2020 and Q1-9M 2018-2021 statements (inventory gaps confirmed: only bulletins/annual reports for 2021)", "FY2021 own filing (only restated comparatives in the FY2022 filing)", "FY2013 and earlier"],
+      "inventory_correction": "inventory counted 7 periods complete of 57; true verified-complete set is at least 9 filings (FY2022-FY2025 plus five interims) with a further 9 interim filings containing all statements as images but not read here."
+    }
+  },
+  "documents": [
+    {"sha256": "2bacf26b...", "inventory_label": "2026|FY", "actual_period": "FY2025", "label_ok": false, "pdf_pages": {"bs": 8, "is": 9, "cf": [11, 12]}},
+    {"sha256": "5d1889bf...", "inventory_label": "2025|FY", "actual_period": "FY2024", "label_ok": false, "pdf_pages": {"bs": 8, "is": 9, "cf": [11, 12]}},
+    {"sha256": "ad3ee92b...", "inventory_label": "2024|FY", "actual_period": "FY2023", "label_ok": false, "pdf_pages": {"bs": 8, "is": 9, "cf": [11, 12]}},
+    {"sha256": "cf033c71...", "inventory_label": "2023|FY", "actual_period": "FY2022", "label_ok": false, "pdf_pages": {"bs": 8, "is": 9, "cf": [11, 12]}},
+    {"sha256": "b89a74ea...", "inventory_label": "2026|H1", "actual_period": "H1 2026", "label_ok": true},
+    {"sha256": "6a1e9ec0...", "inventory_label": "2026|Q1", "actual_period": "Q1 2026", "label_ok": true},
+    {"sha256": "d42a8133...", "inventory_label": "2025|9M", "actual_period": "9M 2025", "label_ok": true},
+    {"sha256": "56a0b97b...", "inventory_label": "2025|H1", "actual_period": "H1 2025", "label_ok": true},
+    {"sha256": "597edabe...", "inventory_label": "2025|Q1", "actual_period": "Q1 2025", "label_ok": true}
+  ],
+  "defects": [
+    {"id": "B003-2080-1", "class": "period_label_publication_year", "severity": "high", "evidence": "Four annual FS PDFs labelled with the year after the fiscal year (cover pages: 'FOR THE YEAR ENDED 31 DECEMBER 2022/2023/2024/2025'). The inventory's own flag period_mismatch_candidate:detected=...,labelled=... fires on these; it is a true positive and should be treated as relabel (FY = detected year), not as ambiguous."},
+    {"id": "B003-2080-2", "class": "inventory_flag_image_statements", "severity": "medium", "evidence": "Statements present but image-only; inventory reports missing_primary_statement:cash_flows although the cash-flow pages are pdf p7-8 (interims) / p11-12 (FY)."},
+    {"id": "B003-2080-3", "class": "restated_comparatives_not_tracked", "severity": "medium", "evidence": "FY2024 CFO 194,097,339 (original) vs 155,794,865 (restated, FY2025 filing); FY2022 CFO 379,760,632 vs 392,882,058. A pipeline that takes the latest filing for each year silently changes the values; both versions are transcribed."}
+  ],
+  "unread_items": ["notes", "Q1 2025 balance sheet", "2022-2024 English interim filings (statement pages exist as images, not read)", "Arabic FY2014-2017 annual reports and 2021-2025 Arabic bulletins", "equity statements"],
+  "conclusion": "NOT complete as a company. FY2022-FY2025 and five interims verified from pages; earlier years and 2022-2024 interims not read."
+}
