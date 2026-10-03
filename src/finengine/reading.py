@@ -237,6 +237,9 @@ BANK_LINE_MAP = {
     "special commission income, net": ("net_financing_income", "fy"),
     "special commission income": ("financing_income", "fy"),
     "income from investments and financing": ("financing_income", "fy"),
+    # "..., net" is the NET line; the longest-phrase rule alone mapped it to the gross metric.
+    "income from investments and financing, net": ("net_financing_income", "fy"),
+    "return on time investments": ("financing_expense", "fy"),
     "gross financing and investment income": ("financing_income", "fy"),
     "special commission expense": ("financing_expense", "fy"),
     "return on deposits and financial liabilities": ("financing_expense", "fy"),
@@ -476,6 +479,24 @@ def _rows(words, y_tol: float = 3.0):
     if current:
         rows.append(sorted(current, key=lambda x: x[0]))
     return rows
+
+
+def _header_limit(words, columns, default: float = 155.0) -> float:
+    """Bottom of the column-heading band.
+
+    A subtitle ("FOR THE NINE MONTHS PERIOD ENDED ...") pushes the period headings
+    below the historical fixed y=155 cut-off, so a three-month column read as
+    year-to-date. The band is anchored on the first row carrying a monetary value
+    (a number with a thousands separator or decimals, never a bare year/day) in a
+    value column; everything above it is heading.
+    """
+    def monetary(token: str) -> bool:
+        return bool(re.fullmatch(r"\(?-?(?:\d{1,3}(?:,\d{3})+|\d+\.\d+)\)?", token))
+    tops = [w[1] for w in words
+            if monetary(w[4]) and any(abs((w[0] + w[2]) / 2 - c) < 45 for c in columns)]
+    if not tops:
+        return default
+    return max(default, min(tops) - 1.0)
 
 
 def _contains_phrase(text: str, phrase: str) -> bool:
@@ -1285,6 +1306,7 @@ class StatementReader:
         if statement == "balance_sheet":
             return [(columns[:2], "instant")]
         pairs = [columns[index:index + 2] for index in range(0, len(columns), 2)]
+        header_limit = _header_limit(words, columns)
         groups: list[tuple[list[float], str]] = []
         for pair_index, pair in enumerate(pairs):
             if not pair:
@@ -1296,7 +1318,7 @@ class StatementReader:
                      if start + 2 < len(columns) else max(pair) + 45)
             header = " ".join(
                 word[4].lower() for word in words
-                if left <= (word[0] + word[2]) / 2 <= right and word[1] < 155
+                if left <= (word[0] + word[2]) / 2 <= right and word[1] < header_limit
             ).replace("–", "-").replace("—", "-")
             if re.search(
                 r"three[ -]months?|(?:1st|2nd|3rd|4th|first|second|third|fourth)"
@@ -1326,6 +1348,7 @@ class StatementReader:
         boundary = self._block_boundary(words, blocks) if len(blocks) > 1 else None
         magnitudes = []
         parsed_rows = []
+        pending_caption = None
         for row in _rows(words, y_tol=6.0):
             if boundary is None:
                 panels = [(row, blocks[0])]
@@ -1349,8 +1372,18 @@ class StatementReader:
                         continue  # a note reference ("6", "10,", "(a)"), not part of the label
                     else:
                         text_tokens.append(token)
+                if text_tokens and not number_tokens:
+                    # a caption wrapped onto two rows: the first line carries no figures
+                    pending_caption = (id(columns), row[0][1] if row else 0.0, list(text_tokens))
+                    continue
                 if not text_tokens or not number_tokens:
                     continue
+                if (pending_caption and pending_caption[0] == id(columns)
+                        and 0 < (row[0][1] - pending_caption[1]) < 18
+                        and pending_caption[2][-1].endswith(",")
+                        and text_tokens[0][:1].islower()):
+                    text_tokens = pending_caption[2] + text_tokens
+                pending_caption = None
                 # In wide note tables, values outside the two detected primary
                 # columns can otherwise leak into the label and make a note row
                 # overwrite the source-faithful primary-statement fact.
