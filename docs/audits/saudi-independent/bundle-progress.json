@@ -25,7 +25,23 @@
    "step": 3,
    "what": "next: bundle_adapters.py (remaining batch defects -> records, suspected unless re-checked), bundle_md.py, run bundle_build.py",
    "state": "pending"
+  },
+  {
+   "step": 4,
+   "what": "adapters (batches A-F), finalize and Markdown writer written; defect-bundle.json/.md generated: 101 proven / 15 suspected / 116 total",
+   "state": "done"
+  },
+  {
+   "step": 5,
+   "what": "integrity: 44 copied batch files compared byte-for-byte with the six source commits: 0 differ; no change outside docs/audits/saudi-independent",
+   "state": "done"
   }
  ],
- "resume_hint": "next: run docs/audits/saudi-independent/tools/bundle_build.py (reads bundle/ copies + data/imports + data/raw) to regenerate defect-bundle.json/.md; entries below are appended, never overwritten"
+ "resume_hint": "regenerate with: PYTHONIOENCODING=utf8 PYTHONPATH=docs/audits/saudi-independent/tools:src python docs/audits/saudi-independent/tools/bundle_build.py (deterministic; reads data/imports, data/raw, bundle/ copies)",
+ "visual_verification_done_by_bundle_auditor": [
+  "1080 anb-2015 pdf p4,53,54; anb-2017 p12,16,62; anb-2018 p10,11,90,91; anb-2019 p8,9,82,83; anb-2021-q3 p4",
+  "zakat D6: riyad-2018-fy p9, riyad-2019-fy p8, anb-2018 p11, anb-2019 p9, albilad-2019 p8 (albilad-2018 p43 by text layer)",
+  "stc 7010: pdf p128, 129, 141, 38 (zoomed chart)",
+  "Alinma 2018-Q2/Q3 p4; AlJazira 2008-Q2 p4; Al Rajhi FY2025 p9; Elm p8; solutions by stc p9; SABIC p47; Southern Province Cement p7"
+ ]
 }

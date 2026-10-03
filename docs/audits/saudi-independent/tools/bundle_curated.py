@@ -98,7 +98,7 @@ D1 = {
         ('customer_deposits', 82, '40,627,864', "Customers' deposits", '142,128,897', None),
         ('due_to_banks', 82, '2,903,381', 'Due to banks and other financial institutions', '3,082,181', None)]),
 }
-VISUAL_D1 = {'anb-2015-annual-report': [53, 54, 4], 'anb-2017-annual-report': [62, 12], 'anb-2018-annual-report': [90, 91, 10], 'anb-2019-annual-report': [82, 8]}
+VISUAL_D1 = {'anb-2015-annual-report': [53, 54, 4], 'anb-2017-annual-report': [62, 12], 'anb-2018-annual-report': [90, 91, 10], 'anb-2019-annual-report': [82, 83, 8]}
 
 
 def anb_d1():

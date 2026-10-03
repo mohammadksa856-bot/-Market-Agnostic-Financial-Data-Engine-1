@@ -152,10 +152,12 @@ def norm_num(s):
 
 
 def on_page(src, p, needle):
+    """True/False if the page has a text layer; None if the page is not readable. Matches on number boundaries (no digit/comma-digit around)."""
     t = page_text(src, p)
     if t is None:
         return None
-    return needle in t or norm_num(needle) in norm_num(t)
+    pat = r'(?<![\d])(?<!\d,)' + re.escape(str(needle)) + r'(?!\d)(?!,\d)'
+    return bool(re.search(pat, t))
 
 
 def fmt(v):
