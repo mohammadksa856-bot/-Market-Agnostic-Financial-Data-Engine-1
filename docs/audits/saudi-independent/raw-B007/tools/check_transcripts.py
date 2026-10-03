@@ -5,7 +5,7 @@ Per document column (cur / prior):
   * cash flow: cfo + cfi + cff == net_change; cash_begin + net_change + fx == cash_end
   * income ('is' and 'is_q'): net_income == ni_parent + ni_nci
 Cross-document: columns that describe the same block and period end (doc period_end for 'cur', doc prior_end for 'prior')
-must agree on revenue, net_income, cfo, total_assets, total_equity, cash_end, unless the later column is flagged
+must agree on revenue, net_income, ni_parent, cfo, cfi, cff, net_change, total_assets, total_equity, ppe, cash_end, unless the later column is flagged
 "restated": true (then the difference is expected and must be listed in the document's "restatements").
 Roll checks (transcript key "roll_checks"): total == sum(parts) within tol (Q1 + Q2 = H1 etc.).
 Every sha256_prefix must exist in the raw-coverage inventory.
@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 INV = ROOT.parent / "raw-coverage" / "companies"
 TR = ROOT / "transcripts"
-XKEYS = ("revenue", "net_income", "cfo", "total_assets", "total_equity", "cash_end")
+XKEYS = ("revenue", "net_income", "ni_parent", "cfo", "cfi", "cff", "net_change", "total_assets", "total_equity", "ppe", "cash_end")
 
 
 def identities(doc):
