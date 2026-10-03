@@ -1,0 +1,751 @@
+{
+ "symbol": "6010",
+ "name": "The National Agricultural Development Company (NADEC)",
+ "batch": "B001",
+ "auditor_session": "claude/audit-saudi-raw-B001",
+ "fiscal_year_end": "31 December (confirmed on pages)",
+ "method": "Text layer + rendering (as 1111); stmt_pages.py shows standalone FS and interim files carry statements on image-only pages. Cross-foots: A = L+E, CF end cash = BS cash, Q1+Q2 = 6M.",
+ "dimension_1_value_correctness": {
+  "summary": "Extractable and verified: FY2025 (text layer in Annual Report; BS rendered in standalone FS and equal), FY2024 comparatives, H1 2026 (rendered), Q1 2026 P&L (rendered), FY2021/FY2020 (AR 2021 text layer headlines). Not read: all other interims, ARs 2015-2020, 2022-2024, equity statements, notes. Units: Saudi Riyals full units; consolidated; EPS in SAR; no NCI line.",
+  "transcriptions": [
+   {
+    "doc": "c4b540ca AR2025 (standalone FS 7b1ccfda identical)",
+    "pdf_pages": "AR PDF p131 BS, p132 P&L + OCI, p134-135 CF (AR printed 261-270); standalone FS PDF p8 BS (printed 6)",
+    "values": {
+     "total_assets": [
+      6333790560,
+      5710389588
+     ],
+     "total_non_current_assets": [
+      3398859639,
+      2829208574
+     ],
+     "total_current_assets": [
+      2934930921,
+      2881181014
+     ],
+     "cash": [
+      1080353087,
+      1365364080
+     ],
+     "term_deposits": [
+      650000000,
+      300000000
+     ],
+     "inventories": [
+      638182320,
+      662169811
+     ],
+     "biological_assets_noncurrent": [
+      678660652,
+      695858509
+     ],
+     "total_liabilities": [
+      1725627036,
+      1413459670
+     ],
+     "total_equity": [
+      4608163524,
+      4296929918
+     ],
+     "share_capital": [
+      3016400000,
+      3016400000
+     ],
+     "treasury_shares": [
+      -21413267,
+      0
+     ],
+     "retained_earnings": [
+      1703560535,
+      1116424086
+     ],
+     "revenue": [
+      3526978695,
+      3220400393
+     ],
+     "gross_profit": [
+      1181475197,
+      1192322114
+     ],
+     "operating_profit": [
+      376938412,
+      389404860
+     ],
+     "profit_before_zakat_tax": [
+      437125885,
+      827131968
+     ],
+     "net_profit": [
+      393348637,
+      774631968
+     ],
+     "eps_basic": [
+      1.31,
+      2.57
+     ],
+     "eps_diluted": [
+      1.3,
+      2.57
+     ],
+     "total_comprehensive_income": [
+      336217344,
+      705885813
+     ],
+     "cfo": [
+      755453578,
+      763209286
+     ],
+     "cfi": [
+      -1022262932,
+      -20790743
+     ],
+     "cff": [
+      -18197563,
+      -211832802
+     ],
+     "net_change_cash": [
+      -285006917,
+      530585741
+     ],
+     "fx_effect": [
+      -4076,
+      92019
+     ],
+     "cash_end": [
+      1080353087,
+      1365364080
+     ]
+    },
+    "checks": "A = L+E (1,725,627,036+4,608,163,524); CFO+CFI+CFF = -285,006,917; 1,365,364,080-285,006,917-4,076 = 1,080,353,087 = BS cash. FY2024 profit includes a one-off SAR 356.5m gain on reclassifying a joint venture to FVOCI (note 19.1); statutory reserve (193.8m) is nil at 2025 (transferred)."
+   },
+   {
+    "doc": "2f724902 H1 2026 (rendered)",
+    "pdf_pages": "BS 5, P&L 6, OCI 7, equity 8, CF 9 (printed 3,4,5,6,7)",
+    "values": {
+     "total_assets": [
+      6169065416,
+      6333790560
+     ],
+     "total_liabilities": [
+      1352853209,
+      1725627036
+     ],
+     "total_equity": [
+      4816212207,
+      4608163524
+     ],
+     "cash": [
+      1059120410,
+      1080353087
+     ],
+     "term_deposits": [
+      200000000
+     ],
+     "revenue_Q2": [
+      876443807,
+      830468386
+     ],
+     "revenue_6M": [
+      1794304446,
+      1841919399
+     ],
+     "gross_profit_6M": [
+      531891476,
+      638908390
+     ],
+     "operating_profit_6M": [
+      176260605,
+      208765046
+     ],
+     "profit_before_zakat_6M": [
+      177415802,
+      237733069
+     ],
+     "net_profit_Q2": [
+      64559867,
+      115264467
+     ],
+     "net_profit_6M": [
+      158265802,
+      218683069
+     ],
+     "eps_basic_6M": [
+      0.53,
+      0.72
+     ],
+     "cfo_6M": [
+      -21755011,
+      439255131
+     ],
+     "cfi_6M": [
+      229382613,
+      61071882
+     ],
+     "cff_6M": [
+      -238045141,
+      2131510
+     ],
+     "net_change_6M": [
+      -30417539,
+      502458523
+     ],
+     "cash_end_6M": [
+      1059120410,
+      1867841036
+     ]
+    },
+    "checks": "A = L+E; CFO+CFI+CFF = -30,417,539; 1,080,353,087-30,417,539-3,018+9,187,880 (cash acquired in a business combination) = 1,059,120,410 = BS cash. Goodwill 6,123,813 and acquisition cash show a scope change in 2026."
+   },
+   {
+    "doc": "6afde907 Q1 2026 P&L (rendered)",
+    "pdf_pages": "P&L 6 (printed 4)",
+    "values": {
+     "revenue": [
+      917860638,
+      1011451013
+     ],
+     "gross_profit": [
+      282370706,
+      325752377
+     ],
+     "operating_profit": [
+      97616143,
+      99279366
+     ],
+     "profit_before_zakat": [
+      103230933,
+      114943602
+     ],
+     "net_profit": [
+      93705933,
+      103418602
+     ],
+     "eps": [
+      0.31,
+      0.34
+     ]
+    },
+    "checks": "Q1+Q2 2026 net profit 93,705,933+64,559,867 = 158,265,800 vs 6M 158,265,802 (2 SAR rounding); revenue 917,860,638+876,443,807 = 1,794,304,445 vs 1,794,304,446 (1 SAR); Q1+Q2 2025 revenue 1,011,451,013+830,468,386 = 1,841,919,399 exact"
+   },
+   {
+    "doc": "d4be0a1b AR2021 (Arabic, text layer)",
+    "pdf_pages": "BS 112, P&L 113, CF 116",
+    "values": {
+     "total_assets": [
+      3889730159,
+      3875639542
+     ],
+     "total_liabilities": [
+      2693917461,
+      2397361297
+     ],
+     "total_equity": [
+      1195812698,
+      1478278245
+     ],
+     "cash": [
+      81918355,
+      68713854
+     ],
+     "revenue": [
+      2225089026,
+      2303059045
+     ],
+     "net_profit": [
+      -285028123,
+      35654575
+     ]
+    },
+    "checks": "A = L+E (2,693,917,461+1,195,812,698 = 3,889,730,159). Columns FY2021, FY2020."
+   }
+  ]
+ },
+ "dimension_2_document_completeness": {
+  "files_total": 35,
+  "summary": "Standalone FS and interim files are complete statement sets whose statement pages are image-only; the inventory classed 8 of the 14-22 page interim files as other_no_statements and several as partial because text detection finds nothing on those pages. Annual reports contain the audited statements (text layer for 2017, 2021, 2023-2025; digit-corrupt for 2015).",
+  "defects": [
+   {
+    "id": "B001-6010-IMAGEONLY",
+    "what": "Standalone FS (FY) and all interim condensed files (14-25pp) have image-only statement pages; inventory misses them. Misclassified as other_no_statements (really complete): f789ddb4 Q1-22 (scan), 3ca20014 H1-23, bb4b50a3 9M-23 (rendered), bba446f4 Q1-24, 308e3e04 H1-24, 9bb5ad39 H1-25, e94b03c7 9M-25, 6afde907 Q1-26 (rendered). partial_statements_only (2f724902 H1-26, 739d7ece 9M-24) are also complete."
+   },
+   {
+    "id": "B001-6010-LABEL-FY",
+    "what": "FY standalone files carry the publication year: 83c3fd79 (FY2022) as 2023|FY, 0d9a9074 (FY2023) as 2024|FY, efcb4cd8 (FY2024) as 2025|FY, 7b1ccfda (FY2025) as 2026|FY. Annual reports (a1d02304 ... c4b540ca) are labelled correctly by reporting year."
+   },
+   {
+    "id": "B001-6010-DIGITS",
+    "what": "a1d02304 (Annual Report 2015): the Arabic text layer maps digits wrongly (cover 2015 extracts as 5002; capital and dates wrong). A cover render shows 2015. Text-layer numbers from this file would be silently wrong."
+   },
+   {
+    "id": "B001-6010-SUMMARYTABLE",
+    "what": "AR pages that look like statements (AR2021 PDF p64-65) are 5-year summaries in SAR millions, not primary statements; column order in the RTL text layer is ascending 2017..2021 left to right."
+   },
+   {
+    "id": "B001-6010-DUPE",
+    "what": "FY2023 and FY2024 and FY2025 each have English and Arabic ARs plus standalone FS (3 sources); no value conflicts tested."
+   }
+  ]
+ },
+ "dimension_3_company_coverage": {
+  "inventory_claim": "sparse; first observed 2011|H1; many interim periods absent or non_statement_only",
+  "corrected_from_pages": "Interim Q1 2022 - H1 2026: all 18 periods have a statement set in raw (Q1 2022 scan; 8 of them previously flagged non-statement). Annual FY2022-FY2025 present (standalone FS + ARs). FY2021, FY2020, FY2019, FY2018, FY2017, FY2016, FY2015 present only as annual reports (no standalone FS, no interims). Absent: FY2011-FY2014 and every interim 2011-2021 (inventory first period 2011|H1 has no statement). No FY2026 expected. Only H1 2026, Q1 2026 (P&L), FY2025 and FY2021 were value-read; other periods are structure-confirmed or unread."
+ },
+ "unread_items": [
+  "Equity statements and notes",
+  "Interim sets other than H1 2026 / Q1 2026 P&L / 9M 2023 (structure only)",
+  "ARs 2016-2020, 2022-2024 statements",
+  "AR 2015 (digit-corrupt text; image reading needed)",
+  "Q1 2026 BS and CF (rendered BS not read)",
+  "FY2022-FY2024 standalone FS values (only FY2024 via comparatives)"
+ ],
+ "files": [
+  {
+   "sha256": "a1d02304d650c4771fd9fbd622b1e773c13bdbe818ccb6571bc9984428461128",
+   "collector_label": "2015|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 78,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2015 (cover image shows 2015)",
+   "verdict": "AR with statements, but the Arabic text layer has corrupted digit glyphs (cover title extracts as 5002; dates as 1131; capital as 411,111,111): extracted numbers are NOT reliable, image reading required",
+   "value_status": "text_layer_numbers_corrupt_not_read"
+  },
+  {
+   "sha256": "c8e4e9d6a69d276445dcf57c561194f718e3a65303994ce7cf3bd3d29d2f1454",
+   "collector_label": "2016|FY",
+   "inventory_class": "annual_report_no_statements_found",
+   "pages": 84,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2016 (84pp, 39 image pages)",
+   "verdict": "AR, mixed text/scan; statements not located; inventory label unverified",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "15a225ebeda25b5bb20890984c50ab6d043a56d3f1d6eedcc26d23505dca69d9",
+   "collector_label": "2017|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 112,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2017 (112pp)",
+   "verdict": "AR; text layer has BS/IS/CF at PDF p68-71 (RTL digit order reversed); not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "d10a0976b2a0959c0670d441f98b7fdf97ec06fe60539fc23af3a55fb9ca7680",
+   "collector_label": "2018|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 67,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "Annual report 2018",
+   "verdict": "AR; BS/IS text found, cash flow statement not located by tool",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "6c56aebbc6e2f42a43a4fe278606a2e1f03f14c8eba5ff61a158fdd5da132503",
+   "collector_label": "2019|FY",
+   "inventory_class": "annual_report_no_statements_found",
+   "pages": 72,
+   "inventory_flags": [
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2019",
+   "verdict": "AR; BS not located by tool; inventory flag not_financial_statements unverified",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "5b870cb2cb047951ad00d73831db916cb614d64c765644ec2835fd82e7232be1",
+   "collector_label": "2020|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 54,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "Annual report 2020",
+   "verdict": "AR; BS/IS text found, cash flow not located",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "d4be0a1b392636a400785e3e583fa2cb592c61e3962ce2791d98c8d41e228a39",
+   "collector_label": "2021|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 142,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check"
+   ],
+   "actual_period": "Annual report 2021 (Arabic, printed 2022-06-01)",
+   "verdict": "AR with primary statements at PDF p112 (BS), 113 (P&L), 114 (OCI), 115 (equity), 116 (CF) - text layer OK for this file; pp64-65 are a 5-year summary in SAR millions (not primary)",
+   "value_status": "extractable_and_verified_text_layer"
+  },
+  {
+   "sha256": "d95d4322e75463446944ca6cbe8d744c2562877c984d965528754719e26e84e6",
+   "collector_label": "2022|9M",
+   "inventory_class": "financial_statements",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "missing_primary_statement:cash_flows",
+    "primary_statement_pages_may_be_image_only"
+   ],
+   "actual_period": "9M 2022 (30 Sep 2022)",
+   "verdict": "complete interim set on image pages (14pp); not rendered",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "489acfa38498697f206fb4fcd4464de48b4160dc1ecd5becec7ab6c204595249",
+   "collector_label": "2022|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 95,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "Annual report 2022 (Arabic)",
+   "verdict": "AR; statements not fully located (BS p38, IS p75-90 candidates); not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "330c3d0559270c1c7f273867d6d9853394ea224ef036e848dddcedf4f962043a",
+   "collector_label": "2022|H1",
+   "inventory_class": "financial_statements",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "missing_primary_statement:cash_flows",
+    "primary_statement_pages_may_be_image_only"
+   ],
+   "actual_period": "H1 2022 (30 Jun 2022)",
+   "verdict": "complete interim set on image pages (14pp); not rendered",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "f789ddb4335a7eb4eda15d61937a03b06113eec092549359fa303d8d9f2106c9",
+   "collector_label": "2022|Q1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 16,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements"
+   ],
+   "actual_period": "Q1 2022 (31 Mar 2022)",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; fully scanned 16pp, rendered: cover, index, KPMG review report, BS, P&L present (montage p1-p6); complete interim set",
+   "value_status": "structure_confirmed_not_transcribed"
+  },
+  {
+   "sha256": "bb4b50a3f309d6c32d125050edb6797fff900be32197400a4258a248f8e6c954",
+   "collector_label": "2023|9M",
+   "inventory_class": "other_no_statements_found",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements"
+   ],
+   "actual_period": "9M 2023 (30 Sep 2023; EY review report)",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; RENDERED p3-p8: review report, BS, P&L, OCI, equity, CF all present",
+   "value_status": "statements_present_confirmed_visually_values_not_transcribed"
+  },
+  {
+   "sha256": "0e7b0e5a2a17140fdaf1f282fc7b0574a03469c6d8bfcff51a4fde553c246a9c",
+   "collector_label": "2023|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 136,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2023 (Arabic)",
+   "verdict": "AR; text statements present; not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "25e7e1cf1fbeebe1d3bd27f9c14aaf76190cffcc229d5f6c0678b1924cd0ce25",
+   "collector_label": "2023|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 138,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2023 (English)",
+   "verdict": "AR; text statements present (BS/IS/CF); not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "3415ca4e2bb5e1b4887b93b7ef55fa16569c20a370bf7adfc7c37f176d6c677a",
+   "collector_label": "2023|FY",
+   "inventory_class": "other_no_statements_found",
+   "pages": 4,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements"
+   ],
+   "actual_period": "FY2023 KPI sheet (4pp)",
+   "verdict": "NOT primary statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "83c3fd799165138503663e541fdf2c9c2010c71adc63a94f227a0c6485dc7946",
+   "collector_label": "2023|FY",
+   "inventory_class": "financial_statements",
+   "pages": 47,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2022-12-31,labelled=2023-12-31",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2022 (cover: year ended 31 December 2022)",
+   "verdict": "MISLABELLED_PERIOD: label 2023|FY = publication year; 47pp statements on image pages 3-13",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "3ca20014e452f29945007d168e21a2ba4785640f6fed91556910b6188911d760",
+   "collector_label": "2023|H1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements"
+   ],
+   "actual_period": "H1 2023",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; 14pp interim set with image statement pages 3-8",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "4c0d184c5ca971ab74a4e1e7031035e51f715a1258d39b38f444d7cd1ed0829b",
+   "collector_label": "2023|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "missing_primary_statement:cash_flows",
+    "primary_statement_pages_may_be_image_only"
+   ],
+   "actual_period": "Q1 2023",
+   "verdict": "complete interim set on image pages; not rendered",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "739d7ecec3cbfa5dab19ed234b58acb7cd92bd5f101c383989bc1540106a1f70",
+   "collector_label": "2024|9M",
+   "inventory_class": "partial_statements",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "partial_statements_only",
+    "primary_statement_pages_may_be_image_only"
+   ],
+   "actual_period": "9M 2024 (30 Sep 2024)",
+   "verdict": "inventory partial_statements_only is a text-detection artefact; 14pp interim set (image pages 3-8) - complete",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "0d9a90740f2ec9233d3405851aade1e6129366e34e2bb1f7e3e35feb695dda23",
+   "collector_label": "2024|FY",
+   "inventory_class": "financial_statements",
+   "pages": 43,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2023 (cover: year ended 31 December 2023)",
+   "verdict": "MISLABELLED_PERIOD: label 2024|FY; 43pp statements on image pages 8-13",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "1e01ac41478b44131225a9ed74a7cede60f4c8513c8f3b2388834d8f7f8dca4f",
+   "collector_label": "2024|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 132,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2024 (English, glyph-spaced text)",
+   "verdict": "AR; not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "81ee6ce698dbbdf372f17af74e0127afe260583ff573ca646a5125c20f247293",
+   "collector_label": "2024|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 132,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2024 (Arabic; text layer garbled Hebrew-like glyph mapping on cover)",
+   "verdict": "AR; not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "e2dbcf0444b3333d3c1617526541d721bfa95e99cb1e91ef701cc092dea6125d",
+   "collector_label": "2024|FY",
+   "inventory_class": "results_announcement",
+   "pages": 5,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "FY2024 financial performance sheet (5pp)",
+   "verdict": "NOT primary statements",
+   "value_status": "not_applicable"
+  },
+  {
+   "sha256": "308e3e046bafe22fed6966b03e7276c599be825149047b47d42e6793079be888",
+   "collector_label": "2024|H1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements"
+   ],
+   "actual_period": "H1 2024",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; 14pp interim set (image pages 3-8)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "bba446f448a33b3a0623ea4b7bb2048a3aca7cc872cf48ef0212abfc23795b20",
+   "collector_label": "2024|Q1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 14,
+   "inventory_flags": [
+    "partly_scanned_pages",
+    "not_financial_statements"
+   ],
+   "actual_period": "Q1 2024",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; 14pp interim set (image pages 3-8)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "e94b03c748cf73a3459e8dfbf7208472e1b8b15bcbaf1f98fdd6b4bc26b7d771",
+   "collector_label": "2025|9M",
+   "inventory_class": "other_no_statements_found",
+   "pages": 22,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "9M 2025",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; 22pp interim set (image pages 5-9)",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "1c6abce03c6627fc18b2b54b01938f549a82f0eb0571f658418b79c2fd597469",
+   "collector_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 172,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2025 (Arabic/bilingual, 172pp)",
+   "verdict": "AR; text statements present; not read",
+   "value_status": "not_read"
+  },
+  {
+   "sha256": "c4b540ca34c5d669522ca4db31e525fc002c928db7c52e6cacd037099e52e26d",
+   "collector_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements",
+   "pages": 173,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only"
+   ],
+   "actual_period": "Annual report 2025 (English, 173pp); statements at PDF p131 (BS), 132 (P&L + OCI), 133 (equity), 134-135 (CF)",
+   "verdict": "AR with complete audited statements in text layer; TRANSCRIBED (KPMG report 4 Feb 2026)",
+   "value_status": "extractable_and_verified_text_layer"
+  },
+  {
+   "sha256": "efcb4cd8b32dd985d7ec0cfe86a532380cc7ffe078261ce2978ae36095fda8ec",
+   "collector_label": "2025|FY",
+   "inventory_class": "financial_statements",
+   "pages": 44,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2024 (cover: year ended 31 December 2024)",
+   "verdict": "MISLABELLED_PERIOD: label 2025|FY; 44pp statements on image pages 7-12; FY2024 values appear as comparatives in the FY2025 report",
+   "value_status": "comparatives_read_from_FY2025_report"
+  },
+  {
+   "sha256": "9bb5ad3925f080de10ee51f4fc4e2ece9cec41dd1d3e9297f5c25b4f0bf5b50f",
+   "collector_label": "2025|H1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 22,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "H1 2025",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; 22pp interim set (image pages 5-9); H1 2025 comparatives read in the H1 2026 file",
+   "value_status": "comparatives_read_from_H1_2026_file"
+  },
+  {
+   "sha256": "54e16643b58c13792b1d47828d48f573387c4422cf1667984180ad00c51271a3",
+   "collector_label": "2025|Q1",
+   "inventory_class": "financial_statements",
+   "pages": 15,
+   "inventory_flags": [],
+   "actual_period": "Q1 2025 (31 Mar 2025)",
+   "verdict": "complete; text layer confirms BS p4, P&L p5-6, equity p7, CF p8 (15pp)",
+   "value_status": "structure_confirmed_not_transcribed"
+  },
+  {
+   "sha256": "7b1ccfda0ba31ff345e30a639153b75310993b783e28d8b41b3b7c919df01501",
+   "collector_label": "2026|FY",
+   "inventory_class": "financial_statements",
+   "pages": 45,
+   "inventory_flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31",
+    "missing_primary_statement:cash_flows"
+   ],
+   "actual_period": "FY2025 (cover: year ended 31 December 2025; KPMG report 4 Feb 2026)",
+   "verdict": "MISLABELLED_PERIOD: label 2026|FY; statements on image pages 8-12 (BS PDF p8 printed 6); RENDERED BS, values equal the text-layer statements in the Annual Report c4b540ca",
+   "value_status": "extractable_and_verified_from_images"
+  },
+  {
+   "sha256": "2f7249024f63bab119a9b6129e6f1989f4de7bad1f00bc47e4e55c3f6b02cb92",
+   "collector_label": "2026|H1",
+   "inventory_class": "partial_statements",
+   "pages": 25,
+   "inventory_flags": [
+    "partial_statements_only"
+   ],
+   "actual_period": "H1 2026 (3M and 6M to 30 Jun 2026; KPMG review 21 Jul 2026)",
+   "verdict": "complete (inventory partial_statements_only is a text-detection artefact): review report p4, BS p5, P&L p6, OCI p7, equity p8, CF p9; TRANSCRIBED",
+   "value_status": "extractable_and_verified_from_images"
+  },
+  {
+   "sha256": "8c2844185e4d21708e2878753e87efbc6797dc2d3985369c5afaa508e363a56a",
+   "collector_label": "2026|H1",
+   "inventory_class": "results_announcement",
+   "pages": 4,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "Q2 2026 results press release (4pp)",
+   "verdict": "NOT primary statements; revenue 876.44m agrees with the H1 2026 P&L",
+   "value_status": "cross_checked"
+  },
+  {
+   "sha256": "6afde907bd005d28c2d7433a39b57a4d7f87c4cb220b92a2f4388ee4f870cb9a",
+   "collector_label": "2026|Q1",
+   "inventory_class": "other_no_statements_found",
+   "pages": 21,
+   "inventory_flags": [
+    "not_financial_statements"
+   ],
+   "actual_period": "Q1 2026 (3M to 31 Mar 2026)",
+   "verdict": "INVENTORY_FLAG_WRONG: classed other_no_statements; 21pp interim set; RENDERED P&L p6 (printed 4); BS p5 rendered not read",
+   "value_status": "pnl_extractable_and_verified_from_images"
+  }
+ ]
+}
