@@ -457,8 +457,32 @@ class Calculator:
                 scope=source.scope, dimensions=source.dimensions,
             ))
 
-        target_periods = {fact.period_end for fact in facts if fact.period_kind == PeriodKind.QUARTER}
-        return out + self._ttm([*all_facts, *out], target_periods)
+        first_quarters = self._first_quarters([*all_facts, *out])
+        target_periods = {fact.period_end for fact in facts if fact.period_kind == PeriodKind.QUARTER
+                          or (fact.period_kind == PeriodKind.YTD and fact.fiscal_quarter == 1)}
+        return out + first_quarters + self._ttm([*all_facts, *out, *first_quarters], target_periods)
+
+    def _first_quarters(self, facts: list[Fact]) -> list[Fact]:
+        """First-quarter YTD is the same interval, not a guessed value."""
+        from dataclasses import replace
+        def key(f):
+            return (f.company_id, f.metric, f.period_end, f.currency, f.unit,
+                    f.scope, tuple(sorted(f.dimensions.items())))
+        existing = {key(f) for f in facts if f.period_kind == PeriodKind.QUARTER}
+        out = []
+        for fact in facts:
+            if fact.period_kind != PeriodKind.YTD or fact.fiscal_quarter != 1 or fact.metric not in self.TTM_FLOWS:
+                continue
+            try:
+                days = (date.fromisoformat(fact.period_end) - date.fromisoformat(fact.period_start)).days + 1
+            except (TypeError, ValueError):
+                continue
+            if not 80 <= days <= 100 or key(fact) in existing:
+                continue
+            out.append(replace(fact, period_kind=PeriodKind.QUARTER, is_calculated=True,
+                               calculation="Q1 discrete flow equals Q1 YTD over identical dates"))
+            existing.add(key(fact))
+        return out
 
     def _composite_scores(self, company_id, base, lookup, historical, add):
         """Sector-aware composite scores, computed from ingested lines only.
