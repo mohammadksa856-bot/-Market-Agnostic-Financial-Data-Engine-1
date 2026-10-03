@@ -36,3 +36,16 @@ T = [
    dict(name="cash_flows", pdf_page=10, printed_page=9, values={"cfo":(1808476,2321626),"cfi":(976551,-1690985),"cff":(-2595816,-1996759),"net_change":(189211,-1366118),"cash_end":(735171,545960)}, checks=[("net",[1808476,976551,-2595816],189211),("cash",[545960,189211],735171)]),
   ], observations=["Values equal the FY2024 comparative column of the FY2025 file (no restatement); only CF line grouping differs."]),
 ]
+
+T += [
+ dict(sha="bcc3ba10", true_period="FY2022 (2022-12-31) with FY2021 comparatives (restated)", collector_label="2023|FY", identity="LUBEREF annual FS (first year as listed company; IPO 2022-12-28)", units="FULL Saudi Riyals (NOT thousands) - printed 'All amounts in Saudi Riyals'", read="rendered images pdf p7,8 read by eye",
+  statements=[
+   dict(name="financial_position", pdf_page=7, printed_page=6, values={"total_assets":(8644816926,8364303154),"total_equity":(5082831586,4244546248),"total_liabilities":(3561985340,4119756906)}, checks=[("le",[5082831586,3561985340],8644816926)]),
+   dict(name="profit_or_loss_and_oci", pdf_page=8, printed_page=7, values={"revenue":(10613892189,8846726837),"gross_profit":(2503755462,2041776628),"net_income":(1978082166,1502515031),"eps_sar":(11.72,8.90)}, checks=[("gp",[10613892189,-8110136727],2503755462)]),
+  ], observations=["FY2022 original is in full SAR, the FY2023 file restates the same year in SAR thousands with reclassified lines (gross profit 2,433,686 vs 2,503,755 original; profit unchanged 1,978,080; note 35). A loader that assumes thousands would misstate the original by 1000x."]),
+ dict(sha="e6e47c2c", true_period="FY2023 (2023-12-31) with FY2022 restated", collector_label="2024|FY", identity="LUBEREF annual FS", units="SAR thousands", read="rendered images pdf p7,8 read by eye",
+  statements=[
+   dict(name="financial_position", pdf_page=7, printed_page=6, values={"total_assets":(8856470,8644817),"total_equity":(4868793,5082831),"total_liabilities":(3987677,3561986)}, checks=[("le",[4868793,3987677],8856470)]),
+   dict(name="profit_or_loss_and_oci", pdf_page=8, printed_page=7, values={"revenue":(9488679,10613892),"gross_profit":(1858369,2433686),"net_income":(1509612,1978080),"eps_sar":(8.98,11.72)}, checks=[("gp",[9488679,-7630310],1858369)]),
+  ], observations=["Cash-flow page of FY2023 original not read (values visible as 2023 comparatives in the FY2024 file: cfo 2,321,626)."]),
+]
