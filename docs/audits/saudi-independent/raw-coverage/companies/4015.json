@@ -1,0 +1,842 @@
+{
+ "symbol": "4015",
+ "company_id": "sa:4015",
+ "name": "JAMJOOM PHARMA",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 11,
+   "statement_bucket_files": 5,
+   "files_with_all_three_primary_statements": 1,
+   "files_partial_statements": 0,
+   "files_no_statements_found": 4,
+   "files_unknown_scanned": 0,
+   "extractability_class": "C_scan_or_nonstatement_heavy",
+   "text_extractable_statement_files": 1
+  },
+  "company_coverage": {
+   "expected_periods": 14,
+   "periods_with_complete_statements": 1,
+   "periods_with_partial_statements": 0,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 3,
+   "periods_absent": 10,
+   "pct_expected_with_complete_statements": 0.071,
+   "pct_expected_with_any_file": 0.286,
+   "coverage_class": "sparse",
+   "first_observed_period_proxy_for_listing": "2023|Q1",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [
+    "2023|9M",
+    "2023|FY",
+    "2024|Q1",
+    "2024|H1",
+    "2024|9M",
+    "2024|FY"
+   ],
+   "trailing_gaps": [
+    "2025|9M",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "extra_periods_present_outside_expected": []
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-26T22:25:19+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 67,
+    "results_announcements": 22,
+    "results_by_slot": {
+     "2026|H1": [
+      96921
+     ],
+     "2026|Q1": [
+      94610
+     ],
+     "2025|FY": [
+      93270
+     ],
+     "2025|9M": [
+      90875,
+      90738
+     ],
+     "2025|H1": [
+      88944,
+      88793
+     ],
+     "2025|Q1": [
+      86803,
+      86582
+     ],
+     "2024|FY": [
+      85418
+     ],
+     "2024|9M": [
+      83123,
+      82891
+     ],
+     "2024|H1": [
+      81802,
+      81402
+     ],
+     "2024|Q1": [
+      79890
+     ],
+     "2023|FY": [
+      78908,
+      78792
+     ],
+     "2023|9M": [
+      76748,
+      76597
+     ],
+     "2023|H1": [
+      75314,
+      75124
+     ],
+     "2023|Q1": [
+      74645
+     ]
+    },
+    "detail_pages_checked": 22,
+    "detail_pages_with_files": 23,
+    "detail_page_failures": 0,
+    "profile_table_rows": 0,
+    "profile_table_files": 0
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [],
+   "rejected_reasons": [
+    "presentation"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-26T22:38:15+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.jamjoompharma.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://www.jamjoompharma.com",
+    "status": "ok",
+    "pages": 34,
+    "doc_links": 120,
+    "errors": [
+     "timeout",
+     "js_no_content"
+    ]
+   },
+   "se_ok": true,
+   "failures": [
+    "timeout",
+    "timeout",
+    "download_error",
+    "timeout",
+    "download_error",
+    "timeout",
+    "download_error",
+    "download_error",
+    "timeout",
+    "download_error",
+    "download_error",
+    "download_error",
+    "timeout",
+    "timeout",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "timeout",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error",
+    "download_error"
+   ],
+   "rejected_reasons": [
+    "general_assembly",
+    "not_financial",
+    "policy_or_charter",
+    "presentation",
+    "sustainability",
+    "transcript"
+   ],
+   "unclassified_n": 0
+  }
+ },
+ "periods": {
+  "2023|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-03-31",
+   "status": "non_statement_only",
+   "files": [
+    "02b03c8d835e519e615087870581e3171e4754f3f4c65b697aae054a4ce123bd",
+    "7c6e379d69823a460268fcde534c08e97b3db794700f3020f010ce666ad2955f"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2023|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-06-30",
+   "status": "statements_complete",
+   "files": [
+    "082f7dbe2635ad0ffe10bbb6c36ad2cf36ab67138e7f4b0c9ae20e634c89e394"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2023|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2023|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2024|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-03-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2024|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2024|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "non_statement_only",
+   "files": [
+    "41b609ef0f9f784665242aa5adcb33ef6d6cbee1d004fc7d5cfce18c45ccdb75"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "non_statement_only",
+   "files": [
+    "9259663bb4ef82449a70d516e8c049f8e20d6bd23bf689327e724bf330f5fe0b"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  }
+ },
+ "files": [
+  {
+   "sha256": "082f7dbe2635ad0ffe10bbb6c36ad2cf36ab67138e7f4b0c9ae20e634c89e394",
+   "relpath": "archive/SA/4015/082f7dbe2635ad0ffe10bbb6c36ad2cf36ab67138e7f4b0c9ae20e634c89e394.pdf",
+   "ext": "pdf",
+   "size_bytes": 1200001,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 0,
+   "text_chars": 53379,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3
+    ],
+    "income": [
+     4
+    ],
+    "cash_flows": [
+     6
+    ],
+    "equity": [
+     5
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/fuwdttqa/financal-statment-q2-2023.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "464b140d320efe83fad0dd146cb2bf05e14ff150",
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "02b03c8d835e519e615087870581e3171e4754f3f4c65b697aae054a4ce123bd",
+   "relpath": "archive/SA/4015/02b03c8d835e519e615087870581e3171e4754f3f4c65b697aae054a4ce123bd.pdf",
+   "ext": "pdf",
+   "size_bytes": 3267908,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 4,
+   "text_chars": 40049,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/iuenf1mu/financal-statment-q1-2023.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "01474168c48f5686eb200f62da05fb3ad66b39f2",
+   "all_period_labels": [
+    "2023|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "7c6e379d69823a460268fcde534c08e97b3db794700f3020f010ce666ad2955f",
+   "relpath": "archive/SA/4015/7c6e379d69823a460268fcde534c08e97b3db794700f3020f010ce666ad2955f.pdf",
+   "ext": "pdf",
+   "size_bytes": 223184,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2023-03-31",
+   "period_end_detected_in_text": "2023-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "results_announcement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 3,
+   "empty_pages": 0,
+   "text_chars": 6801,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/16395_4526_2023-07-02_04-57-07_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "2611b0925b15a45b8ac4bb58baae3c1bda2d5440",
+   "all_period_labels": [
+    "2023|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "71186a580789b0de61455edab040c8f02064358a395a360c6475db48d204c074",
+   "relpath": "archive/SA/4015/supporting/71186a580789b0de61455edab040c8f02064358a395a360c6475db48d204c074.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 294121,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2945,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/5f2jhuxs/data-supplement-q3-2024.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "552c3079d2879b05c064d919e69296a5f5cd0c9e",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Income Statement",
+    "Balance Sheet ",
+    "Cash Flow Statement"
+   ]
+  },
+  {
+   "sha256": "3405e9e5e43c396676ea0e6178eb32a6390eec62da0b327a5e11edc1ab7adcba",
+   "relpath": "archive/SA/4015/supporting/3405e9e5e43c396676ea0e6178eb32a6390eec62da0b327a5e11edc1ab7adcba.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 294559,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2954,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/5bsbyxuq/data-supplement-fy-2024.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d589c5f12960e1da99f6f4a38c4ca452bf40a65f",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Income Statement",
+    "Balance Sheet ",
+    "Cash Flow Statement"
+   ]
+  },
+  {
+   "sha256": "2ccfdd902591c7e5d14893d924c1cbbb8e1a4fc098b4812f4f7b5c282949a825",
+   "relpath": "archive/SA/4015/supporting/2ccfdd902591c7e5d14893d924c1cbbb8e1a4fc098b4812f4f7b5c282949a825.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 142306,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2934,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/340ax3hn/jp-data-supplement-q3-2025.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "9cbd08a688f0f39b3637198180be21749e0e03dc",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Income Statement",
+    "Balance Sheet ",
+    "Cash Flow Statement"
+   ]
+  },
+  {
+   "sha256": "544b7def918a6d4194c7ae047977904272bffe90870021938ca14d804ce3b957",
+   "relpath": "archive/SA/4015/supporting/544b7def918a6d4194c7ae047977904272bffe90870021938ca14d804ce3b957.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 537036,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2934,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/olmb0nwc/jp-data-supplement-q2-2025.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7dfe3d8715c0b3b4436f67e0812930153fa12041",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Income Statement",
+    "Balance Sheet ",
+    "Cash Flow Statement"
+   ]
+  },
+  {
+   "sha256": "9259663bb4ef82449a70d516e8c049f8e20d6bd23bf689327e724bf330f5fe0b",
+   "relpath": "archive/SA/4015/9259663bb4ef82449a70d516e8c049f8e20d6bd23bf689327e724bf330f5fe0b.pdf",
+   "ext": "pdf",
+   "size_bytes": 2890225,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 24,
+   "empty_pages": 5,
+   "text_chars": 38701,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/djpd1dev/financial-statement-q2-2025-en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "581b86bef8c3fe261e8763d944550896bef73dd1",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "0254a894d0dc217fa97553f1f633b9d571846e33b8974f3443d30719d5ee2534",
+   "relpath": "archive/SA/4015/supporting/0254a894d0dc217fa97553f1f633b9d571846e33b8974f3443d30719d5ee2534.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 293809,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2977,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/uvohrysh/data-supplement-q1-2025.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4eed3866b07fedf6ab4ba52b3b2f14668d7363b3",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Income Statement",
+    "Balance Sheet ",
+    "Cash Flow Statement"
+   ]
+  },
+  {
+   "sha256": "41b609ef0f9f784665242aa5adcb33ef6d6cbee1d004fc7d5cfce18c45ccdb75",
+   "relpath": "archive/SA/4015/41b609ef0f9f784665242aa5adcb33ef6d6cbee1d004fc7d5cfce18c45ccdb75.pdf",
+   "ext": "pdf",
+   "size_bytes": 1801634,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 4,
+   "text_chars": 44775,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/1xfjpdw0/financal-statment-q1-2025.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d45baa0dff8ada2845654d3700e13a680ad3b059",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "5ca51623edf4332d0b21a9b5a9e348506fa0501d918783e224749719d44921c6",
+   "relpath": "archive/SA/4015/supporting/5ca51623edf4332d0b21a9b5a9e348506fa0501d918783e224749719d44921c6.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 294452,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2853,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://investors.jamjoompharma.com/media/jfsh0org/jp-data-supplement-q2-2026.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "61f81acb9a99d81d694a03110c432e92d682883f",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Income Statement",
+    "Balance Sheet ",
+    "Cash Flow Statement"
+   ]
+  }
+ ]
+}

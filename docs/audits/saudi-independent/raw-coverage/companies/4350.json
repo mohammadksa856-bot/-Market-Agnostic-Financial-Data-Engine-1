@@ -1,0 +1,1091 @@
+{
+ "symbol": "4350",
+ "company_id": "sa:4350",
+ "name": "ALISTITHMAR REIT",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 20,
+   "statement_bucket_files": 15,
+   "files_with_all_three_primary_statements": 3,
+   "files_partial_statements": 0,
+   "files_no_statements_found": 11,
+   "files_unknown_scanned": 1,
+   "extractability_class": "C_scan_or_nonstatement_heavy",
+   "text_extractable_statement_files": 3
+  },
+  "company_coverage": {
+   "expected_periods": 4,
+   "periods_with_complete_statements": 2,
+   "periods_with_partial_statements": 0,
+   "periods_scanned_only": 1,
+   "periods_non_statement_only": 1,
+   "periods_absent": 0,
+   "pct_expected_with_complete_statements": 0.5,
+   "pct_expected_with_any_file": 1.0,
+   "coverage_class": "partial",
+   "first_observed_period_proxy_for_listing": "2024|9M",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2024|9M",
+    "2025|9M",
+    "2025|Q1",
+    "2026|Q1"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T00:35:23+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 23,
+    "results_announcements": 4,
+    "results_by_slot": {
+     "2026|H1": [
+      97559
+     ],
+     "2025|FY": [
+      94117
+     ],
+     "2025|H1": [
+      89535
+     ],
+     "2024|FY": [
+      86169
+     ]
+    },
+    "detail_pages_checked": 4,
+    "detail_pages_with_files": 4,
+    "detail_page_failures": 0,
+    "profile_table_rows": 8,
+    "profile_table_files": 8
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [
+    "download_error",
+    "download_error",
+    "download_error"
+   ],
+   "rejected_reasons": [],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T01:08:40+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://reit.icap.com.sa",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://reit.icap.com.sa",
+    "status": "ok",
+    "pages": 1,
+    "doc_links": 16,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "not_financial"
+   ],
+   "unclassified_n": 1
+  }
+ },
+ "periods": {
+  "2024|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "non_statement_only",
+   "files": [
+    "0389d46158aa31c9ad1e1c32c64fc34977faf755db24a432d1eef63a32f08b0e",
+    "535a224bdacee6a6bf9eef1d6af3c4dbb4b451634c99ddc102355ad1b8b91971"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_via_annual_report",
+   "files": [
+    "aa3e097fb6d17e96edb65b954cf9cc145eeeecb5c6a3424a904d9373ce635430",
+    "f84afe67b52577c2afbec170443b3b53738827f2f6100d14fc2084413d01acfd"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2025|Q1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "non_statement_only",
+   "files": [
+    "331634201e459c6d2c653917230d2591a8cc034d094c5006aec8d94a1ba7c578",
+    "dc4fd23cf1cfce81dfead651477db13a87835cca5e49bf60dae5f77dbef05464"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "statements_complete",
+   "files": [
+    "1ab89387d7aec1145bbb073add4fb5d36f450c2c4485d774e3cd6f9d56fe0c2e",
+    "893195b30d083c6cf8ef31cd9a6106c4127c24fb0aea5463e319b698fefd15b8",
+    "b45d2ab847a54cd738aa6e423b295c7b07795c53a3691a3adc84574049650b53"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2025|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "non_statement_only",
+   "files": [
+    "e51f465673a357d07f3e04617bea952d35dbf8a77fc064812c32d0bb5a0b1b2c"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "non_statement_only",
+   "files": [
+    "43cff6114d10238307bde14262f70ee94d7a7214761bd77adb2abfd504d15bb0"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|Q1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "non_statement_only",
+   "files": [
+    "b1a5696d386aa5c35aa5dbfb86fc12e8bec5d338a8d26456d5e7a31d21f832a7"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "unreadable_scan_only",
+   "files": [
+    "24471cc53770176368db0cf0f554f21d83ee712ae29c4d259ccbb654994633d4",
+    "ebc2a6b2365ea02973b99421c55441438ccbeae1432869ce88108b67ca4c6da6"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "0389d46158aa31c9ad1e1c32c64fc34977faf755db24a432d1eef63a32f08b0e",
+   "relpath": "archive/SA/4350/0389d46158aa31c9ad1e1c32c64fc34977faf755db24a432d1eef63a32f08b0e.pdf",
+   "ext": "pdf",
+   "size_bytes": 200717,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 6026,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2024-10-31_10-06-46_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6ce5e4cdf707493305d4262bbf582189436b8d2e",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "535a224bdacee6a6bf9eef1d6af3c4dbb4b451634c99ddc102355ad1b8b91971",
+   "relpath": "archive/SA/4350/535a224bdacee6a6bf9eef1d6af3c4dbb4b451634c99ddc102355ad1b8b91971.pdf",
+   "ext": "pdf",
+   "size_bytes": 201478,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 6007,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/1728910994_ARIC_REIT_FUND_-_Quarterly_Statement_AR_Q3_-_2024.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ce91e31d7403316464fc7d9dbe529110fee800aa",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "aa3e097fb6d17e96edb65b954cf9cc145eeeecb5c6a3424a904d9373ce635430",
+   "relpath": "archive/SA/4350/aa3e097fb6d17e96edb65b954cf9cc145eeeecb5c6a3424a904d9373ce635430.pdf",
+   "ext": "pdf",
+   "size_bytes": 2694949,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 61,
+   "empty_pages": 8,
+   "text_chars": 115540,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     31,
+     35
+    ],
+    "income": [
+     54
+    ],
+    "cash_flows": [
+     38,
+     56
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/Alistithmar-AREIC-Diversified-REIT-Fund-2024-Ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "f84afe67b52577c2afbec170443b3b53738827f2f6100d14fc2084413d01acfd",
+   "relpath": "archive/SA/4350/f84afe67b52577c2afbec170443b3b53738827f2f6100d14fc2084413d01acfd.pdf",
+   "ext": "pdf",
+   "size_bytes": 331100,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2024-12-31",
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5618,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2025-01-14_16-21-07_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "5db2a8a9f2f4984f1102b8c42711792f76f85087",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "1ea66906a34134347d6e6687794580ef77fec9583124aca5b501c655d6288403",
+   "relpath": "archive/SA/4350/supporting/1ea66906a34134347d6e6687794580ef77fec9583124aca5b501c655d6288403.pdf",
+   "ext": "pdf",
+   "size_bytes": 203046,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-09-30",
+   "period_check": "match",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5748,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/AricReit_FundFact_Sheet%20_AR%20_Q3_2025_Final.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "2d50035d308833f0f28549077a5840f861242e27",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "e51f465673a357d07f3e04617bea952d35dbf8a77fc064812c32d0bb5a0b1b2c",
+   "relpath": "archive/SA/4350/e51f465673a357d07f3e04617bea952d35dbf8a77fc064812c32d0bb5a0b1b2c.pdf",
+   "ext": "pdf",
+   "size_bytes": 201259,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 6042,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2025-10-14_15-24-09_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "93f9ecf36f5b1a33ae0eb8c464b68807f1f90b98",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "43cff6114d10238307bde14262f70ee94d7a7214761bd77adb2abfd504d15bb0",
+   "relpath": "archive/SA/4350/43cff6114d10238307bde14262f70ee94d7a7214761bd77adb2abfd504d15bb0.pdf",
+   "ext": "pdf",
+   "size_bytes": 211384,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5939,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2026-01-14_17-28-37_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "97ea2f72d6a24ebc95c68cdef4a5e18ec3ffe06a",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "1ab89387d7aec1145bbb073add4fb5d36f450c2c4485d774e3cd6f9d56fe0c2e",
+   "relpath": "archive/SA/4350/1ab89387d7aec1145bbb073add4fb5d36f450c2c4485d774e3cd6f9d56fe0c2e.pdf",
+   "ext": "pdf",
+   "size_bytes": 199800,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-04-30",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5825,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2025-07-14_15-48-05_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c490f9dbc18fc201f31af91b1e7a0aa36050ad15",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "period_mismatch_candidate:detected=2025-04-30,labelled=2025-06-30"
+   ]
+  },
+  {
+   "sha256": "893195b30d083c6cf8ef31cd9a6106c4127c24fb0aea5463e319b698fefd15b8",
+   "relpath": "archive/SA/4350/893195b30d083c6cf8ef31cd9a6106c4127c24fb0aea5463e319b698fefd15b8.pdf",
+   "ext": "pdf",
+   "size_bytes": 474738,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2025-06-30",
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 16,
+   "empty_pages": 1,
+   "text_chars": 30709,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     16
+    ],
+    "income": [
+     4,
+     13
+    ],
+    "cash_flows": [
+     6
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "period_end_month",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/1754912992_29_-_Alistithmar_Areic_Diversified_REIT_Fund_(30_June_2025)_-_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c2e34ea4b620f79f9245badac59ea7498b279ee6",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "b45d2ab847a54cd738aa6e423b295c7b07795c53a3691a3adc84574049650b53",
+   "relpath": "archive/SA/4350/b45d2ab847a54cd738aa6e423b295c7b07795c53a3691a3adc84574049650b53.pdf",
+   "ext": "pdf",
+   "size_bytes": 600630,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2025-06-30",
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 16,
+   "empty_pages": 1,
+   "text_chars": 34125,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3
+    ],
+    "income": [
+     4
+    ],
+    "cash_flows": [
+     6
+    ],
+    "equity": [
+     5
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "period_end_month",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/22432_6186_2025-08-11_16-14-04_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4e3752bd6d793c4eb48acb594bcd26be4fa7e9d2",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "f9729c741f98f8d27c8a6a6c93a916931525770fb00a6ecd770942c0963bb008",
+   "relpath": "archive/SA/4350/supporting/f9729c741f98f8d27c8a6a6c93a916931525770fb00a6ecd770942c0963bb008.pdf",
+   "ext": "pdf",
+   "size_bytes": 201901,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5456,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/1752495488_ARIC_REIT_FUND_-_Fact_Sheet_AR_Q2_-_2025.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "34873c5969f2a704d9d7c32a2a0a97d59c6e5b52",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "331634201e459c6d2c653917230d2591a8cc034d094c5006aec8d94a1ba7c578",
+   "relpath": "archive/SA/4350/331634201e459c6d2c653917230d2591a8cc034d094c5006aec8d94a1ba7c578.pdf",
+   "ext": "pdf",
+   "size_bytes": 198276,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5285,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/1744784415_Alistithmar-AREIC-Diversified-REIT-Fund-AR-Q1-25.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6d6f7a3860adc991ec07895eb0ed2310d6f7ac0f",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "dc4fd23cf1cfce81dfead651477db13a87835cca5e49bf60dae5f77dbef05464",
+   "relpath": "archive/SA/4350/dc4fd23cf1cfce81dfead651477db13a87835cca5e49bf60dae5f77dbef05464.pdf",
+   "ext": "pdf",
+   "size_bytes": 197051,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5600,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2025-04-16_16-09-57_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "84023bb02f9a04a487b1c297d2bf8fb0e3d6a3cd",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "24471cc53770176368db0cf0f554f21d83ee712ae29c4d259ccbb654994633d4",
+   "relpath": "archive/SA/4350/24471cc53770176368db0cf0f554f21d83ee712ae29c4d259ccbb654994633d4.pdf",
+   "ext": "pdf",
+   "size_bytes": 3104468,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2026-06-30",
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "scanned_zero_text",
+   "pages": 19,
+   "empty_pages": 19,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "period_end_month",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/21-Alistithmar_Areic_Diversified_REIT_Fund_(30_June_2026)-Arabic.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "ebc2a6b2365ea02973b99421c55441438ccbeae1432869ce88108b67ca4c6da6",
+   "relpath": "archive/SA/4350/ebc2a6b2365ea02973b99421c55441438ccbeae1432869ce88108b67ca4c6da6.pdf",
+   "ext": "pdf",
+   "size_bytes": 198932,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 6406,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2026-07-15_09-38-55_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "29fd9a964e858a1efb6401b755330c885718da4a",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "edf60a25fb40d024c3559a94f75ab8eac718c08b7d64b256511b932dffb3a369",
+   "relpath": "archive/SA/4350/supporting/edf60a25fb40d024c3559a94f75ab8eac718c08b7d64b256511b932dffb3a369.pdf",
+   "ext": "pdf",
+   "size_bytes": 207711,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5966,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/RES/Alistithmar-REIT-Quarterly-Factsheet-Q2-2026-AR.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d323a768d20ddb821772612674b6ca2b8d5a3338",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "b1a5696d386aa5c35aa5dbfb86fc12e8bec5d338a8d26456d5e7a31d21f832a7",
+   "relpath": "archive/SA/4350/b1a5696d386aa5c35aa5dbfb86fc12e8bec5d338a8d26456d5e7a31d21f832a7.pdf",
+   "ext": "pdf",
+   "size_bytes": 5633454,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5819,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6186_0_2026-07-15_09-47-00_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "50b3c8745896b700c168a063925cac88201ceb75",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "d6da2f9bdf11651f15c66c0876408fbfa2f6b0a29f0f2776dfe2389efc86b19a",
+   "relpath": "archive/SA/4350/supporting/d6da2f9bdf11651f15c66c0876408fbfa2f6b0a29f0f2776dfe2389efc86b19a.pdf",
+   "ext": "pdf",
+   "size_bytes": 5633327,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5447,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/RES/ARICREIT%20FUND-FactSheetARQ1-2026-v.1.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f5d926d2821444de85dd8e703ccc3459e5a74966",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "54a1cf9e8d5f60509a2333f9de3ba1cc15097ff188b18aebb839fc2c56300173",
+   "relpath": "archive/SA/4350/54a1cf9e8d5f60509a2333f9de3ba1cc15097ff188b18aebb839fc2c56300173.pdf",
+   "ext": "pdf",
+   "size_bytes": 331809,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": null,
+   "period_slot": null,
+   "period_type": "other_discrete_q4",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5575,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "discrete_q4",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/1736857473_Alistithmar_REIT_-_Quarterly_Statement_-_Q4-2024_(AR).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "974e856a42815656739777cb3640a7d7ec6ac9e3",
+   "all_period_labels": [
+    "None|None"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "fa487e9ac1b2328a8a9297a53e73a06bd7d8016ce025b54a101281dd808e0988",
+   "relpath": "archive/SA/4350/supporting/fa487e9ac1b2328a8a9297a53e73a06bd7d8016ce025b54a101281dd808e0988.pdf",
+   "ext": "pdf",
+   "size_bytes": 203593,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": null,
+   "period_slot": null,
+   "period_type": "other_discrete_q4",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 4,
+   "empty_pages": 0,
+   "text_chars": 5529,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "discrete_q4",
+   "source": "issuer_site",
+   "source_url": "https://icap.com.sa/downloadFiles/1768391074_ARIC_REIT_FUND-Fact_Sheet_AR_Q4-2025-Final.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4d07cab1f9f495830a88b1fa2c09a9e953c8128f",
+   "all_period_labels": [
+    "None|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  }
+ ]
+}

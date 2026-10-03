@@ -1,0 +1,766 @@
+{
+ "symbol": "4018",
+ "company_id": "sa:4018",
+ "name": "ALMOOSA",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 11,
+   "statement_bucket_files": 9,
+   "files_with_all_three_primary_statements": 4,
+   "files_partial_statements": 1,
+   "files_no_statements_found": 4,
+   "files_unknown_scanned": 0,
+   "extractability_class": "B_mostly_text",
+   "text_extractable_statement_files": 5
+  },
+  "company_coverage": {
+   "expected_periods": 7,
+   "periods_with_complete_statements": 1,
+   "periods_with_partial_statements": 1,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 1,
+   "periods_absent": 4,
+   "pct_expected_with_complete_statements": 0.143,
+   "pct_expected_with_any_file": 0.429,
+   "coverage_class": "sparse",
+   "first_observed_period_proxy_for_listing": "2024|9M",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [
+    "2025|Q1",
+    "2025|H1",
+    "2025|9M",
+    "2025|FY"
+   ],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2024|9M"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T11:35:24+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 45,
+    "results_announcements": 11,
+    "results_by_slot": {
+     "2026|H1": [
+      97361
+     ],
+     "2026|Q1": [
+      95302
+     ],
+     "2025|FY": [
+      94012,
+      93588
+     ],
+     "2025|9M": [
+      91117,
+      90915
+     ],
+     "2025|H1": [
+      89176,
+      88906
+     ],
+     "2025|Q1": [
+      86969
+     ],
+     "2024|FY": [
+      86879,
+      85443
+     ]
+    },
+    "detail_pages_checked": 11,
+    "detail_pages_with_files": 9,
+    "detail_page_failures": 0,
+    "profile_table_rows": 0,
+    "profile_table_files": 0
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [
+    "download_error"
+   ],
+   "rejected_reasons": [
+    "presentation"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 2,
+   "finished_at": "2026-09-29T17:42:05+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.almoosahealthgroup.org",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://www.almoosahealthgroup.org",
+    "status": "ok",
+    "pages": 5,
+    "doc_links": 31,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "error"
+   ],
+   "rejected_reasons": [
+    "board_report",
+    "news",
+    "not_financial",
+    "presentation",
+    "prospectus"
+   ],
+   "unclassified_n": 2
+  }
+ },
+ "periods": {
+  "2024|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "7ca340d8c51f27593b2005e2bd72363510d5fd11c3bca86321670ae4d7b0dcb7"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "8985b3a750f4cebd46dfd50deac1a450613ed0cd6161d8ce798e97cef695668b",
+    "9c7e623baf2fb23ff38ccf28b66003f414436f364601985374048415c6e8f2cf"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "partial_statements",
+   "files": [
+    "697a67ba969ebe842e7e97e83d1404b27a45d1529ae5bc7bbb1c18e8f5bb9ecc",
+    "82b7a068a5a447231eb5494d9aeff5614216a6af67fe8633713ebe8eecb451e9"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "non_statement_only",
+   "files": [
+    "75b89849b7059302dbe89259e05e1ae2a144fedf401ce9cc0b3e9acd2411541a",
+    "c8f53b6d31e42a560706b7b17f5d3cfe969929194b1d6e3afe86ce0cc5bf3a08"
+   ],
+   "languages": [
+    "en"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "7ca340d8c51f27593b2005e2bd72363510d5fd11c3bca86321670ae4d7b0dcb7",
+   "relpath": "archive/SA/4018/7ca340d8c51f27593b2005e2bd72363510d5fd11c3bca86321670ae4d7b0dcb7.pdf",
+   "ext": "pdf",
+   "size_bytes": 927400,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 21,
+   "empty_pages": 0,
+   "text_chars": 51923,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     5
+    ],
+    "income": [
+     6
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     7
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.almoosahealthgroup.org/wp-content/uploads/2025/01/ALMOOSA_HEALTH_CO_Q3_2024_FS_ENGLISH.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "def2db0ffe02acca97d72672019e8bfffd8457f4",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "8985b3a750f4cebd46dfd50deac1a450613ed0cd6161d8ce798e97cef695668b",
+   "relpath": "archive/SA/4018/8985b3a750f4cebd46dfd50deac1a450613ed0cd6161d8ce798e97cef695668b.pdf",
+   "ext": "pdf",
+   "size_bytes": 116902,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2024-12-31",
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 2,
+   "empty_pages": 0,
+   "text_chars": 4328,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/24792_6846_2025-02-25_19-15-27_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "606ec74f84f0de03e8a3c79f5fa2861cfc1ea0c5",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "9c7e623baf2fb23ff38ccf28b66003f414436f364601985374048415c6e8f2cf",
+   "relpath": "archive/SA/4018/9c7e623baf2fb23ff38ccf28b66003f414436f364601985374048415c6e8f2cf.pdf",
+   "ext": "pdf",
+   "size_bytes": 1655566,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 51,
+   "empty_pages": 0,
+   "text_chars": 153404,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     8
+    ],
+    "income": [
+     9
+    ],
+    "cash_flows": [
+     11,
+     12
+    ],
+    "equity": [
+     10
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://ir.almoosahealthgroup.org/wp-content/uploads/2025/03/Almoosa-Health-FS-2024-En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d223d2ca4ea7726e010a7d8183b80757b598ce67",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "89d68f02338f1e963bc419134f488987ae19f58b626cbf3b5d70acaf9120a07e",
+   "relpath": "archive/SA/4018/89d68f02338f1e963bc419134f488987ae19f58b626cbf3b5d70acaf9120a07e.pdf",
+   "ext": "pdf",
+   "size_bytes": 1605859,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 50,
+   "empty_pages": 0,
+   "text_chars": 145964,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     49,
+     50
+    ],
+    "income": [
+     36,
+     41,
+     49
+    ],
+    "cash_flows": [
+     36,
+     43,
+     45,
+     48,
+     49
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.almoosahealthgroup.org/wp-content/uploads/2026/04/Al-Moosa-Signed-FSAR-2025-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1d2a3b0b52eaad3297926d9cd703bc53ae6745b5",
+   "all_period_labels": [
+    "2025|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "75b89849b7059302dbe89259e05e1ae2a144fedf401ce9cc0b3e9acd2411541a",
+   "relpath": "archive/SA/4018/75b89849b7059302dbe89259e05e1ae2a144fedf401ce9cc0b3e9acd2411541a.pdf",
+   "ext": "pdf",
+   "size_bytes": 489493,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2026-06-30",
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "results_announcement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 9,
+   "empty_pages": 1,
+   "text_chars": 15939,
+   "primary_statements_found": [
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     7
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/24792_6846_2026-08-06_15-15-48_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f48ebf60591b76fc8261487c459be3182f9efdc8",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "c8363fbf119375f4f553daa1bc23fd6904d8b701acf5f461bd06b80a8f54f132",
+   "relpath": "archive/SA/4018/supporting/c8363fbf119375f4f553daa1bc23fd6904d8b701acf5f461bd06b80a8f54f132.pdf",
+   "ext": "pdf",
+   "size_bytes": 241058,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 2,
+   "empty_pages": 0,
+   "text_chars": 4349,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://ir.almoosahealthgroup.org/wp-content/uploads/2026/08/Q2-H12026-_Factsheet_ARA_-Y-%D8%A7%D9%84%D9%85%D8%B9%D8%AA%D9%85%D8%AF.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c0cfb77103b5f0006c7ce99e93bb59adf34f4543",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "c8f53b6d31e42a560706b7b17f5d3cfe969929194b1d6e3afe86ce0cc5bf3a08",
+   "relpath": "archive/SA/4018/c8f53b6d31e42a560706b7b17f5d3cfe969929194b1d6e3afe86ce0cc5bf3a08.pdf",
+   "ext": "pdf",
+   "size_bytes": 222049,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2026-06-30",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 2,
+   "empty_pages": 0,
+   "text_chars": 4276,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/24792_6846_2026-08-06_15-16-04_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c2d32134cea0fa914f074b407059bdbaa28684ec",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "0686dabf7e5f90b5535f23c9fa05f9406cb0eeb0c07a1732747bd5f107e0b902",
+   "relpath": "archive/SA/4018/supporting/0686dabf7e5f90b5535f23c9fa05f9406cb0eeb0c07a1732747bd5f107e0b902.pdf",
+   "ext": "pdf",
+   "size_bytes": 303721,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_factsheet",
+   "bucket": "supporting",
+   "file_class": "factsheet",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 2,
+   "empty_pages": 0,
+   "text_chars": 3752,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.almoosahealthgroup.org/wp-content/uploads/2026/05/Almoosa-Health_Q1-2026-Factsheet_AR_v2-Final-PDF.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4b566f24aa81115c2ebf6b0199fa03cb6f1e50bf",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "697a67ba969ebe842e7e97e83d1404b27a45d1529ae5bc7bbb1c18e8f5bb9ecc",
+   "relpath": "archive/SA/4018/697a67ba969ebe842e7e97e83d1404b27a45d1529ae5bc7bbb1c18e8f5bb9ecc.pdf",
+   "ext": "pdf",
+   "size_bytes": 224909,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2026-03-31",
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 2,
+   "empty_pages": 0,
+   "text_chars": 3892,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/24792_6846_2026-05-11_22-53-01_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a7443f6ec5d3c68a61d033769b53735925be39be",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "82b7a068a5a447231eb5494d9aeff5614216a6af67fe8633713ebe8eecb451e9",
+   "relpath": "archive/SA/4018/82b7a068a5a447231eb5494d9aeff5614216a6af67fe8633713ebe8eecb451e9.pdf",
+   "ext": "pdf",
+   "size_bytes": 344344,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": "2026-03-31",
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 7,
+   "empty_pages": 0,
+   "text_chars": 15675,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6
+    ],
+    "income": [
+     5
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/24792_6846_2026-05-11_22-52-55_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1ab2363222384fd95d69ec07801def0807332aec",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "a36bf50b69106471bc41f86dbed307257b80bc219844c3ee91fc1df35e7063d8",
+   "relpath": "archive/SA/4018/a36bf50b69106471bc41f86dbed307257b80bc219844c3ee91fc1df35e7063d8.pdf",
+   "ext": "pdf",
+   "size_bytes": 1108815,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": null,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 21,
+   "empty_pages": 0,
+   "text_chars": 45917,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     5
+    ],
+    "income": [
+     6,
+     7,
+     21
+    ],
+    "cash_flows": [
+     8,
+     21
+    ],
+    "equity": [
+     7
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.almoosahealthgroup.org/wp-content/uploads/2026/05/Arabic-Al-Moosa-AR-and-FS-signed.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "225434505367de4911c28d9dcb43296c762cf1e1",
+   "all_period_labels": [
+    "None|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  }
+ ]
+}

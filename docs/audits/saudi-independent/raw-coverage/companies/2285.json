@@ -1,0 +1,1492 @@
+{
+ "symbol": "2285",
+ "company_id": "sa:2285",
+ "name": "ARABIAN MILLS",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 22,
+   "statement_bucket_files": 22,
+   "files_with_all_three_primary_statements": 12,
+   "files_partial_statements": 8,
+   "files_no_statements_found": 2,
+   "files_unknown_scanned": 0,
+   "extractability_class": "B_mostly_text",
+   "text_extractable_statement_files": 14
+  },
+  "company_coverage": {
+   "expected_periods": 8,
+   "periods_with_complete_statements": 4,
+   "periods_with_partial_statements": 4,
+   "periods_scanned_only": 0,
+   "periods_non_statement_only": 0,
+   "periods_absent": 0,
+   "pct_expected_with_complete_statements": 0.5,
+   "pct_expected_with_any_file": 1.0,
+   "coverage_class": "partial",
+   "first_observed_period_proxy_for_listing": "2024|Q1",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2024|H1",
+    "2024|Q1",
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T11:23:43+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 32,
+    "results_announcements": 9,
+    "results_by_slot": {
+     "2026|H1": [
+      97089
+     ],
+     "2026|Q1": [
+      94996
+     ],
+     "2025|FY": [
+      93630
+     ],
+     "2025|9M": [
+      91309
+     ],
+     "2025|H1": [
+      89260
+     ],
+     "2025|Q1": [
+      87522,
+      87122
+     ],
+     "2024|FY": [
+      85796
+     ],
+     "2024|9M": [
+      83450
+     ]
+    },
+    "detail_pages_checked": 6,
+    "detail_pages_with_files": 0,
+    "detail_page_failures": 0,
+    "profile_table_rows": 14,
+    "profile_table_files": 14
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [],
+   "rejected_reasons": [
+    "board_report"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 2,
+   "finished_at": "2026-09-29T03:15:11+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.arabianmills.com/en/investor-relations.php",
+      "origin": "registry"
+     },
+     {
+      "url": "https://www.arabianmills.com/en/annual-reports.php",
+      "origin": "registry"
+     },
+     {
+      "url": "https://www.arabianmills.com/en/financial-reports.php",
+      "origin": "registry"
+     },
+     {
+      "url": "https://www.arabianmills.com",
+      "origin": "batch:official_website"
+     }
+    ],
+    "profile_website": null,
+    "status": "ok",
+    "pages": 29,
+    "doc_links": 29,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "error"
+   ],
+   "rejected_reasons": [
+    "committee",
+    "governance",
+    "not_financial"
+   ],
+   "unclassified_n": 1
+  }
+ },
+ "periods": {
+  "2024|Q1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "2d482bf203ef7251db0ece1017c99bb2d20481295562ba4717dad754f8eb9297",
+    "77f73cbd9a5e79f3f5596daea6df6ce591a6c804db2e442162178f189f2bafb5"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|H1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "30b1250133c8f9791eb7d591141d4232d5ce8fe06a07ffcd02dcb3d82add38f4",
+    "c3d7ef8c2b668972f6a033238253facf78808c0cc2949d97ca8f3db58e02ca66",
+    "f3c89b9110a26b1af26dbd6988d3a315a72540a7e0bf3f6a5595363b9972dd43"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-09-30",
+   "status": "partial_statements",
+   "files": [
+    "9196a0d8d96612e3b07fd1b0380326be8a37e46e60553050109cf8d2e1afe996",
+    "ce89ff34d14a0234739b5424c946d789eb2d1b997bad27167ce2962e1ab6c26f"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "afe060496ac20506caedd062dae5b658996798ecc5688eb379a3065500e3c516",
+    "e9e2899760e2b73e8c051ac065adbeeccf99c0fba8b0d6e241f59f40e91e816e",
+    "f1b58be03a4c1ac675e4e2af5f6ac83ea1fc056a08e90e6a488f7448c94a1575"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "partial_statements",
+   "files": [
+    "78bfeca3794baeeaeb1f380d5373ae979a80622f24db1205fef3a64ae799ba55",
+    "c1727c92d9f6a62344de7a79fceef75ff56f67795c2a473945cb18b6eecc183e"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "partial_statements",
+   "files": [
+    "2c7243ea4c47d2dfc9f6d8d57467c855358ac5c53ca8beb10bdfe20feb70758a",
+    "6f3a1002724ebfa710793b055d7c4d2e31ae35179cff7095e8682508ebde006b"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "partial_statements",
+   "files": [
+    "a4741dd1c4da9e377c185f79c51aa32652c28240a2d83d0023cec408b9152ab0",
+    "e585b0b1280f6dc590e05d6973501c0e8ea24ac9691a9ad39ca0059cec57be4e"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "statements_via_annual_report",
+   "files": [
+    "86abcea88af67b3a1f6a2091168d1b9bcbb57ee7e8f3443839f852f206f1af20",
+    "afe060496ac20506caedd062dae5b658996798ecc5688eb379a3065500e3c516",
+    "b802315c444dca4d8a5fd9136fff1ff4aa9ed8df18a22024bdc23a22c1e441b6"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "statements_complete",
+   "files": [
+    "1f56569a6fe400e69981a1023061bde14e9531855b84f69c734e8f5d473f9277"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "statements_complete",
+   "files": [
+    "7575f860148d6715cab1c25e3d073c1c71dbcfc8b0e57e13631d0229c3024184"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "9ab535c864e347064b3105620a968703c1d0c873f2f257d90232b7fc6de6ffd9"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "9196a0d8d96612e3b07fd1b0380326be8a37e46e60553050109cf8d2e1afe996",
+   "relpath": "archive/SA/2285/9196a0d8d96612e3b07fd1b0380326be8a37e46e60553050109cf8d2e1afe996.pdf",
+   "ext": "pdf",
+   "size_bytes": 1618856,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 26,
+   "empty_pages": 5,
+   "text_chars": 48380,
+   "primary_statements_found": [
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     21
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20Signed%20FS%20Q3-2024%20(Arabic).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b0409f9bde183d69a98412281e4490e0e62d75e3",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "ce89ff34d14a0234739b5424c946d789eb2d1b997bad27167ce2962e1ab6c26f",
+   "relpath": "archive/SA/2285/ce89ff34d14a0234739b5424c946d789eb2d1b997bad27167ce2962e1ab6c26f.pdf",
+   "ext": "pdf",
+   "size_bytes": 1155055,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 24,
+   "empty_pages": 5,
+   "text_chars": 49202,
+   "primary_statements_found": [
+    "cash_flows"
+   ],
+   "statement_pages": {
+    "cash_flows": [
+     10
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2024-11-07_13-10-53_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "9090d1a65fcfcd50153229626b1592a8070a7fc5",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "e9e2899760e2b73e8c051ac065adbeeccf99c0fba8b0d6e241f59f40e91e816e",
+   "relpath": "archive/SA/2285/e9e2899760e2b73e8c051ac065adbeeccf99c0fba8b0d6e241f59f40e91e816e.pdf",
+   "ext": "pdf",
+   "size_bytes": 471124,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 51,
+   "empty_pages": 1,
+   "text_chars": 146933,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3,
+     6,
+     39,
+     40
+    ],
+    "income": [
+     3,
+     7
+    ],
+    "cash_flows": [
+     9
+    ],
+    "equity": [
+     3,
+     8
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2024-10-07_17-42-17_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "52e3b76c2e45d4fcda7d9cceedd6600603a3feb4",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31",
+    "multiple_same_language_same_period:2024|FY"
+   ]
+  },
+  {
+   "sha256": "f1b58be03a4c1ac675e4e2af5f6ac83ea1fc056a08e90e6a488f7448c94a1575",
+   "relpath": "archive/SA/2285/f1b58be03a4c1ac675e4e2af5f6ac83ea1fc056a08e90e6a488f7448c94a1575.pdf",
+   "ext": "pdf",
+   "size_bytes": 4139652,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 42,
+   "empty_pages": 2,
+   "text_chars": 117333,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6,
+     34
+    ],
+    "income": [
+     7
+    ],
+    "cash_flows": [
+     9
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2024-10-07_17-52-09_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "bebb1b0c8106ed2b014aee7a67ef10a152a08f41",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2022-12-31,labelled=2024-12-31",
+    "entity_name_not_in_front_pages_check",
+    "multiple_same_language_same_period:2024|FY"
+   ]
+  },
+  {
+   "sha256": "30b1250133c8f9791eb7d591141d4232d5ce8fe06a07ffcd02dcb3d82add38f4",
+   "relpath": "archive/SA/2285/30b1250133c8f9791eb7d591141d4232d5ce8fe06a07ffcd02dcb3d82add38f4.pdf",
+   "ext": "pdf",
+   "size_bytes": 1191146,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 1,
+   "text_chars": 51777,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5,
+     6
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20Signed%20FS%20Q2-2024%20(Arabic).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c03626d8547951bbf2f2af0d4f2861d9a20e60bf",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "c3d7ef8c2b668972f6a033238253facf78808c0cc2949d97ca8f3db58e02ca66",
+   "relpath": "archive/SA/2285/c3d7ef8c2b668972f6a033238253facf78808c0cc2949d97ca8f3db58e02ca66.pdf",
+   "ext": "pdf",
+   "size_bytes": 496602,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 1,
+   "text_chars": 53007,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2024-10-07_17-49-33_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "23f70b247cf3c05356bdf7e539a3a5905fc32c92",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "duplicate_text_candidate_of:f3c89b9110",
+    "multiple_same_language_same_period:2024|H1"
+   ]
+  },
+  {
+   "sha256": "f3c89b9110a26b1af26dbd6988d3a315a72540a7e0bf3f6a5595363b9972dd43",
+   "relpath": "archive/SA/2285/f3c89b9110a26b1af26dbd6988d3a315a72540a7e0bf3f6a5595363b9972dd43.pdf",
+   "ext": "pdf",
+   "size_bytes": 465796,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 1,
+   "text_chars": 53007,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20Signed%20FS%20Q2-2024%20(English).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "23f70b247cf3c05356bdf7e539a3a5905fc32c92",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "duplicate_text_candidate_of:c3d7ef8c2b",
+    "multiple_same_language_same_period:2024|H1"
+   ]
+  },
+  {
+   "sha256": "eeb224ade1865466c8586478b33dbf709ee8d51a32e12137ed8afe6ebe229834",
+   "relpath": "archive/SA/2285/eeb224ade1865466c8586478b33dbf709ee8d51a32e12137ed8afe6ebe229834.pdf",
+   "ext": "pdf",
+   "size_bytes": 2865524,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 52,
+   "empty_pages": 5,
+   "text_chars": 128040,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     42
+    ],
+    "income": [
+     3,
+     52
+    ],
+    "cash_flows": [
+     3
+    ],
+    "equity": [
+     3
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian-Mills-Financial-Statement-2024-ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "064b1c87d42e158ab3b17942ba2d4d97203dd3ef",
+   "all_period_labels": [
+    "2024|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "2d482bf203ef7251db0ece1017c99bb2d20481295562ba4717dad754f8eb9297",
+   "relpath": "archive/SA/2285/2d482bf203ef7251db0ece1017c99bb2d20481295562ba4717dad754f8eb9297.pdf",
+   "ext": "pdf",
+   "size_bytes": 1116360,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 25,
+   "empty_pages": 1,
+   "text_chars": 48305,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5,
+     6
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20Signed%20FS%20Q1-2024%20(Arabic).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "d13fd6b2425bf39b75ad5fd6daee5accccb7fcdb",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "77f73cbd9a5e79f3f5596daea6df6ce591a6c804db2e442162178f189f2bafb5",
+   "relpath": "archive/SA/2285/77f73cbd9a5e79f3f5596daea6df6ce591a6c804db2e442162178f189f2bafb5.pdf",
+   "ext": "pdf",
+   "size_bytes": 515923,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 23,
+   "empty_pages": 1,
+   "text_chars": 49338,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     18
+    ],
+    "income": [
+     5,
+     18
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2024-10-07_17-49-04_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "fbcb97ec145e22ef20cc797e011ef223a6e5da1b",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "a4741dd1c4da9e377c185f79c51aa32652c28240a2d83d0023cec408b9152ab0",
+   "relpath": "archive/SA/2285/a4741dd1c4da9e377c185f79c51aa32652c28240a2d83d0023cec408b9152ab0.pdf",
+   "ext": "pdf",
+   "size_bytes": 1587943,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 27,
+   "empty_pages": 5,
+   "text_chars": 45501,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/AMC%20-%20Arabic%20FS%20and%20Review%20Report%20-%20Q3%202025.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e23927bf897883d8d7b117b3ca88ac6293a3507d",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "e585b0b1280f6dc590e05d6973501c0e8ea24ac9691a9ad39ca0059cec57be4e",
+   "relpath": "archive/SA/2285/e585b0b1280f6dc590e05d6973501c0e8ea24ac9691a9ad39ca0059cec57be4e.pdf",
+   "ext": "pdf",
+   "size_bytes": 1999221,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2046-11-30",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 27,
+   "empty_pages": 5,
+   "text_chars": 50487,
+   "primary_statements_found": [
+    "cash_flows"
+   ],
+   "statement_pages": {
+    "cash_flows": [
+     17
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2025-11-11_13-41-33_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "483bdd8b4a79669c17d4d66d0836804964dcd258",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "86abcea88af67b3a1f6a2091168d1b9bcbb57ee7e8f3443839f852f206f1af20",
+   "relpath": "archive/SA/2285/86abcea88af67b3a1f6a2091168d1b9bcbb57ee7e8f3443839f852f206f1af20.pdf",
+   "ext": "pdf",
+   "size_bytes": 62202297,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 115,
+   "empty_pages": 2,
+   "text_chars": 294715,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     85,
+     88,
+     95
+    ],
+    "income": [
+     85,
+     88,
+     97
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20-%202025%20Annual%20Report-ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "45919d9b16b6915892fb24196ec32a0bbd74162d",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "afe060496ac20506caedd062dae5b658996798ecc5688eb379a3065500e3c516",
+   "relpath": "archive/SA/2285/afe060496ac20506caedd062dae5b658996798ecc5688eb379a3065500e3c516.pdf",
+   "ext": "pdf",
+   "size_bytes": 2055063,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 54,
+   "empty_pages": 5,
+   "text_chars": 144834,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     44
+    ],
+    "income": [
+     29,
+     54
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2025-03-24_15-45-58_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "65aa656cd93c714e304c0d09e5fa2c103be38eef",
+   "all_period_labels": [
+    "2024|FY",
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2024|FY"
+   ]
+  },
+  {
+   "sha256": "b802315c444dca4d8a5fd9136fff1ff4aa9ed8df18a22024bdc23a22c1e441b6",
+   "relpath": "archive/SA/2285/b802315c444dca4d8a5fd9136fff1ff4aa9ed8df18a22024bdc23a22c1e441b6.pdf",
+   "ext": "pdf",
+   "size_bytes": 22800299,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "match",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_with_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 115,
+   "empty_pages": 1,
+   "text_chars": 357216,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     85
+    ],
+    "income": [
+     85,
+     92
+    ],
+    "cash_flows": [
+     93
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20-%202025%20Annual%20Report.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "99d60b3fc587d6afbaf94b50cb6826d8e2430924",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "2c7243ea4c47d2dfc9f6d8d57467c855358ac5c53ca8beb10bdfe20feb70758a",
+   "relpath": "archive/SA/2285/2c7243ea4c47d2dfc9f6d8d57467c855358ac5c53ca8beb10bdfe20feb70758a.pdf",
+   "ext": "pdf",
+   "size_bytes": 1789001,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2046-11-30",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 27,
+   "empty_pages": 5,
+   "text_chars": 50215,
+   "primary_statements_found": [
+    "cash_flows"
+   ],
+   "statement_pages": {
+    "cash_flows": [
+     18
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2025-08-09_17-49-47_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7498dd1d1071cc23c8e521e3761715cf327400c0",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "6f3a1002724ebfa710793b055d7c4d2e31ae35179cff7095e8682508ebde006b",
+   "relpath": "archive/SA/2285/6f3a1002724ebfa710793b055d7c4d2e31ae35179cff7095e8682508ebde006b.pdf",
+   "ext": "pdf",
+   "size_bytes": 1821493,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 27,
+   "empty_pages": 5,
+   "text_chars": 44263,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20Signed%20FS%20Q2-2025%20(Arabic).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b074bd51a6045f4da17a19958bcb88d1f21510f9",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "78bfeca3794baeeaeb1f380d5373ae979a80622f24db1205fef3a64ae799ba55",
+   "relpath": "archive/SA/2285/78bfeca3794baeeaeb1f380d5373ae979a80622f24db1205fef3a64ae799ba55.pdf",
+   "ext": "pdf",
+   "size_bytes": 1300296,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 26,
+   "empty_pages": 4,
+   "text_chars": 43398,
+   "primary_statements_found": [
+    "cash_flows"
+   ],
+   "statement_pages": {
+    "cash_flows": [
+     17,
+     20
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://www.arabianmills.com/assets/images/ir/files/Arabian%20Mills%20Signed%20FS%20Q1-2025%20(Arabic).pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "42c3b98e2a7ab6f2ce7089dfe2116b12cd66f630",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "c1727c92d9f6a62344de7a79fceef75ff56f67795c2a473945cb18b6eecc183e",
+   "relpath": "archive/SA/2285/c1727c92d9f6a62344de7a79fceef75ff56f67795c2a473945cb18b6eecc183e.pdf",
+   "ext": "pdf",
+   "size_bytes": 1656522,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2046-11-30",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 26,
+   "empty_pages": 4,
+   "text_chars": 49118,
+   "primary_statements_found": [
+    "cash_flows"
+   ],
+   "statement_pages": {
+    "cash_flows": [
+     17
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2025-05-15_19-40-02_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "2dcecb11451f1cab4de7056d1852778cc5b29eeb",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "partial_statements_only"
+   ]
+  },
+  {
+   "sha256": "9ab535c864e347064b3105620a968703c1d0c873f2f257d90232b7fc6de6ffd9",
+   "relpath": "archive/SA/2285/9ab535c864e347064b3105620a968703c1d0c873f2f257d90232b7fc6de6ffd9.pdf",
+   "ext": "pdf",
+   "size_bytes": 2271128,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 56,
+   "empty_pages": 2,
+   "text_chars": 134012,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     8
+    ],
+    "income": [
+     9
+    ],
+    "cash_flows": [
+     11
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2026-03-26_14-59-46_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "3277412865d4a65b2f9daf34bc6f983f18a1e504",
+   "all_period_labels": [
+    "2026|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31"
+   ]
+  },
+  {
+   "sha256": "7575f860148d6715cab1c25e3d073c1c71dbcfc8b0e57e13631d0229c3024184",
+   "relpath": "archive/SA/2285/7575f860148d6715cab1c25e3d073c1c71dbcfc8b0e57e13631d0229c3024184.pdf",
+   "ext": "pdf",
+   "size_bytes": 922097,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 27,
+   "empty_pages": 0,
+   "text_chars": 65760,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2026-08-08_19-06-50_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "098f533cfed3f91095b51321552f2cd7f7ff0346",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "1f56569a6fe400e69981a1023061bde14e9531855b84f69c734e8f5d473f9277",
+   "relpath": "archive/SA/2285/1f56569a6fe400e69981a1023061bde14e9531855b84f69c734e8f5d473f9277.pdf",
+   "ext": "pdf",
+   "size_bytes": 1032803,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-12-31",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 26,
+   "empty_pages": 0,
+   "text_chars": 59414,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     18
+    ],
+    "income": [
+     5,
+     26
+    ],
+    "cash_flows": [
+     7,
+     15
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/6326_0_2026-05-13_15-58-28_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e107f12887631a71b8ba0dec57ffa7fa394e7590",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": []
+  }
+ ]
+}

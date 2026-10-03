@@ -1,0 +1,1735 @@
+{
+ "symbol": "4262",
+ "company_id": "sa:4262",
+ "name": "LUMI",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 29,
+   "statement_bucket_files": 29,
+   "files_with_all_three_primary_statements": 4,
+   "files_partial_statements": 8,
+   "files_no_statements_found": 14,
+   "files_unknown_scanned": 3,
+   "extractability_class": "C_scan_or_nonstatement_heavy",
+   "text_extractable_statement_files": 5
+  },
+  "company_coverage": {
+   "expected_periods": 14,
+   "periods_with_complete_statements": 4,
+   "periods_with_partial_statements": 4,
+   "periods_scanned_only": 2,
+   "periods_non_statement_only": 3,
+   "periods_absent": 1,
+   "pct_expected_with_complete_statements": 0.286,
+   "pct_expected_with_any_file": 0.929,
+   "coverage_class": "sparse",
+   "first_observed_period_proxy_for_listing": "2022|9M",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [
+    "2022|FY"
+   ],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2023|H1",
+    "2023|Q1",
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-26T23:33:45+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 28,
+    "results_announcements": 12,
+    "results_by_slot": {
+     "2026|H1": [
+      97283
+     ],
+     "2026|Q1": [
+      95039
+     ],
+     "2025|FY": [
+      93296
+     ],
+     "2025|9M": [
+      91085
+     ],
+     "2025|H1": [
+      89243
+     ],
+     "2025|Q1": [
+      87014
+     ],
+     "2024|FY": [
+      85384
+     ],
+     "2024|9M": [
+      83360
+     ],
+     "2024|H1": [
+      81800
+     ],
+     "2024|Q1": [
+      80054
+     ],
+     "2023|FY": [
+      78941
+     ],
+     "2023|9M": [
+      76738
+     ]
+    },
+    "detail_pages_checked": 12,
+    "detail_pages_with_files": 10,
+    "detail_page_failures": 0,
+    "profile_table_rows": 16,
+    "profile_table_files": 16
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "board_report",
+    "presentation"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-27T08:47:56+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://www.lumirental.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://www.lumirental.com",
+    "status": "ok",
+    "pages": 8,
+    "doc_links": 66,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned",
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "dividend_notice",
+    "general_assembly",
+    "governance",
+    "not_financial",
+    "policy_or_charter",
+    "presentation"
+   ],
+   "unclassified_n": 0
+  }
+ },
+ "periods": {
+  "2022|9M": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2022-09-30",
+   "status": "unreadable_scan_only",
+   "files": [
+    "767e03a0723d7c309eed5e0cb2674c6a62b218f8d9218abd4014088fc5ff7c83"
+   ],
+   "languages": [
+    "unknown"
+   ]
+  },
+  "2022|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2022-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2023|Q1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "non_statement_only",
+   "files": [
+    "4fa8d364bbe1d4c2b7b39b44705b1f5bc693e801935f4a7c178f3305bdc5cd00"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2023|H1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "non_statement_only",
+   "files": [
+    "06af9c685741b72a46fce39b7d7d75a97c0d7b6929f78e21cbe8f6d927577794"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2023|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-09-30",
+   "status": "partial_statements",
+   "files": [
+    "2a23ec0c186f6bc6f830c9233acc737f548054cb23d9def3ada1a87cb66c5f5b",
+    "5a1752e7a7e852dd43cc0934d3cf9546fb7f2d659f2702d1bfefd89896a325ef"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2023|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2023-12-31",
+   "status": "statements_complete",
+   "files": [
+    "163c7c18b664f867d3bba9f8cf8c6c3ad165efad4162d18335b437f474f55ae0"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-03-31",
+   "status": "partial_statements",
+   "files": [
+    "42d131fa86576446871c5be4eef83cdba3972fced9b240d24d3224549a6f91fc",
+    "88a34d8503525711d204ad5de9c01246e97b9584f8cd73098ccc4eb7db3ef6d6"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-06-30",
+   "status": "partial_statements",
+   "files": [
+    "44212fd58f195a588db29549076796025073bfef140f6d5411918a3f3f199ef8",
+    "d15f1cbee6410aaf65c37c326f7d0f80831d459c6bebc739ada4278874b255f5"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-09-30",
+   "status": "non_statement_only",
+   "files": [
+    "4b339d61dc98f3681da3e73ef00674ba09d6699e9ec7c2fff2451bfd7c7a1302",
+    "a552fabe6c48156d97b6ef508ebd3a33166635ee6fa2369732d0de753aa831bd"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "698d99f0d14144351cd8af8e1e88cd2d6c3b50033843b2e664f3597a4f581c19",
+    "b4cbae8d39112030b32cb16e800dfd242bf2ec48ca602b74bc664f7b6f81c7ef",
+    "f637537c613d8fd84a1ef3b2be71d4921b1b88d5b4d3a410e8a63999b81755df"
+   ],
+   "languages": [
+    "ar",
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "statements_complete",
+   "files": [
+    "02a117c9c8dd5cbf841966cd0d1df0384ba5eed29ba2384a4fe804b5adba270f",
+    "6d865b8a8b2879e0e5d9858f11dcf87fef06a3c83fe0cd7e6ee2430f614403e4"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "statements_complete",
+   "files": [
+    "2d9f43690337c85262e86d9e317f19e8c26eaf23edc933f3160e11440a8663a1",
+    "bf345ac0788c97680f20115e9fa15ae03bc59c51100ee7dfbc090c3567eddde5"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "non_statement_only",
+   "files": [
+    "029e2acb1f6c363ae96acaa7c762203745aacde631f107b4da27e5724015e7d3",
+    "5dbff4664ccb239227a1489a7b87ea66e7b858d12b2bda5dde2b39be17b2d5dc"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "partial_statements",
+   "files": [
+    "01d45c1159b7d3b533cc757108d5dbc762309a690e203ed86960dc1e3b8b1e42",
+    "b2cc5720e3554023377514f42667bdc3d3cbefee80c6a74ed597b1b1a80e80a7",
+    "f5647e47a07fbf99a0fba66df8b2aaa2d8edec4883c5ef24af8e10928f23fef0"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "non_statement_only",
+   "files": [
+    "01f1f05ff6c4161c7850360f33b9d49078341e06d1cc3034d8f701e4b9cfb877",
+    "b800e7610c59d93d0e359a7124255ab6373802a75636b40915092be9a99c5a27"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "unreadable_scan_only",
+   "files": [
+    "50cb225219a6dfa35d3f8d0629a52bb6e49440c1715f30a9f08af4b1f35a2614",
+    "e2522efc5866f9809537b65c3d9ff0c004241bb3fefb56754da9b70311147430"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "partial_statements",
+   "files": [
+    "42cfea454e54bab48cdc0e3ee60577b8bc48027cff5f5fe42b50ba4b294e3ade"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "767e03a0723d7c309eed5e0cb2674c6a62b218f8d9218abd4014088fc5ff7c83",
+   "relpath": "archive/SA/4262/767e03a0723d7c309eed5e0cb2674c6a62b218f8d9218abd4014088fc5ff7c83.pdf",
+   "ext": "pdf",
+   "size_bytes": 5816438,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "unknown",
+   "language_manifest": "unknown",
+   "readability": "scanned_zero_text",
+   "pages": 23,
+   "empty_pages": 23,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q3.22_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2022|9M"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "2a23ec0c186f6bc6f830c9233acc737f548054cb23d9def3ada1a87cb66c5f5b",
+   "relpath": "archive/SA/4262/2a23ec0c186f6bc6f830c9233acc737f548054cb23d9def3ada1a87cb66c5f5b.pdf",
+   "ext": "pdf",
+   "size_bytes": 4135154,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 21,
+   "empty_pages": 4,
+   "text_chars": 33438,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     16
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q3.23_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "3b8bd44bc2ac5aba098b2c833acf62235deee221",
+   "all_period_labels": [
+    "2023|9M"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "5a1752e7a7e852dd43cc0934d3cf9546fb7f2d659f2702d1bfefd89896a325ef",
+   "relpath": "archive/SA/4262/5a1752e7a7e852dd43cc0934d3cf9546fb7f2d659f2702d1bfefd89896a325ef.pdf",
+   "ext": "pdf",
+   "size_bytes": 4326252,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 21,
+   "empty_pages": 4,
+   "text_chars": 36903,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2023-11-09_22-47-32_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "73ec4837d2bb1eff742d9716c0d4ecb524a24122",
+   "all_period_labels": [
+    "2023|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "163c7c18b664f867d3bba9f8cf8c6c3ad165efad4162d18335b437f474f55ae0",
+   "relpath": "archive/SA/4262/163c7c18b664f867d3bba9f8cf8c6c3ad165efad4162d18335b437f474f55ae0.pdf",
+   "ext": "pdf",
+   "size_bytes": 16477111,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 69,
+   "empty_pages": 9,
+   "text_chars": 186353,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     54,
+     55
+    ],
+    "income": [
+     50,
+     56
+    ],
+    "cash_flows": [
+     51,
+     55
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Annual.23_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e1aef09d11ceff415d329d915c3e4686981df61e",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "06af9c685741b72a46fce39b7d7d75a97c0d7b6929f78e21cbe8f6d927577794",
+   "relpath": "archive/SA/4262/06af9c685741b72a46fce39b7d7d75a97c0d7b6929f78e21cbe8f6d927577794.pdf",
+   "ext": "pdf",
+   "size_bytes": 5346778,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "unknown",
+   "readability": "mostly_scanned",
+   "pages": 22,
+   "empty_pages": 19,
+   "text_chars": 1291,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q2.23_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|H1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "4fa8d364bbe1d4c2b7b39b44705b1f5bc693e801935f4a7c178f3305bdc5cd00",
+   "relpath": "archive/SA/4262/4fa8d364bbe1d4c2b7b39b44705b1f5bc693e801935f4a7c178f3305bdc5cd00.pdf",
+   "ext": "pdf",
+   "size_bytes": 4947111,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "mostly_scanned",
+   "pages": 21,
+   "empty_pages": 20,
+   "text_chars": 428,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q1.23_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2023|Q1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "4b339d61dc98f3681da3e73ef00674ba09d6699e9ec7c2fff2451bfd7c7a1302",
+   "relpath": "archive/SA/4262/4b339d61dc98f3681da3e73ef00674ba09d6699e9ec7c2fff2451bfd7c7a1302.pdf",
+   "ext": "pdf",
+   "size_bytes": 10163024,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 20,
+   "empty_pages": 19,
+   "text_chars": 3412,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2024-11-06_15-15-12_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "a552fabe6c48156d97b6ef508ebd3a33166635ee6fa2369732d0de753aa831bd",
+   "relpath": "archive/SA/4262/a552fabe6c48156d97b6ef508ebd3a33166635ee6fa2369732d0de753aa831bd.pdf",
+   "ext": "pdf",
+   "size_bytes": 8696300,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 21,
+   "empty_pages": 20,
+   "text_chars": 2970,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q3.24_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "698d99f0d14144351cd8af8e1e88cd2d6c3b50033843b2e664f3597a4f581c19",
+   "relpath": "archive/SA/4262/698d99f0d14144351cd8af8e1e88cd2d6c3b50033843b2e664f3597a4f581c19.pdf",
+   "ext": "pdf",
+   "size_bytes": 8713143,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 46,
+   "empty_pages": 44,
+   "text_chars": 4396,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2024-10-08_16-42-01_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "b4cbae8d39112030b32cb16e800dfd242bf2ec48ca602b74bc664f7b6f81c7ef",
+   "relpath": "archive/SA/4262/b4cbae8d39112030b32cb16e800dfd242bf2ec48ca602b74bc664f7b6f81c7ef.pdf",
+   "ext": "pdf",
+   "size_bytes": 1787216,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 74,
+   "empty_pages": 12,
+   "text_chars": 189021,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     49,
+     52
+    ],
+    "income": [
+     49,
+     53,
+     58,
+     64
+    ],
+    "cash_flows": [
+     53,
+     54,
+     57,
+     64
+    ],
+    "equity": [
+     53
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Annual.24_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "117f6616bfc959858648abc23eeac6f27bff2984",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "f637537c613d8fd84a1ef3b2be71d4921b1b88d5b4d3a410e8a63999b81755df",
+   "relpath": "archive/SA/4262/f637537c613d8fd84a1ef3b2be71d4921b1b88d5b4d3a410e8a63999b81755df.pdf",
+   "ext": "pdf",
+   "size_bytes": 4245539,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 39,
+   "empty_pages": 4,
+   "text_chars": 84383,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2024-03-27_15-08-42_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c759e77087fc83618abea5938632ba5361dfb68d",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2023-12-31,labelled=2024-12-31"
+   ]
+  },
+  {
+   "sha256": "44212fd58f195a588db29549076796025073bfef140f6d5411918a3f3f199ef8",
+   "relpath": "archive/SA/4262/44212fd58f195a588db29549076796025073bfef140f6d5411918a3f3f199ef8.pdf",
+   "ext": "pdf",
+   "size_bytes": 4908124,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 20,
+   "empty_pages": 4,
+   "text_chars": 32973,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2024-08-08_13-58-28_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7678e58c18d377787fb6d78522671229b2bb681a",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "d15f1cbee6410aaf65c37c326f7d0f80831d459c6bebc739ada4278874b255f5",
+   "relpath": "archive/SA/4262/d15f1cbee6410aaf65c37c326f7d0f80831d459c6bebc739ada4278874b255f5.pdf",
+   "ext": "pdf",
+   "size_bytes": 6939337,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 4,
+   "text_chars": 30934,
+   "primary_statements_found": [
+    "cash_flows",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     15
+    ],
+    "cash_flows": [
+     18
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q2.24_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e7520674804262eac7cf28c2310f49f6eb7cf533",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "42d131fa86576446871c5be4eef83cdba3972fced9b240d24d3224549a6f91fc",
+   "relpath": "archive/SA/4262/42d131fa86576446871c5be4eef83cdba3972fced9b240d24d3224549a6f91fc.pdf",
+   "ext": "pdf",
+   "size_bytes": 2346054,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 4,
+   "text_chars": 29666,
+   "primary_statements_found": [
+    "cash_flows",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     16
+    ],
+    "cash_flows": [
+     14
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q1.24_LUMI_RENTAL_1_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "4686e4575c725c82f9077cd95378159074eb572f",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "88a34d8503525711d204ad5de9c01246e97b9584f8cd73098ccc4eb7db3ef6d6",
+   "relpath": "archive/SA/4262/88a34d8503525711d204ad5de9c01246e97b9584f8cd73098ccc4eb7db3ef6d6.pdf",
+   "ext": "pdf",
+   "size_bytes": 2562684,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 21,
+   "empty_pages": 4,
+   "text_chars": 32726,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2024-05-17_20-35-53_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "812d5313733cdc97f792d118feb9ae3b98ebf696",
+   "all_period_labels": [
+    "2024|Q1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "029e2acb1f6c363ae96acaa7c762203745aacde631f107b4da27e5724015e7d3",
+   "relpath": "archive/SA/4262/029e2acb1f6c363ae96acaa7c762203745aacde631f107b4da27e5724015e7d3.pdf",
+   "ext": "pdf",
+   "size_bytes": 5912796,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 22,
+   "empty_pages": 21,
+   "text_chars": 3066,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q3.25_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "5dbff4664ccb239227a1489a7b87ea66e7b858d12b2bda5dde2b39be17b2d5dc",
+   "relpath": "archive/SA/4262/5dbff4664ccb239227a1489a7b87ea66e7b858d12b2bda5dde2b39be17b2d5dc.pdf",
+   "ext": "pdf",
+   "size_bytes": 5573129,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 4,
+   "text_chars": 36392,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2025-11-05_14-52-35_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f4dd10858bfaf1f23ce70f8a6efee06f12d6a56b",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "01d45c1159b7d3b533cc757108d5dbc762309a690e203ed86960dc1e3b8b1e42",
+   "relpath": "archive/SA/4262/01d45c1159b7d3b533cc757108d5dbc762309a690e203ed86960dc1e3b8b1e42.pdf",
+   "ext": "pdf",
+   "size_bytes": 3277858,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 40,
+   "empty_pages": 6,
+   "text_chars": 76412,
+   "primary_statements_found": [
+    "equity",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     8,
+     20,
+     27
+    ],
+    "equity": [
+     9
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2025-02-27_17-17-34_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "de0546345417d794743a94cf14eb2aaaf63be231",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31"
+   ]
+  },
+  {
+   "sha256": "b2cc5720e3554023377514f42667bdc3d3cbefee80c6a74ed597b1b1a80e80a7",
+   "relpath": "archive/SA/4262/b2cc5720e3554023377514f42667bdc3d3cbefee80c6a74ed597b1b1a80e80a7.pdf",
+   "ext": "pdf",
+   "size_bytes": 3803304,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 58,
+   "empty_pages": 0,
+   "text_chars": 132092,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     28
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Annual.25_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "896d879d302c4d8035e9d0460142814f84a0e54b",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "f5647e47a07fbf99a0fba66df8b2aaa2d8edec4883c5ef24af8e10928f23fef0",
+   "relpath": "archive/SA/4262/f5647e47a07fbf99a0fba66df8b2aaa2d8edec4883c5ef24af8e10928f23fef0.pdf",
+   "ext": "pdf",
+   "size_bytes": 292896,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2025-12-31",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 11,
+   "empty_pages": 0,
+   "text_chars": 20649,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     10
+    ],
+    "income": [
+     5
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/25832_4826_2026-02-24_22-55-31_en.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f0aae9844b8e09fe57cfe3bd038da85ac6be8e54",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "2d9f43690337c85262e86d9e317f19e8c26eaf23edc933f3160e11440a8663a1",
+   "relpath": "archive/SA/4262/2d9f43690337c85262e86d9e317f19e8c26eaf23edc933f3160e11440a8663a1.pdf",
+   "ext": "pdf",
+   "size_bytes": 5671921,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 4,
+   "text_chars": 37403,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2025-08-06_14-08-07_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "776456ebea84448ab6bb0cdbcc54798f105e2ba0",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "bf345ac0788c97680f20115e9fa15ae03bc59c51100ee7dfbc090c3567eddde5",
+   "relpath": "archive/SA/4262/bf345ac0788c97680f20115e9fa15ae03bc59c51100ee7dfbc090c3567eddde5.pdf",
+   "ext": "pdf",
+   "size_bytes": 1603544,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 4,
+   "text_chars": 33805,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     18
+    ],
+    "income": [
+     18
+    ],
+    "cash_flows": [
+     18
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q2.25_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7d33a6a723970adebfab185ae47430376a00249b",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "02a117c9c8dd5cbf841966cd0d1df0384ba5eed29ba2384a4fe804b5adba270f",
+   "relpath": "archive/SA/4262/02a117c9c8dd5cbf841966cd0d1df0384ba5eed29ba2384a4fe804b5adba270f.pdf",
+   "ext": "pdf",
+   "size_bytes": 4096956,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 21,
+   "empty_pages": 0,
+   "text_chars": 39998,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2025-05-12_12-49-35_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "244223adc3e7b00b47092ae069ec29f951303f52",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "6d865b8a8b2879e0e5d9858f11dcf87fef06a3c83fe0cd7e6ee2430f614403e4",
+   "relpath": "archive/SA/4262/6d865b8a8b2879e0e5d9858f11dcf87fef06a3c83fe0cd7e6ee2430f614403e4.pdf",
+   "ext": "pdf",
+   "size_bytes": 3045256,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 22,
+   "empty_pages": 1,
+   "text_chars": 32064,
+   "primary_statements_found": [
+    "cash_flows",
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     16
+    ],
+    "cash_flows": [
+     19
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q1.25_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ee543c4be816dfa708eb22c275405116b3cb2f70",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "42cfea454e54bab48cdc0e3ee60577b8bc48027cff5f5fe42b50ba4b294e3ade",
+   "relpath": "archive/SA/4262/42cfea454e54bab48cdc0e3ee60577b8bc48027cff5f5fe42b50ba4b294e3ade.pdf",
+   "ext": "pdf",
+   "size_bytes": 1650624,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 43,
+   "empty_pages": 4,
+   "text_chars": 90202,
+   "primary_statements_found": [
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     30
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2026-03-04_18-31-15_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "3d9a9df4ee66b0b01e6f757aba02bdfb8fb31cd3",
+   "all_period_labels": [
+    "2026|FY"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "weak_period_classification:text_year_only",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31"
+   ]
+  },
+  {
+   "sha256": "50cb225219a6dfa35d3f8d0629a52bb6e49440c1715f30a9f08af4b1f35a2614",
+   "relpath": "archive/SA/4262/50cb225219a6dfa35d3f8d0629a52bb6e49440c1715f30a9f08af4b1f35a2614.pdf",
+   "ext": "pdf",
+   "size_bytes": 5297146,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 20,
+   "empty_pages": 20,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2026-08-12_14-32-54_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "e2522efc5866f9809537b65c3d9ff0c004241bb3fefb56754da9b70311147430",
+   "relpath": "archive/SA/4262/e2522efc5866f9809537b65c3d9ff0c004241bb3fefb56754da9b70311147430.pdf",
+   "ext": "pdf",
+   "size_bytes": 3775897,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 20,
+   "empty_pages": 20,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q2.26_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "01f1f05ff6c4161c7850360f33b9d49078341e06d1cc3034d8f701e4b9cfb877",
+   "relpath": "archive/SA/4262/01f1f05ff6c4161c7850360f33b9d49078341e06d1cc3034d8f701e4b9cfb877.pdf",
+   "ext": "pdf",
+   "size_bytes": 2612395,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 20,
+   "empty_pages": 19,
+   "text_chars": 3095,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://cdn.lumirental.com/public/web/ir/reports/financial-statements/Q1.26_LUMI_RENTAL_ar.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "b800e7610c59d93d0e359a7124255ab6373802a75636b40915092be9a99c5a27",
+   "relpath": "archive/SA/4262/b800e7610c59d93d0e359a7124255ab6373802a75636b40915092be9a99c5a27.pdf",
+   "ext": "pdf",
+   "size_bytes": 3387085,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "en",
+   "readability": "mostly_scanned",
+   "pages": 21,
+   "empty_pages": 20,
+   "text_chars": 3496,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/4826_0_2026-05-13_11-42-59_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements"
+   ]
+  }
+ ]
+}

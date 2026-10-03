@@ -1,0 +1,2395 @@
+{
+ "symbol": "4084",
+ "company_id": "sa:4084",
+ "name": "DERAYAH",
+ "registry_sector": null,
+ "registry_industry": null,
+ "fiscal_year_end_month": 12,
+ "fiscal_year_end_source": "collector_state_inferred_from_saudi_exchange_announcements",
+ "dimensions": {
+  "value_correctness": {
+   "assessed": false,
+   "note": "Not assessed at Step 1. No statement is verified here."
+  },
+  "document_completeness": {
+   "files_total": 37,
+   "statement_bucket_files": 31,
+   "files_with_all_three_primary_statements": 9,
+   "files_partial_statements": 13,
+   "files_no_statements_found": 7,
+   "files_unknown_scanned": 2,
+   "extractability_class": "B_mostly_text",
+   "text_extractable_statement_files": 20
+  },
+  "company_coverage": {
+   "expected_periods": 16,
+   "periods_with_complete_statements": 6,
+   "periods_with_partial_statements": 6,
+   "periods_scanned_only": 1,
+   "periods_non_statement_only": 2,
+   "periods_absent": 1,
+   "pct_expected_with_complete_statements": 0.375,
+   "pct_expected_with_any_file": 0.938,
+   "coverage_class": "sparse",
+   "first_observed_period_proxy_for_listing": "2015|FY",
+   "last_expected_period": "2026|H1",
+   "listing_date": "unknown_not_in_registry_or_raw_state",
+   "listing_gap_note": "Expected window starts at the earliest period seen in Saudi Exchange results announcements or collected files; periods before it are NOT counted as missing (listing date unavailable locally). Archive horizon appears to be ~2011; companies whose first period is at/near the horizon may have older history that was never targeted.",
+   "leading_gaps_within_window": [],
+   "internal_gaps": [
+    "2018|FY"
+   ],
+   "trailing_gaps": [],
+   "extra_periods_present_outside_expected": [
+    "2024|9M",
+    "2024|H1",
+    "2026|FY"
+   ]
+  }
+ },
+ "state": {
+  "se": {
+   "status": "done",
+   "attempts": 1,
+   "finished_at": "2026-09-26T23:26:29+00:00",
+   "fy_end_month": 12,
+   "se": {
+    "total_announcements": 30,
+    "results_announcements": 8,
+    "results_by_slot": {
+     "2026|H1": [
+      97231
+     ],
+     "2026|Q1": [
+      95246
+     ],
+     "2025|FY": [
+      93926
+     ],
+     "2025|9M": [
+      91256
+     ],
+     "2025|H1": [
+      89281
+     ],
+     "2025|Q1": [
+      87309,
+      87300
+     ],
+     "2024|FY": [
+      85837
+     ]
+    },
+    "detail_pages_checked": 8,
+    "detail_pages_with_files": 7,
+    "detail_page_failures": 0,
+    "profile_table_rows": 9,
+    "profile_table_files": 9
+   },
+   "issuer": null,
+   "se_ok": null,
+   "failures": [
+    "scanned"
+   ],
+   "rejected_reasons": [
+    "board_report",
+    "presentation"
+   ],
+   "unclassified_n": 0
+  },
+  "issuer": {
+   "status": "done",
+   "attempts": 3,
+   "finished_at": "2026-09-27T11:08:53+00:00",
+   "fy_end_month": 12,
+   "se": null,
+   "issuer": {
+    "seeds": [
+     {
+      "url": "https://web.derayah.com",
+      "origin": "saudi_exchange_profile_website"
+     }
+    ],
+    "profile_website": "https://web.derayah.com",
+    "status": "ok",
+    "pages": 15,
+    "doc_links": 90,
+    "errors": []
+   },
+   "se_ok": true,
+   "failures": [
+    "timeout",
+    "download_error",
+    "timeout",
+    "timeout",
+    "timeout",
+    "timeout",
+    "timeout",
+    "timeout",
+    "timeout",
+    "scanned",
+    "timeout",
+    "download_error",
+    "timeout",
+    "timeout",
+    "timeout",
+    "timeout",
+    "timeout",
+    "scanned",
+    "download_error",
+    "timeout",
+    "timeout",
+    "timeout"
+   ],
+   "rejected_reasons": [
+    "not_financial",
+    "presentation"
+   ],
+   "unclassified_n": 1
+  }
+ },
+ "periods": {
+  "2015|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2015-12-31",
+   "status": "non_statement_only",
+   "files": [
+    "6445a138b7d8442c9bb709aa6d2584bab630c040a96769b7d6ff6a7913abba1e"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2016|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2016-12-31",
+   "status": "unreadable_scan_only",
+   "files": [
+    "c8b3ad98394f42b97a2e134b3a4b2b63d629664f5679ff5cc0e67656777ce05b"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2017|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2017-12-31",
+   "status": "non_statement_only",
+   "files": [
+    "0caa6b0fd97e5f4be6d499500bd617941e125666d0c7af42f8f3c75a1490ebe8"
+   ],
+   "languages": [
+    "ar"
+   ]
+  },
+  "2018|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2018-12-31",
+   "status": "absent",
+   "files": [],
+   "languages": []
+  },
+  "2019|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2019-12-31",
+   "status": "partial_statements",
+   "files": [
+    "44a55557a4c0168d5d77d8caf031e50418758b222404ab8dbdc5047fc66cae32"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2020|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2020-12-31",
+   "status": "statements_complete",
+   "files": [
+    "60d92478c71c193a02508a85a887741ec71da6ec7195c54327e0b7cc3fa0fcfb"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2021|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2021-12-31",
+   "status": "partial_statements",
+   "files": [
+    "5ad8edc219fa4a6d59d153f269c7476e85704adce260040743df7ee9657a6ce4"
+   ],
+   "languages": [
+    "en"
+   ]
+  },
+  "2022|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2022-12-31",
+   "status": "statements_complete",
+   "files": [
+    "00d1ad8e253168216f3dde5503d76fbc73f586a12e6b62f18986ec63ac40213c",
+    "bc712441c7720a263bf67be9fe4bccdaf9f3c360f120575295ca561522f47899"
+   ],
+   "languages": [
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2023|FY": {
+   "expected": true,
+   "expected_basis": "inferred_cadence",
+   "period_end": "2023-12-31",
+   "status": "partial_statements",
+   "files": [
+    "0c3ebc486dd69c4823658b1b78a75bd812c59aaa4a3c88dd74a42e62f3117fcb"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|H1": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "aa0a75e62300b1fc410f13a75e1a7eca5136f2762432631e2640df1707aaa5a6"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|9M": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "d2757e331754e232582b8af8bb650a67f2739b7603f7d0388099ab01c24eadc6"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2024|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2024-12-31",
+   "status": "statements_complete",
+   "files": [
+    "0e984adfac833f82b0bb2b0c226b86bb19ec709ea5af64895782d86cf168c2ca",
+    "34e4df94ec2c40b84cb10ac55f5a3f74663cbd6932dc6c872aecb0b253009f97"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-03-31",
+   "status": "statements_complete",
+   "files": [
+    "1e262e46ac95eb60744f3188ad7bda83cde9a773115bfd10491e91670a7c94f6",
+    "a8f1325eba55fd64a07ac50d3296e2fb16b55ec589109a4adca4025ed24be3c9",
+    "cf43ade36129a040d82ca32936eb68a27173923a25243154af3c09e47803d8d7"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-06-30",
+   "status": "partial_statements",
+   "files": [
+    "2493c4836cddebed98f776a2dd0b22301979f3ccb7864ec300ac28d34ffa6259",
+    "674e0cc0dc94300d6282172b51430ddb1be873aa045d4a4044fb653e68e85fec",
+    "cf3841ba08943c9c43a8dfdf16bb9dec13c1959e247ef765986d29289055c823"
+   ],
+   "languages": [
+    "ar",
+    "bilingual_or_mixed"
+   ]
+  },
+  "2025|9M": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-09-30",
+   "status": "partial_statements",
+   "files": [
+    "03becfd7dd05d3c091d90a1ee4a7f9e84ebc2f7f7c3f2d5264b3c13da22a508c",
+    "2506fef064a8dba05e53344fbe5b15ccce0e56da48929af5f55db2e1b17dec54",
+    "6f99ea4e69af1b20fdf954eec93876f6ae627a776c1a302b37b240f8b637fcfb"
+   ],
+   "languages": [
+    "ar",
+    "bilingual_or_mixed",
+    "en"
+   ]
+  },
+  "2025|FY": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2025-12-31",
+   "status": "statements_complete",
+   "files": [
+    "339e781b8ccb204cec787c1f99ecc4aae2fb9fef86ed6181fbe719a246cb6903",
+    "34e4df94ec2c40b84cb10ac55f5a3f74663cbd6932dc6c872aecb0b253009f97",
+    "e5088d5b831dedeefe22d2dfb50e1a91033199f22b5b7828a00235d57211edcf",
+    "f8790b99f209f8a8dfbb6aba9bedfb83fde2f2d19fb09128d1cb1aad99a9c90c"
+   ],
+   "languages": [
+    "ar",
+    "bilingual_or_mixed"
+   ]
+  },
+  "2026|Q1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-03-31",
+   "status": "partial_statements",
+   "files": [
+    "0793557d544b2b0a1b50169ee5a2cecb3b86f2961951fdd49de134ddb7b2e0b2",
+    "1b9803f1f7b13bd81391bf2ac414d2d473812a8a5eb1d35097de487a27e10af6",
+    "d4c4523e993547630e90fa7da1503f0d69df974b0eb2de120026dae72ffd27f9"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  },
+  "2026|H1": {
+   "expected": true,
+   "expected_basis": "saudi_exchange_announcement",
+   "period_end": "2026-06-30",
+   "status": "statements_complete",
+   "files": [
+    "01b1316e75598cddc9acd8b2920d263ea41981760e11496179f9a15f6fac0f76",
+    "29e57c44d1459268a34427b7abbab39da09ad1db3eb7c29c3d74c26a60f5a729"
+   ],
+   "languages": [
+    "ar",
+    "en"
+   ]
+  },
+  "2026|FY": {
+   "expected": false,
+   "expected_basis": "not_expected_extra_file",
+   "period_end": null,
+   "status": "statements_complete",
+   "files": [
+    "f8790b99f209f8a8dfbb6aba9bedfb83fde2f2d19fb09128d1cb1aad99a9c90c"
+   ],
+   "languages": [
+    "bilingual_or_mixed"
+   ]
+  }
+ },
+ "files": [
+  {
+   "sha256": "6445a138b7d8442c9bb709aa6d2584bab630c040a96769b7d6ff6a7913abba1e",
+   "relpath": "archive/SA/4084/6445a138b7d8442c9bb709aa6d2584bab630c040a96769b7d6ff6a7913abba1e.pdf",
+   "ext": "pdf",
+   "size_bytes": 10978818,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2015,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2015-01-01",
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 53,
+   "empty_pages": 1,
+   "text_chars": 72801,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/03/annualreport.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "aa6d8ddbe1a889fe2c779ee0c06deace8de1e333",
+   "all_period_labels": [
+    "2015|FY"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "c8b3ad98394f42b97a2e134b3a4b2b63d629664f5679ff5cc0e67656777ce05b",
+   "relpath": "archive/SA/4084/c8b3ad98394f42b97a2e134b3a4b2b63d629664f5679ff5cc0e67656777ce05b.pdf",
+   "ext": "pdf",
+   "size_bytes": 10807781,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2016,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 43,
+   "empty_pages": 43,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/03/DerayaAnnualReport2016-1.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2016|FY"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "4374fd90f565752b43b809fcdf71b5fd3a01baf1def82d363212b78b0370cbd2",
+   "relpath": "archive/SA/4084/supporting/4374fd90f565752b43b809fcdf71b5fd3a01baf1def82d363212b78b0370cbd2.pdf",
+   "ext": "pdf",
+   "size_bytes": 995068,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2016,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2016-12-31",
+   "period_check": "not_checkable",
+   "document_type_manifest": "supporting_pillar3",
+   "bucket": "supporting",
+   "file_class": "pillar3",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 16,
+   "empty_pages": 0,
+   "text_chars": 36915,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6,
+     14
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/03/Derayah_Pillar_III_Disclosure_2016_EN.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "94eb2f94ff9a80b872b1887b39d51dd8e343e756",
+   "all_period_labels": [
+    "2016|None"
+   ],
+   "flags": [
+    "unclassified_period"
+   ]
+  },
+  {
+   "sha256": "0caa6b0fd97e5f4be6d499500bd617941e125666d0c7af42f8f3c75a1490ebe8",
+   "relpath": "archive/SA/4084/0caa6b0fd97e5f4be6d499500bd617941e125666d0c7af42f8f3c75a1490ebe8.pdf",
+   "ext": "pdf",
+   "size_bytes": 6281204,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2017,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "annual_report_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "bilingual",
+   "readability": "mixed",
+   "pages": 92,
+   "empty_pages": 50,
+   "text_chars": 58953,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/03/DerayahAnnualReport2017D-1.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2017|FY"
+   ],
+   "flags": [
+    "partly_scanned_pages",
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "44a55557a4c0168d5d77d8caf031e50418758b222404ab8dbdc5047fc66cae32",
+   "relpath": "archive/SA/4084/44a55557a4c0168d5d77d8caf031e50418758b222404ab8dbdc5047fc66cae32.pdf",
+   "ext": "pdf",
+   "size_bytes": 985708,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2019,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2019-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 40,
+   "empty_pages": 2,
+   "text_chars": 92064,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     10
+    ],
+    "income": [
+     5,
+     9
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/08/Derayah-FS-with-AR-Dec-2019-English-1.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "f1a6c9965ce08a1c4786edfeb7e876e71ebf46f2",
+   "all_period_labels": [
+    "2019|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "60d92478c71c193a02508a85a887741ec71da6ec7195c54327e0b7cc3fa0fcfb",
+   "relpath": "archive/SA/4084/60d92478c71c193a02508a85a887741ec71da6ec7195c54327e0b7cc3fa0fcfb.pdf",
+   "ext": "pdf",
+   "size_bytes": 687612,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2020,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": "2020-12-31",
+   "period_end_detected_in_text": "2020-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 40,
+   "empty_pages": 0,
+   "text_chars": 94590,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4,
+     34
+    ],
+    "income": [
+     4,
+     5,
+     6,
+     13,
+     17,
+     21,
+     22,
+     25,
+     30,
+     36,
+     37
+    ],
+    "cash_flows": [
+     7
+    ],
+    "equity": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "period_end_month",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/08/Arabic-FS-DFC-2020.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "5af69ba3d498f4350c26a2829c96336f6a7bb3ea",
+   "all_period_labels": [
+    "2020|FY"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "5ad8edc219fa4a6d59d153f269c7476e85704adce260040743df7ee9657a6ce4",
+   "relpath": "archive/SA/4084/5ad8edc219fa4a6d59d153f269c7476e85704adce260040743df7ee9657a6ce4.pdf",
+   "ext": "pdf",
+   "size_bytes": 653856,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2021,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 42,
+   "empty_pages": 0,
+   "text_chars": 95423,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     42
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/04/Derayah-Financial-Company_Arabic-FS-and-Audit-Report_FY2021.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a044c7c57d2a1122554e4d6b476f11a98fb6a058",
+   "all_period_labels": [
+    "2021|FY"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "weak_period_classification:filename_code",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "00d1ad8e253168216f3dde5503d76fbc73f586a12e6b62f18986ec63ac40213c",
+   "relpath": "archive/SA/4084/00d1ad8e253168216f3dde5503d76fbc73f586a12e6b62f18986ec63ac40213c.pdf",
+   "ext": "pdf",
+   "size_bytes": 2178870,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 44,
+   "empty_pages": 3,
+   "text_chars": 98911,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6,
+     40
+    ],
+    "income": [
+     6,
+     7,
+     8,
+     15,
+     25,
+     29,
+     30,
+     33,
+     43
+    ],
+    "cash_flows": [
+     9,
+     41
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/04/Derayah-Arabic-Signed-FS-FY2022.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "583cd7a69ec58c7bbad05ca593224a5b1bcb7de2",
+   "all_period_labels": [
+    "2022|FY"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "bc712441c7720a263bf67be9fe4bccdaf9f3c360f120575295ca561522f47899",
+   "relpath": "archive/SA/4084/bc712441c7720a263bf67be9fe4bccdaf9f3c360f120575295ca561522f47899.pdf",
+   "ext": "pdf",
+   "size_bytes": 1396142,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2022,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2022-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 46,
+   "empty_pages": 0,
+   "text_chars": 116435,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6
+    ],
+    "income": [
+     7,
+     31
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/04/Derayah-Signed-English-FS-FY2022.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "69cca5b01ad30edaa2845c7d95b03133144609d0",
+   "all_period_labels": [
+    "2022|FY"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "0c3ebc486dd69c4823658b1b78a75bd812c59aaa4a3c88dd74a42e62f3117fcb",
+   "relpath": "archive/SA/4084/0c3ebc486dd69c4823658b1b78a75bd812c59aaa4a3c88dd74a42e62f3117fcb.pdf",
+   "ext": "pdf",
+   "size_bytes": 1703306,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2023,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2023-12-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 46,
+   "empty_pages": 0,
+   "text_chars": 119312,
+   "primary_statements_found": [
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     5,
+     40,
+     46
+    ],
+    "income": [
+     6
+    ],
+    "equity": [
+     7
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2024/10/Derayah_Final_Approved-Financial-Statements-and-Signed-Audit-Report_FY23.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "7a9e3f74fd776767e0c861111bacee6360e7c0e3",
+   "all_period_labels": [
+    "2023|FY"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "d2757e331754e232582b8af8bb650a67f2739b7603f7d0388099ab01c24eadc6",
+   "relpath": "archive/SA/4084/d2757e331754e232582b8af8bb650a67f2739b7603f7d0388099ab01c24eadc6.pdf",
+   "ext": "pdf",
+   "size_bytes": 709974,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": "2024-09-30",
+   "period_end_detected_in_text": "2024-09-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 28,
+   "empty_pages": 0,
+   "text_chars": 51633,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3
+    ],
+    "income": [
+     3,
+     4,
+     6,
+     14
+    ],
+    "cash_flows": [
+     6
+    ],
+    "equity": [
+     5
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah-FS-30%20September%202024-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "a54f6046166ee29da9a6cb7371c8e35ac6cbae2c",
+   "all_period_labels": [
+    "2024|9M"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "0e984adfac833f82b0bb2b0c226b86bb19ec709ea5af64895782d86cf168c2ca",
+   "relpath": "archive/SA/4084/0e984adfac833f82b0bb2b0c226b86bb19ec709ea5af64895782d86cf168c2ca.pdf",
+   "ext": "pdf",
+   "size_bytes": 1311420,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 50,
+   "empty_pages": 4,
+   "text_chars": 129293,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     20
+    ],
+    "income": [
+     13,
+     29,
+     30,
+     40,
+     47,
+     50
+    ],
+    "cash_flows": [
+     46
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2025/03/DERAYAH_AUDIT_REPORT_AND_FINANCIAL_STATEMENTS_AR_FY24.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "97cbcc3a94191d3673426cd549777888eaeccf00",
+   "all_period_labels": [
+    "2024|FY"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code",
+    "entity_name_not_in_front_pages_check",
+    "multiple_same_language_same_period:2024|FY"
+   ]
+  },
+  {
+   "sha256": "aa0a75e62300b1fc410f13a75e1a7eca5136f2762432631e2640df1707aaa5a6",
+   "relpath": "archive/SA/4084/aa0a75e62300b1fc410f13a75e1a7eca5136f2762432631e2640df1707aaa5a6.pdf",
+   "ext": "pdf",
+   "size_bytes": 956621,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2024,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2024-06-30",
+   "period_end_detected_in_text": "2024-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 26,
+   "empty_pages": 0,
+   "text_chars": 54617,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     3
+    ],
+    "income": [
+     3,
+     4,
+     6,
+     13,
+     14,
+     20
+    ],
+    "cash_flows": [
+     6,
+     8
+    ],
+    "equity": [
+     5
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah-FS-30-June-2024-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "0cc1444d0e9de25dca548b60ed3580df043eee62",
+   "all_period_labels": [
+    "2024|H1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "03becfd7dd05d3c091d90a1ee4a7f9e84ebc2f7f7c3f2d5264b3c13da22a508c",
+   "relpath": "archive/SA/4084/03becfd7dd05d3c091d90a1ee4a7f9e84ebc2f7f7c3f2d5264b3c13da22a508c.pdf",
+   "ext": "pdf",
+   "size_bytes": 2204250,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 29,
+   "empty_pages": 6,
+   "text_chars": 53504,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     10
+    ],
+    "income": [
+     10,
+     11,
+     12,
+     17,
+     25,
+     28
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah_%20Financial%20Statements_3Q2025_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "41b2fdcb8c676aebe4ff90a478983a233afec929",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows"
+   ]
+  },
+  {
+   "sha256": "2506fef064a8dba05e53344fbe5b15ccce0e56da48929af5f55db2e1b17dec54",
+   "relpath": "archive/SA/4084/2506fef064a8dba05e53344fbe5b15ccce0e56da48929af5f55db2e1b17dec54.pdf",
+   "ext": "pdf",
+   "size_bytes": 2095045,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 6,
+   "empty_pages": 0,
+   "text_chars": 13779,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%20ER%203Q%202025_AR_20251104.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "2116155144b5b63b71e6be5b549c3ebbcf8e15cf",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "6f99ea4e69af1b20fdf954eec93876f6ae627a776c1a302b37b240f8b637fcfb",
+   "relpath": "archive/SA/4084/6f99ea4e69af1b20fdf954eec93876f6ae627a776c1a302b37b240f8b637fcfb.pdf",
+   "ext": "pdf",
+   "size_bytes": 6847322,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "scanned_unreadable",
+   "completeness_dimension": "unknown_scanned",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "scanned_zero_text",
+   "pages": 29,
+   "empty_pages": 29,
+   "text_chars": 0,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2025-11-13_15-21-52_En.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [
+    "zero_text_scan_needs_visual_reading"
+   ]
+  },
+  {
+   "sha256": "831118efb901099a6e3a83f40c83e3118d5b16047cc0bbd95cde278452806c3c",
+   "relpath": "archive/SA/4084/supporting/831118efb901099a6e3a83f40c83e3118d5b16047cc0bbd95cde278452806c3c.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 1239528,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "9M",
+   "period_type": "9M",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2311,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%203Q%202025%20Data%20supplement%20vFinal.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "8e313d67dbcd8a0ced7e5f965571b9ecc88e8391",
+   "all_period_labels": [
+    "2025|9M"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Balance Sheet",
+    "Income Statement",
+    "Key metrics"
+   ]
+  },
+  {
+   "sha256": "339e781b8ccb204cec787c1f99ecc4aae2fb9fef86ed6181fbe719a246cb6903",
+   "relpath": "archive/SA/4084/339e781b8ccb204cec787c1f99ecc4aae2fb9fef86ed6181fbe719a246cb6903.pdf",
+   "ext": "pdf",
+   "size_bytes": 5565255,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "annual_report",
+   "bucket": "statement",
+   "file_class": "annual_report_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 59,
+   "empty_pages": 0,
+   "text_chars": 200493,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     34,
+     35
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2026/03/20260331-Derayah-Annual-Report-2025-Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "00ced7624bded21ab86e09d2d06ceab233f637e4",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "weak_period_classification:text_year_only"
+   ]
+  },
+  {
+   "sha256": "34e4df94ec2c40b84cb10ac55f5a3f74663cbd6932dc6c872aecb0b253009f97",
+   "relpath": "archive/SA/4084/34e4df94ec2c40b84cb10ac55f5a3f74663cbd6932dc6c872aecb0b253009f97.pdf",
+   "ext": "pdf",
+   "size_bytes": 2091320,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2024-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 51,
+   "empty_pages": 0,
+   "text_chars": 149187,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6
+    ],
+    "income": [
+     7,
+     51
+    ],
+    "cash_flows": [
+     9,
+     10
+    ],
+    "equity": [
+     8
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2025-03-24_10-42-07_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "84e85302df26de7aaef7032ba1e4946d3714c4d1",
+   "all_period_labels": [
+    "2024|FY",
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2024-12-31,labelled=2025-12-31",
+    "multiple_same_language_same_period:2025|FY",
+    "multiple_same_language_same_period:2024|FY"
+   ]
+  },
+  {
+   "sha256": "e5088d5b831dedeefe22d2dfb50e1a91033199f22b5b7828a00235d57211edcf",
+   "relpath": "archive/SA/4084/e5088d5b831dedeefe22d2dfb50e1a91033199f22b5b7828a00235d57211edcf.pdf",
+   "ext": "pdf",
+   "size_bytes": 2568495,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 62,
+   "empty_pages": 5,
+   "text_chars": 159870,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     61
+    ],
+    "income": [
+     20,
+     35,
+     36,
+     38,
+     40,
+     42,
+     45,
+     47,
+     49,
+     56,
+     57,
+     61
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text_year_only",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2026/03/DERAYAH_AR_CONSOLIDATED_FS___31_DECEMBER_2025.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "ecc2587064a7aef8b9cc233f1a8913a62e863f4b",
+   "all_period_labels": [
+    "2025|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|FY"
+   ]
+  },
+  {
+   "sha256": "2493c4836cddebed98f776a2dd0b22301979f3ccb7864ec300ac28d34ffa6259",
+   "relpath": "archive/SA/4084/2493c4836cddebed98f776a2dd0b22301979f3ccb7864ec300ac28d34ffa6259.pdf",
+   "ext": "pdf",
+   "size_bytes": 2499161,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 29,
+   "empty_pages": 6,
+   "text_chars": 56088,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     10
+    ],
+    "income": [
+     11
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2025-08-11_16-05-03_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b57f57cfe32fedc99cc5e86e40c66e510d0ed694",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|H1"
+   ]
+  },
+  {
+   "sha256": "674e0cc0dc94300d6282172b51430ddb1be873aa045d4a4044fb653e68e85fec",
+   "relpath": "archive/SA/4084/674e0cc0dc94300d6282172b51430ddb1be873aa045d4a4044fb653e68e85fec.pdf",
+   "ext": "pdf",
+   "size_bytes": 2203181,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 29,
+   "empty_pages": 6,
+   "text_chars": 53711,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     10,
+     29
+    ],
+    "income": [
+     10,
+     11,
+     12,
+     17,
+     25,
+     28
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah_Audited_%20Financial%20Statements_2Q2025_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e47adfad2c2603a7c95e43cc4225456b2bd602ca",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|H1"
+   ]
+  },
+  {
+   "sha256": "74602a94f2bd68fdb1c13584322db06907a40279e6e33e3f2521f5752a9b0344",
+   "relpath": "archive/SA/4084/supporting/74602a94f2bd68fdb1c13584322db06907a40279e6e33e3f2521f5752a9b0344.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 1240967,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2365,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%202Q%202025%20Data%20supplement%20v_Final.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "396a291e6573b5536dbf0638bd46015318b425da",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Balance Sheet",
+    "Income Statement",
+    "Key metrics"
+   ]
+  },
+  {
+   "sha256": "cf3841ba08943c9c43a8dfdf16bb9dec13c1959e247ef765986d29289055c823",
+   "relpath": "archive/SA/4084/cf3841ba08943c9c43a8dfdf16bb9dec13c1959e247ef765986d29289055c823.pdf",
+   "ext": "pdf",
+   "size_bytes": 1459788,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "presentation",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 6,
+   "empty_pages": 0,
+   "text_chars": 12000,
+   "primary_statements_found": [
+    "financial_position"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     6
+    ]
+   },
+   "entity_check": "arabic_only_unverified",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%20ER%202Q%202025_AR_20250805_Final.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "29b0231f5096d5357c3f7d1599b20fc3fc3cb6ff",
+   "all_period_labels": [
+    "2025|H1"
+   ],
+   "flags": [
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "1e262e46ac95eb60744f3188ad7bda83cde9a773115bfd10491e91670a7c94f6",
+   "relpath": "archive/SA/4084/1e262e46ac95eb60744f3188ad7bda83cde9a773115bfd10491e91670a7c94f6.pdf",
+   "ext": "pdf",
+   "size_bytes": 1819244,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 28,
+   "empty_pages": 6,
+   "text_chars": 52746,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     10
+    ],
+    "income": [
+     10,
+     11,
+     12,
+     17,
+     25
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah_Audited_%20Financial%20Statements_1Q2025_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "94501cab1c5a3d559ede9343a78959b75fa4ec56",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|Q1"
+   ]
+  },
+  {
+   "sha256": "8207ceff03deb4334ab43a6d102ccd9a2f5f1db30b4d4d903cd460863fa71e81",
+   "relpath": "archive/SA/4084/supporting/8207ceff03deb4334ab43a6d102ccd9a2f5f1db30b4d4d903cd460863fa71e81.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 1237834,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 2346,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%201Q%202025%20Data%20supplement%20vFinal.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c8757a661722433c0a1de1d15f4f7c8342ec91f1",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Balance Sheet",
+    "Income Statement",
+    "Key metrics"
+   ]
+  },
+  {
+   "sha256": "a8f1325eba55fd64a07ac50d3296e2fb16b55ec589109a4adca4025ed24be3c9",
+   "relpath": "archive/SA/4084/a8f1325eba55fd64a07ac50d3296e2fb16b55ec589109a4adca4025ed24be3c9.pdf",
+   "ext": "pdf",
+   "size_bytes": 1876901,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 28,
+   "empty_pages": 4,
+   "text_chars": 57582,
+   "primary_statements_found": [
+    "cash_flows",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     10
+    ],
+    "income": [
+     11
+    ],
+    "cash_flows": [
+     7,
+     8
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2025-05-15_18-47-13_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "87c36b4ea596c91894e1bff5741701e41e2af8e7",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "multiple_same_language_same_period:2025|Q1"
+   ]
+  },
+  {
+   "sha256": "cf43ade36129a040d82ca32936eb68a27173923a25243154af3c09e47803d8d7",
+   "relpath": "archive/SA/4084/cf43ade36129a040d82ca32936eb68a27173923a25243154af3c09e47803d8d7.pdf",
+   "ext": "pdf",
+   "size_bytes": 1221437,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2025,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 5,
+   "empty_pages": 0,
+   "text_chars": 10013,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     1
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%20ER%201Q%202025_AR_20250513_Final.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "6fceffa764b0809beaaeb5cfcfc7afa5501868e2",
+   "all_period_labels": [
+    "2025|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2025|Q1"
+   ]
+  },
+  {
+   "sha256": "f8790b99f209f8a8dfbb6aba9bedfb83fde2f2d19fb09128d1cb1aad99a9c90c",
+   "relpath": "archive/SA/4084/f8790b99f209f8a8dfbb6aba9bedfb83fde2f2d19fb09128d1cb1aad99a9c90c.pdf",
+   "ext": "pdf",
+   "size_bytes": 1561384,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "FY",
+   "period_type": "annual",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2025-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 62,
+   "empty_pages": 5,
+   "text_chars": 175796,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     61
+    ],
+    "income": [
+     20,
+     56
+    ],
+    "cash_flows": [
+     62
+    ],
+    "equity": [
+     56
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text_year_only",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2026-03-31_22-06-40_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "c8f59dad3f734a8175b0632dd5ab2a893cc5bde6",
+   "all_period_labels": [
+    "2025|FY",
+    "2026|FY"
+   ],
+   "flags": [
+    "weak_period_classification:text_year_only",
+    "same_hash_multiple_period_labels",
+    "period_mismatch_candidate:detected=2025-12-31,labelled=2026-12-31",
+    "multiple_same_language_same_period:2025|FY"
+   ]
+  },
+  {
+   "sha256": "01b1316e75598cddc9acd8b2920d263ea41981760e11496179f9a15f6fac0f76",
+   "relpath": "archive/SA/4084/01b1316e75598cddc9acd8b2920d263ea41981760e11496179f9a15f6fac0f76.pdf",
+   "ext": "pdf",
+   "size_bytes": 8431285,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": "2026-06-30",
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "ar",
+   "language_manifest": "ar",
+   "readability": "mostly_scanned",
+   "pages": 32,
+   "empty_pages": 27,
+   "text_chars": 1104,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "not_checkable",
+   "classification_method": "period_end_month",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2026/08/Derayah_Financial_Statements_30-June-2026-AR-Signed.pdf",
+   "manifest_scanned_flag": true,
+   "digest_text_sha1": null,
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "mostly_scanned_needs_visual",
+    "not_financial_statements"
+   ]
+  },
+  {
+   "sha256": "29e57c44d1459268a34427b7abbab39da09ad1db3eb7c29c3d74c26a60f5a729",
+   "relpath": "archive/SA/4084/29e57c44d1459268a34427b7abbab39da09ad1db3eb7c29c3d74c26a60f5a729.pdf",
+   "ext": "pdf",
+   "size_bytes": 407750,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-06-30",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_all",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 32,
+   "empty_pages": 0,
+   "text_chars": 79428,
+   "primary_statements_found": [
+    "cash_flows",
+    "equity",
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     2,
+     3
+    ],
+    "income": [
+     4,
+     13,
+     29
+    ],
+    "cash_flows": [
+     31
+    ],
+    "equity": [
+     5,
+     6
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2026-08-11_16-53-02_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "1b31fea00cf94fcb2cbc7d2a94c6fad4feadce4d",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": []
+  },
+  {
+   "sha256": "5228590c40b1829e5a828c444ccfe9ef5f36bcff29830ed4efee0680c01c750c",
+   "relpath": "archive/SA/4084/supporting/5228590c40b1829e5a828c444ccfe9ef5f36bcff29830ed4efee0680c01c750c.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 1270990,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "H1",
+   "period_type": "H1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 3239,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "filename_code",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%202Q%202026%20Data%20supplement_Final.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "972d181cdc2a596cf51240fea0b5cda5bca966f6",
+   "all_period_labels": [
+    "2026|H1"
+   ],
+   "flags": [
+    "weak_period_classification:filename_code"
+   ],
+   "sheets": [
+    "Index",
+    "Balance Sheet",
+    "Income Statement",
+    "Key metrics",
+    "Reconciliation &gt;",
+    "Consolidated BS",
+    "Consolidated IS"
+   ]
+  },
+  {
+   "sha256": "0793557d544b2b0a1b50169ee5a2cecb3b86f2961951fdd49de134ddb7b2e0b2",
+   "relpath": "archive/SA/4084/0793557d544b2b0a1b50169ee5a2cecb3b86f2961951fdd49de134ddb7b2e0b2.pdf",
+   "ext": "pdf",
+   "size_bytes": 1645290,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-12-31",
+   "period_check": "mismatch",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "partial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "ar",
+   "readability": "text",
+   "pages": 7,
+   "empty_pages": 1,
+   "text_chars": 13272,
+   "primary_statements_found": [
+    "income"
+   ],
+   "statement_pages": {
+    "income": [
+     6
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%20ER%201Q%202026%20AR%2020260511.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "e0a687ab566bb177bb3244e79305922cc58505b9",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "partial_statements_only",
+    "period_mismatch_candidate:detected=2026-12-31,labelled=2026-03-31",
+    "entity_name_not_in_front_pages_check"
+   ]
+  },
+  {
+   "sha256": "1b9803f1f7b13bd81391bf2ac414d2d473812a8a5eb1d35097de487a27e10af6",
+   "relpath": "archive/SA/4084/1b9803f1f7b13bd81391bf2ac414d2d473812a8a5eb1d35097de487a27e10af6.pdf",
+   "ext": "pdf",
+   "size_bytes": 1404632,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-03-31",
+   "period_check": "match",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 31,
+   "empty_pages": 6,
+   "text_chars": 59271,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     17
+    ],
+    "income": [
+     12,
+     17,
+     18,
+     21,
+     23,
+     25,
+     30
+    ]
+   },
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah_Audited_%20Financial%20Statements_1Q2026_Arabic.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "5c373709916260b861e0f7462a49883d520d838c",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "entity_name_not_in_front_pages_check",
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2026|Q1"
+   ]
+  },
+  {
+   "sha256": "d4c4523e993547630e90fa7da1503f0d69df974b0eb2de120026dae72ffd27f9",
+   "relpath": "archive/SA/4084/d4c4523e993547630e90fa7da1503f0d69df974b0eb2de120026dae72ffd27f9.pdf",
+   "ext": "pdf",
+   "size_bytes": 2261534,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_se"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": "2026-12-31",
+   "period_check": "match_in_candidates",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "financial_statements",
+   "completeness_dimension": "primary_statements_partial",
+   "language": "bilingual_or_mixed",
+   "language_manifest": "bilingual",
+   "readability": "text",
+   "pages": 31,
+   "empty_pages": 6,
+   "text_chars": 61879,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": {
+    "financial_position": [
+     17
+    ],
+    "income": [
+     30
+    ]
+   },
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "saudi_exchange_profile",
+   "source_url": "https://www.saudiexchange.sa/Resources/fsPdf/7206_0_2026-05-14_16-43-19_En.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "b3a0bae6fb1751867956f97847306887fb8ae657",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [
+    "missing_primary_statement:cash_flows",
+    "multiple_same_language_same_period:2026|Q1"
+   ]
+  },
+  {
+   "sha256": "e70c7ba949d4a41b6294bfd1abec81e197c0dda7472719ed64683acf1952379e",
+   "relpath": "archive/SA/4084/supporting/e70c7ba949d4a41b6294bfd1abec81e197c0dda7472719ed64683acf1952379e.xlsx",
+   "ext": "xlsx",
+   "size_bytes": 1263338,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": 2026,
+   "period_slot": "Q1",
+   "period_type": "Q1",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "no_date_found",
+   "document_type_manifest": "supporting_data_supplement",
+   "bucket": "supporting",
+   "file_class": "data_supplement",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "unknown",
+   "readability": "text",
+   "pages": null,
+   "empty_pages": null,
+   "text_chars": 3226,
+   "primary_statements_found": [
+    "financial_position",
+    "income"
+   ],
+   "statement_pages": null,
+   "entity_check": "name_token_found",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://ir.derayah.com/assets/files/Derayah%201Q%202026%20Data%20supplement_Final.xlsx",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "03b673eb2edf91af08c2b2bd509b157c7afb0fdd",
+   "all_period_labels": [
+    "2026|Q1"
+   ],
+   "flags": [],
+   "sheets": [
+    "Index",
+    "Balance Sheet",
+    "Income Statement",
+    "Key metrics",
+    "Reconciliation &gt;",
+    "Consolidated BS",
+    "Consolidated IS"
+   ]
+  },
+  {
+   "sha256": "bdad637e8a435901f2ad8168b4610768a928b794d44f9a2e74db65c2580d5e4e",
+   "relpath": "archive/SA/4084/bdad637e8a435901f2ad8168b4610768a928b794d44f9a2e74db65c2580d5e4e.pdf",
+   "ext": "pdf",
+   "size_bytes": 9418764,
+   "in_final_state_manifest": true,
+   "manifest_sources": [
+    "documents_jsonl",
+    "state_issuer"
+   ],
+   "fiscal_year": null,
+   "period_slot": null,
+   "period_type": "other_unclassified",
+   "period_end_manifest": null,
+   "period_end_detected_in_text": null,
+   "period_check": "not_checkable",
+   "document_type_manifest": "financial_statement",
+   "bucket": "statement",
+   "file_class": "other_no_statements_found",
+   "completeness_dimension": "none_found",
+   "language": "en",
+   "language_manifest": "en",
+   "readability": "text",
+   "pages": 31,
+   "empty_pages": 1,
+   "text_chars": 35724,
+   "primary_statements_found": [],
+   "statement_pages": {},
+   "entity_check": "name_token_absent",
+   "classification_method": "text",
+   "source": "issuer_site",
+   "source_url": "https://web.derayah.com/wp-content/uploads/2023/03/FinancialStatements-1.pdf",
+   "manifest_scanned_flag": false,
+   "digest_text_sha1": "776ed50638331b727410cc78d2c1e39c23c17d17",
+   "all_period_labels": [
+    "None|None"
+   ],
+   "flags": [
+    "not_financial_statements",
+    "unclassified_period",
+    "entity_name_not_in_front_pages_check"
+   ]
+  }
+ ]
+}
