@@ -7,7 +7,7 @@ Per-company evidence (page + line item) is in `<symbol>.json`. Rejected facts: n
 
 | Symbol | Numeric correctness | Document completeness | Company coverage |
 |---|---|---|---|
-| 3010 Arabian Cement | verified_correct (all 118 facts) | defective (pre-tax, OCI, EPS basic, many CF lines missing) | unverified (FY2025+FY2024 only) |
+| 3010 Arabian Cement | verified_correct (all 135 facts) | defective (pre-tax, OCI, EPS basic, many CF lines missing) | unverified (FY2025+FY2024 only) |
 | 3030 Saudi Cement | verified_correct (all 104) | defective (OCI, debt/lease CF, equity stmt) | unverified (FY2025+FY2024 only) |
 | 3050 Southern Province | verified_correct (all 103) | defective (31 Dec 2023 balance column, debt CF, OCI) | unverified (FY2025+FY2024 only) |
 | 2010 SABIC | defective (10 defects; face statements correct) | defective | defective (no quarterly; FY2021-23 summary only) |
