@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "symbol": "4013",
+  "name": "Dr. Sulaiman Al Habib Medical Services Group (HMG)",
+  "audit": {
+    "audited_on": "2026-10-03",
+    "auditor": "Claude Sonnet 5.5 (independent, raw-B005)",
+    "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+    "method": "SHA-256 checked by pg.py (sha_ok true) for the opened files. Statement pages of 5 filings rendered and read by eye (annual statements and the H1 2026 interim are image-only or scanned). tools/check_transcripts.py identities (BS identity, cash-flow sum and roll, NI split) pass for every transcribed column; subtotals re-added by hand. transcripts/4013.json holds the values; tools/mk4013.py regenerates it.",
+    "tools": ["tools/pg.py", "tools/rows.py", "tools/flat.py", "tools/sheet.py", "tools/head.py", "tools/survey.py", "tools/tl.py", "tools/check_transcripts.py", "tools/mk4013.py", "transcripts/4013.json"]
+  },
+  "dimensions": {
+    "value_correctness": {
+      "status": "extractable_and_verified_for_5_filings",
+      "summary": "Verified in whole SAR: FY2022, FY2023, FY2024, FY2025 annual statements (with comparatives, so FY2021 is also available) and H1 2026 (3M and 6M). FY2025: revenue 13,706,897,641; gross profit 4,207,006,604; operating profit 2,618,981,226; profit before zakat and income tax 2,519,271,079; profit 2,491,659,541 (owners 2,401,470,273, NCI 90,189,268); EPS 6.86; total assets 23,204,946,364; liabilities 14,776,266,748; equity 8,428,679,616; CFO 3,401,903,139; CFI -2,970,423,068; CFF -1,040,547,562; cash 2,281,635,206 (rolls exactly). FY2024: revenue 11,200,434,264; profit 2,369,961,072; total assets 20,557,929,072; CFO 2,970,397,894. FY2023: revenue 9,508,438,768; profit 2,101,470,578; total assets 15,798,041,567. FY2022: revenue 8,310,738,514; profit 1,688,949,178; total assets 12,584,117,726; FY2021 comparative revenue 7,250,472,190, profit 1,387,277,359. H1 2026: revenue 7,442,208,598; profit 1,218,714,266; total assets 24,688,229,274; CFO 1,832,489,867; cash 2,322,207,373; Q2 2026 as printed: revenue 4,006,446,109, profit 705,320,186. Consistency: income statement values of every year are identical in the filing that reports the year and in the next year's filing (FY2022, FY2023, FY2024 compared), so no income or balance sheet restatement found. Cash flows are year-to-date cumulative only; the interim income statement carries 3M and 6M columns. No discontinued operations.",
+      "restatements_and_representations": [
+        "FY2023 cash flow presentation changed in the FY2024 filing (26dbee9b): long-term loan line grossed up from net proceeds 1,700,512,995 to proceeds 1,930,000,000 and repayments (229,487,005); CFF (115,866,997), CFO (3,244,152,629), CFI (-3,486,628,149) and cash unchanged. Both versions are in the filings; transcript keeps the FY2023 filing values (bd1e1fbe) as current and the FY2024-filing comparative as prior_represented.",
+        "FY2022 cash-flow comparative in the FY2023 filing: working-capital lines differ from the original FY2022 filing (inventories -83,504,291 -> -92,566,741 per the FY2023 filing, other lines offset); CFO, CFI, CFF and cash unchanged.",
+        "FY2024 income statement and balance sheet in the FY2025 filing equal the FY2024 filing; FY2024 cash flow equal."
+      ],
+      "not_read": [
+        "notes to the statements in every file (segments, loans, Sukuk, zakat)",
+        "statements of changes in equity except FY2022 (read); OCI statements for FY2025 and FY2022, equity statements FY2023 to FY2025",
+        "interims never opened: Q1 2022 6e088861, H1 2022 71541c85, 9M 2022 b3462ebd, Q1 2023 04aee84f, H1 2023 600c22f8, 9M 2023 cd5991d6, Q1 2024 41a106ff (scanned), H1 2024 c0cf4195 (scanned), 9M 2024 796e1dce, Q1 2025 dce64048, H1 2025 1228eab7, 9M 2025 7aefd7d0, Q1 2026 c94f9e78 (H1 2025 and H1 2026 columns read only as comparatives inside 687abe5c)",
+        "2020 and 2021 press releases f025b3ce, 5f834d2f (headline results only) and all other press releases and factsheets",
+        "audit reports"
+      ]
+    },
+    "document_completeness": {
+      "status": "primary_statements_present_in_all_read_files_inventory_flags_wrong_for_several",
+      "summary": "All five read FS files contain the full BS, income, OCI, equity and cash-flow statements. Inventory misclassification: bd1e1fbe (complete FY2023 audited FS, 41 pages, all pages textless) is 'scanned_unreadable'; 687abe5c (H1 2026, statements on textless pages 4-8) is 'financial_statements' only via notes pages; 26dbee9b and bef89920 are flagged with income/BS found only from note pages. Text layer of 712f37a5 page 13 (cash flow) is garbled OCR (671,621.123; 162.7 62,985), so a text-layer extractor would produce wrong cash-flow numbers there; image reading was used. PERIOD LABELS: annual FS carry the label of the following year: bef89920 (FY2022) labelled 2023|FY, bd1e1fbe (FY2023) 2024|FY, 26dbee9b (FY2024) 2025|FY, 712f37a5 (FY2025) 2026|FY, so the four annual slots 2023|FY to 2026|FY are each shifted by one year; interim labels (Q1/H1/9M) matched cover text for the files checked (H1 2026 687abe5c 'three and six month periods ended 30 June 2026'; survey covers of 2022 to 2025 interims match). Non-statement files: 2020 and 2021 'financial_statements' f025b3ce and 5f834d2f are 5 to 6 page press releases, 8 one to three page factsheets and about 8 press releases classified inconsistently. Several 2023-2024 interims (cd5991d6, 600c22f8, 796e1dce, dce64048) are labelled 'other_no_statements_found' but are 15 to 17 page interim FS by their covers. No duplicates among statement files.",
+      "defect_ids": ["B005-4013-1", "B005-4013-2", "B005-4013-3"]
+    },
+    "company_coverage": {
+      "status": "sparse_by_inventory_but_statement_documents_present_for_most_periods",
+      "present_with_statements_verified": ["FY2022", "FY2023", "FY2024", "FY2025", "2026|H1"],
+      "present_with_statements_unread": ["2022|Q1", "2022|H1", "2022|9M", "2023|Q1", "2023|H1", "2023|9M", "2024|Q1", "2024|H1", "2024|9M", "2025|Q1", "2025|H1", "2025|9M", "2026|Q1"],
+      "derivable_comparatives": ["FY2021 BS, income, cash flow from the FY2022 file", "H1 2025 income, cash flow and Q2 2025 income from the H1 2026 file", "FY2020 and FY2021 headline results from press releases only (not statements)"],
+      "missing": ["2020|FY and 2021 interim and annual statements (press releases only; inventory first observed period 2019|FY)", "FY2019 and earlier (company listed 2020-03-17 per FY2025 note 1)", "2026|9M and 2026|FY not yet due"],
+      "inventory_confirmed": "inventory coverage_class sparse (5 of 27 complete) understates real holdings: 5 filings verified and 13 more interim filings present with statements but unread; because the unread ones were not opened, completeness is not claimed."
+    }
+  },
+  "documents": [
+    {"sha256": "712f37a5", "actual_period": "FY ended 2025-12-31 audited", "label_ok": false, "label_in_inventory": "2026|FY", "pdf_pages": {"bs": 9, "is": 10, "cf": 13}, "printed_pages": {"bs": 7, "is": 8, "cf": 11}, "units": "SAR", "reading": "visual"},
+    {"sha256": "26dbee9b", "actual_period": "FY ended 2024-12-31 audited", "label_ok": false, "label_in_inventory": "2025|FY", "pdf_pages": {"bs": 8, "is": 9, "cf": 12}, "printed_pages": {"bs": 6, "is": 7, "cf": 10}, "units": "SAR", "reading": "visual"},
+    {"sha256": "bd1e1fbe", "actual_period": "FY ended 2023-12-31 audited, scanned complete FS", "label_ok": false, "label_in_inventory": "2024|FY", "label_class_wrong": "inventory: scanned_unreadable", "pdf_pages": {"bs": 8, "is": 9, "cf": 12}, "printed_pages": {"bs": 6, "is": 7, "cf": 10}, "units": "SAR", "reading": "visual"},
+    {"sha256": "bef89920", "actual_period": "FY ended 2022-12-31 audited (EY)", "label_ok": false, "label_in_inventory": "2023|FY", "pdf_pages": {"bs": 8, "is": 9, "eq": 11, "cf": 12}, "printed_pages": {"bs": 5, "is": 6, "eq": 8, "cf": 9}, "units": "SAR", "reading": "visual"},
+    {"sha256": "687abe5c", "actual_period": "3M and 6M ended 2026-06-30 reviewed (PwC)", "label_ok": true, "pdf_pages": {"bs": 4, "is": 5, "oci": 6, "cf": 8}, "printed_pages": {"bs": 2, "is": 3, "oci": 4, "cf": 6}, "units": "SAR", "reading": "visual"}
+  ],
+  "defects": [
+    {"id": "B005-4013-1", "text": "Annual FS carry the publication-year label (FY2022 as 2023 ... FY2025 as 2026)."},
+    {"id": "B005-4013-2", "text": "Fully image-only or scanned statements classified scanned_unreadable / no statements; cash-flow text layer of FY2025 file is garbled OCR with wrong digits."},
+    {"id": "B005-4013-3", "text": "FY2023 cash-flow comparative grossed-up in the FY2024 filing and FY2022 working-capital lines re-presented; totals unchanged; both versions kept."}
+  ],
+  "unread_items": [
+    "notes in all files; equity statements except FY2022",
+    "13 interim filings (Q1 2022 to Q1 2026, except H1 2026) not opened",
+    "2020/2021 press releases, factsheets, audit reports"
+  ]
+}
