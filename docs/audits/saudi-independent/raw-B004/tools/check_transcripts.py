@@ -3,7 +3,7 @@
 Per document/column:
   * balance sheet: total_assets == total_liabilities + total_equity (when all three transcribed)
   * cash flow: cfo + cfi + cff == net_change; cash_begin + net_change (+ fx) == cash_end
-  * income: gross_profit == revenue + cost_of_revenue (cost stored negative); net_income == ni_parent + ni_nci
+  * income: gross_profit == revenue + cost_of_revenue (cost stored negative); or gross_profit_before_subsidy == revenue + operating_costs and gross_profit == gross_profit_before_subsidy + bunker_subsidy (shipping); net_income == ni_parent + ni_nci
   * the same identities on is_q (quarter-only columns)
 Cross-filing (restatement detector, never silent):
   * a cumulative column ('prior') that repeats a period reported as 'cur' in another transcribed filing must agree on the keys in
@@ -22,8 +22,8 @@ INV = ROOT.parent / "raw-coverage" / "companies"
 TR = ROOT / "transcripts"
 CROSS_KEYS = {
     "bs": ["total_assets", "total_liabilities", "total_equity", "cash", "ppe", "total_current_assets"],
-    "is": ["revenue", "cost_of_revenue", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent"],
-    "cf": ["cfo", "cfi", "cff", "net_change", "cash_begin", "cash_end", "capex_ppe", "capex_investment_property"],
+    "is": ["revenue", "cost_of_revenue", "operating_costs", "gross_profit_before_subsidy", "bunker_subsidy", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent"],
+    "cf": ["cfo", "cfi", "cff", "net_change", "cash_begin", "cash_end", "capex_ppe", "capex_projects", "capex_investment_property"],
 }
 
 
@@ -50,6 +50,10 @@ def identities(doc):
                 bad.append((doc["label"], col, key, i["net_income"], i["ni_parent"] + i["ni_nci"]))
             if {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and i["gross_profit"] != i["revenue"] + i["cost_of_revenue"]:
                 bad.append((doc["label"], col, key + "-gp", i["gross_profit"], i["revenue"] + i["cost_of_revenue"]))
+            if {"revenue", "operating_costs", "gross_profit_before_subsidy"} <= i.keys() and i["gross_profit_before_subsidy"] != i["revenue"] + i["operating_costs"]:
+                bad.append((doc["label"], col, key + "-gpb", i["gross_profit_before_subsidy"], i["revenue"] + i["operating_costs"]))
+            if {"gross_profit_before_subsidy", "bunker_subsidy", "gross_profit"} <= i.keys() and i["gross_profit"] != i["gross_profit_before_subsidy"] + i["bunker_subsidy"]:
+                bad.append((doc["label"], col, key + "-gp-sub", i["gross_profit"], i["gross_profit_before_subsidy"] + i["bunker_subsidy"]))
     return bad
 
 
