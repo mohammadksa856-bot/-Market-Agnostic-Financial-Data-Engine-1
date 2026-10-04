@@ -1,0 +1,60 @@
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+NOTES = "notes to the financial statements in every file; statements of changes in equity; auditor reports"
+ident = {
+    "63d37911": ("9M 2022 interim, whole-file scan (textless pdf p1-16; label 2022|9M)", "not value-read"),
+    "b5afff0f": ("H1 2022 interim, whole-file scan (textless; label 2022|H1)", "not value-read"),
+    "9cf8dbd1": ("three months ended 31 March 2022 (cover text); statements pdf p4-7 textless", "not value-read; class other_no_statements_found hides image-only statements"),
+    "5c2d5fc3": ("9M 2023 interim (cover text); statements pdf p4-7 textless", "not value-read"),
+    "a287c8de": ("FY2022 audited FS (cover text year ended 31 December 2022; label 2023|FY); statements pdf p7-10 textless", "not value-read; FY2022 values known from the FY2023 filing comparatives"),
+    "e6ce47cc": ("H1 2023 interim (cover text); statements textless", "not value-read"),
+    "44e7bd2a": ("Q1 2023 interim, whole-file scan (label 2023|Q1)", "not value-read"),
+    "a6891af2": ("cover says three-month period and the year ended December 31, 2023 (label 2023|Q1): a fourth-quarter/year 2023 filing, not Q1", "not value-read; period mislabelled by the collector"),
+    "d78f390c": ("9M 2024 interim (cover text); statements textless", "not value-read"),
+    "e0494c06": ("H1 2024 interim (cover text); text layer only for notes", "not value-read; its six-month 2024 column is known from the H1 2025 filing comparatives"),
+    "a0dd06ab": ("three months ended 31 March 2024 (cover text); statements textless", "not value-read"),
+    "408b31c4": ("9M 2025 interim (cover text); statements textless", "not value-read"),
+    "04d943df": ("Q1 2025 interim (cover text); statements textless", "not value-read; Q1 2025 values known from the Q1 2026 comparatives"),
+}
+spec = {
+    "method": ("SHA-256 recomputed for every audited file (tools/rec.py). All 19 inventory files were opened and identified from the cover pages (tools/survey.py). The statement pages of every Herfy filing are image-only (textless pdf p4-7 in interims, p7-12 in annual files), "
+               "so every value was read from rendered pages (tools/pg.py) for six filings: FY2023, FY2024, FY2025 annual, H1 2025, Q1 2026 and H1 2026. tools/check_transcripts.py over transcripts/6002.json checks balance sheet identity, cash-flow sum and roll, gross profit, "
+               "profit before zakat to net result, Q1+Q2=H1 roll and agreement of every comparative column with the original filing; all pass with no restatement found."),
+    "dimensions": {
+        "value_correctness": {
+            "status": "verified_for_6_filings_no_restatement_found",
+            "summary": ("Full Saudi riyals. FY2025: revenue 1,082,561,626, net loss (77,478,271) (zakat 2,400,000), total assets 1,578,155,130, equity 849,223,496, cash from operations 143,658,363; FY2024: revenue 1,124,768,690, net loss (116,524,061); FY2023: revenue 1,173,695,530, net profit 8,386,476; "
+                        "FY2022 (comparative): revenue 1,243,838,271, net profit 3,546,104; H1 2026: revenue 515,595,532, net loss (944,469), total assets 1,531,782,374; Q1 2026 net loss (3,907,863) against (18,596,843). All identities hold with zero difference; comparatives agree with the original filings "
+                        "(FY2023 in the FY2024 filing, FY2024 in FY2025, H1 2025 in H1 2026, Q1 + Q2 = H1 for 2026). The page headed 'Statement of changes in equity' at pdf p10 of the FY2023 file is the cash flow (heading error in the filing)."),
+            "not_read": [NOTES, "13 of 19 files (see unread_items)"]},
+        "document_completeness": {
+            "status": "all_19_files_have_image_only_statement_pages_inventory_classes_unreliable",
+            "summary": ("The inventory lists 4 files with all three statements, 10 partial, 2 no-statements and 3 scanned, but every statement page in every file is an image (textless pdf p4-7 or p7-12) so no text-layer extractor can confirm any statement; the inventory classes "
+                        "reflect only note pages and index pages. The three whole-file scans (2022 9M, 2022 H1, 2023 Q1 44e7bd2a) are fully textless. a6891af2 (labelled 2023|Q1) is a fourth-quarter/year 2023 filing per its cover."),
+            "defect_ids": ["B012-6002-1", "B012-6002-2", "B012-6002-3", "B012-6002-4"]},
+        "company_coverage": {
+            "status": "annual_FY2022_to_FY2025_present_6_filings_value_read_13_not_read",
+            "present_in_files_by_page_derived_period": ["FY2022 (a287c8de, not read)", "FY2023", "FY2024", "FY2025", "2022 Q1", "2022 H1", "2022 9M", "2023 Q1 (44e7bd2a)", "2023 Q4/year (a6891af2)", "2023 H1", "2023 9M",
+                                                         "2024 Q1", "2024 H1", "2024 9M", "2025 Q1", "2025 H1", "2025 9M", "2026 Q1", "2026 H1"],
+            "values_known_only_as_comparatives": ["FY2022 full statements (FY2023 filing)", "H1 2024 and Q2 2024 (H1 2025 filing)", "Q1 2025 (Q1 2026 filing)"],
+            "missing": ["FY2021 and earlier (inventory expects 60 periods back to 2010; only 2022 onward collected)"],
+            "inventory_corrections": "annual labels are publication-year (2023|FY = FY2022, 2024|FY = FY2023, 2025|FY = FY2024, 2026|FY = FY2025); 2023|Q1 a6891af2 is Q4/FY2023."}},
+    "defects": [
+        {"id": "B012-6002-1", "class": "all_statement_pages_image_only", "severity": "high",
+         "evidence": "Every Herfy file has textless statement pages: c5f11136 pdf p9-12, 0196f75c p8-11, 428566cf p7-10, 3355cd4d/daa14b6a/08f32d2a p4-7; the inventory classes partial_statements (c5f11136, 5c2d5fc3) and other_no_statements_found (9cf8dbd1, a0dd06ab) are artefacts of this."},
+        {"id": "B012-6002-2", "class": "annual_label_is_publication_year", "severity": "medium",
+         "evidence": "428566cf (2024|FY) is FY2023 (pdf p7-10), 0196f75c (2025|FY) FY2024, c5f11136 (2026|FY) FY2025, a287c8de (2023|FY) FY2022 (cover)."},
+        {"id": "B012-6002-3", "class": "mislabelled_period", "severity": "medium",
+         "evidence": "a6891af2 labelled 2023|Q1 has the cover 'FOR THE THREE-MONTH PERIOD AND THE YEAR ENDED DECEMBER 31, 2023' (page 1 text); it is not a Q1 2023 filing, so the Q1 2023 slot holds a Q4 filing plus the fully scanned 44e7bd2a."},
+        {"id": "B012-6002-4", "class": "statement_heading_error", "severity": "low",
+         "evidence": "428566cf pdf p10 (printed page 8) is headed 'STATEMENT OF CHANGES IN EQUITY FOR THE YEAR ENDED 31 DECEMBER 2023' but contains the cash flow statement."},
+        {"id": "B012-6002-5", "class": "interim_cash_flow_cumulative_only", "severity": "low",
+         "evidence": "Interim cash flows are cumulative (three or six months), so Q2 cash flows are derivable only by subtraction (H1 2026 operating 86,095,212 - Q1 2026 24,927,472 = 61,167,740); not verified against a standalone Q2 statement."}],
+    "unread_items": [NOTES, "equity statements", "13 of 19 files not value-read (2022 Q1/H1/9M, 2023 Q1 x2, H1, 9M, FY2022, 2024 Q1/H1/9M, 2025 Q1/9M)", "FY2021 and earlier: absent from the file set"],
+    "conclusion": ("NOT claimed complete. Six filings value-verified from rendered pages (FY2023, FY2024, FY2025, H1 2025, Q1 2026, H1 2026) plus FY2022 and several interim comparatives; no restatement found; 13 of 19 files identified from covers but not value-read; "
+                   "all statement pages are image-only; notes and equity statements unread; FY2021 and earlier absent."),
+    "identified": ident,
+}
+(HERE / "spec_6002.json").write_text(json.dumps(spec, indent=1, ensure_ascii=False) + "\n", encoding="utf8")
