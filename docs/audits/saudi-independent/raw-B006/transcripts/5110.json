@@ -1,0 +1,37 @@
+{
+ "symbol": "5110", "name": "Saudi Energy Company (formerly Saudi Electricity Company)", "currency": "SAR", "unit": "thousand SAR (statement header: all amounts in thousands of riyals); Arabic-Indic digits",
+ "docs": [
+  {"sha256_prefix": "ce37febf", "label": "FY2025 audited consolidated FS, Arabic (collector label 2025|FY, correct), with FY2024 re-presented comparative", "period_end": "2025-12-31", "period_type": "FY",
+   "reading": "visual: pdf p8-15 image-only Arabic-Indic digits; BS p8-9 (printed 6-7), P&L p10 (8), OCI p11 (9), cash flows p13-14 (11-12) rendered and read; only values whose identities close are transcribed, see value_correctness.digit_note",
+   "pages": {"bs": [8, 9], "is": 10, "oci": 11, "cf": [13, 14]},
+   "bs": {"cur": {"total_assets": 635823214, "total_liabilities": 378139654, "total_equity": 257683560, "cash": 1258043},
+          "prior": {"total_assets": 546098047, "total_liabilities": 294726341, "total_equity": 251371706, "cash": 1631656}},
+   "is": {"cur": {"revenue": 102217782, "gross_profit": 20785927, "pbt": 13324720, "net_income": 12974811, "eps": 3.11},
+          "prior": {"revenue": 88665641, "gross_profit": 17486273, "operating_income": 11769916, "pbt": 7054369, "net_income": 6866943, "eps": 1.65}},
+   "cf": {"cur": {"cfo": 49635082, "net_change": -373613, "cash_begin": 1631656, "cash_end": 1258043},
+          "prior": {"cfo": 38153683, "cfi": -55409940, "cff": 18266361, "net_change": 1010104, "cash_begin": 621552, "cash_end": 1631656}}},
+  {"sha256_prefix": "e1494b1a", "label": "FY2024 audited consolidated FS as originally filed, Arabic (collector label 2024|FY, correct), with FY2023 comparative", "period_end": "2024-12-31", "period_type": "FY",
+   "reading": "visual: pdf p7-14 image-only; BS p8-9 (printed 6-7), P&L p10 (8), cash flows p13-14 (11-12) rendered and read",
+   "pages": {"bs": [8, 9], "is": 10, "cf": [13, 14]},
+   "bs": {"cur": {"total_assets": 547014412, "total_liabilities": 295642706, "total_equity": 251371706, "cash": 1631656},
+          "prior": {"total_assets": 500788818, "total_liabilities": 244471106, "total_equity": 256317712, "cash": 621552}},
+   "is": {"cur": {"revenue": 88665641, "gross_profit": 17486273, "operating_income": 11769916, "pbt": 7054369, "net_income": 6866943, "eps": 1.65},
+          "prior": {"revenue": 75329673, "gross_profit": 15521376, "pbt": 10598280, "net_income": 10249299, "eps": 2.46}},
+   "cf": {"cur": {"cfo": 37816683, "cfi": -55072940, "cff": 18266361, "net_change": 1010104, "cash_begin": 621552, "cash_end": 1631656},
+          "prior": {"net_change": -2541272, "cash_begin": 3162824, "cash_end": 621552}}},
+  {"sha256_prefix": "b415f240", "label": "H1 2026 interim condensed consolidated (3M and 6M ended 2026-06-30), Arabic, Deloitte review (collector label 2026|H1, correct)", "period_end": "2026-06-30", "period_type": "H1",
+   "reading": "visual: BS pdf p4-5 (printed 2-3), P&L p6 (4), cash flows p10 (8, financing page only) rendered and read; text layer holds only a watermark",
+   "pages": {"bs": [4, 5], "is": 6, "cf": 10},
+   "bs": {"cur": {"total_assets": 673333774, "total_liabilities": 415990844, "total_equity": 257342930, "cash": 2315790},
+          "prior": {"total_assets": 635823214, "total_liabilities": 378139654, "total_equity": 257683560, "cash": 1258043}},
+   "is_q": {"cur": {"revenue": 30863048, "gross_profit": 7292896, "pbt": 5024820, "net_income": 4890751, "eps": 0.63},
+            "prior": {"revenue": 27721987, "gross_profit": 7350780, "pbt": 5419138, "net_income": 5284110, "eps": 0.73}},
+   "is": {"cur": {"revenue": 52199891, "gross_profit": 11098705, "pbt": 6903271, "net_income": 6723298, "eps": 0.53},
+          "prior": {"revenue": 47222371, "gross_profit": 10224691, "pbt": 6413213, "net_income": 6251888, "eps": 0.45}},
+   "cf": {"cur": {"cash_begin": 1258043, "cash_end": 2315790},
+          "prior": {"cash_begin": 1631656, "cash_end": 1875875}}}
+ ],
+ "restatements": [
+  {"period": "FY2024", "item": "total_assets", "original": 547014412, "original_sha": "e1494b1a", "re_presented": 546098047, "re_presented_sha": "ce37febf", "note": "total assets -916,365, total liabilities 295,642,706 -> 294,726,341, equity unchanged 251,371,706; CFO 37,816,683 -> 38,153,683 and CFI -55,072,940 -> -55,409,940 (CFF, net change and cash unchanged); revenue, PBT and net income unchanged"}
+ ]
+}
