@@ -23,6 +23,12 @@ def pick(doc, kind, lim=60):
         if kind == "bs" and re.search(r"statements? of financial position|balance sheet", h) and "total assets" in tl: return i
         if kind == "is" and re.search(r"statements? of (profit|income|comprehensive|operations)|profit or loss|statements? of income", h) and re.search(r"\n(revenues?|sales|net sales|net revenues?|revenue from)", tl) : return i
         if kind == "cf" and re.search(r"statements? of cash flows?", h) and "operating activities" in tl: return i
+    for i in range(min(len(doc), lim)):
+        t = doc[i].get_text(); tl = t.lower(); h = head(t).lower()
+        if "notes to the" in h[:300] or "index" in h[:80] or len(re.findall(r"\d{1,3}(?:,\d{3})+", t)) < 8: continue
+        if kind == "is" and "gross profit" in tl and re.search(r"revenues?|sales", tl) and "total assets" not in tl: return i
+        if kind == "cf" and "operating activities" in tl and "investing activities" in tl and re.search(r"net cash|cash generated|cash flows? (generated|from|used)", tl): return i
+        if kind == "bs" and "total assets" in tl and "total liabilities" in tl: return i
     return None
 def printed(t):
     ls = [l.strip() for l in t.splitlines() if l.strip()]
@@ -63,9 +69,13 @@ def run(sym, outdir):
             elif re.search(r"six", h): pt = "H1"
             elif re.search(r"three|quarter", h): pt = "Q"
             else: pt = "?"
+            cov = head(doc[0].get_text(), 500).lower(); cds = dates(head(doc[0].get_text(), 500))
+            if not r["period_end"] and cds: r["period_end"] = cds[0]
+            if pt == "?":
+                pt = "FY" if re.search(r"year[- ]ended", cov) else "9M" if "nine" in cov else "H1" if "six" in cov else "Q" if "three" in cov else "?"
             r["period_type"] = pt
-            r["scale_text"] = re.findall(r"(?:in|expressed in) [^\n.]{0,30}(?:thousand|'000|million|riyals?|usd|sar|dollars?)[^\n.]{0,20}|\(all amounts[^)]{0,60}\)|all amounts[^\n]{0,50}", ti, re.I)[:2]
-            r["unit_hint"] = re.search(r"thousand|'000", ti, re.I) is not None
+            r["scale_text"] = re.findall(r"(?:in|expressed in) [^\n.]{0,30}(?:thousand|['’]000|million|riyals?|usd|sar|dollars?)[^\n.]{0,20}|\(all amounts[^)]{0,60}\)|all amounts[^\n]{0,50}", ti, re.I)[:2]
+            r["unit_hint"] = re.search(r"thousand|['’]000", ti, re.I) is not None
             nc = 4 if pt in ("H1", "9M") else 2
             rs, pgs = getrows(doc, pi, r"net income|profit\)?[ /()a-z]{0,12}for the|loss\)?[ /()a-z]{0,12}for the")
             r["pdf"]["is"] = pgs; r["printed_is"] = printed(ti)
@@ -75,7 +85,7 @@ def run(sym, outdir):
             tb = doc[pb].get_text(); ds = dates(head(tb, 900)); r["bs_end"] = ds[0] if ds else None; r["bs_prior_end"] = ds[1] if len(ds) > 1 else None
             rs, pgs = getrows(doc, pb, r"total liabilities$|total equity and liabilities"); r["pdf"]["bs"] = pgs; r["printed_bs"] = printed(tb)
             r["bs"] = sel(rs, "bs", 2)
-            if len(ds) and re.search(r"thousand|'000", head(tb, 900), re.I): r["unit_hint"] = True
+            if len(ds) and re.search(r"thousand|['’]000", head(tb, 900), re.I): r["unit_hint"] = True
         if pc is not None:
             tc = doc[pc].get_text(); rs, pgs = getrows(doc, pc, r"cash.{0,40}(at (the )?end|end of (the )?(year|period)|at (december|march|june|september|31|30))|(at (the )?end|end of (the )?(year|period)).{0,30}cash"); r["pdf"]["cf"] = pgs; r["printed_cf"] = printed(tc)
             ds = dates(head(tc, 900)); r["cf_end"] = ds[0] if ds else None

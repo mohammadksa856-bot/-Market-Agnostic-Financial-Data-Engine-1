@@ -45,12 +45,12 @@ K = {
         ("nci", r"non-controlling"), ("total_equity_and_liabilities", r"^total equity and liabilities|^total liabilities and (share|equity)")],
  "is": [("revenue", r"^(revenues?|sales|net sales|net revenues?)$|^revenue from contracts"), ("cost_of_revenue", r"^cost of (revenues?|sales|goods sold)"), ("gross_profit", r"^gross (profit|loss)"),
         ("operating_income", r"^(operating (profit|income)|results from operating)"),
-        ("pbt", r"(profit|income|loss|\(loss\)).{0,25}before (zakat|income tax|tax|income)|before zakat"), ("tax", r"^\(?zakat|^income tax|^zakat and income tax|^tax"),
+        ("pbt", r"(profit|income|loss|\(loss\)).{0,25}before (zakat|income tax|tax|income)|before zakat"), ("tax", r"^\(?zakat|^income tax|^zakat and income tax|^tax(?! claim)|^\W*kfas"),
         ("net_income", r"^\(?(net )?(profit|income|loss)\)?[ /()a-z]{0,14}for the (year|period|three|six|nine)|^net (profit|income|loss)|^profit for|^(profit|loss)[ /()a-z]{0,14}after (zakat|tax)"),
-        ("parent", r"(owners|shareholders|equity holders|parent) of the (company|parent|group)|^(owners|shareholders) of"), ("nci", r"non-controlling"), ("eps", r"earnings per share|basic|diluted")],
+        ("parent", r"(owners|shareholders|equity holders|parent) of the (company|parent|group)|^(owners|shareholders) of|^company$|attributable to former parent"), ("nci", r"non-controlling"), ("eps", r"earnings per share|basic|diluted")],
  "cf": [("cfo", r"net cash (generated from|from|provided by|\(used in\)|used in|flows? from)[^/]{0,40}operating|net cash.*operating activities"), ("cfi", r"net cash.*investing"), ("cff", r"net cash.*financing"),
         ("net_change", r"^net (change|increase|decrease|\(decrease\)|movement).{0,40}cash|^(increase|decrease|\(decrease\)|net).{0,30}in cash"),
-        ("cash_begin", r"cash.{0,40}(beginning|at (the )?(january|1 )|(january|1 jan)|1 january)"), ("cash_end", r"cash.{0,40}(at (the )?end|end of (the )?(year|period)|at (december|march|june|september|31|30)|31 december|30 (june|september))|(at (the )?end|end of (the )?(year|period)).{0,30}cash"), ("fx", r"exchange (differences|rate)|foreign (currency|exchange)"),
+        ("cash_begin", r"cash.{0,40}(beginning|at (the )?(january|1 )|(january|1 jan)|1 january)"), ("cash_end", r"cash.{0,40}(at (the )?end|end of (the )?(year|period)|at (december|march|june|september|31|30)|31 december|30 (june|september))|(at (the )?end|end of (the )?(year|period)).{0,30}cash"), ("fx", r"exchange (differences|rate)|foreign (currenc|exchange)"),
         ("capex", r"^(purchase|acquisition|additions?)( of| to)? (property|plant|fixed|equipment)|^purchase of property|^capital expenditure")],
 }
 if __name__ == "__main__":

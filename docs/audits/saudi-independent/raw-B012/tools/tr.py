@@ -110,6 +110,11 @@ if __name__ == "__main__":
             r["bs_end"] = pt.get("bs_end")
             r["patched"] = pt["note"]
     docs, skipped = build(sym, auto)
+    off = meta.get("printed_offset")
+    if off is not None:
+        for d in docs:
+            d["printed_pages"] = {k: (v[0] if isinstance(v, list) else v) - off for k, v in d["pages"].items()}
+            d["printed_pages_note"] = f"printed page = pdf page - {off} (verified on rendered pages of this company)"
     mp = HERE / f"manual_{sym}.json"
     if mp.exists():
         docs += json.loads(mp.read_text(encoding="utf8"))
@@ -121,7 +126,7 @@ if __name__ == "__main__":
     (ct.TR / f"{sym}.json").write_text(json.dumps(t, indent=1, ensure_ascii=False) + "\n", encoding="utf8")
     for d in t["docs"]:
         i = d["is"]["cur"]
-        b = d["bs"]["cur"]
+        b = d.get("bs", {}).get("cur", {})
         c = d["cf"]["cur"]
         print(d["sha256_prefix"], d["period_type"], d["period_end"], "sc", d.get("scale"), "| rev", i.get("revenue"), "ni", i.get("net_income"), "par", i.get("ni_parent"),
               "| TA", b.get("total_assets"), "TL", b.get("total_liabilities"), "TE", b.get("total_equity"), "| cfo", c.get("cfo"), "cfi", c.get("cfi"), "cff", c.get("cff"),
