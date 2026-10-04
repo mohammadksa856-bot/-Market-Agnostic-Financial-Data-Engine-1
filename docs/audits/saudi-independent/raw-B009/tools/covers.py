@@ -1,4 +1,4 @@
-"""covers.py <symbol> <sha-prefix,...> <out.png> [page=1] [crop=0.5] [cols=3]: montage of page crops with sha prefix captions, for identifying
+"""covers.py <symbol> <sha-prefix,...> <out.png> [page=1] [crop=0-0.5 as fraction range of page height] [cols=3]: montage of page crops with sha prefix captions, for identifying
 scanned files by cover. Read-only on raw files; output is written outside git."""
 import sys
 
@@ -9,7 +9,8 @@ import pg
 
 sym, prefixes, out = sys.argv[1:4]
 page = int(sys.argv[4]) if len(sys.argv) > 4 else 1
-crop = float(sys.argv[5]) if len(sys.argv) > 5 else 0.5
+cs = sys.argv[5] if len(sys.argv) > 5 else "0-0.5"
+c0, c1 = (float(x) for x in (cs.split("-") if "-" in cs else ("0", cs)))
 cols = int(sys.argv[6]) if len(sys.argv) > 6 else 3
 tiles = []
 for pre in prefixes.split(","):
@@ -17,7 +18,7 @@ for pre in prefixes.split(","):
     d = pymupdf.open(p)
     pm = d[page - 1].get_pixmap(matrix=pymupdf.Matrix(0.9, 0.9))
     im = Image.frombytes("RGB", (pm.width, pm.height), pm.samples)
-    im = im.crop((0, 0, im.width, int(im.height * crop)))
+    im = im.crop((0, int(im.height * c0), im.width, int(im.height * c1)))
     c = Image.new("RGB", (im.width, im.height + 16), "white")
     c.paste(im, (0, 16))
     ImageDraw.Draw(c).text((2, 2), f"{pre} [{m['fiscal_year']}|{m['period_slot']}] {m['pages']}p", fill="red")
