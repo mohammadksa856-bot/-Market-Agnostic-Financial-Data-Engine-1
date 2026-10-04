@@ -2,12 +2,12 @@
 Every value is read from the printed page; a key that does not match exactly one row (or the n-th) raises, so nothing is guessed.
 Usage as a module: from tx import doc_entry, save ; see spec files in specs/."""
 import json, re, sys, pymupdf, pg
-NUM = re.compile(r'^\(?-?[\d,]+(\.\d+)?\)?$|^-$')
+NUM = re.compile(r'^\(?-?[\d,]+(\.\d+)?\)?$|^-{1,2}$')
 def rows_of(d, n):
     out = []; lab = ''; nums = []
     def flush():
         nonlocal lab, nums
-        if lab or nums: out.append((lab.strip(), nums))
+        if lab or nums: out.append((re.sub(r'^[─═\s]+(?:[─═]+\s*)*', '', lab.strip()), nums))
         lab = ''; nums = []
     for l in d[n - 1].get_text().splitlines():
         l = l.strip()
@@ -18,7 +18,7 @@ def rows_of(d, n):
             lab = (lab + ' ' + l).strip() if len(lab) < 80 and not lab.endswith(')') else l
     flush(); return out
 def val(s):
-    if s == '-': return 0
+    if s in ('-', '--'): return 0
     neg = s.startswith('(') or s.startswith('-')
     v = float(s.strip('()-').replace(',', ''))
     v = int(v) if v == int(v) and '.' not in s else v

@@ -1,0 +1,809 @@
+{
+ "schema_version": 1,
+ "symbol": "8012",
+ "name": "JAZIRA TAKAFUL (Aljazira Takaful Taawuni Company, Tadawul 8012)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B014)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase; SHA-256 recomputed for every document listed (18 files in the inventory, all match). Entity: Aljazira Takaful Taawuni Company on every cover 2022 to H1 2026 (no rename or merger seen). SAR thousand as printed. The balance sheet carries about SAR 1.6bn of investments held to cover unit-linked liabilities (matched by unit reserves in insurance contract liabilities) and goodwill 232,255, so total assets are not comparable with non-life peers.",
+  "method": "Statement pages located by text and inventory statement_pages; values read from the clean text layer by label for 2022 to H1 2026 filings (box-drawing characters stripped, merged rows resolved by position); FY2025 income statement (p8) rendered and checked by eye; the Q1 2025 file has image-only primary statements (pp4-8) and was rendered at 1.8x and read by eye. Every transcribed column passes the identities in tools/check_transcripts.py (BS equation; insurance service result; net insurance and investment chain; income before zakat; net income after zakat and tax; cash-flow sum and roll; Q1+Q2=H1 and H1+Q3=9M chains); three one-unit quarter-sum roundings are declared, and 16 cross-filing differences are declared with both values and reasons.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/peek.py",
+   "tools/tx.py",
+   "tools/decl.py",
+   "tools/survey.py",
+   "tools/sheet.py",
+   "tools/check_transcripts.py",
+   "tools/mkrecord.py",
+   "tools/specs/jazira.py",
+   "transcripts/8012.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_from_pages_for_12_statement_sets_FY2022_to_H1_2026_with_declared_IFRS17_restatement",
+   "summary": "SAR thousand. Transcribed sets: FY2022 (IFRS 4 original), FY2023, FY2024, FY2025; Q1/H1/9M 2024; Q1/H1/9M 2025; Q1 2026, H1 2026. Findings: (1) IFRS 17 transition restated 2022: income before zakat 30,284 -> 40,450, net income 28,354 -> 38,520, equity 841,477 -> 892,718, total assets 2,652,046 -> 2,533,534, cash 263,185 -> 254,752 (declared against the FY2023 annual). (2) FY2024 operating cash flow re-presented in the FY2025 annual: 72,596 -> 72,024 and financing -21,885 -> -21,313. (3) Results are dominated by unit-linked and FVTPL investment returns offset by finance expense (H1 2026: net investment return 144,148 vs net finance expense 126,147), so net income is thin: H1 2026 net income 100 (Q1 7,461, Q2 -7,361) vs H1 2025 20,193; FY2025 39,841; FY2024 37,203; FY2023 44,254; FY2022 28,354 (IFRS 4) / 38,520 (IFRS 17). (4) Q1+Q2=H1 and H1+Q3=9M chains hold for 2024, 2025 and 2026 apart from three declared one-unit roundings. (5) The H1 2026 dividend paid 26,400 appears in financing cash flow. Seasonality: 9M and H1 quarters differ widely because of FVTPL swings, Q3 is not run-rate of H1.",
+   "not_read": [
+    "notes to the statements in all files",
+    "equity statements and OCI (located, not transcribed)",
+    "balance-sheet component lines other than totals, cash and insurance contract liabilities",
+    "Q1/H1/9M 2022 and Q1/H1/9M 2023 interim statements (covers only; IFRS 4 for 2022 and the 2023 IFRS 17 first-year interims)"
+   ]
+  },
+  "document_completeness": {
+   "status": "all_18_files_are_single_period_english_statement_sets_one_has_image_only_primary_statements",
+   "summary": "All 18 files are full single-period English statement sets; no Arabic twins, no scans except e655fe25 (Q1 2025) whose primary statements are image pages 4-8 (the inventory lists statement_pages 15 and 21, which are segment notes, and flags cash flows missing). The inventory also flags 440eccd9, b05cbba4 and d057a23f missing cash flows although the CF page 8 is present with clean text in all three. The inventory flags 2022|FY as an internal gap; the FY2022 audited annual is labelled 2023|FY."
+  },
+  "company_coverage": {
+   "status": "complete_Q1_2022_to_H1_2026_by_page_derived_periods_values_transcribed_for_FY2022_to_FY2025_and_2024_2026_interims",
+   "present_page_derived": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "Q1/H1/9M 2022",
+    "Q1/H1/9M 2023",
+    "Q1/H1/9M 2024",
+    "Q1/H1/9M 2025",
+    "Q1 2026",
+    "H1 2026"
+   ],
+   "derivable_from_comparatives": [
+    "Q4 of each year by subtraction (never filed stand-alone)",
+    "Q2/Q3 quarter columns printed in H1/9M filings (verified 2024-2026)"
+   ],
+   "missing": [
+    "FY2021 and earlier annuals (the FY2022 annual carries 2021 comparatives only); history before 2022",
+    "FY2026 and 9M 2026 (not yet due)"
+   ],
+   "inventory_correction": "The inventory reports 2022|FY as an internal gap; page evidence shows the file labelled 2023|FY is the FY2022 audited statements, so no FY2022 gap exists, and annual labels 2023|FY to 2026|FY are FY2022 to FY2025 (publication year)."
+  }
+ },
+ "documents": [
+  {
+   "actual_period": "9M 2022 (period end 2022-09-30; from cover text)",
+   "label_ok": true,
+   "statements": "not transcribed (period confirmed from cover only)",
+   "transcript_docs": [],
+   "sha256": "3f26ae97f646eca568a3a33ea4039d40150dca4f56ff407cb5e0c08312ae6466",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/3f26ae97f646eca568a3a33ea4039d40150dca4f56ff407cb5e0c08312ae6466.pdf",
+   "size_bytes": 1316984,
+   "pdf_pages_total": 41,
+   "inventory_label": "2022|9M",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     3,
+     4,
+     17,
+     25,
+     35
+    ],
+    "income": [
+     3,
+     5,
+     6,
+     7,
+     36,
+     37,
+     38,
+     39
+    ],
+    "cash_flows": [
+     9,
+     40
+    ],
+    "equity": [
+     3,
+     8
+    ]
+   }
+  },
+  {
+   "actual_period": "H1 2022 (period end 2022-06-30; from cover text)",
+   "label_ok": true,
+   "statements": "not transcribed (period confirmed from cover only)",
+   "transcript_docs": [],
+   "sha256": "fb77d5e7c1c2761929825acca5c2b5a0e0e4752fa7c95920b29a657f5d7c6c33",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/fb77d5e7c1c2761929825acca5c2b5a0e0e4752fa7c95920b29a657f5d7c6c33.pdf",
+   "size_bytes": 1383764,
+   "pdf_pages_total": 41,
+   "inventory_label": "2022|H1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     3,
+     4,
+     25,
+     35
+    ],
+    "income": [
+     3,
+     5,
+     6,
+     36,
+     37,
+     38,
+     39
+    ],
+    "cash_flows": [
+     9,
+     40
+    ],
+    "equity": [
+     3,
+     8
+    ]
+   }
+  },
+  {
+   "actual_period": "Q1 2022 (period end 2022-03-31; from cover text)",
+   "label_ok": true,
+   "statements": "not transcribed (period confirmed from cover only)",
+   "transcript_docs": [],
+   "sha256": "dc0750dc1592c6989ac731a7fa93892b2d84039c438ebb1176fefef7af894247",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/dc0750dc1592c6989ac731a7fa93892b2d84039c438ebb1176fefef7af894247.pdf",
+   "size_bytes": 1701175,
+   "pdf_pages_total": 38,
+   "inventory_label": "2022|Q1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     3,
+     12,
+     18,
+     26,
+     34
+    ],
+    "income": [
+     3,
+     35,
+     36
+    ],
+    "cash_flows": [
+     37
+    ],
+    "equity": [
+     3
+    ]
+   }
+  },
+  {
+   "actual_period": "9M 2023 (period end 2023-09-30; from cover text)",
+   "label_ok": true,
+   "statements": "not transcribed (period confirmed from cover only)",
+   "transcript_docs": [],
+   "sha256": "10743483f6c48ad01aff58d551952fc67385985ff1a62fc1bb7065d90cdb645b",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/10743483f6c48ad01aff58d551952fc67385985ff1a62fc1bb7065d90cdb645b.pdf",
+   "size_bytes": 1907983,
+   "pdf_pages_total": 71,
+   "inventory_label": "2023|9M",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4,
+     41
+    ],
+    "income": [
+     5,
+     6,
+     27,
+     47,
+     49,
+     51,
+     53
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     7,
+     29
+    ]
+   }
+  },
+  {
+   "actual_period": "FY 2022 (period end 2022-12-31; from cover text)",
+   "label_ok": false,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "FY2022"
+   ],
+   "sha256": "868c2e319c3498bab7e7e94c5b50ed0331ffa93241bcc64c62a3e11d889cf93f",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/868c2e319c3498bab7e7e94c5b50ed0331ffa93241bcc64c62a3e11d889cf93f.pdf",
+   "size_bytes": 1972960,
+   "pdf_pages_total": 79,
+   "inventory_label": "2023|FY",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     9,
+     53,
+     56,
+     75
+    ],
+    "income": [
+     10,
+     11,
+     12,
+     40,
+     46,
+     76,
+     77
+    ],
+    "cash_flows": [
+     15,
+     78
+    ],
+    "equity": [
+     13,
+     14
+    ]
+   },
+   "note": "inventory label 2023|FY is publication year (FY2022, IFRS 4 original); fills the 2022|FY gap the inventory reports"
+  },
+  {
+   "actual_period": "H1 2023 (period end 2023-06-30; from cover text)",
+   "label_ok": true,
+   "statements": "not transcribed (period confirmed from cover only)",
+   "transcript_docs": [],
+   "sha256": "eca00812ed3a5c001023376995dc8dd92fe35852accb8120896085dc0136f2bb",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/eca00812ed3a5c001023376995dc8dd92fe35852accb8120896085dc0136f2bb.pdf",
+   "size_bytes": 2016709,
+   "pdf_pages_total": 70,
+   "inventory_label": "2023|H1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4,
+     41
+    ],
+    "income": [
+     5,
+     6,
+     27,
+     47,
+     49,
+     50,
+     51,
+     53
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     7,
+     29
+    ]
+   }
+  },
+  {
+   "actual_period": "Q1 2023 (period end 2023-03-31; from cover text)",
+   "label_ok": true,
+   "statements": "not transcribed (period confirmed from cover only)",
+   "transcript_docs": [],
+   "sha256": "7c97e6ec35db1723aa9f41a3458e13d31b4c720f3de46ecada98511ce60b3bf7",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/7c97e6ec35db1723aa9f41a3458e13d31b4c720f3de46ecada98511ce60b3bf7.pdf",
+   "size_bytes": 1538660,
+   "pdf_pages_total": 70,
+   "inventory_label": "2023|Q1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     3,
+     4,
+     26,
+     27,
+     41
+    ],
+    "income": [
+     3,
+     5,
+     6,
+     34
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     3,
+     7
+    ]
+   }
+  },
+  {
+   "actual_period": "9M 2024 (period end 2024-09-30; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "9M 2024"
+   ],
+   "sha256": "440eccd96ad8ffd4e01859f82c05882c8eb681f7dbc37b8d23c25e239cab92fa",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/440eccd96ad8ffd4e01859f82c05882c8eb681f7dbc37b8d23c25e239cab92fa.pdf",
+   "size_bytes": 2016387,
+   "pdf_pages_total": 52,
+   "inventory_label": "2024|9M",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5,
+     6,
+     23,
+     27
+    ],
+    "equity": [
+     7
+    ]
+   },
+   "class_ok": false,
+   "note": "inventory missing cash_flows is wrong: CF page 8 present"
+  },
+  {
+   "actual_period": "FY 2023 (period end 2023-12-31; from cover text)",
+   "label_ok": false,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "FY2023"
+   ],
+   "sha256": "3f4c9afd535f82345b5791d738843bb1df8d8245fd601e0447dfd50e5bf29e39",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/3f4c9afd535f82345b5791d738843bb1df8d8245fd601e0447dfd50e5bf29e39.pdf",
+   "size_bytes": 4171278,
+   "pdf_pages_total": 107,
+   "inventory_label": "2024|FY",
+   "inventory_class": "annual_report_with_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     9,
+     30,
+     46,
+     71,
+     93,
+     97,
+     98
+    ],
+    "income": [
+     10,
+     11,
+     52,
+     54,
+     55,
+     56,
+     57,
+     58,
+     65,
+     97,
+     99,
+     100
+    ],
+    "cash_flows": [
+     14,
+     97,
+     101
+    ],
+    "equity": [
+     12,
+     13
+    ]
+   },
+   "note": "inventory label 2024|FY is publication year (FY2023); first IFRS 17 annual with 2022 and 1 Jan 2022 restated"
+  },
+  {
+   "actual_period": "H1 2024 (period end 2024-06-30; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "H1 2024"
+   ],
+   "sha256": "b05cbba4dd201ce7cfb43d2b736062e9191e60f0f5b2518917de62e5cc2736e6",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/b05cbba4dd201ce7cfb43d2b736062e9191e60f0f5b2518917de62e5cc2736e6.pdf",
+   "size_bytes": 1244812,
+   "pdf_pages_total": 52,
+   "inventory_label": "2024|H1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5,
+     6,
+     23,
+     25,
+     27,
+     29
+    ],
+    "equity": [
+     7
+    ]
+   },
+   "class_ok": false,
+   "note": "inventory missing cash_flows is wrong: CF page 8 present"
+  },
+  {
+   "actual_period": "Q1 2024 (period end 2024-03-31; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "Q1 2024"
+   ],
+   "sha256": "62fafbbf72fa93df7cb5f8b803df0044e52ea1c32090d0bf135eaee09d9dc7ea",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/62fafbbf72fa93df7cb5f8b803df0044e52ea1c32090d0bf135eaee09d9dc7ea.pdf",
+   "size_bytes": 1088056,
+   "pdf_pages_total": 49,
+   "inventory_label": "2024|Q1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4
+    ],
+    "income": [
+     5,
+     6,
+     22,
+     24,
+     26,
+     28
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     7
+    ]
+   }
+  },
+  {
+   "actual_period": "9M 2025 (period end 2025-09-30; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "9M 2025"
+   ],
+   "sha256": "d057a23fd1c5f7c8862d029a56a8465171554f8d260ed3f468acaabc76f36d5c",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/d057a23fd1c5f7c8862d029a56a8465171554f8d260ed3f468acaabc76f36d5c.pdf",
+   "size_bytes": 1490809,
+   "pdf_pages_total": 59,
+   "inventory_label": "2025|9M",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4,
+     16,
+     46,
+     53
+    ],
+    "income": [
+     5,
+     6,
+     24,
+     26,
+     28,
+     30,
+     32,
+     34
+    ],
+    "equity": [
+     7
+    ]
+   },
+   "class_ok": false,
+   "note": "inventory missing cash_flows is wrong: CF page 8 present"
+  },
+  {
+   "actual_period": "FY 2024 (period end 2024-12-31; from cover text)",
+   "label_ok": false,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "FY2024"
+   ],
+   "sha256": "dbdca1446ab220cc6e79c195c37cd844d1155134100da05685f9d23d3d8c2464",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/dbdca1446ab220cc6e79c195c37cd844d1155134100da05685f9d23d3d8c2464.pdf",
+   "size_bytes": 1141873,
+   "pdf_pages_total": 103,
+   "inventory_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     7,
+     32,
+     43,
+     66,
+     69,
+     96,
+     97,
+     98
+    ],
+    "income": [
+     8,
+     9,
+     49,
+     51,
+     52,
+     53,
+     54,
+     55,
+     61,
+     97,
+     99,
+     100
+    ],
+    "cash_flows": [
+     12,
+     97,
+     101
+    ],
+    "equity": [
+     10,
+     11
+    ]
+   },
+   "note": "inventory label 2025|FY is publication year (FY2024)"
+  },
+  {
+   "actual_period": "H1 2025 (period end 2025-06-30; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "H1 2025"
+   ],
+   "sha256": "42bd770f3141f8fb5a822ac898163e17c2fd60b86cd9bc61a5d7851b688f4447",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/42bd770f3141f8fb5a822ac898163e17c2fd60b86cd9bc61a5d7851b688f4447.pdf",
+   "size_bytes": 1839474,
+   "pdf_pages_total": 56,
+   "inventory_label": "2025|H1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4,
+     10,
+     44
+    ],
+    "income": [
+     5,
+     6,
+     22,
+     24,
+     26,
+     28,
+     29,
+     30,
+     32
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     7
+    ]
+   }
+  },
+  {
+   "actual_period": "Q1 2025 (period end 2025-03-31; from cover text)",
+   "label_ok": true,
+   "statements": "VISUAL: BS p4, IS p5, CF p8 image pages rendered and read by eye",
+   "transcript_docs": [
+    "Q1 2025"
+   ],
+   "sha256": "e655fe25652c5cb42382a623700a688c16c6adb160d9253217f38fe253f839f8",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/e655fe25652c5cb42382a623700a688c16c6adb160d9253217f38fe253f839f8.pdf",
+   "size_bytes": 4141147,
+   "pdf_pages_total": 48,
+   "inventory_label": "2025|Q1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     15,
+     36,
+     42
+    ],
+    "income": [
+     21,
+     23,
+     25,
+     26,
+     27
+    ]
+   },
+   "class_ok": false,
+   "note": "inventory missing cash_flows is wrong; statement_pages 15 and 21 are segment notes"
+  },
+  {
+   "actual_period": "FY 2025 (period end 2025-12-31; from cover text)",
+   "label_ok": false,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "FY2025"
+   ],
+   "sha256": "71d4dcb1d8220dbaecf93f28c905f28464530c2655f9674d706c739de8c92e22",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/71d4dcb1d8220dbaecf93f28c905f28464530c2655f9674d706c739de8c92e22.pdf",
+   "size_bytes": 3177803,
+   "pdf_pages_total": 100,
+   "inventory_label": "2026|FY",
+   "inventory_class": "annual_report_with_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     7,
+     33,
+     42,
+     62,
+     67,
+     94,
+     95
+    ],
+    "income": [
+     8,
+     9,
+     30,
+     47,
+     49,
+     51,
+     53,
+     59,
+     94,
+     96,
+     97
+    ],
+    "cash_flows": [
+     12,
+     94,
+     98
+    ],
+    "equity": [
+     10,
+     11
+    ]
+   },
+   "note": "inventory label 2026|FY is publication year (FY2025)"
+  },
+  {
+   "actual_period": "H1 2026 (period end 2026-06-30; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "H1 2026"
+   ],
+   "sha256": "a2ef6774c99a53287b1e89807080daf048ff5f2feacfe5c513cfc6c12aed9371",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/a2ef6774c99a53287b1e89807080daf048ff5f2feacfe5c513cfc6c12aed9371.pdf",
+   "size_bytes": 2314431,
+   "pdf_pages_total": 50,
+   "inventory_label": "2026|H1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4,
+     38
+    ],
+    "income": [
+     5,
+     6,
+     25,
+     27,
+     29
+    ],
+    "cash_flows": [
+     8,
+     14
+    ],
+    "equity": [
+     7
+    ]
+   }
+  },
+  {
+   "actual_period": "Q1 2026 (period end 2026-03-31; from cover text)",
+   "label_ok": true,
+   "statements": "transcribed from pages (see transcripts)",
+   "transcript_docs": [
+    "Q1 2026"
+   ],
+   "sha256": "763ae825cce87f11ea3b3be74953325710a87d3db18340c73e8cfa9487860c19",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/8012/763ae825cce87f11ea3b3be74953325710a87d3db18340c73e8cfa9487860c19.pdf",
+   "size_bytes": 1533927,
+   "pdf_pages_total": 57,
+   "inventory_label": "2026|Q1",
+   "inventory_class": "financial_statements",
+   "inventory_language": "en",
+   "inventory_statement_pages": {
+    "financial_position": [
+     4,
+     15,
+     44,
+     51
+    ],
+    "income": [
+     5,
+     6,
+     23,
+     25,
+     29,
+     33
+    ],
+    "cash_flows": [
+     8
+    ],
+    "equity": [
+     7
+    ]
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "B014-8012-1",
+   "klass": "annual_period_label_is_publication_year",
+   "severity": "high",
+   "evidence": "868c2e31 (FY2022), 3f4c9afd (FY2023), dbdca144 (FY2024), 71d4dcb1 (FY2025) are labelled 2023|FY, 2024|FY, 2025|FY, 2026|FY; the inventory therefore reports a false 2022|FY gap"
+  },
+  {
+   "id": "B014-8012-2",
+   "klass": "ifrs17_transition_restatement_of_2022",
+   "severity": "high",
+   "evidence": "FY2022 as published (IFRS 4): income before zakat 30,284, net income 28,354, equity 841,477, cash 263,185; FY2023 annual restated 2022: 40,450, 38,520, 892,718, 254,752"
+  },
+  {
+   "id": "B014-8012-3",
+   "klass": "cash_flow_comparative_represented",
+   "severity": "medium",
+   "evidence": "FY2024 operating cash flow 72,596 and financing -21,885 in the FY2024 annual, 72,024 and -21,313 as the comparative in the FY2025 annual (net change 52,166 identical)"
+  },
+  {
+   "id": "B014-8012-4",
+   "klass": "inventory_false_missing_cash_flows_and_image_only_pages",
+   "severity": "medium",
+   "evidence": "inventory flags 440eccd9, b05cbba4, d057a23f, e655fe25 as missing cash flows; the first three have CF on clean page 8, the fourth has image-only pages 4-8 holding BS, IS and CF"
+  },
+  {
+   "id": "B014-8012-5",
+   "klass": "rounding_between_filings",
+   "severity": "low",
+   "evidence": "2025 Q1+Q2 vs H1 income before zakat 22,636 vs 22,637 and net income 20,192 vs 20,193; H1+Q3 vs 9M income before zakat differs by 1"
+  }
+ ],
+ "unread_items": [
+  "notes to the statements in all files",
+  "equity statements and OCI (located, not transcribed)",
+  "Q1/H1/9M 2022 (dc0750dc, fb77d5e7, 3f26ae97) and Q1/H1/9M 2023 (7c97e6ec, eca00812, 10743483) statements: covers only, values not transcribed",
+  "FY2021 and earlier annuals are not in the raw set"
+ ],
+ "conclusion": "Value correctness: headline three-statement values verified from pages for 12 sets (FY2022-FY2025, Q1/H1/9M 2024 and 2025, Q1/H1 2026) with the IFRS 17 restatement of 2022 and a cash-flow re-presentation declared with both values. Document completeness: all 18 files are single-period English statement sets; one has image-only primary statements read visually; inventory missing-cash-flow flags are false. Company coverage: every period Q1 2022 to H1 2026 present once by page evidence (the inventory 2022|FY gap is a label artefact). INCOMPLETE as a value history: six 2022-2023 interim sets not transcribed."
+}
