@@ -22,7 +22,7 @@ INV = ROOT.parent / "raw-coverage" / "companies"
 TR = ROOT / "transcripts"
 CROSS_KEYS = {
     "bs": ["total_assets", "total_liabilities", "total_equity", "cash", "insurance_contract_liabilities", "ppe", "total_current_assets", "loans", "deposits"],
-    "is": ["insurance_revenue", "insurance_service_expenses", "insurance_service_result", "net_reinsurance_result", "pool_surplus", "pbt_before_attribution", "surplus_to_insurance_operations", "other_income_expenses", "total_insurance_service_result", "net_insurance_finance_result", "net_insurance_investment_result", "other_operating_expenses", "gross_written_premiums", "net_underwriting_result", "net_investment_income", "income_tax", "revenue", "cost_of_revenue", "operating_costs", "gross_profit_before_subsidy", "bunker_subsidy", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent", "total_operating_expenses", "zakat_tax", "net_special_commission_income"],
+    "is": ["insurance_revenue", "insurance_service_expenses", "insurance_service_result", "net_reinsurance_result", "pool_surplus", "other_income", "pbt_before_attribution", "surplus_to_insurance_operations", "other_income_expenses", "total_insurance_service_result", "net_insurance_finance_result", "net_insurance_investment_result", "other_operating_expenses", "gross_written_premiums", "net_underwriting_result", "net_investment_income", "income_tax", "revenue", "cost_of_revenue", "operating_costs", "gross_profit_before_subsidy", "bunker_subsidy", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent", "total_operating_expenses", "zakat_tax", "net_special_commission_income"],
     "cf": ["cfo", "cfi", "cff", "net_change", "cash_begin", "cash_end", "capex_ppe", "capex_projects", "capex_investment_property"],
 }
 
@@ -58,8 +58,8 @@ def identities(doc):
                 bad.append((doc["label"], col, key + "-total-isr", i["total_insurance_service_result"], i["insurance_service_result"] + i["pool_surplus"]))
             if {"total_insurance_service_result", "net_investment_income", "net_insurance_finance_result", "net_insurance_investment_result"} <= i.keys() and i["net_insurance_investment_result"] != i["total_insurance_service_result"] + i["net_investment_income"] + i["net_insurance_finance_result"]:
                 bad.append((doc["label"], col, key + "-net-ins-inv", i["net_insurance_investment_result"], i["total_insurance_service_result"] + i["net_investment_income"] + i["net_insurance_finance_result"]))
-            if {"net_insurance_investment_result", "other_operating_expenses", "pbt"} <= i.keys() and i["pbt"] != i["net_insurance_investment_result"] + i["other_operating_expenses"]:
-                bad.append((doc["label"], col, key + "-pbt-chain", i["pbt"], i["net_insurance_investment_result"] + i["other_operating_expenses"]))
+            if {"net_insurance_investment_result", "other_operating_expenses", "pbt"} <= i.keys() and i["pbt"] != i["net_insurance_investment_result"] + i["other_operating_expenses"] + i.get("other_income", 0):
+                bad.append((doc["label"], col, key + "-pbt-chain", i["pbt"], i["net_insurance_investment_result"] + i["other_operating_expenses"] + i.get("other_income", 0)))
             if {"pbt_before_attribution", "surplus_to_insurance_operations", "pbt"} <= i.keys() and i["pbt"] != i["pbt_before_attribution"] + i["surplus_to_insurance_operations"]:
                 bad.append((doc["label"], col, key + "-attribution", i["pbt"], i["pbt_before_attribution"] + i["surplus_to_insurance_operations"]))
             if {"insurance_service_result", "net_investment_income", "net_insurance_finance_result", "other_income_expenses", "pbt_before_attribution"} <= i.keys() and "total_insurance_service_result" not in i and i["pbt_before_attribution"] != i["insurance_service_result"] + i["net_investment_income"] + i["net_insurance_finance_result"] + i["other_income_expenses"]:
