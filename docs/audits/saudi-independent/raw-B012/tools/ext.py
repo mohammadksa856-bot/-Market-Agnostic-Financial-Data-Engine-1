@@ -31,7 +31,11 @@ def rows(page):
                     label.append(t)
                 else:
                     label.append(t)
-        res.append((" ".join(label), nums))
+        lab = " ".join(label)
+        if res and not nums and lab[:1].islower() and res[-1][1]:
+            res[-1] = (res[-1][0] + " " + lab, res[-1][1])
+            continue
+        res.append((lab, nums))
     return res
 def val(t):
     if t == "-": return 0
@@ -46,8 +50,8 @@ K = {
  "is": [("revenue", r"^(revenues?|sales|net sales|net revenues?)$|^revenue from contracts"), ("cost_of_revenue", r"^cost of (revenues?|sales|goods sold)"), ("gross_profit", r"^gross (profit|loss)"),
         ("operating_income", r"^(operating (profit|income)|results from operating|net profit from operating)"),
         ("pbt", r"(profit|income|loss|\(loss\)).{0,25}before (zakat|income tax|tax|income)|before zakat"), ("tax", r"^\(?zakat|^income tax|^zakat and income tax|^tax(?! claim)|^\W*kfas"),
-        ("net_income", r"^\(?(net )?(profit|income|loss)\)?[ /()a-z]{0,14}for the (year|period|three|six|nine)|^net (profit|income|loss)(?! (from|before))|^profit for|^(profit|loss)[ /()a-z]{0,14}after (zakat|tax)"),
-        ("parent", r"(owners|shareholders|equity holders|parent) of the (company|parent|group)|^(owners|shareholders) of|^company$|attributable to former parent"), ("nci", r"non-controlling"), ("eps", r"earnings per share|basic|diluted")],
+        ("net_income", r"^\(?(net )?(profit|income|loss)\)?[ /()a-z]{0,14}for the (year|period|three|six|nine)(?!\s*(before|from|attributable|ended))|^\(?(net )?(profit|income|loss)\)?( / \(loss\))?$|^net (profit|income|loss)(?![ /()a-z]{0,14}(from|before|attributable))|^profit for|^(profit|loss)[ /()a-z]{0,14}after (zakat|tax)"),
+        ("parent", r"(owners|shareholders|equity holders|parent) of the (company|parent|group)|^(owners|shareholders) of|^company$|attributable to former parent"), ("nci", r"non-controlling"), ("eps", r"earnings per share|basic|diluted"), ("discontinued", r"(profit|loss).{0,40}from discontinu"), ("bio_impair", r"impairment.{0,20}biological"), ("bio_fv", r"fair valu.{0,30}biological|biological.{0,30}fair valu")],
  "cf": [("cfo", r"net cash (generated from|from|provided by|\(used in\)|used in|flows? from)[^/]{0,40}operating|net cash.*operating activities"), ("cfi", r"net cash.*investing"), ("cff", r"net cash.*financing"),
         ("net_change", r"^net (change|increase|decrease|\(decrease\)|movement).{0,40}cash|^(increase|decrease|\(decrease\)|net).{0,30}in cash"),
         ("cash_begin", r"cash.{0,40}(beginning|as of january|at (the )?(january|1 )|(january|1 jan)|1 january)"), ("cash_end", r"cash.{0,40}(at (the )?end|end of (the )?(year|period)|(at|as of) (december|march|june|september|31|30)|31 december|30 (june|september))|(at (the )?end|end of (the )?(year|period)).{0,30}cash"), ("fx", r"exchange (differences|rate)|foreign (currenc|exchange)"),

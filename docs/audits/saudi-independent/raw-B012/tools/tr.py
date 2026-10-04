@@ -19,12 +19,16 @@ def blk(d, i):
 
 def norm(b):
     notes = []
-    if {"revenue", "cost_of_revenue", "gross_profit"} <= b.keys() and b["cost_of_revenue"] > 0 and b["revenue"] - b["cost_of_revenue"] == b["gross_profit"]:
+    if "parent_disc" in b:
+        b["ni_parent"] = b.get("ni_parent", 0) + b.pop("parent_disc")
+        notes.append("ni_parent = continuing + discontinued")
+    extra = b.get("bio_fv", 0) + b.get("bio_impair", 0)
+    if {"revenue", "cost_of_revenue", "gross_profit"} <= b.keys() and b["cost_of_revenue"] > 0 and b["revenue"] - b["cost_of_revenue"] + extra == b["gross_profit"]:
         b["cost_of_revenue"] = -b["cost_of_revenue"]
-        notes.append("cost sign")
-    if {"pbt", "tax", "net_income"} <= b.keys() and b["tax"] > 0 and b["pbt"] - b["tax"] == b["net_income"]:
+        notes.append("cost sign (text layer dropped parentheses; fixed by identity)")
+    if {"pbt", "tax", "net_income"} <= b.keys() and b["tax"] > 0 and b["pbt"] - b["tax"] + b.get("discontinued", 0) == b["net_income"]:
         b["tax"] = -b["tax"]
-        notes.append("tax sign")
+        notes.append("tax sign (text layer dropped parentheses; fixed by identity)")
     return notes
 
 
@@ -105,6 +109,7 @@ if __name__ == "__main__":
     auto = json.load(open(os.path.join(ad, f"auto_{sym}.json"), encoding="utf8"))
     mp0 = HERE / f"meta_{sym}.json"
     meta = json.loads(mp0.read_text(encoding="utf8")) if mp0.exists() else {}
+    auto = [r for r in auto if r["sha"][:8] not in meta.get("skip_auto", [])]
     for r in auto:
         pt = meta.get("patches", {}).get(r["sha"][:8])
         if pt:
@@ -132,8 +137,8 @@ if __name__ == "__main__":
     apply_patches(docs, meta)
     inv = json.loads((ct.INV / f"{sym}.json").read_text(encoding="utf8"))
     t = {"symbol": sym, "name": inv["name"], "docs": sorted(docs, key=lambda d: (d["period_end"], d["period_type"], d["sha256_prefix"]))}
-    t.update({k: v for k, v in meta.items() if k not in ("patches", "doc_patches", "extra_rolls")})
-    t["roll_checks"] = rolls(t["docs"]) + meta.get("extra_rolls", [])
+    t.update({k: v for k, v in meta.items() if k not in ("patches", "doc_patches", "extra_rolls", "skip_auto")})
+    t["roll_checks"] = [r for r in rolls(t["docs"]) if not any(r["name"].startswith(s) for s in meta.get("skip_rolls", []))] + meta.get("extra_rolls", [])
     (ct.TR / f"{sym}.json").write_text(json.dumps(t, indent=1, ensure_ascii=False) + "\n", encoding="utf8")
     for d in t["docs"]:
         i = d["is"]["cur"]

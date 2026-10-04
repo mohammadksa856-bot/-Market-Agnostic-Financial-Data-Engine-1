@@ -41,11 +41,12 @@ def identities(doc):
             i = doc.get(key, {}).get(col)
             if i and {"net_income", "ni_parent", "ni_nci"} <= i.keys() and abs(i["net_income"] - i["ni_parent"] - i["ni_nci"]) > doc.get("tol", 0):
                 bad.append((doc["label"], col, key, i["net_income"], i["ni_parent"] + i["ni_nci"]))
-            if i and {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and i["revenue"] + i["cost_of_revenue"] != i["gross_profit"]:
+            if i and {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and i["revenue"] + i["cost_of_revenue"] + i.get("bio_fv", 0) + i.get("bio_impair", 0) != i["gross_profit"]:
                 bad.append((doc["label"], col, key + "-gross", i["gross_profit"], i["revenue"] + i["cost_of_revenue"]))
             if i and {"pbt", "tax", "net_income"} <= i.keys() and i["pbt"] + i["tax"] + i.get("discontinued", 0) != i["net_income"]:
                 bad.append((doc["label"], col, key + "-tax", i["net_income"], i["pbt"] + i["tax"] + i.get("discontinued", 0)))
-    return bad
+    acc = set(doc.get("accepted", []))
+    return [b for b in bad if f"{b[2]}:{b[1]}" not in acc]
 
 
 def cross(docs):

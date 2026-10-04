@@ -45,6 +45,14 @@ def getrows(doc, i, need):
     return rs, [i + 1]
 def sel(rs, kind, ncols):
     out = {}
+    if kind == "is":
+        prx = next(rx for k, rx in ext.K["is"] if k == "parent")
+        for i, (l, nums) in enumerate(rs):
+            if nums and re.search(prx, l, re.I) and i + 1 < len(rs) and rs[i + 1][1] and re.search(prx, rs[i + 1][0], re.I) and "non-controlling" not in rs[i + 1][0].lower() and len(nums) >= ncols and len(rs[i + 1][1]) >= ncols:
+                nxt = rs[i + 1]
+                if re.search(r"discontinu", rs[i + 1][0], re.I) or (i + 2 < len(rs) and re.search(r"discontinu", rs[i + 2][0], re.I)) or (i + 1 < len(rs) and "discontinu" in " ".join(x[0] for x in rs[i + 1:i + 4]).lower()):
+                    out["parent_disc"] = [ext.val(x) for x in nxt[1]][-ncols:]
+                break
     for key, rx in ext.K[kind]:
         for l, nums in rs:
             if nums and re.search(rx, l, re.I):
@@ -52,6 +60,23 @@ def sel(rs, kind, ncols):
                 if len(v) < ncols: continue
                 v = v[-ncols:]
                 out.setdefault(key, v); break
+    if kind == "is":
+        for i, (l, nums) in enumerate(rs):
+            if nums and len(nums) >= ncols and re.search(r"(profit|loss|income).{0,40}from discontinu|^discontinued operations", l, re.I) and not re.search(r"before", l, re.I):
+                out["discontinued"] = [ext.val(x) for x in nums][-ncols:]
+                for l2, n2 in rs[i + 1:i + 3]:
+                    if n2 and len(n2) >= ncols:
+                        out["net_income"] = [ext.val(x) for x in n2][-ncols:]
+                        break
+                break
+        for l, nums in rs:
+            if nums and len(nums) >= ncols and re.search(r"before zakat", l, re.I) and not re.search(r"discontinu", l, re.I):
+                out["pbt"] = [ext.val(x) for x in nums][-ncols:]
+                break
+        for l, nums in rs:
+            if nums and len(nums) >= ncols and re.match(r"^\(?zakat", l, re.I):
+                out["tax"] = [ext.val(x) for x in nums][-ncols:]
+                break
     return out
 def run(sym, outdir):
     inv = json.load(open(os.path.join(pg.INV, sym + ".json"), encoding="utf8"))

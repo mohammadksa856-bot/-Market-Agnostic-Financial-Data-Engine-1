@@ -1,0 +1,119 @@
+{
+ "method": "SHA-256 recomputed for every audited file (tools/rec.py). All 19 inventory files were opened and identified (tools/survey.py). Statement pages of 18 filings were read: the six whole-file scans (FY2022, Q1/H1/9M 2022, Q1 2023), the Q1 2024 income statement and cash flow (image-only pages inside a text file) and every other filing whose text layer drops parentheses (2023 to Q1/H1 2025) were rendered and read by eye (tools/pg.py, tools/sheet.py); the 9M 2025, FY2025, Q1 2026 and H1 2026 filings were read from the text layer (tools/auto.py) and cross-checked against renders and later comparatives. Several digits misread on first pass (for example G&A 16,860,468 and parent profit 27,249,386 in the 9M 2022 scan) were caught by arithmetic and by later filings' comparatives before recording. tools/check_transcripts.py over transcripts/6090.json checks balance sheet identity, cash-flow sum and roll, gross profit including the biological-asset fair-value line, profit before zakat plus discontinued operations to net profit, owners + non-controlling interests, rolls and agreement of every comparative with the original; the differences are declared restatements.",
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_18_filings_with_extensive_declared_restatements",
+   "summary": "Headline values in full Saudi riyals (SAR). FY2025: revenue 107,846,916, profit before zakat 1,581,400, net profit 2,651,760, total assets 536,007,895, cash from operations 23,228,126; FY2024: revenue 78,703,147, net loss (153,499,750), total assets 520,602,948; FY2023 as filed: revenue 84,331,249, net profit 1,523,667, total assets 618,379,075; FY2022 as filed: net profit 16,497,513; H1 2026 revenue 78,164,226, net loss (1,947,445). All identities hold with zero difference except one printed transposition (FY2024 financing (897,250) should be (879,250)). Comparatives are heavily restated and every difference is declared with both values: FY2022 (net profit 16,497,513 -> 9,868,072; operating cash flow (30,856,834) -> (7,856,830)), FY2023 (net profit 1,523,667 -> (32,336,333); total liabilities 110,570,612 -> 144,430,612 via a 33,860,000 guarantee-commitment loss), Q1 2024 (net loss (41,018,991) -> (107,958,991)), H1 2024 ((53,477,799) -> (120,417,799)), 9M 2024 ((72,473,858) -> (139,413,858)), 2023 interims (biological-asset gain regrouped; discontinued operations separated), 9M 2022 cash flow (25,000,000 moved from operating to investing), and 2025 cost of revenues grossed up with the fair-value gain in the 2026 filings (gross profit unchanged). A consumer must choose original versus restated values explicitly.",
+   "not_read": [
+    "notes to the financial statements in every file; statements of changes in equity; auditor reports; discontinued-operation and guarantee-commitment notes",
+    "annual report 2025 (38696e57; only its five-year table located)",
+    "Dec 2021 and earlier originals"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_all_18_statement_files_one_file_is_a_board_report_misslotted",
+   "summary": "18 files carry all primary statements. Six are whole-file scans classed scanned_unreadable or partial (2022 Q1/H1/9M, 2023 Q1, FY2022 label 2023|FY, plus Q1 2022 classed partial_statements); the Q1 2024 file has image-only income statement and cash flow pages (inventory says financial_statements) and its sibling text files lose parentheses so a text extractor returns wrong signs (FY2023 filing even prints three balance sheet columns, so last-two-columns extraction returns the restated 2022 column as current). 38696e57 labelled 2025|9M is the Board of Directors annual report 2025 (92 pages), not a 9M filing; the real 9M 2025 filing is c5b60505. The company was renamed (Jazan Energy and Development Company (JAZADCO) to Jazan Development and Investment Company) in 2023/2024.",
+   "defect_ids": [
+    "B012-6090-1",
+    "B012-6090-2",
+    "B012-6090-3",
+    "B012-6090-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2022_to_FY2025_and_every_interim_2022Q1_to_2026H1_each_with_own_filing",
+   "present_in_files_by_page_derived_period": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (FY2022 filing, restated Note 33)",
+    "Q1/H1/9M 2021 (2022 filings)"
+   ],
+   "missing": [
+    "FY2021 and earlier standalone filings (inventory expects 63 periods back to 2010; only 2022 onward collected)"
+   ],
+   "inventory_corrections": "annual labels are publication-year (2023|FY = FY2022, 2024|FY = FY2023, 2025|FY = FY2024, 2026|FY = FY2025); 2025|9M is split between the real 9M filing and the annual report."
+  }
+ },
+ "defects": [
+  {
+   "id": "B012-6090-1",
+   "class": "annual_label_is_publication_year",
+   "severity": "medium",
+   "evidence": "3fa8195b (2023|FY) is FY2022 (pdf p6-9), 48f29145 (2024|FY) FY2023, 57fe282a (2025|FY) FY2024, 5199e7b3 (2026|FY) FY2025."
+  },
+  {
+   "id": "B012-6090-2",
+   "class": "image_only_statements_and_scans",
+   "severity": "high",
+   "evidence": "a6b641fe, 33894f9b, 179192c6, 3fa8195b, 40a33c40 are whole-file scans; 250bb955 (2024|Q1) pdf p6 (income) and p8 (cash flow) are textless inside a text file; classes scanned_unreadable or partial or financial_statements hide that all hold full statements."
+  },
+  {
+   "id": "B012-6090-3",
+   "class": "text_layer_loses_signs_and_columns",
+   "severity": "high",
+   "evidence": "0c25ebb7, e2d7eedc, 48f29145, 816eca26, b0681daa, 4659767c, 57fe282a text layers drop parentheses or misplace them (e.g. e2d7eedc cost of revenues 53,681,438 positive, 48f29145 'Cost of revenue ) (' ); 48f29145 pdf p9 balance sheet has three columns (31 Dec 2023, 2022 restated, 1 Jan 2022). Extracted values would be wrong in sign or column."
+  },
+  {
+   "id": "B012-6090-4",
+   "class": "restated_or_represented_comparatives",
+   "severity": "high",
+   "evidence": "FY2022 (3fa8195b -> 48f29145, Note 37), FY2023 (48f29145 -> 57fe282a, Note 38: net profit 1,523,667 -> (32,336,333)), Q1 2024 (250bb955 -> 4659767c, Note 16), H1 2024 (816eca26 -> c21bf9b4), 9M 2024 (b0681daa -> c5b60505, note 18), Q1/H1 2023 comparatives (biological-asset gain 3,025,234 -> 6,492,251), 9M 2023 (discontinued operations), 9M 2022 cash flow (25,000,000 reclass), 2025 comparatives in 2026 filings (cost of revenues grossed up with the fair-value gain)."
+  },
+  {
+   "id": "B012-6090-5",
+   "class": "printed_transposition",
+   "severity": "low",
+   "evidence": "57fe282a pdf p11 FY2024 financing total (897,250) but components 616,625 + 249,400 + 13,225 = 879,250 and net change (10,611,140) agrees with 879,250; the FY2025 filing prints (879,250)."
+  },
+  {
+   "id": "B012-6090-6",
+   "class": "interim_does_not_roll",
+   "severity": "medium",
+   "evidence": "Q1 2022 (profit before zakat 3,755,310) + Q2 2022 (24,933,040) = 28,688,350 but the H1 2022 six-month column is 28,806,824 (difference 118,474; 179192c6 vs 33894f9b); H1 2024 + Q3 2024 revenue 68,711,410 vs 9M 2024 63,057,920 because the 9M filing re-presents H1 for discontinued operations."
+  },
+  {
+   "id": "B012-6090-7",
+   "class": "misslotted_annual_report",
+   "severity": "medium",
+   "evidence": "38696e57 labelled 2025|9M is 'Annual Report of Board of Directors 2025' (92 pages, covers pdf p1-3), class annual_report_no_statements_found."
+  },
+  {
+   "id": "B012-6090-8",
+   "class": "opening_balance_changes",
+   "severity": "medium",
+   "evidence": "Dec 2021 total assets 634,449,790 in the Q1 and H1 2022 filings (179192c6, 33894f9b) vs 632,826,731 in the 9M 2022 and FY2022 filings (restated, Note 18 and Note 33); equity 545,219,608 vs 543,596,549."
+  }
+ ],
+ "unread_items": [
+  "notes to the financial statements in every file; statements of changes in equity; auditor reports; discontinued-operation and guarantee-commitment notes",
+  "equity statements",
+  "annual report 2025 (38696e57) except identification",
+  "Dec 2021 and earlier originals (absent)",
+  "FY2021 annual statements (absent)"
+ ],
+ "conclusion": "NOT claimed complete. Eighteen filings value-verified from pages (FY2022 to FY2025, every interim 2022 Q1 to 2026 H1); heavy restatements declared with both values; one printed transposition; two interim roll differences declared; text layers unreliable for signs; notes, equity statements and pre-2022 history not read or absent.",
+ "identified": {
+  "38696e57": [
+   "Annual Report of the Board of Directors 2025 (cover read; five-year financial table at pdf p49)",
+   "not a statements file; labelled 2025|9M"
+  ]
+ }
+}
