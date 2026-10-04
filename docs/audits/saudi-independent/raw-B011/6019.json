@@ -1,0 +1,389 @@
+{
+ "schema_version": 1,
+ "symbol": "6019",
+ "name": "ALMASAR ALSHAMIL",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B011)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase; SHA-256 recomputed for every document listed (18 files in inventory). ALMASAR ALSHAMIL is Almasar Alshamil Education Company (formerly Amanat Special Education and Care Investments LLC).",
+  "method": "All 18 files opened (cover or statement pages). Eight English files (b72eb2f6 yielding three column sets) had BS, IS and CF rendered and read by eye or read from the text layer with images rendered as second source (FY2025, FY2024, H1 2024 / FY2021-2023 combined, Q1/H1/9M 2025, Q1/H1 2026). Arabic twins, annual reports and the press release were identified from rendered covers. tools/check_transcripts.py passes for transcripts/6019.json.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/kv.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/sheet.py",
+   "tools/check_transcripts.py",
+   "transcripts/6019.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_from_pages_for_8_english_files_11_transcript_docs",
+   "summary": "SAR thousand. BS totals, income statement through net profit with parent/NCI split and EPS, and cash flow (CFO/CFI/CFF/net change/opening and closing cash) transcribed from rendered pages for FY2025, FY2024, Q1/H1/9M 2025, Q1/H1 2026 and, from the special-purpose combined set, H1 2024 and FY2023, FY2022, FY2021 (11 transcript docs from 8 files; the combined set yields three). All identities pass (BS equation, income build and parent plus NCI, CF sum and roll, gross profit, six revenue/gross-profit/net-profit quarter-sum chains including the 2024 comparatives). Only 6 cross-filing differences, all declared with both values: FY2024 CFI -93,108 and CFF 14,776 in the FY2024 audit vs -81,108 and 2,776 in FY2025 comparatives (12,000 of dividends to non-controlling interests moved from investing to financing); FY2023 EPS 0.44 vs 44.7 and H1 2024 EPS 0.76 vs 78.1 (pre-restructuring share basis in the combined set); Q1 2025 opening and closing cash 174,173/196,054 vs 174,172/196,053 in the Q1 2026 comparatives (rounding). Revenue, profit, assets and equity never differ between filings. Seasonality: Q3 2025 is a loss (-18,207) because the summer quarter has little tuition revenue, so Q3 is not a run-rate.",
+   "not_read": [
+    "notes to the statements in all files",
+    "equity statements (located, not transcribed)",
+    "2025 annual reports (8bdc7043, cd1c89d2)",
+    "all Arabic twins (d2548a2f FY2024, 99667792 FY2025, bf89fd4f, beef082a, 5df58feb, 2f0a9341, 05c7a919)",
+    "Q1 2024 and Q3 2024 own filings (values only as comparatives)"
+   ]
+  },
+  "document_completeness": {
+   "status": "8_english_statement_files_complete_7_arabic_twins_and_2_annual_reports_unread",
+   "summary": "All eight English statement files (4a850a89, d8a48356, b72eb2f6, d2ef8678, 62358b97, 46e46588, 691fe1bb, 95e86880) contain BS, IS, OCI, equity and CF, seen on pages; 4a850a89, 62358b97, 95e86880 and 691fe1bb have the BS (and in 62358b97 several statements) as image pages inside text PDFs, which is why the inventory flags 4a850a89 partial_statements and others show blank text. b72eb2f6 is mislabelled 2025|FY (it is the combined IPO set FY2021-H1 2024). Seven Arabic-language files duplicate English periods or years (FY2024, FY2025, Q1/H1/9M 2025, Q1/H1 2026) and were identified from covers only; 99667792 has no period slot in the inventory. Two annual reports (English and Arabic, 2025) are not stand-alone statements and were not opened. d289ca80 is a press release, not statements."
+  },
+  "company_coverage": {
+   "status": "complete_FY2021_to_H1_2026_from_pages_except_Q1_Q3_2024_own_filings",
+   "present_page_derived": [
+    "2021 FY",
+    "2022 FY",
+    "2023 FY",
+    "2024 H1 (combined set)",
+    "2024 FY",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2025 FY",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "derivable_from_comparatives": [
+    "Q1 2024 (Q1 2025 file), Q2 2024 and 9M 2024 and Q3 2024 (H1 and 9M 2025 files; income and cash flows), H1 2023 and 2023 interim BS at 30 June 2023 (combined set)"
+   ],
+   "missing": [
+    "2024 Q1 and 9M stand-alone filings (company not yet listed; values exist only as comparatives)",
+    "pre-2021 history (the combined set begins 1 January 2021)",
+    "2026 Q3 and FY not yet due"
+   ],
+   "entity_note": "The registry name ALMASAR ALSHAMIL (listed 2025) is formerly Amanat Special Education and Care Investments LLC; the 2021-2023 combined statements and the pre-2025 comparatives belong to the same group but are on a combined (pre-restructuring) basis, with the share restructuring completed 27 June 2024. Fiscal year end is 31 December throughout (no change); the first 2024 documents are labelled 2024|FY by the inventory (Arabic twin) and 2025|FY (English twin), so an English and an Arabic file of the same year carry different labels.",
+   "inventory_correction": "Inventory counted 4 expected periods (2024|FY to 2026|H1 window) all complete, plus 4 extras (2025 Q1/H1/9M, 2026|FY). Page evidence: the true complete periods are 2025 Q1, H1, 9M, FY and 2026 Q1, H1 plus FY2024, and the inventory window ignores FY2021-FY2023 and H1 2024 held in b72eb2f6 (mislabelled 2025|FY) and the two annual reports."
+  }
+ },
+ "documents": [
+  {
+   "actual_period": "FY ended 2024-12-31 (Arabic; Almasar Alshamil, formerly Amanat)",
+   "label_ok": false,
+   "statements": "image pages 5-6 (statements) not read",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file; twin of d8a48356; inventory label 2024|FY is the true fiscal year here (unlike the English twin labelled 2025|FY)",
+   "sha256": "d2548a2f69c5e96596142f68145ebc0130001b8c9366e987c4de2bded073067b",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/d2548a2f69c5e96596142f68145ebc0130001b8c9366e987c4de2bded073067b.pdf",
+   "size_bytes": 1664252,
+   "pdf_pages_total": 49,
+   "inventory_label": "2024|FY",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "FY ended 2025-12-31 (Arabic audited statements and auditor report)",
+   "label_ok": false,
+   "statements": "image pages 8-9",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file; twin of 4a850a89; inventory label 2025|None has no slot and partial_statements reflects image pages",
+   "sha256": "99667792d191ae1a3580d027403830c30613d165b9d105b37c132434544f337a",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/99667792d191ae1a3580d027403830c30613d165b9d105b37c132434544f337a.pdf",
+   "size_bytes": 2028675,
+   "pdf_pages_total": 49,
+   "inventory_label": "2025|None",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "3M and 9M ended 2025-09-30 (English)",
+   "label_ok": true,
+   "statements": "IS p3, OCI p4, BS p5, equity p6, CF p7",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "transcribed",
+   "sha256": "46e465880eacdd7967ab12fc95087ed838988a98a980620be831371b5c516c31",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/46e465880eacdd7967ab12fc95087ed838988a98a980620be831371b5c516c31.pdf",
+   "size_bytes": 2466083,
+   "pdf_pages_total": 22,
+   "inventory_label": "2025|9M",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M and 9M ended 2025-09-30 (Arabic)",
+   "label_ok": true,
+   "statements": "not opened beyond cover",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file",
+   "sha256": "bf89fd4fff6f9bd7d1052cb8a81fe3e140e74ab3dde337c509c8625febf7409d",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/bf89fd4fff6f9bd7d1052cb8a81fe3e140e74ab3dde337c509c8625febf7409d.pdf",
+   "size_bytes": 1413089,
+   "pdf_pages_total": 18,
+   "inventory_label": "2025|9M",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "annual report 2025 (English, 100 pages)",
+   "label_ok": false,
+   "statements": "not opened beyond cover; financial statements section not located",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "annual report, not stand-alone statements; unread",
+   "sha256": "8bdc7043a9fcd74289aa50513534051492bebcd748dbd68273faeb6b7dd969d9",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/8bdc7043a9fcd74289aa50513534051492bebcd748dbd68273faeb6b7dd969d9.pdf",
+   "size_bytes": 19627366,
+   "pdf_pages_total": 100,
+   "inventory_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements"
+  },
+  {
+   "actual_period": "special purpose consolidated statements: six months to 2024-06-30 and 2023, years 2023, 2022, 2021 (Amanat Special Education and Care Investments LLC)",
+   "label_ok": false,
+   "statements": "IS p5, OCI p7, BS p8, equity p9-10, CF p11 (text layer, CF rendered)",
+   "reading": "text layer plus rendered CF",
+   "class_ok": false,
+   "note": "inventory label 2025|FY is wrong: not a FY2025 document; this is a combined set for the IPO covering FY2021-2023 and H1 2024 on a pre-restructuring basis (EPS 44.7 vs 0.44 after the share restructuring); transcribed as three docs",
+   "sha256": "b72eb2f631a071d094000b37e9886e10d0f370f2e70b2f58d3f77af89182a317",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/b72eb2f631a071d094000b37e9886e10d0f370f2e70b2f58d3f77af89182a317.pdf",
+   "size_bytes": 1291934,
+   "pdf_pages_total": 63,
+   "inventory_label": "2025|FY",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "annual report 2025 (Arabic, 99 pages)",
+   "label_ok": false,
+   "statements": "not opened beyond cover",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "annual report, Arabic twin of 8bdc7043; unread",
+   "sha256": "cd1c89d28b09ac0e718006c8d93f83afc8c4fd2c6153b06159cf8d6047233f7a",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/cd1c89d28b09ac0e718006c8d93f83afc8c4fd2c6153b06159cf8d6047233f7a.pdf",
+   "size_bytes": 15300200,
+   "pdf_pages_total": 99,
+   "inventory_label": "2025|FY",
+   "inventory_class": "annual_report_with_statements"
+  },
+  {
+   "actual_period": "FY ended 2024-12-31 (English, audited, Almasar Alshamil formerly Amanat)",
+   "label_ok": false,
+   "statements": "IS p7, OCI p8, BS p9, equity p10, CF p11",
+   "reading": "visual BS, text IS/CF",
+   "class_ok": true,
+   "note": "inventory label 2025|FY is publication year; transcribed",
+   "sha256": "d8a48356bfaee4b248449dc57ac17aef80de8fcb995f4b6648318aea17f3598f",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/d8a48356bfaee4b248449dc57ac17aef80de8fcb995f4b6648318aea17f3598f.pdf",
+   "size_bytes": 661961,
+   "pdf_pages_total": 59,
+   "inventory_label": "2025|FY",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M and 6M ended 2025-06-30 (English)",
+   "label_ok": true,
+   "statements": "IS p3, BS p5, CF p7 (equity p6) as image pages inside a text PDF",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "transcribed; many pages (3,4,8-12 and others) have no text layer",
+   "sha256": "62358b97cd04b11f03233baa26a30fb2bcb3a60b8058347e3f9bfa43121dc269",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/62358b97cd04b11f03233baa26a30fb2bcb3a60b8058347e3f9bfa43121dc269.pdf",
+   "size_bytes": 2001182,
+   "pdf_pages_total": 21,
+   "inventory_label": "2025|H1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M and 6M ended 2025-06-30 (Arabic)",
+   "label_ok": true,
+   "statements": "not opened beyond cover",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file",
+   "sha256": "beef082a79eb6eb27f6e24f85c369295c58287550bdf10f141211e628df72306",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/beef082a79eb6eb27f6e24f85c369295c58287550bdf10f141211e628df72306.pdf",
+   "size_bytes": 1053626,
+   "pdf_pages_total": 18,
+   "inventory_label": "2025|H1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M ended 2025-03-31 (Arabic)",
+   "label_ok": true,
+   "statements": "not opened beyond cover",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file",
+   "sha256": "5df58feb39440ed8426f640e24900114d706e529edb326ba393407b76cc85b32",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/5df58feb39440ed8426f640e24900114d706e529edb326ba393407b76cc85b32.pdf",
+   "size_bytes": 884563,
+   "pdf_pages_total": 17,
+   "inventory_label": "2025|Q1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M ended 2025-03-31 (English)",
+   "label_ok": true,
+   "statements": "IS p3, OCI p4, BS p5, equity p6, CF p7",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "transcribed",
+   "sha256": "d2ef867805cd959ab18212cb5f18cc132132f839e6e764a797629f3b7fd0ec68",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/d2ef867805cd959ab18212cb5f18cc132132f839e6e764a797629f3b7fd0ec68.pdf",
+   "size_bytes": 602820,
+   "pdf_pages_total": 20,
+   "inventory_label": "2025|Q1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "FY ended 2025-12-31 (English, audited, Deloitte)",
+   "label_ok": false,
+   "statements": "IS p6, OCI p7, BS p8 (image page), equity p9, CF p10",
+   "reading": "visual",
+   "class_ok": false,
+   "note": "inventory label 2026|FY is publication year; partial_statements is wrong (BS is an image page); transcribed",
+   "sha256": "4a850a89aa55a4dc48cc1a1cf1c1cff47e55cd9f4c45774dc9cd8f006f39ddec",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/4a850a89aa55a4dc48cc1a1cf1c1cff47e55cd9f4c45774dc9cd8f006f39ddec.pdf",
+   "size_bytes": 2522670,
+   "pdf_pages_total": 52,
+   "inventory_label": "2026|FY",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "3M and 6M ended 2026-06-30 (Arabic)",
+   "label_ok": true,
+   "statements": "not opened beyond cover",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file",
+   "sha256": "2f0a934123246fac0431c8df0190461022a8acb9a4218e0344e70385ff41b341",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/2f0a934123246fac0431c8df0190461022a8acb9a4218e0344e70385ff41b341.pdf",
+   "size_bytes": 1607961,
+   "pdf_pages_total": 20,
+   "inventory_label": "2026|H1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M and 6M ended 2026-06-30 (English)",
+   "label_ok": true,
+   "statements": "IS p3, OCI p4, BS p5 (image page), equity p6, CF p7",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "transcribed",
+   "sha256": "95e868806fb18f10c19005c611f717962deca08e492d7aaac1cefd935878521e",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/95e868806fb18f10c19005c611f717962deca08e492d7aaac1cefd935878521e.pdf",
+   "size_bytes": 1302086,
+   "pdf_pages_total": 23,
+   "inventory_label": "2026|H1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M ended 2026-03-31 (Arabic)",
+   "label_ok": true,
+   "statements": "not opened beyond cover",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language twin; cover rendered; values not read or compared to the English file",
+   "sha256": "05c7a91997b3a965465d491f48de72af44ecaa6441c4d35dd5c8a34de1656220",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/05c7a91997b3a965465d491f48de72af44ecaa6441c4d35dd5c8a34de1656220.pdf",
+   "size_bytes": 1304331,
+   "pdf_pages_total": 18,
+   "inventory_label": "2026|Q1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M ended 2026-03-31 (English)",
+   "label_ok": true,
+   "statements": "IS p3, OCI p4, BS p5 (image page), equity p6, CF p7",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "transcribed",
+   "sha256": "691fe1bb6ec93341413bd954f41d83635c298c5d69e9e1a6fed159189d4e2af2",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/691fe1bb6ec93341413bd954f41d83635c298c5d69e9e1a6fed159189d4e2af2.pdf",
+   "size_bytes": 1614176,
+   "pdf_pages_total": 23,
+   "inventory_label": "2026|Q1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "Q1 2026 earnings press release (Arabic, 7 pages, dated 12 May 2026)",
+   "label_ok": true,
+   "statements": "no primary statements; summary figures only (revenue 187.7m, profit attributable 53.9m match 691fe1bb)",
+   "reading": "cover rendered",
+   "class_ok": true,
+   "note": "inventory other_no_statements_found is right (a press release)",
+   "sha256": "d289ca8054d4c4e4355056c73e2d4855cf4a1c032719469573373a5dacbfe514",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/6019/d289ca8054d4c4e4355056c73e2d4855cf4a1c032719469573373a5dacbfe514.pdf",
+   "size_bytes": 572661,
+   "pdf_pages_total": 7,
+   "inventory_label": "2026|Q1",
+   "inventory_class": "other_no_statements_found"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B011-6019-1",
+   "klass": "annual_period_label_is_publication_year",
+   "severity": "high",
+   "evidence": "d8a48356 (FY2024, English) is labelled 2025|FY and 4a850a89 (FY2025) 2026|FY, while the Arabic twin d2548a2f (FY2024) is labelled 2024|FY and 99667792 (FY2025 Arabic) has no slot; the same fiscal year carries different labels across twins."
+  },
+  {
+   "id": "B011-6019-2",
+   "klass": "file_mislabelled_wrong_period",
+   "severity": "high",
+   "evidence": "b72eb2f6 is labelled 2025|FY but is the special-purpose combined statements for H1 2024 and FY2021-FY2023 (title page, 63 pages)."
+  },
+  {
+   "id": "B011-6019-3",
+   "klass": "inventory_class_wrong_image_statements",
+   "severity": "medium",
+   "evidence": "4a850a89 partial_statements: the balance sheet is an image page (p8) and all other statements are text; 62358b97, 95e86880, 691fe1bb also have image or text-less statement pages."
+  },
+  {
+   "id": "B011-6019-4",
+   "klass": "cash_flow_reclassification_between_filings",
+   "severity": "medium",
+   "evidence": "FY2024 CFI -93,108 / CFF 14,776 (FY2024 audit and special-purpose set) vs -81,108 / 2,776 (FY2025 comparatives); net change and closing cash unchanged. Quarterly CF for 2024 by subtraction across vintages would be wrong."
+  },
+  {
+   "id": "B011-6019-5",
+   "klass": "restated_comparatives_declared",
+   "severity": "low",
+   "evidence": "6 declared differences in transcripts/6019.json (CFI/CFF 2024, EPS basis 44.7 vs 0.44 and 78.1 vs 0.76, Q1 2025 cash rounding by 1). No revenue, profit, asset or equity differences."
+  },
+  {
+   "id": "B011-6019-6",
+   "klass": "arabic_twins_and_duplicates",
+   "severity": "low",
+   "evidence": "Seven Arabic files duplicate English periods (d2548a2f, 99667792, bf89fd4f, beef082a, 5df58feb, 2f0a9341, 05c7a919); two annual reports duplicate FY2025 in English and Arabic."
+  },
+  {
+   "id": "B011-6019-7",
+   "klass": "registry_period_mismatch",
+   "severity": "low",
+   "evidence": "Inventory expected_periods is 4 (window starts 2024|FY) but pages show history from FY2021 and no 2024 Q1/9M file; inventory declares coverage \"high\"/complete for 4 periods while 2024 interim filings are absent."
+  }
+ ],
+ "unread_items": [
+  "notes to the statements in all files",
+  "equity statements (located, not transcribed)",
+  "seven Arabic-language twin files (covers only)",
+  "two 2025 annual reports (English 8bdc7043, Arabic cd1c89d2)",
+  "Q1 2024 and 9M 2024 own filings (none collected; comparatives only)",
+  "whether pre-2021 combined statements exist elsewhere"
+ ],
+ "conclusion": "Complete three-statement values verified from pages for FY2021 to FY2025 and Q1 2025 to H1 2026 (plus H1 2024 combined); 2024 Q1 and 9M exist only as comparatives. NOT claimed complete: seven Arabic twins and two annual reports unread, notes and equity statements unread, pre-2021 absent. Revenue and profit do not differ across filings; one cash-flow classification change (12,000) and an EPS basis change are declared."
+}
