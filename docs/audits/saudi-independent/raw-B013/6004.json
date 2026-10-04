@@ -1,0 +1,392 @@
+{
+ "schema_version": 1,
+ "symbol": "6004",
+ "name": "CATRION (Catrion Catering Holding Co, formerly Saudi Airlines Catering Company)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B013)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. All four annual filings and the Q1 2026 interim have image-only statement pages and were rendered and read by eye; the H1 2026 income statement and cash flow were rendered because the text layer scrambles lines and drops values; the H1 2025 text layer is incomplete and only arithmetic-tied headline lines were transcribed. tools/check_transcripts.py over transcripts/6004.json checks BS identity, cash-flow sum and roll, gross profit, profit before zakat to net profit, owners + NCI, cross-filing agreement of comparatives and Q1 + Q2 = H1 rolls for 2026 and 2025; all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/check_transcripts.py",
+   "transcripts/6004.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_7_filings_no_restatement_found",
+   "summary": "Headline BS, income and cash-flow values (full SAR) transcribed for FY2022 (with FY2021), FY2023, FY2024, FY2025, H1 2025 (headline lines), H1 2026 (with Q2) and Q1 2026 (with Q1 2025). All identities hold with zero difference and every comparative column agrees with the earlier filing of the same period; no restatement was found. FY2025: revenue 2,441,044,531, net profit 313,621,296, total assets 3,451,579,427, CFO 320,222,095, cash 398,453,391. FY2024: revenue 2,299,259,701, net 352,770,108. FY2023: revenue 2,133,762,298, net 282,657,704. FY2022: revenue 1,818,006,368, net 257,103,138; FY2021 net 14,055,459. H1 2026: revenue 1,352,198,759, net 127,223,568 (owners 127,972,658, NCI -749,090 after a 2026 subsidiary acquisition with goodwill 367,527,145); Q1 2026 + Q2 2026 = H1 2026 for revenue, cost, operating profit, profit before zakat, net profit and owners' profit, and Q1 2025 + Q2 2025 = H1 2025 for revenue, gross profit, operating profit, profit before zakat and net profit. Presentation notes: the FY2022 file shows 'cash generated from operating activities' 377,368,494 and the FY2023 file 384,843,240 for FY2022 (long-term bonus paid shown separately), CFO identical 346,200,353; the FY2025 filing renames the statutory reserve (246,000,000) to Reserve; FY2021 EPS 0.17. Interim cash flow: Q1 2026 CFO 223,926,355 versus H1 2026 CFO 364,694,057; the acquisition payment is 309,878,023 in the Q1 statement and 309,875,862 in the H1 statement, so a Q2 cash flow by subtraction is NOT validated.",
+   "not_read": [
+    "notes in every file",
+    "statements of changes in equity (H1 2026 equity text only partially extracted; Q1 2026 equity statement not read)",
+    "H1 2025 cost of revenue and several lines (text layer incomplete)",
+    "2022 Q1/H1/9M, 2023 Q1/H1/9M, 2024 Q1/H1/9M, 2025 Q1/9M filings",
+    "annual reports: none in the collection for this symbol"
+   ]
+  },
+  "document_completeness": {
+   "status": "annual_FY2022_to_FY2025_and_interims_2022Q1_to_2026H1_with_statements_image_only_in_most_files",
+   "summary": "All annual FS and the Q1 2026 interim carry image-only statement pages (pdf p6-10 or p4-7 textless), so the text-layer inventory classes seven interim files other_no_statements_found and one whole-file scan scanned_unreadable although they contain full statements (checked for those opened). The H1 2026 file has a scrambled text layer that omits values; the H1 2025 text layer omits lines. FY files carry the publication-year label. 2022 and early-2023 files belong to Saudi Airlines Catering Company; the company was renamed Catrion Catering Holding Co in 2023 and is also styled Catrion for Catering Holding Company.",
+   "defect_ids": [
+    "B013-6004-1",
+    "B013-6004-2",
+    "B013-6004-3"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2022_to_FY2025_interims_2022Q1_to_2026H1_complete_by_label",
+   "present_in_files_by_page_derived_period": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1 (scan)",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2025 H1 (headline lines)",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (FY2022 filing)",
+    "2024 H1 and Q2 headline lines (H1 2025 filing)",
+    "2025 Q1 (Q1 2026 filing)",
+    "2025 Q2 and H1 (H1 2026 filing)"
+   ],
+   "values_not_read": [
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1 original",
+    "2025 9M"
+   ],
+   "missing": [
+    "FY2021 standalone",
+    "everything before FY2021",
+    "annual reports"
+   ],
+   "inventory_corrections": "FY labels are publication years (2023|FY holds FY2022, 2024|FY holds FY2023, 2025|FY holds FY2024, 2026|FY holds FY2025). Interim labels match the periods on the covers."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "20bface388ea48478f935bd3cf8f4005c74357a0e07b16ee4bc91a5681485e10",
+   "actual_period": "FY ended 2022-12-31 audited consolidated FS of Saudi Airlines Catering Company (collector label 2023|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/6004/20bface388ea48478f935bd3cf8f4005c74357a0e07b16ee4bc91a5681485e10.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 51
+  },
+  {
+   "sha256": "66999970ff7ef61c5db093a68b04ae3b83837086eef1d9c04df053bc17b55ccf",
+   "actual_period": "FY ended 2023-12-31 audited consolidated FS of Catrion Catering Holding (formerly Saudi Airlines Catering); label 2024|FY = publication year; inventory class partial_statements",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/6004/66999970ff7ef61c5db093a68b04ae3b83837086eef1d9c04df053bc17b55ccf.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 49
+  },
+  {
+   "sha256": "954d5faa743dbb9ac90bce9cd8554dc5b4664daceb6776e8e3088b1fd1711cf8",
+   "actual_period": "FY ended 2024-12-31 audited consolidated FS (label 2025|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/6004/954d5faa743dbb9ac90bce9cd8554dc5b4664daceb6776e8e3088b1fd1711cf8.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 49
+  },
+  {
+   "sha256": "f53011f6007be481e73a22508152c5d23c54e68d5bc30c821e3a6f23220bd65f",
+   "actual_period": "FY ended 2025-12-31 audited consolidated FS (label 2026|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/6004/f53011f6007be481e73a22508152c5d23c54e68d5bc30c821e3a6f23220bd65f.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 51
+  },
+  {
+   "sha256": "d7dea47a436c1d08c75273573a56b7a7ab83cd75b4ded5ae64ad685e4d4e9298",
+   "actual_period": "3M and 6M ended 2025-06-30 unaudited (text layer with missing lines; headline totals only)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 4,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 2,
+    "cf": 5
+   },
+   "units": "full SAR",
+   "reading": "text layer (incomplete); cost of revenue not transcribed",
+   "note": "H1 2025 values agree with the comparative columns in the H1 2026 filing",
+   "relpath": "archive/SA/6004/d7dea47a436c1d08c75273573a56b7a7ab83cd75b4ded5ae64ad685e4d4e9298.pdf",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 24
+  },
+  {
+   "sha256": "9b85d0577e323d80b4a82ccaae289aea5ae8c9d941cf92192cb90844a12f7f6a",
+   "actual_period": "3M and 6M ended 2026-06-30 unaudited",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 6,
+    "is": 4,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 4,
+    "is": 2,
+    "cf": 6
+   },
+   "units": "full SAR",
+   "reading": "visual for IS and CF (text layer scrambles lines and drops values), text layer for BS tied by identity",
+   "note": "extracted text drops cost of revenue, general and administrative expenses for 2026 and the financing lines",
+   "relpath": "archive/SA/6004/9b85d0577e323d80b4a82ccaae289aea5ae8c9d941cf92192cb90844a12f7f6a.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 33
+  },
+  {
+   "sha256": "9af63009def03d7b30ed913a5bbc87dc5191b1d419876d51df04e2c2e1103eff",
+   "actual_period": "3M ended 2026-03-31 unaudited (statement pages image-only)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 4,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 2,
+    "cf": 5
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/6004/9af63009def03d7b30ed913a5bbc87dc5191b1d419876d51df04e2c2e1103eff.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 28
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "18f6ddc92e9fe20e9bab246b957eedbfef0292f42e1501353780201dbdd3c000",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 26,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2022-09-30, Saudi Airlines Catering Company (cover text)",
+   "note": "classed other_no_statements_found; pdf p3-7 textless; not transcribed"
+  },
+  {
+   "sha256": "57729b29473005ecee3c73fbe93066bc601815034b08b36aef0e8512f289b44b",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 26,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2022-06-30 (cover text)",
+   "note": "classed other_no_statements_found; pdf p3-7 textless; not transcribed"
+  },
+  {
+   "sha256": "0c42652ad33d1be2fbfc226a681bb8e1f2b4d90145c79e454987ad59653f884d",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 30,
+   "language": "bilingual_or_mixed",
+   "actual_period": "3M ended 2022-03-31 (cover text)",
+   "note": "classed other_no_statements_found; not transcribed"
+  },
+  {
+   "sha256": "5f19d5f7a241c1db3995fa1dfee3a3c5dbffdeb95abb7b2c7ebc11b37f41cf62",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2023-09-30, Catrion (cover text)",
+   "note": "classed other_no_statements_found; not transcribed"
+  },
+  {
+   "sha256": "2c98e47434fdc53dc9867aace568ed73c14f727a2558d41f97796db6a751bad5",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2023-06-30 (cover text)",
+   "note": "classed other_no_statements_found; pdf p3-7 textless; not transcribed"
+  },
+  {
+   "sha256": "e4d3180802e215de71f088ef3bedf69f43ac5db24cb0d69ca2b6db06df19d9c0",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "3M ended 2023-03-31 (cover text)",
+   "note": "classed other_no_statements_found; pdf p3-7 textless; not transcribed"
+  },
+  {
+   "sha256": "a61b1e5a7482d9cb41c90a9ac08f3d1ff11658aaed83fdec2e3fe43786820f99",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2024-09-30 (cover text)",
+   "note": "classed other_no_statements_found; not transcribed"
+  },
+  {
+   "sha256": "baf7e0ad8a4a02038412a132dd639e4f0079cefe1cd6d53b3bf1237bfcc3a4fd",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2024-06-30 (cover read, whole-file scan 25 pages)",
+   "note": "classed scanned_unreadable; statements not transcribed; 6M 2024 known from the H1 2025 comparatives (partial)"
+  },
+  {
+   "sha256": "101391e46057d466827e2f8f54600bce1d1c176d9fe9d562a7bddbfd068f18ea",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "3M ended 2024-03-31 (cover text)",
+   "note": "pdf p4-7 textless; not transcribed"
+  },
+  {
+   "sha256": "0d864404af6cd6a1bb25d32a9932e87a8945182e54a8b1009dafb5aeb0ea6258",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 24,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2025-09-30 (cover text)",
+   "note": "pdf p4-7 textless; not transcribed"
+  },
+  {
+   "sha256": "a66c7a08aa46306af2f7d01743016e9a3a3ad3b6078d350783118df8db5e9501",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 24,
+   "language": "en",
+   "actual_period": "3M ended 2025-03-31 (cover text)",
+   "note": "pdf p4-7 textless; not transcribed; Q1 2025 known from the Q1 2026 comparatives"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B013-6004-1",
+   "class": "image_only_statement_pages_not_detected",
+   "severity": "high",
+   "evidence": "Annual FS 20bface3, 66999970, 954d5faa, f53011f6 have textless statement pages (pdf p6-10 or p7-10); interims 18f6ddc9, 57729b29, 0c42652a, 5f19d5f7, 2c98e474, e4d31808, a61b1e5a classed other_no_statements_found; 101391e4, 0d864404, a66c7a08, 9af63009 have textless statement pages; baf7e0ad is a whole-file scan."
+  },
+  {
+   "id": "B013-6004-2",
+   "class": "scrambled_or_incomplete_text_layer",
+   "severity": "high",
+   "evidence": "9b85d057 (H1 2026): extracted text interleaves cost of revenue with gross profit and drops 2026 G&A, hedging, lease and financing values; d7dea47a (H1 2025): cost of revenue and many lines missing. Text-layer parsing would give wrong or missing values; rendered pages were used."
+  },
+  {
+   "id": "B013-6004-3",
+   "class": "fiscal_year_label_is_publication_year",
+   "severity": "medium",
+   "evidence": "2023|FY is FY2022 (Saudi Airlines Catering), 2024|FY is FY2023, 2025|FY is FY2024, 2026|FY is FY2025."
+  },
+  {
+   "id": "B013-6004-4",
+   "class": "company_rename",
+   "severity": "low",
+   "evidence": "Files for 2022 to Q2 2023 are titled Saudi Airlines Catering Company; later files Catrion Catering Holding Company (formerly known as Saudi Airlines Catering Company). Same registry symbol 6004, same company on the pages."
+  },
+  {
+   "id": "B013-6004-5",
+   "class": "interim_cash_flow_not_comparable_for_subtraction",
+   "severity": "low",
+   "evidence": "Q1 2026 payment for acquisition of subsidiary 309,878,023 versus H1 2026 309,875,862; line items differ, so Q2 by subtraction is not validated."
+  }
+ ],
+ "unread_items": [
+  "notes in all files",
+  "statements of changes in equity",
+  "2022 to 2024 interims and Q1/9M 2025 financial statements",
+  "H1 2025 cost of revenue and missing lines",
+  "annual reports (not in collection)"
+ ],
+ "conclusion": "NOT claimed complete. Seven filings value-verified from pages (four with image-only statements); no restatement found; 11 further files are not value-read; nothing before FY2021."
+}
