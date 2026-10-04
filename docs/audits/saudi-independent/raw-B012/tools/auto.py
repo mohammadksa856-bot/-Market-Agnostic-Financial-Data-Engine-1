@@ -32,7 +32,10 @@ def pick(doc, kind, lim=60):
     return None
 def printed(t):
     ls = [l.strip() for l in t.splitlines() if l.strip()]
-    for l in ls[:10] + ls[-4:]:
+    for l in reversed(ls[-6:]):
+        m = re.fullmatch(r"[-– ]*(\d{1,3})[-– ]*", l)
+        if m: return int(m.group(1))
+    for l in ls[:10]:
         if re.fullmatch(r"\d{1,3}", l): return int(l)
     return None
 def getrows(doc, i, need):

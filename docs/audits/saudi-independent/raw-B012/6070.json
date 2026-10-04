@@ -1,0 +1,725 @@
+{
+ "schema_version": 1,
+ "symbol": "6070",
+ "name": "ALJOUF",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B012)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file (tools/rec.py). All 18 inventory files were opened and identified from the first pages (tools/survey.py). Ten statement files with a text layer were read with tools/auto.py (rows rebuilt from word coordinates); seven interim files whose statement pages are image-only (textless pdf p3-7) were rendered and read by eye (tools/pg.py); the FY2025 filing's text layer drops parentheses and splits numbers, so its balance sheet and cash flow (the cash flow page is image-only) were read from the rendered pages, and the H1 2024 cash flow was re-read from the render. tools/check_transcripts.py over transcripts/6070.json checks balance sheet identity, cash-flow sum and roll, gross profit, profit before zakat to net profit, Q1+Q2=H1 and H1+Q3=9M rolls and agreement of every comparative column with the original filing of the same period; the differences found are declared restatements.",
+  "tools": [
+   "tools/pg.py",
+   "tools/survey.py",
+   "tools/stm.py",
+   "tools/ext.py",
+   "tools/auto.py",
+   "tools/sheet.py",
+   "tools/tr.py",
+   "tools/rec.py",
+   "tools/check_transcripts.py",
+   "transcripts/6070.json",
+   "tools/spec_6070.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_18_filings_with_4_declared_cash_flow_representations_and_1_ppe_reclassification",
+   "summary": "Headline values in full Saudi riyals (SAR). FY2025: sales 712,226,774, net profit 81,263,378, total assets 1,299,524,036, equity 798,978,519, cash from operations 75,924,479; FY2024: sales 582,788,144, net profit 75,300,454, cash from operations 121,337,652 as filed (125,498,486 in the FY2025 comparative); FY2023: sales 426,435,301, net profit 61,968,851; FY2022: sales 341,996,642, net profit 51,065,262; H1 2026: sales 323,259,854, net profit 11,533,358, total assets 1,449,246,861; Q1 2026 profit 2,054,827 against 34,657,037 in Q1 2025. All identities hold with zero difference. Declared re-presentations (both versions recorded, none substituted): cash flows of 9M 2022 (operating +174,543 / investing +77,535 / financing -252,078), FY2022 (investing and financing 2,114,159), Q1 2024 (727,471), 9M 2024 (2,077,498), FY2024 (4,160,834); December 2023 PPE 595,976,357 became 760,482,059 when projects under construction 164,505,702 were merged; December 2021 PPE 489,100,879 + work under progress 17,932,422 = 507,033,301.",
+   "not_read": [
+    "notes to the financial statements in every file; statements of changes in equity; auditor reports; biological-asset and segment notes",
+    "FY2021 and earlier originals (absent)",
+    "annual/other documents: none in the file set"
+   ],
+   "periods_verified_from_own_pages": [
+    "2022-03-31 Q1",
+    "2022-06-30 H1",
+    "2022-09-30 9M",
+    "2022-12-31 FY",
+    "2023-03-31 Q1",
+    "2023-06-30 H1",
+    "2023-09-30 9M",
+    "2023-12-31 FY",
+    "2024-03-31 Q1",
+    "2024-06-30 H1",
+    "2024-09-30 9M",
+    "2024-12-31 FY",
+    "2025-03-31 Q1",
+    "2025-06-30 H1",
+    "2025-09-30 9M",
+    "2025-12-31 FY",
+    "2026-03-31 Q1",
+    "2026-06-30 H1"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_all_18_files_seven_files_image_only_and_five_misclassified_as_no_statements",
+   "summary": "All 18 files carry the three primary statements plus changes in equity. Five interim files (2022|Q1, 2024|Q1, 2025|H1, 2025|9M, 2026|Q1) are classed other_no_statements_found by the inventory because pdf p3-7 are image-only, yet hold complete statements; two more (2022|9M, 2022|H1) are classed financial_statements but are also image-only. The FY2025 filing e03814b8 has an image-only cash flow page (pdf p9) and a text layer that loses parentheses; H1 2024 1350aa90 splits numbers in its cash flow page. No duplicates or Arabic twins in this file set.",
+   "defect_ids": [
+    "B012-6070-1",
+    "B012-6070-2",
+    "B012-6070-3",
+    "B012-6070-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2022_to_FY2025_and_every_interim_2022Q1_to_2026H1",
+   "present_in_files_by_page_derived_period": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 balance sheet (Dec 2021 columns), FY2021 Q1/H1/9M income and cash flow (2022 filings)",
+    "FY2021 annual income statement and cash flow: not read anywhere"
+   ],
+   "missing": [
+    "FY2021 and earlier standalone filings (inventory expects 55 periods back to 2011 but only 2022 onward was collected)"
+   ],
+   "inventory_corrections": "annual labels are publication-year (2023|FY = FY2022 ... 2026|FY = FY2025); interim labels equal the interim year."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "42c7f9996d28152071f2fd4ff2242a054b5b28740f7ebca5311a25202d03cd60",
+   "actual_period": "Q1 ended 2022-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 3, p5 IS printed 4, p7 CF printed 6)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/42c7f9996d28152071f2fd4ff2242a054b5b28740f7ebca5311a25202d03cd60.pdf",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 13
+  },
+  {
+   "sha256": "ec79b9c891c8ea9b29df75ab8eb28919b986c9a55a83603e81ca50ab592cc072",
+   "actual_period": "H1 ended 2022-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 2, p5 IS printed 3, p7 CF printed 5)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/ec79b9c891c8ea9b29df75ab8eb28919b986c9a55a83603e81ca50ab592cc072.pdf",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 14
+  },
+  {
+   "sha256": "87041a34dbd09bc3110207197647e0507bd8fa4c6089669752cdac8d8888eb1b",
+   "actual_period": "9M ended 2022-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 2, p5 IS printed 3, p7 CF printed 5)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/87041a34dbd09bc3110207197647e0507bd8fa4c6089669752cdac8d8888eb1b.pdf",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 14
+  },
+  {
+   "sha256": "d0639dfeb0d2bd687d8ef28dd35fed331fe86866a16b73f912f9544ecbbd3534",
+   "actual_period": "FY ended 2022-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2023 holds FY2022 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     9
+    ],
+    "is": [
+     10
+    ],
+    "cf": [
+     13,
+     14
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/d0639dfeb0d2bd687d8ef28dd35fed331fe86866a16b73f912f9544ecbbd3534.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 45
+  },
+  {
+   "sha256": "53ae00ae0216b581d5582f90a6ad178a02b73d858b19079abdae1edaf825f61a",
+   "actual_period": "Q1 ended 2023-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/53ae00ae0216b581d5582f90a6ad178a02b73d858b19079abdae1edaf825f61a.pdf",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 13
+  },
+  {
+   "sha256": "6345a902ff98cfa2099a7c8a64c2d9626e95f0b2948eeabcc6bef86de0534a6e",
+   "actual_period": "H1 ended 2023-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/6345a902ff98cfa2099a7c8a64c2d9626e95f0b2948eeabcc6bef86de0534a6e.pdf",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 13
+  },
+  {
+   "sha256": "ee2719d5fd2186d002aafb1cbd8fcfef8a8b7b3bfc983dddc5b5cabcfa86e0bb",
+   "actual_period": "9M ended 2023-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/ee2719d5fd2186d002aafb1cbd8fcfef8a8b7b3bfc983dddc5b5cabcfa86e0bb.pdf",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 14,
+   "declared_restatements": [
+    "9M 2022 comparative cash flow in the 9M 2023 filing: operating 43,470,673 (vs 43,296,130 in 87041a34), investing (124,828,535) (vs (124,906,070)), financing 83,535,473 (vs 83,787,551); net change 2,177,611 unchanged"
+   ]
+  },
+  {
+   "sha256": "0ec0360d31bb9907d7028f70f391e642b506609689f652ec5983dc22e76c62f2",
+   "actual_period": "FY ended 2023-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2024 holds FY2023 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     9
+    ],
+    "is": [
+     10
+    ],
+    "cf": [
+     13,
+     14
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/0ec0360d31bb9907d7028f70f391e642b506609689f652ec5983dc22e76c62f2.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 44,
+   "declared_restatements": [
+    "FY2022 comparative cash flow in the FY2023 filing: investing (149,090,110) (vs (151,204,269) as originally filed in d0639dfe) and financing 86,500,024 (vs 88,614,183); difference 2,114,159; operating and net change unchanged"
+   ]
+  },
+  {
+   "sha256": "749a7b61e2fff5959aa779aadf6d6bec2f0fbed65efd87ce1b9d3a98ea23bc9a",
+   "actual_period": "Q1 ended 2024-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 2, p5 IS printed 3, p7 CF printed 5)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/749a7b61e2fff5959aa779aadf6d6bec2f0fbed65efd87ce1b9d3a98ea23bc9a.pdf",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 14
+  },
+  {
+   "sha256": "1350aa904694af7bf0cbc85d4c08aa535b65a9681028bcd076d2a2bab1b79159",
+   "actual_period": "H1 ended 2024-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5,
+     6
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer; parentheses and thousands groups split in the cash flow page (e.g. '41,919,12' '7'), so the cash flow column was re-read from the rendered page and cross-checked with the H1 2025 comparative",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/1350aa904694af7bf0cbc85d4c08aa535b65a9681028bcd076d2a2bab1b79159.pdf",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 13
+  },
+  {
+   "sha256": "e6f8f4d8065b951f5e25853601e7a4e29902580d86e865eca7fd9bbc41f0d29d",
+   "actual_period": "9M ended 2024-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5,
+     6
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": null,
+    "is": null,
+    "cf": null
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/e6f8f4d8065b951f5e25853601e7a4e29902580d86e865eca7fd9bbc41f0d29d.pdf",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 13
+  },
+  {
+   "sha256": "7be7505087a155851f4271106e8293625e82a114857786f3bde8766ae4243483",
+   "actual_period": "FY ended 2024-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2025 holds FY2024 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     6
+    ],
+    "is": [
+     7,
+     8
+    ],
+    "cf": [
+     9,
+     10
+    ]
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/7be7505087a155851f4271106e8293625e82a114857786f3bde8766ae4243483.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 39,
+   "declared_restatements": [
+    "Dec 2023 comparative property, plant and equipment 760,482,059 (vs 595,976,357 in 0ec0360d): projects under construction 164,505,702 merged into PPE; totals unchanged"
+   ]
+  },
+  {
+   "sha256": "54e4ecb1e50f809fa52df0c07d2de7c9199fed9454b8bec8bedcccb84ed7b326",
+   "actual_period": "Q1 ended 2025-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/54e4ecb1e50f809fa52df0c07d2de7c9199fed9454b8bec8bedcccb84ed7b326.pdf",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 13,
+   "declared_restatements": [
+    "Q1 2024 comparative cash flow: operating 27,174,055 (vs 27,901,526 in 749a7b61) and financing (2,897,824) (vs (3,625,295)); difference 727,471 (loan guarantee provision payments) re-presented; net change unchanged"
+   ]
+  },
+  {
+   "sha256": "86afc4e9a9a170e728547ec42b362d2d9f0cd5b8f1b5c44dbfb4988a7db61b7e",
+   "actual_period": "H1 ended 2025-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 3, p5 IS printed 4, p7 CF printed 6)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/86afc4e9a9a170e728547ec42b362d2d9f0cd5b8f1b5c44dbfb4988a7db61b7e.pdf",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 13
+  },
+  {
+   "sha256": "68065002fa22825ded0bbf50981081fd70d8517e00747be8408c08da561e0cf7",
+   "actual_period": "9M ended 2025-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 3, p5 IS printed 4, p7 CF printed 6)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/68065002fa22825ded0bbf50981081fd70d8517e00747be8408c08da561e0cf7.pdf",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 14,
+   "declared_restatements": [
+    "9M 2024 comparative cash flow: cash from operations 91,913,715 (vs 89,836,217 as originally filed in e6f8f4d8) and financing (33,217,957) (vs (31,140,459)); difference 2,077,498 (loan guarantee provision payments) re-presented between operating and financing; net change unchanged"
+   ]
+  },
+  {
+   "sha256": "e03814b8b32e343a862d5cddabd68a0bd179f75bbc5b56f434e4cd786328cf6d",
+   "actual_period": "FY ended 2025-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2026 holds FY2025 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     6
+    ],
+    "is": [
+     7,
+     8
+    ],
+    "cf": [
+     9
+    ]
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py); text layer drops parentheses and splits numbers (total liabilities '84', '4'; prior cost of sales 406,064,506 unsigned); BS and CF read visually (CF page pdf p9 is image-only), IS signs verified on pdf p7",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/e03814b8b32e343a862d5cddabd68a0bd179f75bbc5b56f434e4cd786328cf6d.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 39,
+   "declared_restatements": [
+    "FY2024 comparative cash flow: operating 125,498,486 (vs 121,337,652 as originally filed in 7be75050) and financing (45,960,931) (vs (41,800,097)); difference 4,160,834 re-presented; investing and net change unchanged"
+   ]
+  },
+  {
+   "sha256": "035209e7372fbe0e2ed7d2d47b1b7a0ca7e0b8abd144e067faf8eae9bd2919c9",
+   "actual_period": "Q1 ended 2026-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 3, p5 IS printed 4, p7 CF printed 6)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/035209e7372fbe0e2ed7d2d47b1b7a0ca7e0b8abd144e067faf8eae9bd2919c9.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 14
+  },
+  {
+   "sha256": "b610b0738dc1a8c534e0a0caab7628e67d2a9b6113ca9a5c6370c83211cdeae4",
+   "actual_period": "H1 ended 2026-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5,
+     6
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Al-Jouf filing prints whole riyals)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6070/b610b0738dc1a8c534e0a0caab7628e67d2a9b6113ca9a5c6370c83211cdeae4.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 17
+  }
+ ],
+ "files_not_audited_for_values": [],
+ "defects": [
+  {
+   "id": "B012-6070-1",
+   "class": "annual_label_is_publication_year",
+   "severity": "medium",
+   "evidence": "d0639dfe (2023|FY) is the year ended 31 December 2022 (pdf p9-13), 0ec0360d (2024|FY) FY2023, 7be75050 (2025|FY) FY2024, e03814b8 (2026|FY) FY2025."
+  },
+  {
+   "id": "B012-6070-2",
+   "class": "image_only_statement_pages_flagged_no_statements",
+   "severity": "high",
+   "evidence": "42c7f999 (2022|Q1), 749a7b61 (2024|Q1), 86afc4e9 (2025|H1), 68065002 (2025|9M), 035209e7 (2026|Q1): class other_no_statements_found but pdf p4 (BS), p5 (IS), p7 (CF) are complete rendered statements; 87041a34 (2022|9M) and ec79b9c8 (2022|H1) classed financial_statements are image-only likewise."
+  },
+  {
+   "id": "B012-6070-3",
+   "class": "text_layer_loses_parentheses_and_splits_numbers",
+   "severity": "high",
+   "evidence": "e03814b8 text layer: total liabilities extracted as 84 and 4, prior cost of sales 406,064,506 and prior zakat 5,000,000 unsigned; 1350aa90 cash flow shows '41,919,12' '7' and unsigned 88,855,317 (investing is an outflow). Text-only extraction yields wrong signs or values; the rendered pages are correct (e03814b8 pdf p6, p7, p9; 1350aa90 pdf p7)."
+  },
+  {
+   "id": "B012-6070-4",
+   "class": "restated_or_represented_comparatives",
+   "severity": "medium",
+   "evidence": "Cash flow re-presentations: 9M 2022 (87041a34 -> ee2719d5), FY2022 (d0639dfe -> 0ec0360d, 2,114,159 between investing and financing), Q1 2024 (749a7b61 -> 54e4ecb1, 727,471), 9M 2024 (e6f8f4d8 -> 68065002, 2,077,498), FY2024 (7be75050 -> e03814b8, 4,160,834 between operating and financing); PPE presentation: Dec 2023 595,976,357 -> 760,482,059 and Dec 2021 489,100,879 vs 507,033,301."
+  },
+  {
+   "id": "B012-6070-5",
+   "class": "cash_flow_sign_of_operating_cash_in_q1_2026",
+   "severity": "low",
+   "evidence": "035209e7 pdf p7: Q1 2026 cash from operations is negative (8,531,713) after a working-capital outflow (inventory (55,162,222), biological assets (60,395,741)); not an extraction error."
+  }
+ ],
+ "unread_items": [
+  "notes to the financial statements in every file; statements of changes in equity; auditor reports; biological-asset and segment notes",
+  "equity statements",
+  "FY2021 and earlier standalone filings: absent from the file set",
+  "FY2021 annual income statement and cash flow"
+ ],
+ "conclusion": "NOT claimed complete. All 18 collected files value-verified from pages (FY2022 to FY2025 annual, every interim 2022 Q1 to 2026 H1); 5 cash-flow re-presentations and a PPE reclassification declared; seven files are image-only and five are misclassified as having no statements; notes and equity statements unread; FY2021 and earlier absent."
+}

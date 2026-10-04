@@ -78,6 +78,11 @@ def build(sym, auto):
             cf = d["cf"][c]
             if "capex" in cf and cf["capex"] > 0:
                 cf["capex"] = -cf["capex"]
+        pp = d["printed_pages"]
+        offs = {(d["pages"][k][0] if isinstance(d["pages"][k], list) else d["pages"][k]) - pp[k] for k in pp if pp.get(k) is not None and d["pages"].get(k)}
+        if not (len(offs) == 1 and all(pp.get(k) is not None for k in ("bs", "is", "cf")) and min(offs) >= 0):
+            d["printed_pages"] = {"bs": None, "is": None, "cf": None}
+            d["printed_pages_note"] = "printed page numbers not reliably recoverable from the text layer (footer overlaid by signatures or inconsistent); not asserted"
         docs.append(d)
     return docs, skipped
 
@@ -103,11 +108,17 @@ if __name__ == "__main__":
     for r in auto:
         pt = meta.get("patches", {}).get(r["sha"][:8])
         if pt:
-            r["bs"] = dict(pt["bs"])
-            r["pdf"]["bs"] = pt["pdf_bs"]
-            r["printed_bs"] = pt.get("printed_bs")
-            r["flags"] = [f for f in r["flags"] if "bs" not in f]
-            r["bs_end"] = pt.get("bs_end")
+            if "bs" in pt:
+                r["bs"] = dict(pt["bs"])
+                r["pdf"]["bs"] = pt["pdf_bs"]
+                r["printed_bs"] = pt.get("printed_bs")
+                r["flags"] = [f for f in r["flags"] if "bs" not in f]
+                r["bs_end"] = pt.get("bs_end")
+            if "cf" in pt:
+                r["cf"] = dict(pt["cf"])
+                r["pdf"]["cf"] = pt["pdf_cf"]
+                r["printed_cf"] = pt.get("printed_cf")
+                r["flags"] = [f for f in r["flags"] if "cf" not in f]
             r["patched"] = pt["note"]
     docs, skipped = build(sym, auto)
     off = meta.get("printed_offset")

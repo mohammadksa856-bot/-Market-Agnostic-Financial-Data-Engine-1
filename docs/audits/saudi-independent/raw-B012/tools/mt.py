@@ -1,8 +1,11 @@
 """Helpers for visually read (manual) transcript documents."""
 
 
-def I(rev, cost, gp, pbt, tax, ni, parent, nci, eps=None, **k):
-    d = dict(revenue=rev, cost_of_revenue=cost, gross_profit=gp, pbt=pbt, tax=tax, net_income=ni, ni_parent=parent, ni_nci=nci)
+def I(rev, cost, gp, pbt, tax, ni, parent=None, nci=None, eps=None, **k):
+    d = dict(revenue=rev, cost_of_revenue=cost, gross_profit=gp, pbt=pbt, tax=tax, net_income=ni)
+    if parent is not None:
+        d["ni_parent"] = parent
+        d["ni_nci"] = nci
     if eps is not None:
         d["eps"] = eps
     d.update(k)
