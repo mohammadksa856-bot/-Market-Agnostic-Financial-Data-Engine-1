@@ -1,0 +1,81 @@
+"""Builds transcripts/4300.json (SAR thousand) from rendered scan pages. 'tax' = zakat provisions; 'discontinued' = profit from discontinued operations
+(added back by the checker); pbt is profit before zakat from continuing operations."""
+from tx import I, B, C, doc, write, ref
+
+D22 = B(33512853, 13908725, 19604128, 5928857, 86056)
+D23 = B(33655304, 13363423, 20291881, 5449833, 103769)
+D24 = B(36940222, 15839508, 21100714, 6724672, 89614)
+D25 = B(41612961, 19379875, 22233086, 7480422, 71384)
+docs = [
+    doc("545ed36b", "FY2025 audited (collector label 2026|FY)", "2025-12-31", "2024-12-31", "FY",
+        "visual: whole-file scan; pdf p9 BS (printed 7), p10 IS+OCI (8), p12 CF (10) rendered and read",
+        {"bs": 9, "is": 10, "cf": 12},
+        dict(cur=D25, prior=D24),
+        dict(cur=I(3899802, -2056193, 1843609, 1354261, -220341, 1133920, 1134182, -262, 1.05, operating_income=1587051),
+             prior=I(3759022, -2159014, 1600008, 808533, -20595, 806840, 807833, -993, 0.75, operating_income=1334107, discontinued=18902)),
+        dict(cur=C(-3319216, -3633, -311174, 4386140, 755750, 6724672, 7480422),
+             prior=C(814470, -9424, -835783, 1296152, 1274839, 5449833, 6724672))),
+    doc("28fb9881", "FY2024 audited as filed (collector label 2025|FY)", "2024-12-31", "2023-12-31", "FY",
+        "visual: whole-file scan; pdf p9 BS (printed 7), p10 IS (8), p12 CF (10) rendered and read; the right-hand 2023 column of the cash-flow page is clipped by the scan edge, 2023 cash flow recorded only where digits are visible (CFO derived from the identity, visible 1,426,3)",
+        {"bs": 9, "is": 10, "cf": 12},
+        dict(cur=D24, prior=D23),
+        dict(cur=I(3759022, -2159014, 1600008, 808533, -20595, 806840, 807833, -993, 0.75, operating_income=1334107, discontinued=18902),
+             prior=I(2707100, -1636694, 1070406, 626418, -15660, 610758, 610758, 0, 0.57, operating_income=865310)),
+        dict(cur=C(814470, -9424, -835783, 1296152, 1274839, 5449833, 6724672),
+             prior=C(1426335, -19323, -1173784, -731575, -479024, 5928857, 5449833, restated=True))),
+    doc("36ceb1c7", "FY2023 audited as filed (collector label 2024|FY)", "2023-12-31", "2022-12-31", "FY",
+        "visual: whole-file scan; pdf p9 BS (printed 7), p10 IS (8), p12 CF (10) rendered and read; the 2022 comparative cash flow equals the re-presented, not the originally filed, FY2022 cash flow",
+        {"bs": 9, "is": 10, "cf": 12},
+        dict(cur=D23, prior=D22),
+        dict(cur=I(2707100, -1636694, 1070406, 626418, -15660, 610758, 610758, 0, 0.57, operating_income=865310),
+             prior=I(3925499, -2467912, 1457587, 588386, -146666, 441720, 441720, 0, 0.41, operating_income=1099653)),
+        dict(cur=C(1416433, -19323, -1163882, -731575, -479024, 5928857, 5449833),
+             prior=C(460062, -21237, -14257, 1329626, 1775431, 4153426, 5928857, restated=True))),
+    doc("7b2fd6da", "FY2022 audited as originally filed (collector label 2023|FY)", "2022-12-31", "2021-12-31", "FY",
+        "visual: whole-file scan; pdf p9 BS (printed 7), p10 IS (8), p12 CF (10) rendered and read",
+        {"bs": 9, "is": 10, "cf": 12},
+        dict(cur=D22, prior=B(31961680, 12802050, 19159630, 4153426, 77653)),
+        dict(cur=I(3925499, -2467912, 1457587, 588386, -146666, 441720, 441720, 0, 0.41, operating_income=1099653),
+             prior=I(2493078, -1596350, 896728, 135442, -2922, 132520, 132520, 0, 0.12, operating_income=684783)),
+        dict(cur=C(454129, -21237, -14257, 1335559, 1775431, 4153426, 5928857),
+             prior=C(66806, -6669, -8978, -836062, -778234, 4931660, 4153426))),
+    doc("103976f8", "FY2021 audited (collector label 2021|FY correct; born-digital PDF with OCR-style text layer)", "2021-12-31", "2020-12-31", "FY",
+        "text layer (pdf p8 BS printed 6, p9 IS 7, p11 CF 9) read with rows.py and tied by arithmetic; the IS and CF text lists the columns in separate runs so each value was assigned by its position and the totals (all identities pass). Page images were not rendered for this file",
+        {"bs": 8, "is": 9, "cf": 11},
+        dict(cur=B(31961680, 12802050, 19159630, 4153426, 77653), prior=B(30934616, 11908436, 19026180, 4931660, 72180)),
+        dict(cur=I(2493078, -1596350, 896728, 135442, -2922, 132520, 132520, 0, None, operating_income=684783),
+             prior=I(1944854, -1270204, 674650, 19379, -585, 18794, 18794, 0, None, operating_income=503318)),
+        dict(cur=C(66806, -6669, -8978, -836062, -778234, 4931660, 4153426),
+             prior=C(-1461677, None, -4379, 2447696, 981640, 3950020, 4931660))),
+    doc("2a5adf57", "FY2020 audited (collector label 2020|FY correct; born-digital PDF with OCR-style text layer)", "2020-12-31", "2019-12-31", "FY",
+        "text layer (pdf p8 BS printed 6, p9 IS 7, p11 CF 9); the 2019 columns contain OCR errors (for example 3,491,8S6) and were not transcribed except the balance sheet totals, which tie. Page images were not rendered for this file",
+        {"bs": 8, "is": 9, "cf": 11},
+        dict(cur=B(30934616, 11908436, 19026180, 4931660, 72180), prior=B(28049229, 9039741, 19009488, 3950020, 79765)),
+        dict(cur=I(1944854, -1270204, 674650, 19379, -585, 18794, 18794, 0, None, operating_income=503318)),
+        dict(cur=C(-1461677, None, -4379, 2447696, 981640, 3950020, 4931660))),
+    doc("c322f053", "3M and 6M ended 2026-06-30 reviewed (English)", "2026-06-30", "2025-06-30", "H1",
+        "visual: whole-file scan; pdf p4 BS (printed 2), p5 IS (3), p7 CF (5) rendered and read; equity statement (pdf p6) is rotated and not read; 'is' = six months, 'is_q' = Q2",
+        {"bs": 4, "is": 5, "cf": 7},
+        dict(cur=B(43684907, 20969229, 22715678, 8520871, 63758), prior=D25),
+        dict(cur=I(2343274, -1278371, 1064903, 635471, -136499, 498972, 499117, -145, 0.46, operating_income=962895),
+             prior=I(1784144, -966729, 817415, 460286, -12325, 447961, 448373, -412, 0.41, operating_income=691024)),
+        dict(cur=C(4245, -765, -531577, 1567781, 1040449, 7480422, 8520871),
+             prior=C(144853, -2240, -136531, -697610, -689288, 6724672, 6035384)),
+        bs_prior_end="2025-12-31",
+        is_q=dict(cur=I(1179983, -648185, 531798, 316953, -78217, 238736, 239110, -374, 0.22, operating_income=482883),
+                  prior=I(852137, -441290, 410847, 245132, -6514, 238618, 238644, -26, 0.22, operating_income=353433))),
+    doc("89995ef7", "3M ended 2026-03-31 reviewed (English)", "2026-03-31", "2025-03-31", "Q1",
+        "visual: whole-file scan; pdf p4 IS (printed 3), p5 BS (2), p7 CF (5) rendered and read",
+        {"bs": 5, "is": 4, "cf": 7},
+        dict(cur=B(40435240, 17962918, 22472322, 6238037, 66763), prior=D25),
+        dict(cur=I(1163291, -630186, 533105, 318518, -58282, 260236, 260007, 229, 0.24, operating_income=480012),
+             prior=I(932007, -525439, 406568, 215154, -5811, 209343, 209729, -386, 0.19, operating_income=337591)),
+        dict(cur=C(223079, -111, -155012, -1310452, -1242385, 7480422, 6238037),
+             prior=C(280099, -612, -612, -505180, -225693, 6724672, 6498979)),
+        bs_prior_end="2025-12-31"),
+]
+rolls = []
+for key in ("revenue", "gross_profit", "net_income", "pbt", "operating_income"):
+    rolls.append(dict(name=f"Q1+Q2=H1 2026 {key}", total=ref("c322f053", "is", "cur", key), parts=[ref("89995ef7", "is", "cur", key), ref("c322f053", "is_q", "cur", key)]))
+    rolls.append(dict(name=f"Q1+Q2=H1 2025 {key}", total=ref("c322f053", "is", "prior", key), parts=[ref("89995ef7", "is", "prior", key), ref("c322f053", "is_q", "prior", key)]))
+write("4300", "DAR ALARKAN (Dar Al Arkan Real Estate Development Company)", "SAR thousand (SR 000) in annual and interim filings alike", docs, rolls)
