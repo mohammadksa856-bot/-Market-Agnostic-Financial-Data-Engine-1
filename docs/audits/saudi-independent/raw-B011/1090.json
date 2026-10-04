@@ -1,0 +1,371 @@
+{
+ "schema_version": 1,
+ "symbol": "1090",
+ "name": "SAMBA",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B011)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase; SHA-256 recomputed for every document listed (16 files in inventory). SAMBA is Samba Financial Group on every cover; overlap with 1180 checked.",
+  "method": "All 16 files opened (cover or statement pages). Five filings (FY2020, FY2019, Q1, H1 and 9M 2020) had BS, IS and CF rendered and read by eye (statement pages are images); cover and page layout were checked for the other eleven (identical layout BS p3, IS p4, CF p7 in every interim) without reading values. The 1180 raw folder was scanned (first three pages of 59 PDFs, hashes) for Samba overlap. tools/check_transcripts.py (bank identities added: income build, tax, parent plus NCI, CF sum and roll, quarter sums, declared restatements) passes for transcripts/1090.json.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/kv.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/sheet.py",
+   "tools/check_transcripts.py",
+   "transcripts/1090.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_from_pages_for_5_filings_2020",
+   "summary": "SAR thousand. Bank-format headline values (total assets, liabilities, equity, loans, deposits; total operating income, operating expenses, profit before zakat, zakat and tax, net income, equity-holder and NCI split, basic EPS; cash flow CFO, CFI, CFF, net change, opening and closing cash) transcribed from rendered pages for FY2020, FY2019, Q1 2020, H1 2020, 9M 2020 with comparatives (FY2018 restated, Q1/H1/9M 2019). All identities pass (BS equation, income build, net income after zakat and tax, parent plus NCI, cash-flow sum and roll, six quarter-sum chains including 2019 comparatives). 8 differences declared with both values: 31 Dec 2019 total assets 255,603,801 and liabilities 210,154,969 as originally reported (FY2019 file and all 2020 interims) vs 259,528,248 and 214,079,416 as restated in the FY2020 file (derivatives and presentation change; equity and loans unchanged). Income and cash flow of FY2019 do not differ between filings. Q1 2019 is only available in restated form (Q1 2020 comparatives).",
+   "not_read": [
+    "notes (including zakat and capital-adequacy notes) in all 16 files",
+    "OCI and equity statements (located, not transcribed)",
+    "FY2017, FY2018 audited statements",
+    "all 2017, 2018 and 2019 interim filings (statement pages located only through identical layout; values unread)",
+    "bank-specific disclosures such as capital adequacy and NPL ratios"
+   ]
+  },
+  "document_completeness": {
+   "status": "5_of_16_files_read_11_files_identified_from_covers_only",
+   "summary": "All 16 files are Samba Financial Group statement sets; five were read in full, the other eleven are judged complete only by cover and page layout (BS, income, OCI, equity, CF pages present, mostly image pages inside text PDFs or full scans) and that is NOT confirmed from values, including those the inventory flags partial_statements (6 files), other_no_statements_found (2) and scanned_unreadable (1); the inventory own tally of only 2 files with all three statements and 11 partial comes from text-layer detection that cannot see image pages: the flags reflect image statement pages, not missing statements. Five filings (FY2020, FY2019, Q1, H1, 9M 2020) were read; eleven (2017 Q1/H1/9M, 2018 Q1/H1/9M, FY2017, FY2018, 2019 Q1/H1/9M) were opened to cover level and layout only. 98e8e14c and f472ad56 are Arabic-language filings (no English twin collected). Annual files carry the publication year as fiscal_year."
+  },
+  "company_coverage": {
+   "status": "documents_cover_2017_Q1_to_2020_FY_older_history_absent_company_ceased_2021",
+   "present_page_derived": [
+    "2017 Q1",
+    "2017 H1",
+    "2017 9M",
+    "2017 FY",
+    "2018 Q1",
+    "2018 H1",
+    "2018 9M",
+    "2018 FY",
+    "2019 Q1",
+    "2019 H1",
+    "2019 9M",
+    "2019 FY",
+    "2020 Q1",
+    "2020 H1",
+    "2020 9M",
+    "2020 FY"
+   ],
+   "values_read_periods": [
+    "2019 FY",
+    "2020 Q1",
+    "2020 H1",
+    "2020 9M",
+    "2020 FY"
+   ],
+   "derivable_from_comparatives": [
+    "FY2018 restated BS, IS, CF (FY2019 file)",
+    "Q1, H1, 9M 2019 income and cash flow (2020 interim comparatives; Q1 restated)"
+   ],
+   "located_not_read": [
+    "2017 Q1",
+    "2017 H1",
+    "2017 9M",
+    "2017 FY",
+    "2018 Q1",
+    "2018 H1",
+    "2018 9M",
+    "2018 FY",
+    "2019 Q1",
+    "2019 H1",
+    "2019 9M"
+   ],
+   "missing": [
+    "2011-2016 all periods (SE announcements list results from 2011; no raw file earlier than 2017)",
+    "2021 onward: none expected as the bank stopped reporting after FY2020 (Samba merged into Saudi National Bank in 2021, per the task brief; the SE results list in the inventory ends at 2020|FY)"
+   ],
+   "entity_note": "All 16 files are Samba Financial Group on their covers. The raw folder for 1180 (SNB) holds 59 PDFs with none sharing a hash with the 1090 files and none mentioning Samba in the first three pages, so no Samba statements are hiding under 1180 and the earlier SNB audit is not duplicated or contradicted. Post-merger Samba history lives in SNB filings (1180), not read here.",
+   "inventory_correction": "Inventory counted 2 complete, 11 partial, 1 scanned, 2 non-statement, 45 absent periods and lists trailing gaps 2022 to 2026 and 2021 internal gaps as missing. After correcting publication-year labels (FY2017 to FY2020 appear as 2018 to 2021 |FY) the 16 files form a contiguous run 2017 Q1 to 2020 FY with no gap; 2021 and later periods are not absent but non-existent for this entity."
+  }
+ },
+ "documents": [
+  {
+   "actual_period": "9M ended 2017-09-30 (English cover)",
+   "label_ok": true,
+   "statements": "image pages 2-4 and 7 (BS, IS, OCI?, CF layout identical to 2020 interims)",
+   "reading": "cover only",
+   "class_ok": false,
+   "note": "inventory other_no_statements_found is wrong: statement pages exist as images; statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read",
+   "sha256": "f4575105f01e13696b89eeaf16396e70d2a03b55b8d104be5c271aeef8d67532",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/f4575105f01e13696b89eeaf16396e70d2a03b55b8d104be5c271aeef8d67532.pdf",
+   "size_bytes": 2009738,
+   "pdf_pages_total": 16,
+   "inventory_label": "2017|9M",
+   "inventory_class": "other_no_statements_found"
+  },
+  {
+   "actual_period": "6M ended 2017-06-30 (Arabic cover and Arabic statements)",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language filing; statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read",
+   "sha256": "98e8e14c7a350d4739ddea55a3f4405ad19d31c0db40e40045d36e52e4a747ba",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/98e8e14c7a350d4739ddea55a3f4405ad19d31c0db40e40045d36e52e4a747ba.pdf",
+   "size_bytes": 1933033,
+   "pdf_pages_total": 19,
+   "inventory_label": "2017|H1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M ended 2017-03-31 (Arabic cover)",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "Arabic-language filing; statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read",
+   "sha256": "f472ad56bf5e34493d185da42c981a3135708e41823ae7a3a5f6e4406660bb0b",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/f472ad56bf5e34493d185da42c981a3135708e41823ae7a3a5f6e4406660bb0b.pdf",
+   "size_bytes": 1774338,
+   "pdf_pages_total": 19,
+   "inventory_label": "2017|Q1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "9M ended 2018-09-30",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read",
+   "sha256": "63db702c1ffd93327250bd12b5b35f3d327a6e72fa278e96672cddabd1dc7854",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/63db702c1ffd93327250bd12b5b35f3d327a6e72fa278e96672cddabd1dc7854.pdf",
+   "size_bytes": 1175539,
+   "pdf_pages_total": 28,
+   "inventory_label": "2018|9M",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "FY ended 2017-12-31 (audited, full scan of all 53 pages)",
+   "label_ok": false,
+   "statements": "whole file is image pages; auditors report p3 read on a sheet, statements not located",
+   "reading": "cover and one page only",
+   "class_ok": false,
+   "note": "inventory label 2018|FY is publication year; scanned_unreadable is wrong (legible scan); statements not read",
+   "sha256": "8a0b8cb4f8d552561350b9b076f94f0dc6dae94e9edf28ef113d73f9c2a805e2",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/8a0b8cb4f8d552561350b9b076f94f0dc6dae94e9edf28ef113d73f9c2a805e2.pdf",
+   "size_bytes": 900087,
+   "pdf_pages_total": 53,
+   "inventory_label": "2018|FY",
+   "inventory_class": "scanned_unreadable"
+  },
+  {
+   "actual_period": "6M ended 2018-06-30",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": false,
+   "note": "inventory partial_statements is wrong (images); statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read",
+   "sha256": "1b20f8b7b6647ce01ae7e39e24a0eee6dc77cee70e711a974bca83528b934d63",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/1b20f8b7b6647ce01ae7e39e24a0eee6dc77cee70e711a974bca83528b934d63.pdf",
+   "size_bytes": 1722986,
+   "pdf_pages_total": 28,
+   "inventory_label": "2018|H1",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "3M ended 2018-03-31",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": false,
+   "note": "inventory partial_statements is wrong (images); statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read",
+   "sha256": "f3787d37bb6d737bd1b8f614d3f4ac0c659565eadcb1e8baf4fe44092e6cba18",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/f3787d37bb6d737bd1b8f614d3f4ac0c659565eadcb1e8baf4fe44092e6cba18.pdf",
+   "size_bytes": 1111403,
+   "pdf_pages_total": 29,
+   "inventory_label": "2018|Q1",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "9M ended 2019-09-30",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read; 9M 2019 values are available as comparatives in 27881a19",
+   "sha256": "a8a7feaca9effd15ec121bdd0cd1e96fd8d5b489160c29647e896c8b98283ad6",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/a8a7feaca9effd15ec121bdd0cd1e96fd8d5b489160c29647e896c8b98283ad6.pdf",
+   "size_bytes": 1772039,
+   "pdf_pages_total": 21,
+   "inventory_label": "2019|9M",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "FY ended 2018-12-31 (audited, EY and PwC)",
+   "label_ok": false,
+   "statements": "image pages 2-11 (BS, IS, OCI, equity, CF)",
+   "reading": "cover only",
+   "class_ok": false,
+   "note": "inventory label 2019|FY is publication year; partial_statements is wrong (statements are image pages); FY2018 restated comparatives are in 20e91e20",
+   "sha256": "2ab51d4fa94b6ec46212ef796d1e0c078613d83038d1ef3bb1e69bbef6c5d7f3",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/2ab51d4fa94b6ec46212ef796d1e0c078613d83038d1ef3bb1e69bbef6c5d7f3.pdf",
+   "size_bytes": 1619835,
+   "pdf_pages_total": 63,
+   "inventory_label": "2019|FY",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "6M ended 2019-06-30",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": null,
+   "note": "statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read; H1 2019 values are comparatives in 9d1415ad",
+   "sha256": "c177903cb802cf6972e94c410bc0e1618b17aeeba42252cb87be90cef022f09d",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/c177903cb802cf6972e94c410bc0e1618b17aeeba42252cb87be90cef022f09d.pdf",
+   "size_bytes": 1726503,
+   "pdf_pages_total": 21,
+   "inventory_label": "2019|H1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "3M ended 2019-03-31",
+   "label_ok": true,
+   "statements": "image pages 2-4, 7",
+   "reading": "cover only",
+   "class_ok": false,
+   "note": "inventory partial_statements is wrong (images); statement pages are images inside a text PDF (text only on OCI, equity and notes pages); statements not read; Q1 2019 restated comparatives are in d52e7b46",
+   "sha256": "3d8e71ce99fd1cf7271d41afe39af968a7c0a1b1b687f7024f7ace975df43759",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/3d8e71ce99fd1cf7271d41afe39af968a7c0a1b1b687f7024f7ace975df43759.pdf",
+   "size_bytes": 2009175,
+   "pdf_pages_total": 19,
+   "inventory_label": "2019|Q1",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "3M and 9M ended 2020-09-30",
+   "label_ok": true,
+   "statements": "BS p3, IS p4, OCI p5, equity p6, CF p7 (BS, IS, CF image pages)",
+   "reading": "visual",
+   "class_ok": false,
+   "note": "inventory partial_statements is wrong; transcribed",
+   "sha256": "27881a19708446e6072fec542d7f958e5163bf80ef747deaf1f24621bedd8bb1",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/27881a19708446e6072fec542d7f958e5163bf80ef747deaf1f24621bedd8bb1.pdf",
+   "size_bytes": 1860435,
+   "pdf_pages_total": 23,
+   "inventory_label": "2020|9M",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "FY ended 2019-12-31 (audited, EY and PwC)",
+   "label_ok": false,
+   "statements": "BS p8, IS p9, OCI/equity p10-11 (not read), CF p12 (image pages)",
+   "reading": "visual",
+   "class_ok": false,
+   "note": "inventory label 2020|FY is publication year; partial_statements is wrong; transcribed",
+   "sha256": "20e91e2051edd2db537a4294545a60e6c6a1fabdc2e3406f5a4150fca55edcc4",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/20e91e2051edd2db537a4294545a60e6c6a1fabdc2e3406f5a4150fca55edcc4.pdf",
+   "size_bytes": 1177608,
+   "pdf_pages_total": 56,
+   "inventory_label": "2020|FY",
+   "inventory_class": "partial_statements"
+  },
+  {
+   "actual_period": "3M and 6M ended 2020-06-30",
+   "label_ok": true,
+   "statements": "BS p3, IS p4, OCI p5, equity p6, CF p7",
+   "reading": "visual",
+   "class_ok": false,
+   "note": "inventory other_no_statements_found is wrong; transcribed",
+   "sha256": "9d1415ad1b627cfc316fbc686c4b6fa48aaf789c65a8c319bd9e87ddf2e97f9a",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/9d1415ad1b627cfc316fbc686c4b6fa48aaf789c65a8c319bd9e87ddf2e97f9a.pdf",
+   "size_bytes": 960575,
+   "pdf_pages_total": 22,
+   "inventory_label": "2020|H1",
+   "inventory_class": "other_no_statements_found"
+  },
+  {
+   "actual_period": "3M ended 2020-03-31",
+   "label_ok": true,
+   "statements": "BS p3, IS p4, OCI p5, equity p6, CF p7",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "transcribed; Q1 2019 comparatives restated",
+   "sha256": "d52e7b46dbca33fd512af9625b9782cd207dc9d5702c382f3418ea4594214301",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/d52e7b46dbca33fd512af9625b9782cd207dc9d5702c382f3418ea4594214301.pdf",
+   "size_bytes": 1586513,
+   "pdf_pages_total": 24,
+   "inventory_label": "2020|Q1",
+   "inventory_class": "financial_statements"
+  },
+  {
+   "actual_period": "FY ended 2020-12-31 (audited, EY and KPMG)",
+   "label_ok": false,
+   "statements": "BS p10, IS p11, OCI p12 (text), equity p13 (text), CF p14",
+   "reading": "visual",
+   "class_ok": true,
+   "note": "inventory label 2021|FY is publication year; transcribed; last annual filing of Samba as a listed bank",
+   "sha256": "b1354dbf464298d6fcb3a8bc170e448918e622047cf14c3e0657ba466bbc9f84",
+   "sha256_recomputed_ok": true,
+   "relpath": "archive/SA/1090/b1354dbf464298d6fcb3a8bc170e448918e622047cf14c3e0657ba466bbc9f84.pdf",
+   "size_bytes": 1738154,
+   "pdf_pages_total": 69,
+   "inventory_label": "2021|FY",
+   "inventory_class": "financial_statements"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B011-1090-1",
+   "klass": "annual_period_label_is_publication_year",
+   "severity": "high",
+   "evidence": "8a0b8c0b (FY2017), 2ab51d4f (FY2018), 20e91e20 (FY2019), b1354dbf (FY2020) carry fiscal_year one above the cover period. Creates false internal gap 2017|FY and false extras."
+  },
+  {
+   "id": "B011-1090-2",
+   "klass": "inventory_class_wrong_image_statements",
+   "severity": "high",
+   "evidence": "9 of 16 files are flagged partial_statements (6), other_no_statements_found (2) or scanned_unreadable (1) and the inventory tallies only 2 complete and 11 partial files, though the layout shows BS, IS and CF as image pages in all of them (confirmed by rendering 27881a19, 9d1415ad, d52e7b46, 20e91e20, b1354dbf)."
+  },
+  {
+   "id": "B011-1090-3",
+   "klass": "coverage_expected_window_wrong_for_merged_entity",
+   "severity": "medium",
+   "evidence": "Inventory expects periods to 2026|H1 and counts 2021|Q1 to 2026|H1 and 2011-2016 as absent (45 absent); the SE results list ends at 2020|FY and Samba merged into SNB in 2021, so 2021+ are non-existent, not missing."
+  },
+  {
+   "id": "B011-1090-4",
+   "klass": "restated_comparatives_declared",
+   "severity": "medium",
+   "evidence": "31 Dec 2019 total assets 255,603,801 (FY2019 and 2020 interims) vs 259,528,248 (FY2020 comparatives); total liabilities 210,154,969 vs 214,079,416; equity identical. Q1 2019 and FY2018 appear only in restated form."
+  },
+  {
+   "id": "B011-1090-5",
+   "klass": "arabic_language_filings",
+   "severity": "low",
+   "evidence": "98e8e14c (H1 2017) and f472ad56 (Q1 2017) are Arabic-only; no English twins collected."
+  }
+ ],
+ "unread_items": [
+  "notes to the statements in all 16 files",
+  "OCI and equity statements",
+  "statement values of 11 files: FY2017, FY2018, 2017 Q1/H1/9M, 2018 Q1/H1/9M, 2019 Q1/H1/9M (covers and layout only)",
+  "any 2011-2016 filings (none collected)",
+  "Samba content filed under 1180 SNB (not in scope; earlier SNB audit)"
+ ],
+ "conclusion": "Statement files exist for every period 2017 Q1 to 2020 FY (16 of 16), values verified from pages for the five 2020-vintage filings only; eleven filings are located but unread. NOT claimed complete: 2011-2016 absent, notes, OCI and equity unread. 2021 onward does not exist for this entity (merged into SNB). The restated 31 Dec 2019 balance sheet is declared, not reconciled."
+}

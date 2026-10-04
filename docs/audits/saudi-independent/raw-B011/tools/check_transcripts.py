@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parent.parent
 INV = ROOT.parent / "raw-coverage" / "companies"
 TR = ROOT / "transcripts"
 CROSS_KEYS = {
-    "bs": ["total_assets", "total_liabilities", "total_equity", "cash", "ppe", "total_current_assets"],
-    "is": ["revenue", "cost_of_revenue", "operating_costs", "gross_profit_before_subsidy", "bunker_subsidy", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent"],
+    "bs": ["total_assets", "total_liabilities", "total_equity", "cash", "ppe", "total_current_assets", "loans", "deposits"],
+    "is": ["revenue", "cost_of_revenue", "operating_costs", "gross_profit_before_subsidy", "bunker_subsidy", "eps", "gross_profit", "operating_income", "pbt", "net_income", "ni_parent", "total_operating_expenses", "zakat_tax", "net_special_commission_income"],
     "cf": ["cfo", "cfi", "cff", "net_change", "cash_begin", "cash_end", "capex_ppe", "capex_projects", "capex_investment_property"],
 }
 
@@ -52,6 +52,10 @@ def identities(doc):
                 bad.append((doc["label"], col, key + "-gp", i["gross_profit"], i["revenue"] + i["cost_of_revenue"] + i.get("inventory_loss", 0)))
             if {"revenue", "operating_costs", "gross_profit_before_subsidy"} <= i.keys() and i["gross_profit_before_subsidy"] != i["revenue"] + i["operating_costs"]:
                 bad.append((doc["label"], col, key + "-gpb", i["gross_profit_before_subsidy"], i["revenue"] + i["operating_costs"]))
+            if {"revenue", "total_operating_expenses", "pbt"} <= i.keys() and i["pbt"] != i["revenue"] + i["total_operating_expenses"]:
+                bad.append((doc["label"], col, key + "-bank-pbt", i["pbt"], i["revenue"] + i["total_operating_expenses"]))
+            if {"pbt", "zakat_tax", "net_income"} <= i.keys() and i["net_income"] != i["pbt"] + i["zakat_tax"]:
+                bad.append((doc["label"], col, key + "-ni-after-tax", i["net_income"], i["pbt"] + i["zakat_tax"]))
             if {"gross_profit_before_subsidy", "bunker_subsidy", "gross_profit"} <= i.keys() and i["gross_profit"] != i["gross_profit_before_subsidy"] + i["bunker_subsidy"]:
                 bad.append((doc["label"], col, key + "-gp-sub", i["gross_profit"], i["gross_profit_before_subsidy"] + i["bunker_subsidy"]))
     return bad
