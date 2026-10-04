@@ -48,8 +48,8 @@ def identities(doc):
                 continue
             if {"net_income", "ni_parent", "ni_nci"} <= i.keys() and i["net_income"] != i["ni_parent"] + i["ni_nci"]:
                 bad.append((doc["label"], col, key, i["net_income"], i["ni_parent"] + i["ni_nci"]))
-            if {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and i["gross_profit"] != i["revenue"] + i["cost_of_revenue"]:
-                bad.append((doc["label"], col, key + "-gp", i["gross_profit"], i["revenue"] + i["cost_of_revenue"]))
+            if {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and i["gross_profit"] != i["revenue"] + i["cost_of_revenue"] + i.get("inventory_loss", 0):
+                bad.append((doc["label"], col, key + "-gp", i["gross_profit"], i["revenue"] + i["cost_of_revenue"] + i.get("inventory_loss", 0)))
             if {"revenue", "operating_costs", "gross_profit_before_subsidy"} <= i.keys() and i["gross_profit_before_subsidy"] != i["revenue"] + i["operating_costs"]:
                 bad.append((doc["label"], col, key + "-gpb", i["gross_profit_before_subsidy"], i["revenue"] + i["operating_costs"]))
             if {"gross_profit_before_subsidy", "bunker_subsidy", "gross_profit"} <= i.keys() and i["gross_profit"] != i["gross_profit_before_subsidy"] + i["bunker_subsidy"]:
