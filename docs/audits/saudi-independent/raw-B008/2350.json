@@ -1,0 +1,217 @@
+{
+ "schema_version": 1,
+ "symbol": "2350",
+ "name": "Saudi Kayan Petrochemical Company",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B008)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed per audited file (tools/expand_sha.py). Statement pages are image-only inside text PDFs (textless pdf pages 4-8 interim, 8-12 annual) and were rendered with PyMuPDF and read by eye. Identities and cross-filing agreement in tools/check_transcripts.py over transcripts/2350.json (all pass).",
+  "tools": [
+   "tools/pg.py",
+   "tools/montage.py",
+   "tools/check_transcripts.py",
+   "tools/expand_sha.py",
+   "transcripts/2350.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_4_filings_3_complete_1_income_statement_only",
+   "summary": "SAR thousand in every file (statement headers: 'All amounts in Saudi Riyals 000' / 'in thousands'); no USD supplementary columns. FY2025, FY2024 and H1 2026 read in full (BS, IS, CF) with comparatives; Q1 2026 income statement only. BS identity holds for Dec 2025 (22,724,825), Dec 2024 (24,869,290), Dec 2023 (26,680,794) and 30 Jun 2026 (23,055,646). Every cash-flow column satisfies CFO+CFI+CFF=net change and begin+net=end (FY2025, FY2024, FY2023, H1 2026, H1 2025). Q1 2026 + Q2 2026 = H1 2026 for revenue (1,487,717 + 2,008,868 = 3,496,585) and net loss (614,605 + 672,759 = 1,287,364); comparatives roll too (Q1 2025 2,061,790 + Q2 2025 2,231,290 = H1 2025 4,293,080). FY2024 figures as filed (a444a964) equal the FY2025 comparatives (c1e66e97) on every transcribed line: no restatement found for FY2024. Selected: FY2025 revenue 8,458,846, loss -2,293,883, CFO -302,682, cash 171,036; H1 2026 revenue 3,496,585, loss -1,287,364, cash 722,836. No NCI, so no income split.",
+   "not_read": [
+    "notes in all files; equity statements and OCI",
+    "Q1 2026 balance sheet and cash flow",
+    "FY2023 and FY2022 own filings (7146b383, 1626d81a): FY2023 only as comparatives from the FY2024 filing; FY2022 not read",
+    "all 2022-2025 interims; the 2025 interim filings not opened for values (H1 2025 and Q1 2025 only as comparatives)",
+    "earnings releases (results announcements) not used for values"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_every_english_fs_file_inventory_flags_wrong_for_many",
+   "summary": "Inventory flags the FY files 1626d81a, a444a964, c1e66e97 and the H1 files 3444a99c, 3b342092 as partial and f49b74e8 as scanned: the statement pages are image-only inside text PDFs (rendered: BS, IS, CF all present in c1e66e97, a444a964, f2e58681, b8f5bdb9). The nine files classed 'no statements found' or results announcements are 1 to 3 page earnings releases (64cbce2c, 8ae87183, 1a221809, 581f5a53, 6bf214ed, c4197c8b, d3f47261, b1fb5c37, 36bf7081), not statements. f49b74e8 (labelled 2022|Q1) is a whole-file scan whose cover and auditor report pages render legibly as the Q1 2022 condensed interim statements with KPMG review report; its statements were not read. Page offset differs by file (FY2025 pdf = printed + 1; FY2024 pdf = printed + 7 because the auditor report is unnumbered).",
+   "defect_ids": [
+    "B008-2350-1",
+    "B008-2350-2"
+   ]
+  },
+  "company_coverage": {
+   "status": "sparse_files_2022_to_2026H1_nothing_before_2022Q1",
+   "present_in_files_by_page_derived_period": [
+    "2022|Q1 (scan)",
+    "2022|H1",
+    "2022|9M",
+    "2022|FY",
+    "2023|Q1",
+    "2023|H1",
+    "2023|9M",
+    "2023|FY",
+    "2024|Q1",
+    "2024|H1",
+    "2024|9M",
+    "2024|FY",
+    "2025|Q1",
+    "2025|H1",
+    "2025|9M",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_verified_from_own_pages": [
+    "2024|FY",
+    "2025|FY",
+    "2026|H1",
+    "2026|Q1 (income statement)"
+   ],
+   "values_known_only_as_comparatives": [
+    "2023|FY (all three statements, FY2024 filing)",
+    "2025|H1 (IS, CF, from H1 2026 filing)",
+    "2025|Q1 and Q2 income statement",
+    "2025|Q1 (IS comparative)"
+   ],
+   "values_not_read": [
+    "2022|Q1 (scan), H1, 9M, FY",
+    "2023 Q1/H1/9M",
+    "2024 Q1/H1/9M",
+    "2025 Q1/H1/9M (own filings)"
+   ],
+   "missing": [
+    "all periods before 2022 Q1 (inventory expected window starts 2010|9M; pre-2022 not in collected files)"
+   ],
+   "inventory_corrections": "Annual labels equal publication year: 7146b383, 1626d81a, a444a964, c1e66e97 labelled 2023|FY..2026|FY are FY2022, FY2023, FY2024, FY2025 (covers). Page-derived: an English statements file exists for each of 18 periods 2022 Q1 to 2026 H1; the inventory counted 5 complete of 64. Fiscal year end 31 December confirmed."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "c1e66e9796d90846cccb470749ede4ece0dbe2132ac13d4f63606fe66f34b3f5",
+   "actual_period": "FY ended 2025-12-31 audited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": [
+     11,
+     12
+    ]
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": [
+     10,
+     11
+    ]
+   },
+   "units": "SAR thousand",
+   "reading": "visual (image-only pages)",
+   "relpath": "archive/SA/2350/c1e66e9796d90846cccb470749ede4ece0dbe2132ac13d4f63606fe66f34b3f5.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 58
+  },
+  {
+   "sha256": "a444a964bfafd2752d59c90383aeae1c4b5906b03a4a9c2eaab39da9edc5d536",
+   "actual_period": "FY ended 2024-12-31 audited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": [
+     11,
+     12
+    ]
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": [
+     4,
+     5
+    ]
+   },
+   "units": "SAR thousand",
+   "reading": "visual (image-only pages)",
+   "relpath": "archive/SA/2350/a444a964bfafd2752d59c90383aeae1c4b5906b03a4a9c2eaab39da9edc5d536.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 61
+  },
+  {
+   "sha256": "f2e586817a2e4b07e1eef9603c79c0cb17aff375a81367e3674a2f74d03714c7",
+   "actual_period": "3M and 6M ended 2026-06-30 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": [
+     7,
+     8
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": [
+     6,
+     7
+    ]
+   },
+   "units": "SAR thousand",
+   "reading": "visual (image-only pages)",
+   "relpath": "archive/SA/2350/f2e586817a2e4b07e1eef9603c79c0cb17aff375a81367e3674a2f74d03714c7.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 17
+  },
+  {
+   "sha256": "b8f5bdb97879de7d724ffe3de7f237c5ccbf176ca8d9ab271046cfc6674a1fee",
+   "actual_period": "3M ended 2026-03-31 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 5
+   },
+   "printed_pages": {
+    "is": 4
+   },
+   "units": "SAR thousand",
+   "reading": "visual, income statement only",
+   "relpath": "archive/SA/2350/b8f5bdb97879de7d724ffe3de7f237c5ccbf176ca8d9ab271046cfc6674a1fee.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 17
+  }
+ ],
+ "files_not_audited_for_values": [
+  "all other 2350 files; see unread_items"
+ ],
+ "defects": [
+  {
+   "id": "B008-2350-1",
+   "class": "period_label_publication_year",
+   "severity": "medium",
+   "evidence": "Annual files 7146b383, 1626d81a, a444a964, c1e66e97 cover FY2022, FY2023, FY2024, FY2025 (covers and statement headers) but are labelled 2023|FY, 2024|FY, 2025|FY, 2026|FY. Each earnings-release file (1a221809 'Year 2022', c4197c8b 'Year 2023') is labelled with its own fiscal year, so the release and the audited statements of one fiscal year sit in different slots."
+  },
+  {
+   "id": "B008-2350-2",
+   "class": "image_only_statement_pages",
+   "severity": "medium",
+   "evidence": "Textless pdf pages 8-12 (annual) and 4-8 (interim) hold the statements; inventory marks FY files partial and H1 2025 partial although BS, IS and CF are present. f49b74e8 is a whole-file scan."
+  },
+  {
+   "id": "B008-2350-3",
+   "class": "restated_comparatives",
+   "severity": "low",
+   "evidence": "f49b74e8 (Q1 2022) auditor report p4 says the Q1 2021 comparatives were restated (note 11) and reviewed by a successor auditor (KPMG for 2022). Q1 2022 values not read, so the size of the restatement is unknown. FY2024 vs FY2025 comparatives: no differences on transcribed lines."
+  }
+ ],
+ "unread_items": [
+  "notes in all files",
+  "equity statements and OCI",
+  "Q1 2026 BS and CF",
+  "own filings for FY2022, FY2023 and all 2022-2025 interims",
+  "Q1 2022 scan statements (cover and auditor report only)",
+  "earnings releases",
+  "all periods before 2022 Q1"
+ ],
+ "conclusion": "NOT claimed complete. Four filings read from pages (three in full) covering FY2023 to H1 2026 values; statement pages exist for every period 2022 Q1 to 2026 H1 but only FY2024, FY2025, H1 2026 and Q1 2026 (income statement) were value-read; no restatement found in FY2024 and FY2025; nothing before 2022 Q1."
+}
