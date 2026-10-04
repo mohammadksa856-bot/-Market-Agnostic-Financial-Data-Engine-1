@@ -1,0 +1,231 @@
+{
+ "schema_version": 1,
+ "symbol": "4323",
+ "name": "Sumou Real Estate Company",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B008)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed per audited file (tools/expand_sha.py). Whole-file scans (FY2024, FY2025, Q1 2026) and the H1 2026 file (text layer present but digits scrambled) were rendered with PyMuPDF and read by eye. Cover pages of eleven further scanned files were rendered to establish their periods. Identities, cross-filing agreement and Q1+Q2=H1 rolls in tools/check_transcripts.py over transcripts/4323.json (all pass).",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/montage.py",
+   "tools/check_transcripts.py",
+   "tools/expand_sha.py",
+   "transcripts/4323.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_4_filings_FY2024_FY2025_Q1_2026_H1_2026",
+   "summary": "Full SAR in every file; no USD columns. Entity on every audited cover and statement header is Sumou Real Estate Company; the collector flags many files as the same hash under symbol 9511 (the pre-migration Nomu code), so 4323 and 9511 are one issuer. Balance sheets satisfy assets = liabilities + equity (31 Dec 2023, 2024, 2025 as filed and as restated, 31 Mar 2026, 30 Jun 2026); every cash-flow column satisfies CFO+CFI+CFF = net change and begin + net = end; net profit = parent + NCI; zakat arithmetic holds. Q1 2026 + Q2 2026 = H1 2026 exactly for revenue (185,530,752 + 148,664,407 = 334,195,159) and net profit (35,517,136 + 31,524,383 = 67,041,519), and the 2025 comparatives roll too (101,489,572 + 104,166,604 = 205,656,176; 22,265,512 + 36,968,176 = 59,233,688). Selected: FY2025 revenue 522,687,568, net profit 134,988,365, CFO 120,106,964, cash 45,121,458; H1 2026 revenue 334,195,159, net profit 67,041,519, cash 43,394,687. Restated FY2024 and reclassified Dec-2025 values are recorded alongside the as-filed ones, never substituted (defects B008-4323-2, -3). Quarterly cash-flow subtraction is not needed here because Q1 and H1 cash-flow columns are both cumulative and roll consistently, but the cash definition changed (see defect -2).",
+   "not_read": [
+    "notes in all files (note 35 restatement table and note 22 reclassification not read)",
+    "equity statements and OCI (H1 2026 OCI p6 only partially in text)",
+    "H1 2026 balance sheet cash-flow items beyond headline totals; Q1 2026 OCI",
+    "own filings for FY2022, FY2023 and the 2022-2025 interims other than Q1 2026 and H1 2026 (about 12 scans identified by cover only)",
+    "annual reports FY2020 (203b9e06) and FY2021 (65c520b4, 99b7005a)",
+    "Arabic files (52bc98e0, 55bd38b5, 6e033239, 72227829, 8db9497b, 65c520b4) and the page-less rows d0231826",
+    "the original H1 2025 filing 904014ce (H1 2025 only as the reclassified comparative)"
+   ]
+  },
+  "document_completeness": {
+   "status": "statements_present_in_scans_inventory_cannot_classify_them",
+   "summary": "Inventory classes 15 English files as scanned_unreadable needing visual reading and counts 3 as complete. Rendered, FY2024 (371527d9), FY2025 (746c4ef2), Q1 2026 (bbb00aba) show a full set (BS, IS, OCI, equity, CF) and H1 2026 (7b75d3db) shows BS, IS, OCI, equity, CF with a scrambled text layer (digits split and reordered in the text, e.g. 'Property and equipment 749 , 23 3,1'), so text extraction would give wrong numbers while the images are clean. Cover pages of eleven more scans identify them as condensed consolidated interim statements for H1 2022 (361eee2e), 9M 2023 (427c9dd7), FY2022 (03222c4d, labelled 2023|FY), H1 2023 (d8396099), 9M 2024 (d69a4491), FY2023 (d8db21c5, labelled 2024|FY), H1 2024 (faf6cddc), Q1 2024 (86616695), 9M 2025 (8d32a1e5), H1 2025 (904014ce), Q1 2025 (14d16add): their statement pages were not read. Arabic twins exist for 2025 FY, 2025 9M, 2026 Q1 and 2026 H1 (flagged non-statement by the inventory, not opened).",
+   "defect_ids": [
+    "B008-4323-1",
+    "B008-4323-4",
+    "B008-4323-5"
+   ]
+  },
+  "company_coverage": {
+   "status": "contiguous_2022H1_to_2026H1_by_cover_with_gaps_2022_Q1_9M_and_2021",
+   "present_in_files_by_page_derived_period": [
+    "2022|H1 (scan, cover)",
+    "2022|FY (scan, cover)",
+    "2023|H1",
+    "2023|9M",
+    "2023|FY",
+    "2024|Q1",
+    "2024|H1",
+    "2024|9M",
+    "2024|FY",
+    "2025|Q1",
+    "2025|H1",
+    "2025|9M",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_verified_from_own_pages": [
+    "2024|FY",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "2023|FY (FY2024 filing)",
+    "2025|Q1 (Q1 2026 filing)",
+    "2025|H1 and Q2 (H1 2026 filing, reclassified)",
+    "2024|FY restated (FY2025 filing)"
+   ],
+   "values_not_read": [
+    "2022|H1",
+    "2022|FY",
+    "2023|H1",
+    "2023|9M",
+    "2023|FY (own filing)",
+    "2024|Q1",
+    "2024|H1",
+    "2024|9M",
+    "2025|Q1 (own)",
+    "2025|H1 (own)",
+    "2025|9M"
+   ],
+   "missing": [
+    "2022|Q1 and 2022|9M (no file)",
+    "2020 and 2021 interims and statements (only annual reports for FY2020, FY2021)",
+    "inventory: 2021|H1 gap and 2020|H1 leading gap"
+   ],
+   "inventory_corrections": "Annual labels equal publication year: 03222c4d (2023|FY) is the year ended 31 December 2022, d8db21c5 (2024|FY) is FY2023, 371527d9 (2025|FY) is FY2024, 746c4ef2 (2026|FY) is FY2025 (cover and statement headers). The inventory counts 2026|FY as an unexpected extra and 2022 FY as absent. Fiscal year end 31 December confirmed. Page-derived: English statement files exist for 15 periods from 2022 H1 to 2026 H1 (inventory: 3 complete of 19 expected, 13 scanned only)."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "371527d924ff1b2dbafadc1ed3eb8ebeea92bf82337afde17e9ceded095f988c",
+   "actual_period": "FY ended 2024-12-31 audited as originally filed",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 9
+   },
+   "units": "SAR",
+   "reading": "visual (whole-file scan)",
+   "relpath": "archive/SA/4323/371527d924ff1b2dbafadc1ed3eb8ebeea92bf82337afde17e9ceded095f988c.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 41
+  },
+  {
+   "sha256": "746c4ef28e18ec5f0e1fc8f9fcfca3ebc7038b10d72ca3bacf017625152d8c2b",
+   "actual_period": "FY ended 2025-12-31 audited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": [
+     11,
+     12
+    ]
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": [
+     9,
+     10
+    ]
+   },
+   "units": "SAR",
+   "reading": "visual (whole-file scan)",
+   "relpath": "archive/SA/4323/746c4ef28e18ec5f0e1fc8f9fcfca3ebc7038b10d72ca3bacf017625152d8c2b.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 44
+  },
+  {
+   "sha256": "bbb00aba9bbee8ace17cc76bdcdf8359518af84834941c00df867b3db6b0910e",
+   "actual_period": "3M ended 2026-03-31 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 6
+   },
+   "units": "SAR",
+   "reading": "visual (whole-file scan)",
+   "relpath": "archive/SA/4323/bbb00aba9bbee8ace17cc76bdcdf8359518af84834941c00df867b3db6b0910e.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 21
+  },
+  {
+   "sha256": "7b75d3db6389348d4edc2c2ef54b130d5f28b396d841b23b135739bf17497594",
+   "actual_period": "3M and 6M ended 2026-06-30 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 6
+   },
+   "units": "SAR",
+   "reading": "visual (text layer scrambled)",
+   "relpath": "archive/SA/4323/7b75d3db6389348d4edc2c2ef54b130d5f28b396d841b23b135739bf17497594.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 27
+  }
+ ],
+ "files_not_audited_for_values": [
+  "all other 4323 files; see unread_items"
+ ],
+ "defects": [
+  {
+   "id": "B008-4323-1",
+   "class": "scrambled_text_layer",
+   "severity": "high",
+   "evidence": "7b75d3db (H1 2026) has a text layer in which digits and punctuation are split and reordered across lines (BS page text yields 'Property and equipment 749 , 23 3,1' for 3,123,749, 'Total Current Assets 773 , 684 , 127 1, 419 142 , 028 ,1' for 1,127,684,773 and 1,028,142,419; negatives appear as a stray ')' before the number). A text-layer parser would return wrong values; the rendered page is correct and satisfies all identities. The income statement page (pdf p5) is rotated and has no text."
+  },
+  {
+   "id": "B008-4323-2",
+   "class": "restated_comparatives",
+   "severity": "high",
+   "evidence": "FY2024 restated in the FY2025 filing (note 35): total assets 1,224,812,712 -> 1,302,857,794, total liabilities 592,419,013 -> 670,464,095, cash 184,062,121 -> 3,282,421 (restricted cash 180,779,700 moved out of cash), CFO 70,289,671 -> 3,148,091, CFI 27,563,353 -> 49,595,995, CFF -27,319,915 -> -52,116,358, net change in cash 70,533,109 -> 627,728, opening cash 113,529,012 -> 2,654,693; net profit 106,245,560 and equity 632,393,699 unchanged. The FY2023 ending cash in the FY2024 filing (113,529,012) therefore uses the old definition."
+  },
+  {
+   "id": "B008-4323-3",
+   "class": "restated_comparatives",
+   "severity": "medium",
+   "evidence": "31 Dec 2025 total assets 1,703,614,142 (FY2025 filing p7 and Q1 2026 filing p4) vs 1,699,526,262 'Reclassified - Note 22' in the H1 2026 filing p4; total liabilities 937,361,897 vs 933,274,017; equity unchanged. Land-obligation and payables lines are reclassified; cash 45,121,458 unchanged."
+  },
+  {
+   "id": "B008-4323-4",
+   "class": "period_label_publication_year",
+   "severity": "medium",
+   "evidence": "Annual files 03222c4d, d8db21c5, 371527d9, 746c4ef2 cover FY2022, FY2023, FY2024, FY2025 but are labelled 2023|FY, 2024|FY, 2025|FY, 2026|FY. 8db9497b has no period label."
+  },
+  {
+   "id": "B008-4323-5",
+   "class": "duplicate_symbol_files",
+   "severity": "low",
+   "evidence": "Collector marks 203b9e06, 65c520b4, 99b7005a, 8db9497b, 8d32a1e5, 746c4ef2, bbb00aba, 7b75d3db and several Arabic files as the same hash under another symbol (9511). Entity checked from covers: Sumou Real Estate Company; no other entity found."
+  }
+ ],
+ "unread_items": [
+  "notes in all files (including note 35 and note 22)",
+  "equity statements and OCI",
+  "own filings for FY2022, FY2023 and all 2022-2025 interims (about 12 scans identified by cover only)",
+  "annual reports FY2020 and FY2021",
+  "Arabic files and page-less rows",
+  "original H1 2025 filing",
+  "2022 Q1, 2022 9M, all 2020 and 2021 interims (no file)"
+ ],
+ "conclusion": "NOT claimed complete. Four filings read from pages covering FY2023 to H1 2026; the text layer of the H1 2026 file is scrambled and must not be parsed; FY2024 cash and cash flows exist in two versions; about 12 further scanned statements are present by cover but unread."
+}
