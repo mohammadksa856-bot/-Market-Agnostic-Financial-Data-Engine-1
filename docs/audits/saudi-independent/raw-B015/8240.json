@@ -1,0 +1,388 @@
+{
+ "schema_version": 1,
+ "symbol": "8240",
+ "name": "CHUBB ARABIA COOPERATIVE INSURANCE COMPANY",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B015)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. All six audited filings have scanned statement pages and were rendered and read by eye (balance sheet, income statement, cash flow per filing). tools/check_transcripts.py over transcripts/8240.json checks balance-sheet identity, cash-flow sum and roll, profit before zakat plus tax to net income, cross-filing comparatives (declared differences only: IFRS 17 restatement keys, EPS) and Q1 + Q2 = H1 rolls for revenue, profit before zakat and net income (2026 and 2025); all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/check_transcripts.py",
+   "transcripts/8240.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_6_filings_declared_restatements_noted",
+   "summary": "Headline BS, income and cash-flow values (full SAR) read from rendered pages for FY2025, FY2024, FY2023, FY2022 as issued (IFRS 4), H1 2026 and Q1 2026. All identities hold with zero difference; comparatives agree across filings except declared items. FY2025: insurance revenue 392,965,748, profit before zakat and tax 17,202,029, net profit attributable to shareholders 10,616,871 (FY2024 16,292,651; FY2023 24,817,556), total assets 790,215,871, equity 476,936,779 after a 100,000,000 bonus issue (share capital 300m to 400m), CFO 29,126,656, closing cash 20,896,722. Statements are entity-level (single insurer statement of income with zakat and tax inside); supplementary insurance-operations and shareholders' statements exist in an appendix (FY2025 pdf p109-115) and were not read. Declared differences: (1) IFRS 17 transition: FY2022 original IFRS 4 (net income 4,697,108, total assets 894,348,594, equity 361,187,055, CFO 25,709,217, CFI -186,833,288) versus restated in the FY2023 filing (12,537,584, 700,191,701, 394,802,478, 25,027,676, -186,151,747); 1 Jan 2022 restated equity 385,784,777 versus FY2021 as issued 356,701,634. (2) FY2024 EPS 0.54 versus 0.41 restated. Interim: Q1 2026 + Q2 2026 = H1 2026 for revenue (96,543,724 + 102,822,668 = 199,366,392), profit before zakat and net profit (2,994,880 + 910,706 = 3,905,586); Q1 2025 + Q2 2025 = H1 2025 likewise. Interim cash flow: Q1 2026 CFO 10,086,764 (statement has an interest-on-term-deposit adjustment and no zakat line) versus H1 2026 CFO 11,461,157 (zakat paid -6,615,675 shown): presentations differ, so a Q2 cash flow by subtraction is NOT validated; H1 2026 financing -1,716,226 equals Q1 2026 financing exactly.",
+   "not_read": [
+    "notes in every file",
+    "supplementary insurance-operations / shareholders statements (FY2025 pdf p109-115 and equivalents)",
+    "statements of changes in equity (except Q1 2026 p7 glimpsed)",
+    "Q1 2026 balance sheet",
+    "all other interims (listed in files_not_audited_for_values)",
+    "auditor reports"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_all_six_files_opened_statement_pages_are_scans",
+   "summary": "The FY2025, FY2024, FY2023, FY2022, H1 2026 and Q1 2026 filings each carry balance sheet, income statement and cash-flow statement as scanned pages with no (or garbled) text layer although the inventory classes them financial_statements or annual_report_with_state with statement_pages detected from note text, not from the statements; FY2025 text-layer OCR is corrupted (net expense from reinsurance 2024 reads (188,672,162) in the text layer versus (188,679,169) on the page). Two files filed under 8240 are Chubb Limited documents. No FY2021 own FS and no 2021 interims exist in the collection.",
+   "defect_ids": [
+    "B015-8240-1",
+    "B015-8240-2",
+    "B015-8240-3",
+    "B015-8240-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2022_to_FY2025_and_interims_2022_to_2026_H1_with_gaps_by_page_derived_period",
+   "present_in_files_by_page_derived_period": [
+    "FY2022 (label 2023|FY)",
+    "FY2023 (label 2024|FY)",
+    "FY2024 (label 2025|FY)",
+    "FY2025 (label 2026|FY)",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2022 (as issued, IFRS 4)",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (IFRS 4, from FY2022 filing); 1 Jan 2022 restated balance sheet",
+    "FY2022 IFRS 17 restated (FY2023 filing)",
+    "2025 Q1, Q2, H1 (2026 filings)"
+   ],
+   "values_not_read": [
+    "2022 Q1/H1/9M",
+    "2023 Q1/H1/9M",
+    "2024 Q1/H1/9M",
+    "2025 Q1/H1/9M originals"
+   ],
+   "missing": [
+    "FY2021 and every earlier year (no file)",
+    "2021 and earlier interims",
+    "2026 9M (not yet due)"
+   ],
+   "inventory_corrections": "FY labels equal the publication year in all four FS files (2023|FY holds FY2022, 2024|FY FY2023, 2025|FY FY2024, 2026|FY FY2025); the inventory marked 403fab90 as detected 2023-03-31, but its pages are the FY2022 statements. Interim labels match page periods."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "170333be15f9941138c92294d757676c4cb4116362ed71fbda62f6c51713a60a",
+   "actual_period": "FY ended 2025-12-31 audited FS (collector label 2026|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": "12-13"
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": "11-12"
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages are scans with garbled OCR text; rendered and read)",
+   "relpath": "archive/SA/8240/170333be15f9941138c92294d757676c4cb4116362ed71fbda62f6c51713a60a.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 115
+  },
+  {
+   "sha256": "a323e3507fce98c1ab5fe2c52c250ae537e1a570e5886c46b2b51194f815ee77",
+   "actual_period": "FY ended 2024-12-31 audited FS (label 2025|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": "12-13"
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": "11-12"
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless)",
+   "note": "FY2024 EPS 0.54 here becomes 0.41 in the FY2025 filing after the bonus issue (300m to 400m capital); both recorded",
+   "relpath": "archive/SA/8240/a323e3507fce98c1ab5fe2c52c250ae537e1a570e5886c46b2b51194f815ee77.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 115
+  },
+  {
+   "sha256": "7e9a70648e7afccd5dbe75a3c1f31e125cc29dee91ab2f66f2b873a3c4c22e44",
+   "actual_period": "FY ended 2023-12-31 audited FS, first IFRS 17 year, with 2022 and 1 Jan 2022 restated comparatives (label 2024|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 10,
+    "is": 11,
+    "cf": "14-15"
+   },
+   "printed_pages": {
+    "bs": 10,
+    "is": 11,
+    "cf": "14-15"
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless)",
+   "relpath": "archive/SA/8240/7e9a70648e7afccd5dbe75a3c1f31e125cc29dee91ab2f66f2b873a3c4c22e44.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 136
+  },
+  {
+   "sha256": "403fab90954192f97a6daab694e39aba1a6895f88da6453d06e3ef4b587453ef",
+   "actual_period": "FY ended 2022-12-31 audited FS as originally issued under IFRS 4 (label 2023|FY = publication year; inventory detected 2023-03-31, wrong)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": "7-8",
+    "is": "9-10",
+    "cf": "13-14"
+   },
+   "printed_pages": {
+    "bs": "1-2",
+    "is": "3-4",
+    "cf": "7-8"
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless)",
+   "note": "IFRS 4 presentation (gross premiums written, net underwriting income, insurance-operations surplus split); restated to IFRS 17 in the FY2023 filing: total assets 894,348,594 to 700,191,701, equity 361,187,055 to 394,802,478, net income attributable 4,697,108 to 12,537,584, CFO 25,709,217 to 25,027,676, CFI -186,833,288 to -186,151,747. Both are declared; neither is substituted.",
+   "relpath": "archive/SA/8240/403fab90954192f97a6daab694e39aba1a6895f88da6453d06e3ef4b587453ef.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 85
+  },
+  {
+   "sha256": "1a8ef8d72e0ba4ac8645908705d5147a1bb30d0db04c6ed9fa1f493c37671907",
+   "actual_period": "3M and 6M ended 2026-06-30 reviewed (label 2026|H1 correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": "8-9"
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": "7-8"
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless)",
+   "note": "income columns are three-month 2026, three-month 2025, six-month 2026, six-month 2025; cash flow is six-month only",
+   "relpath": "archive/SA/8240/1a8ef8d72e0ba4ac8645908705d5147a1bb30d0db04c6ed9fa1f493c37671907.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 50
+  },
+  {
+   "sha256": "a73e4e471904d3daa99decf1d3b6570933016727806198a4feae3bdcdbcb97ec",
+   "actual_period": "3M ended 2026-03-31 reviewed (label 2026|Q1 correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 5,
+    "equity": 7,
+    "cf": 8
+   },
+   "printed_pages": {
+    "is": 4,
+    "equity": 6,
+    "cf": 7
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless); balance sheet page not transcribed",
+   "relpath": "archive/SA/8240/a73e4e471904d3daa99decf1d3b6570933016727806198a4feae3bdcdbcb97ec.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 37
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "f369325d0dc2576e4f9b73773e26ce16ca59204916c1eb9df7f6ea41fc5ccea1",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 47,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2022-09-30 IFRS 4 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "fe5f697251619e5f4e80482f7ba92c7741bca9a20c3c40a7478cfeb317681e13",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 46,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2022-06-30 IFRS 4 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "36f584b470eab05bdb468319157cd1a1d46486c48eec7e951c391cd83c971612",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 40,
+   "language": "en",
+   "actual_period": "3M ended 2022-03-31 IFRS 4 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "cb1525f6b0fe7a97be5a1582cb4473e2c87752e408b120b582926ab165ec5da9",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 95,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2023-09-30 interim, first IFRS 17 interim (cover text; class annual_report_with_state is wrong, 95 pages)",
+   "note": "not transcribed; 2022 comparatives in it are IFRS 17 restated"
+  },
+  {
+   "sha256": "5f193135508ef96d60072051bfae716c80f937fa9ab8b52388b4b07e1ca2f958",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 95,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2023-06-30 interim (cover text; class annual_report_with_state)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "58d30ead1a7923570934141fcad114c2f7cef92844fbb18aeda81abd5525b876",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 58,
+   "language": "en",
+   "actual_period": "3M ended 2023-03-31 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "ccdfe899745214a66b033511208513d2294ef62980a293c84edfe991231f7931",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 44,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2024-09-30 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "4b16fb505efd44743ef21636e7a58a07f989efe18be0a5f86137035789390714",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 44,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2024-06-30 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "53e7c16c630c142411f597662a8a8569cb88b151ba4042bc074cbd414239abec",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 39,
+   "language": "en",
+   "actual_period": "3M ended 2024-03-31 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "e0d4bbac29b8ce0eb065f1f7c7f5c425c6b81b5967a21b3cbed11412c381780a",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 47,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2025-09-30 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "eab5328f53ba511818d69973760b310861870dac8456c818ed44f95377b5e5bb",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "NOT Chubb Arabia: Chubb Limited (Swiss parent) Swiss statutory financial statements at 2025-12-31, 18 pages, parent-only",
+   "note": "wrong entity filed under 8240 with label 2025|FY; excluded from every Chubb Arabia value"
+  },
+  {
+   "sha256": "b0efe08bc652235804541cb0f6a6b5c299a7cac7bc5a03bbe93add4b6040dd2f",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 47,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2025-06-30 interim (cover text)",
+   "note": "not transcribed; 2025 H1 comparatives read in the H1 2026 filing"
+  },
+  {
+   "sha256": "1071b09033c8348566dcba0de4d96106d0672e095da4b1127a41f8d2e5eac149",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 40,
+   "language": "en",
+   "actual_period": "3M ended 2025-03-31 interim (cover text)",
+   "note": "not transcribed; 2025 Q1 comparatives read in the Q1 2026 filing"
+  },
+  {
+   "sha256": "690c1b5750423aea6b9dced54bf7599d628fc379a9c7f1cce0efe0bfd43ca58f",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 2,
+   "language": "en",
+   "actual_period": "NOT Chubb Arabia: Chubb Limited Company Profile, second quarter 2026, 2 pages",
+   "note": "wrong entity filed under 8240 with label 2026|H1; excluded"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B015-8240-1",
+   "class": "image_only_or_scanned_statements_flagged_as_present",
+   "severity": "high",
+   "evidence": "170333be, a323e350, 7e9a7064, 403fab90, 1a8ef8d7 and a73e4e47: statement pages are scans (textless pages 3-7, 8-13, 10-15, 7-14, 4-9, 3-9); 170333be pages 8-13 carry corrupted OCR text. All were read as images."
+  },
+  {
+   "id": "B015-8240-2",
+   "class": "fiscal_year_label_mismatch",
+   "severity": "medium",
+   "evidence": "Four annual FS files are labelled with the publication year: 403fab90 FY2022 as 2023|FY, 7e9a7064 FY2023 as 2024|FY, a323e350 FY2024 as 2025|FY, 170333be FY2025 as 2026|FY. A collector reading the label would shift every annual value by one year. Inventory detected 2023-03-31 for 403fab90 (wrong)."
+  },
+  {
+   "id": "B015-8240-3",
+   "class": "restated_or_represented_comparatives",
+   "severity": "high",
+   "evidence": "IFRS 17 transition: FY2022 and 1 Jan 2022 restated in the FY2023 filing; net income FY2022 4,697,108 (IFRS 4, 403fab90 pdf p10) versus 12,537,584 (7e9a7064 pdf p11); total assets 894,348,594 versus 700,191,701; equity 361,187,055 versus 394,802,478. FY2024 EPS 0.54 versus 0.41 (bonus issue). Both values are declared, none substituted. Series that mix the two bases across 2022/2023 are not comparable."
+  },
+  {
+   "id": "B015-8240-4",
+   "class": "wrong_entity_files_in_symbol_bucket",
+   "severity": "medium",
+   "evidence": "eab5328f (Chubb Limited Swiss statutory FS, 18 pages, label 2025|FY) and 690c1b57 (Chubb Limited Company Profile Q2 2026, 2 pages, label 2026|H1) are not Chubb Arabia documents; each occupies a period slot that is a false completeness signal."
+  }
+ ],
+ "unread_items": [
+  "notes in every file",
+  "supplementary insurance-operations and shareholders statements",
+  "statements of changes in equity",
+  "Q1 2026 balance sheet",
+  "12 interim filings 2022 Q1 to 2025 9M (identified by cover only)",
+  "FY2021 own statements (no file)",
+  "Arabic originals (none in collection)"
+ ],
+ "conclusion": "NOT claimed complete. Six filings value-verified from rendered pages (FY2022 as issued under IFRS 4, FY2023, FY2024, FY2025, Q1 2026, H1 2026); IFRS 17 restatement of FY2022 declared with both values; 12 interim filings identified by cover but not value-read; FY2021 and earlier absent; two Chubb Limited files wrongly filed under 8240."
+}
