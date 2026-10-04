@@ -1,0 +1,357 @@
+{
+ "schema_version": 1,
+ "symbol": "8270",
+ "name": "BURUJ COOPERATIVE INSURANCE COMPANY",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B015)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. All statement pages of the five audited filings are image-only and were rendered and read by eye. tools/check_transcripts.py over transcripts/8270.json checks balance-sheet identity, cash-flow sum and roll, pre-zakat profit plus zakat to net profit, cross-filing comparatives (declared differences only: FY2022 IFRS 17 restatement keys) and Q1 + Q2 = H1 rolls for revenue, profit before zakat and net profit (2025 and 2024); all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/check_transcripts.py",
+   "transcripts/8270.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_5_filings_declared_restatement_noted",
+   "summary": "Headline BS, income and cash-flow values (full SAR) read from rendered image-only pages for FY2024, FY2023 (with 2022 restated), FY2022 as issued under IFRS 4, H1 2025 (with 3M and prior-year columns) and Q1 2025. All identities hold exactly; every comparative agrees with the earlier filing except the declared IFRS 17 items. FY2024: insurance revenue 372,730,192, profit before zakat 19,191,600, net profit 9,385,565 (EPS 0.31 on 30,000,000 shares), total assets 769,087,328, equity 474,372,502, CFO -80,113,398, closing cash 173,678,154. FY2023 net profit 20,083,440; FY2022 restated net loss -29,000,327 (as issued under IFRS 4 -39,293,106). H1 2025: revenue 215,080,562, net profit 2,838,232 (Q2 1,539,833), equity 479,719,957; Q1 + Q2 = H1 for 2025 and 2024 for revenue, profit before zakat and net profit (pass). Declared differences: IFRS 17 transition for FY2022 (as issued versus restated: net result, total assets, equity, CFO, CFI, net change, closing cash 254,910,052 versus 255,969,579). FY2022 as issued has no insurance-revenue line (premiums and underwriting presentation), so gross written premiums and total revenues are recorded under their own keys. Only the six-month cash flow was read for 2025, so Q2 cash flow by subtraction was not tested and is NOT validated.",
+   "not_read": [
+    "notes in every file",
+    "statements of changes in equity (except Q1 2025 p6 glimpsed)",
+    "Q1 2025 cash flow",
+    "FY2021 own statements",
+    "all other interims"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_five_files_opened_all_statement_pages_are_image_only",
+   "summary": "All five audited files carry balance sheet, income statement and cash-flow statement (Q1 2025 cash flow not read) as image-only pages with no text layer, although the inventory classes them financial_statements; two 2023 interims are classed other_no_statements_found and two interims (H1 2021, 9M 2023) have no extractable text on the first pages. The collection ends at H1 2025: no 9M 2025, FY2025 or 2026 file, and the collector announcement state lists no results slot after 2025|H1 (reason not established from pages).",
+   "defect_ids": [
+    "B015-8270-1",
+    "B015-8270-2",
+    "B015-8270-3",
+    "B015-8270-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2021_to_FY2024_and_interims_2021_to_2025_H1_with_gaps_by_page_derived_period",
+   "present_in_files_by_page_derived_period": [
+    "FY2021 (label 2022|FY)",
+    "FY2022 (label 2023|FY)",
+    "FY2023 (label 2024|FY)",
+    "FY2024 (label 2025|FY)",
+    "2021 Q1",
+    "2021 H1",
+    "2021 9M",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2022 (as issued, IFRS 4)",
+    "FY2023",
+    "FY2024",
+    "2025 Q1 (income and balance sheet)",
+    "2025 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (IFRS 4, from FY2022 filing)",
+    "FY2022 IFRS 17 restated (FY2023 filing)",
+    "2024 Q1, H1 and Q2 (2025 filings)"
+   ],
+   "values_not_read": [
+    "2021 Q1/H1/9M",
+    "2022 Q1/H1/9M",
+    "2023 Q1/H1/9M",
+    "2024 Q1/H1/9M originals",
+    "FY2021 own statements"
+   ],
+   "missing": [
+    "2025 9M",
+    "FY2025",
+    "2026 and later",
+    "FY2020 and earlier (no file)"
+   ],
+   "inventory_corrections": "FY labels equal the publication year in all four FS files (2022|FY holds FY2021, 2023|FY FY2022, 2024|FY FY2023, 2025|FY FY2024); the inventory period_mismatch flags are correct detections. The inventory class other_no_statements_found for 53e21da9 and a3b17f11 is wrong (image-only statements)."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "e0d99bd9045b5b73972cce9e9ccc47f843de0bd31e67063a7e4762ad1a408855",
+   "actual_period": "FY ended 2024-12-31 audited FS (collector label 2025|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": 12
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 7
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages image-only, pdf p3-12 textless)",
+   "relpath": "archive/SA/8270/e0d99bd9045b5b73972cce9e9ccc47f843de0bd31e67063a7e4762ad1a408855.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 52
+  },
+  {
+   "sha256": "bc6d203e52ca0395119e0f10b87c84fa07ccd3f8ca0774ce1eae82e93a03cfeb",
+   "actual_period": "FY ended 2023-12-31 audited FS, first IFRS 17 year, with 2022 and 1 Jan 2022 restated (label 2024|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 12,
+    "is": 13,
+    "cf": 16
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 7
+   },
+   "units": "full SAR",
+   "reading": "visual (image-only, pdf p3-16 textless)",
+   "relpath": "archive/SA/8270/bc6d203e52ca0395119e0f10b87c84fa07ccd3f8ca0774ce1eae82e93a03cfeb.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 68
+  },
+  {
+   "sha256": "5da7b83a49d5c878881a9c85599749700b7c83db8b1ee056bc9eb883cc2e8fec",
+   "actual_period": "FY ended 2022-12-31 audited FS as issued under IFRS 4 (label 2023|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 10
+   },
+   "units": "full SAR",
+   "reading": "visual (image-only, pdf p3-11 textless)",
+   "note": "restated to IFRS 17 in the FY2023 filing: net loss -39,293,106 to -29,000,327, total assets 793,814,537 to 752,056,846, equity 394,779,424 to 420,484,271, CFO -129,942,452 to -150,647,857, CFI 147,961,867 to 170,331,457, closing cash 254,910,052 to 255,969,579. Both declared; neither substituted.",
+   "relpath": "archive/SA/8270/5da7b83a49d5c878881a9c85599749700b7c83db8b1ee056bc9eb883cc2e8fec.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 66
+  },
+  {
+   "sha256": "c04bbe5ee8b037a456aee408769f0486b58d7fc955f89b46e2a0aac553164ccd",
+   "actual_period": "3M and 6M ended 2025-06-30 reviewed interim (label 2025|H1 correct); latest period in the collection",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 7
+   },
+   "units": "full SAR",
+   "reading": "visual (image-only, pdf p3-8 textless)",
+   "note": "income columns are three-month 2025, three-month 2024, six-month 2025, six-month 2024; cash flow is six-month only",
+   "relpath": "archive/SA/8270/c04bbe5ee8b037a456aee408769f0486b58d7fc955f89b46e2a0aac553164ccd.pdf",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 38
+  },
+  {
+   "sha256": "31885374180ca6b8b04cae9784ef19ad51bb870f907cfd2c7a719db73901c6cc",
+   "actual_period": "3M ended 2025-03-31 reviewed interim (label 2025|Q1 correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "equity": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "equity": 6
+   },
+   "units": "full SAR",
+   "reading": "visual (image-only, pdf p3-8 textless); cash flow page not read",
+   "relpath": "archive/SA/8270/31885374180ca6b8b04cae9784ef19ad51bb870f907cfd2c7a719db73901c6cc.pdf",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 32
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "6f6383be95c4d0f5fa6ed26c58572e4b046d2a291a2d6383e5df5ef5380d1a16",
+   "collector_label": "2021|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 38,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2021-09-30 interim (cover text; pdf p3-8 textless)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "4d101c8ca5562337fa1118002f1c2849e45efaf16f3b5eb1694757b4ffe0c011",
+   "collector_label": "2021|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 38,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2021-06-30 interim (cover image read; zero text on pdf p1-8)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "f9a872aa46e3b519d6f2e265c3dbd735a4a3a860eb2fc42cf714c1b3e245c3aa",
+   "collector_label": "2021|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 33,
+   "language": "en",
+   "actual_period": "3M ended 2021-03-31 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "3840ce4ca41badf995f4e83f0b2783d3cdc1dd63c3f59b3ddbf8db2ed4ef709d",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 34,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2022-09-30 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "5f6542c5bd08e320d3cc5d8bc2ec6aa6c80bc5d7c8cb15403f3043ae98c48697",
+   "collector_label": "2022|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 61,
+   "language": "en",
+   "actual_period": "FY ended 2021-12-31 audited FS under IFRS 4 (cover image read; label 2022|FY = publication year)",
+   "note": "not transcribed; FY2021 values known only as the comparative column in the FY2022 filing"
+  },
+  {
+   "sha256": "edde7b9626623968108bcc067b353b88ed400acc1622310750fba16182951f6c",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 35,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2022-06-30 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "6359b493e4d966aa2f5da901b9027c56b42a16287723e52892f3dabbeea6cc8b",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 33,
+   "language": "en",
+   "actual_period": "3M ended 2022-03-31 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "7d8f4a7e276568cc06d5d83c74af272f05fe91f354f3805392317698e099c98c",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 36,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2023-09-30 interim (cover image read; pdf p1-7 textless)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "53e21da951d1bafb266e01cd1fe299d3898e397937fdcc0bd80cf44a24383cec",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 41,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2023-06-30 interim (cover text); inventory class other_no_statements_found is wrong (pdf p3-8 image-only)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "a3b17f110e1946f1c895402e1ed769365b16d958615228ab32ea100d43e40254",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 39,
+   "language": "en",
+   "actual_period": "3M ended 2023-03-31 interim (cover text); inventory class other_no_statements_found is wrong (pdf p3-8 image-only)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "c10f9e10b1c20357614aafe50db32b58af9c1e021978563ee04ebe639427e3a1",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 35,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2024-09-30 interim (cover text)",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "573a04aeb486864224e7881a03cb13e02694699a2171acbd917c11071c1a50e8",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 35,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2024-06-30 interim (cover text)",
+   "note": "not transcribed; 6M and Q2 2024 read as comparatives in the H1 2025 filing"
+  },
+  {
+   "sha256": "ea764f2609de610229d58b6f7d428e742551f4a1a91737f646c33606e4f4e895",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 32,
+   "language": "en",
+   "actual_period": "3M ended 2024-03-31 interim (cover text)",
+   "note": "not transcribed; Q1 2024 read as comparative in the Q1 2025 filing"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B015-8270-1",
+   "class": "image_only_or_scanned_statements_flagged_as_present_or_absent",
+   "severity": "high",
+   "evidence": "Statement pages image-only in every audited file (e0d99bd9 pdf p3-12, bc6d203e p3-16, 5da7b83a p3-11, c04bbe5e p3-8, 31885374 p3-8); 53e21da9 and a3b17f11 classed other_no_statements_found; 4d101c8c and 7d8f4a7e have no extractable text on pdf p1-8 and p1-7."
+  },
+  {
+   "id": "B015-8270-2",
+   "class": "fiscal_year_label_mismatch",
+   "severity": "medium",
+   "evidence": "5f6542c5 FY2021 labelled 2022|FY, 5da7b83a FY2022 labelled 2023|FY, bc6d203e FY2023 labelled 2024|FY, e0d99bd9 FY2024 labelled 2025|FY. A label reader would shift every annual value by one year."
+  },
+  {
+   "id": "B015-8270-3",
+   "class": "restated_or_represented_comparatives",
+   "severity": "high",
+   "evidence": "IFRS 17 transition: FY2022 net loss -39,293,106 as issued (5da7b83a pdf p8) versus -29,000,327 restated (bc6d203e pdf p13); total assets 793,814,537 versus 752,056,846; equity 394,779,424 versus 420,484,271; CFO -129,942,452 versus -150,647,857. Both recorded, none substituted; revenue is not comparable across the transition."
+  },
+  {
+   "id": "B015-8270-4",
+   "class": "series_ends_without_stated_reason",
+   "severity": "medium",
+   "evidence": "No 9M 2025, FY2025 or 2026 file exists and the collector announcement state lists no results slot after 2025|H1. Notes were not read, so whether the series ended or the collection stopped is not established."
+  }
+ ],
+ "unread_items": [
+  "notes in every file",
+  "statements of changes in equity",
+  "Q1 2025 cash flow",
+  "13 other filings (identified by cover only), including FY2021 own FS",
+  "FY2020 and earlier (no file)",
+  "reason the series stops at H1 2025",
+  "Arabic originals (none in collection)"
+ ],
+ "conclusion": "NOT claimed complete. Five filings value-verified from rendered image-only pages (FY2022 as issued, FY2023, FY2024, Q1 2025, H1 2025); IFRS 17 restatement of FY2022 declared with both values; 13 further filings identified by cover but not value-read; no FY2025, 9M 2025 or 2026 documents in the collection."
+}
