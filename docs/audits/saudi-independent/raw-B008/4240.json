@@ -1,0 +1,321 @@
+{
+ "schema_version": 1,
+ "symbol": "4240",
+ "name": "Fawaz Abdulaziz Al Hokair & Company (Cenomi Retail; renamed AFG International Company in 2026 filings)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B008)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed per audited file (tools/expand_sha.py). Born-digital statements read from the text layer with rendered-image checks where text rows merged (FY2025 balance sheet); the FY2024 filing's statement pages are image-only and were rendered and read. Entity verified from the cover pages and statement headers of every audited file. Identities and cross-filing agreement in tools/check_transcripts.py over transcripts/4240.json (all pass; known restatements flagged).",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/montage.py",
+   "tools/check_transcripts.py",
+   "tools/expand_sha.py",
+   "transcripts/4240.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_7_filings_with_multiple_restated_versions_recorded",
+   "summary": "Full SAR (not thousands) in every file read; no USD columns. Seven filings read: FY ended 31 Mar 2022, nine-month transition period to 31 Dec 2022, FY2023, FY2024 (as originally filed), FY2025, Q1 2026 and H1 2026. Every balance sheet satisfies assets = liabilities + equity (including all restated columns), every cash-flow column satisfies CFO+CFI+CFF = net change and begin + net + FX = end, and net result = parent + NCI. Equity is negative from FY2023 (31 Dec 2025 as filed: total equity -1,466,203,430). Selected: FY2025 revenue 5,103,856,497, loss -496,741,735, CFO -512,765,740, cash 243,999,879; H1 2026 revenue 2,623,355,651, loss -131,024,107, cash 162,057,514. Many comparatives were restated and are recorded as filed and as re-presented, never substituted (defects B008-4240-2 to -4). The Q1 2026 + Q2 2026 = H1 2026 roll does NOT hold because H1 2026 is restated (revenue 1,364,574,019 + 1,258,134,312 = 2,622,708,331 vs 2,623,355,651; loss -47,329,981 + -78,418,176 = -125,748,157 vs -131,024,107), so Q2 standalone values must not be derived by subtraction from the Q1 filing.",
+   "not_read": [
+    "notes (except note 36 FY2025, note 23 headings in H1 2026)",
+    "equity statements and OCI",
+    "FY Dec 2023 CF capex detail beyond headline lines; 9773ab9f twin (text identical on 66 of 67 pages) not separately read",
+    "all 2022 to 2025 interims in English and Arabic (about 40 files), including their own originals; the 2020-2022 scanned interims (cover identification not completed)",
+    "annual reports FY2021, FY2022; FY2020 (fbba0288), FY2021 (b3a728a4) March-year-end statements",
+    "factsheets and results announcements (not statements)",
+    "Arabic files in all periods"
+   ]
+  },
+  "document_completeness": {
+   "status": "statements_present_but_many_files_flagged_wrongly_or_unidentified_scans",
+   "summary": "FY2025 (6e44c326) and H1 2026 (6af5dc79) are complete, born-digital statements. 6e44c326 reports 5 textless pages (auditor report and cover) but all primary statements are in the text layer. The FY2024 file 251f5479 is classed no-statements-found and its statement pages are image-only inside a Word-produced PDF: BS, IS, OCI, equity and CF render fully (pdf p9-14). Several files are classed partial because of scanned pages (7ceaba0e, 952f6827, 195aa529, f0796d8d, e0e0f271). Q1 2026 has two English files (798c9a0c, 9b40875c) with identical page text and different hashes. FY2023 has two files (667e5934 labelled 2023|FY; 9773ab9f labelled 2024|FY) with identical text on 66 of 67 pages. 91d715bb (2025|FY) is an Arabic FY2024 or FY2025 file under the new name (not read). About 17 whole-file scans (2020 to 2022 interims) were not identified individually; a low-resolution contact sheet showed condensed interim statement covers only.",
+   "defect_ids": [
+    "B008-4240-1",
+    "B008-4240-5",
+    "B008-4240-6"
+   ]
+  },
+  "company_coverage": {
+   "status": "sparse_with_fiscal_year_change_and_restatements",
+   "present_in_files_by_page_derived_period": [
+    "FY to 2020-03-31",
+    "FY to 2021-03-31",
+    "FY to 2022-03-31",
+    "9M transition to 2022-12-31",
+    "FY2023 (Dec)",
+    "FY2024 (Dec)",
+    "FY2025 (Dec)",
+    "Q1 2026",
+    "H1 2026",
+    "interim files 2020 to 2025 (not read)"
+   ],
+   "values_verified_from_own_pages": [
+    "FY Mar-2022",
+    "9M transition Dec-2022",
+    "FY2023",
+    "FY2024 (as filed)",
+    "FY2025",
+    "Q1 2026",
+    "H1 2026"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY Mar-2021 (as filed in 5ae286f0 comparatives)",
+    "FY Mar-2021 balance sheet restated (transition filing)",
+    "H1 2025 (6M and Q2) restated",
+    "Q1 2025 (Q1 2026 comparative)",
+    "31 Dec 2022 BS restated (FY2023 filing)"
+   ],
+   "values_not_read": [
+    "FY Mar-2020, FY Mar-2021 own filings",
+    "all 2020 to 2025 interim filings",
+    "Q3 and Q4 splits for any year"
+   ],
+   "missing": [
+    "nothing found for periods before 2020; collector state lists announcements back to 2015"
+   ],
+   "inventory_corrections": "Fiscal year end is NOT month 3 for recent data: the company changed its year-end from 31 March to 31 December with a nine-month transition period 1 April to 31 December 2022 (file 88d9121a cover: nine months period ended 31 December 2022). Collector labels the transition filing 2023|FY (flagged text_year_only), the Dec-2023 statements 2023|FY and 2024|FY (twins), Dec-2024 as 2025|FY and Dec-2025 as 2026|FY. March-year-end files labelled FY(n) cover the year ended 31 March of that year (5ae286f0 labelled 2022|FY covers 31 March 2022; consistent), unlike Dec-year-end files labelled n+1. Interims of the transition year: 13bf6dfe labelled 2022|H1 is 'ended 30 September 2022' (a 6-month interim of the March-year, the Q2 of that year). Under the Dec year-end the labelled slots Q1 to 9M 2023 onward are calendar quarters."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "6e44c326312ed8400b19c82643fefbe91bbd2124963db285edfa7e0b809df04f",
+   "actual_period": "FY ended 2025-12-31 audited (AFG International Company, previously Fawaz Abdulaziz Al Hokair & Co.)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": [
+     13,
+     14
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": [
+     10,
+     11
+    ]
+   },
+   "units": "SAR",
+   "reading": "text layer plus rendered check",
+   "relpath": "archive/SA/4240/6e44c326312ed8400b19c82643fefbe91bbd2124963db285edfa7e0b809df04f.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 67
+  },
+  {
+   "sha256": "251f547949f7105b1b8ef1b1ca962411a8877707c853ab381335ae629b1eef97",
+   "actual_period": "FY ended 2024-12-31 audited as originally filed",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": [
+     13,
+     14
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": [
+     10,
+     11
+    ]
+   },
+   "units": "SAR",
+   "reading": "visual (image-only pages)",
+   "relpath": "archive/SA/4240/251f547949f7105b1b8ef1b1ca962411a8877707c853ab381335ae629b1eef97.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 65
+  },
+  {
+   "sha256": "667e593401fd7bbcf412ae809d08ecbcd88519f3c72f5c57022a2c7ae8d5505a",
+   "actual_period": "FY ended 2023-12-31 audited",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": [
+     13,
+     14
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": [
+     10,
+     11
+    ]
+   },
+   "units": "SAR",
+   "reading": "text layer",
+   "relpath": "archive/SA/4240/667e593401fd7bbcf412ae809d08ecbcd88519f3c72f5c57022a2c7ae8d5505a.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 67
+  },
+  {
+   "sha256": "88d9121a60176cb7cb5e9d4cbd94a9d363f8bfdb83a93cae9782d135dc3f1b85",
+   "actual_period": "nine-month transition period ended 2022-12-31 audited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 10,
+    "is": 11,
+    "cf": [
+     14,
+     15
+    ]
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": [
+     11,
+     12
+    ]
+   },
+   "units": "SAR",
+   "reading": "text layer",
+   "relpath": "archive/SA/4240/88d9121a60176cb7cb5e9d4cbd94a9d363f8bfdb83a93cae9782d135dc3f1b85.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 69
+  },
+  {
+   "sha256": "5ae286f02197c91f69fe486108bb08dd295ede18e403d2ea010e5bef26333a4b",
+   "actual_period": "FY ended 2022-03-31 audited as originally filed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 10,
+    "is": 11,
+    "cf": [
+     14,
+     15
+    ]
+   },
+   "printed_pages": {
+    "is": 8
+   },
+   "units": "SAR",
+   "reading": "text layer",
+   "relpath": "archive/SA/4240/5ae286f02197c91f69fe486108bb08dd295ede18e403d2ea010e5bef26333a4b.pdf",
+   "collector_label": "2022|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 63
+  },
+  {
+   "sha256": "6af5dc793cd7c42c919360e3c5a30e12b5da06e832cf08e2d2f6a1a5ffbc0e2a",
+   "actual_period": "3M and 6M ended 2026-06-30 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": [
+     8,
+     9
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": [
+     6,
+     7
+    ]
+   },
+   "units": "SAR",
+   "reading": "text layer plus rendered IS",
+   "relpath": "archive/SA/4240/6af5dc793cd7c42c919360e3c5a30e12b5da06e832cf08e2d2f6a1a5ffbc0e2a.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 41
+  },
+  {
+   "sha256": "798c9a0c4ebcce61b3f857f1420ea9ad71e046441ba75c27e12e617d8a9c2a8b",
+   "actual_period": "3M ended 2026-03-31 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": [
+     8,
+     9
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": [
+     7,
+     8
+    ]
+   },
+   "units": "SAR",
+   "reading": "text layer",
+   "relpath": "archive/SA/4240/798c9a0c4ebcce61b3f857f1420ea9ad71e046441ba75c27e12e617d8a9c2a8b.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 28
+  }
+ ],
+ "files_not_audited_for_values": [
+  "all other 4240 files; see unread_items"
+ ],
+ "defects": [
+  {
+   "id": "B008-4240-1",
+   "class": "fiscal_year_change_and_label",
+   "severity": "high",
+   "evidence": "Year-end changed from 31 March to 31 December via a nine-month transition period to 31 Dec 2022 (88d9121a cover and statements: nine months ended 31 December 2022 vs twelve months ended 31 March 2022). Inventory has fiscal_year_end_month 3 and counts the transition filing as 2023|FY. Transition period revenue 4,543,167,414 (as filed), profit 94,644,564."
+  },
+  {
+   "id": "B008-4240-2",
+   "class": "restated_comparatives",
+   "severity": "high",
+   "evidence": "31 Mar 2022 balance sheet has three versions: total assets 8,546,601,232 and equity 504,048,857 as filed (5ae286f0 p10); 8,241,206,787 and 145,358,156 restated in the transition filing (88d9121a p10, note 36); 7,362,827,074 as the 1 April 2022 column of the FY2023 filing (667e5934 p9). 31 Mar 2021: total assets 8,358,726,674 -> 8,053,332,229, equity 451,574,211 -> 92,883,510. The transition period itself is re-presented in the FY2023 filing: revenue 4,543,167,414 -> 4,247,672,150, profit 94,644,564 -> 100,434,990; 31 Dec 2022 total assets 7,916,649,887 -> 7,152,969,241, equity 281,342,099 -> 345,941,894."
+  },
+  {
+   "id": "B008-4240-3",
+   "class": "restated_comparatives",
+   "severity": "high",
+   "evidence": "FY2023 re-presented in the FY2024 filing (discontinued operations): revenue 5,232,231,188 -> 4,671,223,197, operating loss -640,066,500 -> -621,691,719, net loss unchanged -1,112,807,484. FY2024 re-presented in the FY2025 filing (note 36, pdf p67, disposal group and reclassifications): total assets 4,585,690,106 -> 4,613,955,733, total liabilities 5,603,825,678 -> 5,632,091,305, revenue 4,844,508,690 -> 4,847,143,434, CFI 104,055,371 -> 97,939,435, net change in cash 95,839,730 -> 89,723,794, FX -27,769,883 -> -21,653,947; net loss -197,463,334 and ending cash unchanged. Note 36 lists only BS and CF changes although revenue also differs."
+  },
+  {
+   "id": "B008-4240-4",
+   "class": "restated_comparatives",
+   "severity": "high",
+   "evidence": "H1 2026 filing (6af5dc79) restates 31 Dec 2025 (note 23, lease-term revision applied from earliest practicable date, impracticability of full retrospective restatement): total assets 4,023,468,164 -> 4,544,423,857, total liabilities 5,489,671,594 -> 6,156,616,504, equity -1,466,203,430 -> -1,612,192,647, right-of-use assets 1,368,486,825 -> 1,915,723,035, lease liabilities up; H1 2025 comparatives restated too (revenue 2,463,069,868, net loss -107,604,050). Q1 2026 filing (798c9a0c) still shows 31 Dec 2025 total assets 4,025,727,650 (a third version) and Q1 2026 loss -47,329,981 before the restatement. Q1 + Q2 does not equal H1 (see value_correctness)."
+  },
+  {
+   "id": "B008-4240-5",
+   "class": "image_only_statement_pages",
+   "severity": "medium",
+   "evidence": "251f5479 (FY2024) has textless pages 4-14 and is classed no-statements-found though BS, IS, OCI, equity and CF are present. Cash definitions differ: balance sheet cash includes the bank overdraft difference (31 Dec 2023 BS cash 235,247,382 vs cash-flow ending cash 188,141,687; 31 Dec 2022 193,825,276 vs 144,067,171)."
+  },
+  {
+   "id": "B008-4240-6",
+   "class": "duplicate_files_and_entity_rename",
+   "severity": "medium",
+   "evidence": "Two byte-different Q1 2026 English files (798c9a0c, 9b40875c) with identical page text; FY2023 twins 667e5934 / 9773ab9f identical text on 66 of 67 pages, labelled 2023|FY and 2024|FY. From 2026 the entity is named AFG International Company (Previously Fawaz Abdulaziz Al Hokair & Co.) on the covers; the issuer is the same, confirmed by identical comparative figures (cash, equity) across the Fawaz-named and AFG-named filings."
+  }
+ ],
+ "unread_items": [
+  "notes (except note 36 and note 23 headings)",
+  "equity statements and OCI",
+  "all 2020 to 2025 interim filings including Arabic twins",
+  "17 whole-file scans 2020 to 2022 (identified only as interim statement covers at low resolution)",
+  "FY Mar-2020 and FY Mar-2021 own filings, annual reports FY2021 and FY2022",
+  "9773ab9f twin and 91d715bb Arabic file",
+  "Q2/Q3/Q4 standalone values",
+  "nothing before 2020 collected"
+ ],
+ "conclusion": "NOT claimed complete. Seven filings read from pages covering FY Mar-2021 to H1 2026; the company changed its year-end in 2022 and restated comparatives repeatedly, so any series must carry the as-filed and re-presented version with source filing. About 40 interim files and all pre-2022 interims were not value-read."
+}
