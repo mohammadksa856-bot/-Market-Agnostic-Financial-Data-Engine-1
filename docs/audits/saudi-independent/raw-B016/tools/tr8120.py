@@ -113,4 +113,5 @@ rolls = [
     dict(name="2026 H1 insurance revenue = Q1 + Q2", total=["6d995550", "is", "cur", "revenue"], parts=[["a9efebce", "is", "cur", "revenue"], ["6d995550", "is_q", "cur", "revenue"]]),
     dict(name="2026 H1 pre-zakat result = Q1 + Q2", total=["6d995550", "is", "cur", "pbt"], parts=[["a9efebce", "is", "cur", "pbt"], ["6d995550", "is_q", "cur", "pbt"]]),
 ]
-write("8120", "GULF UNION ALAHLIA COOPERATIVE INSURANCE COMPANY", "SAR", "SAR full riyals as printed", docs, rolls)
+if __name__ == "__main__":
+    write("8120", "GULF UNION ALAHLIA COOPERATIVE INSURANCE COMPANY", "SAR", "SAR full riyals as printed", docs, rolls)
