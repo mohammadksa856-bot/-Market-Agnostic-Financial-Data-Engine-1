@@ -99,7 +99,7 @@ spec = {
         "FY2018, FY2019, FY2020 standalone files", "total liabilities for FY2021/FY2020",
         "standalone FY2023 FS: no file",
     ],
-    "conclusion": ("NOT claimed complete. Six filings value-verified from pages; FY2023 has no standalone FS file; 15 further periods have a file but are not value-read "
+    "conclusion": ("NOT claimed complete. Six filings value-verified from pages; FY2023 has no standalone FS file; 16 further files are not value-read "
                    "(see values_not_read); nothing before FY2018."),
 }
 mkrecord.build(spec)

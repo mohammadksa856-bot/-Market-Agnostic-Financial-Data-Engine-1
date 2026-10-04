@@ -1,0 +1,574 @@
+{
+ "schema_version": 1,
+ "symbol": "4200",
+ "name": "ALDREES (Aldrees Petroleum and Transport Services Company)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B009)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file (tools/mkrecord.py). Of 39 files, 37 are whole-file scans (all pages textless) classed scanned_unreadable; every scan was identified by rendering its cover (tools/covers.py montages) and the primary-statement pages of FY2022, FY2023, FY2024 (as originally filed), Q1 2026 and H1 2026 were rendered and read by eye. FY2025 (b98957d5) is born digital and was read from the text layer with the income statement page also rendered. tools/check_transcripts.py over transcripts/4200.json checks BS identity, cash-flow sum and roll, gross profit, profit before zakat to net income, cross-filing agreement of comparatives with explicit restated flags and Q1+Q2=H1 rolls; all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/check_transcripts.py",
+   "transcripts/4200.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_6_filings_with_material_restatements_recorded",
+   "summary": "Headline BS, income and cash-flow values (full SAR) transcribed from pages for FY2022, FY2023, FY2024 (original), FY2025, Q1 2026 and H1 2026 with their comparative columns and the Q2 columns. Identities hold with zero difference: total assets = liabilities + equity; CFO+CFI+CFF = net change; opening + net change = closing bank balances (equal to balance-sheet bank balances throughout); revenue - cost = gross profit; profit before zakat less zakat = net income; Q1+Q2=H1 for revenue, gross profit and net income in 2026 and in the restated 2025 comparatives. No non-controlling interest. Selected: FY2025 revenue 25,760,827,915, net income 421,845,770, total assets 9,453,976,563, CFO 1,096,504,986; H1 2026 revenue 14,158,762,289, net income 234,059,661, total assets 10,067,331,024. FY2024 was RESTATED (note 37): as originally filed net income 338,047,048, total assets 8,443,323,301, equity 1,479,487,425, CFO 1,397,899,452, EPS 3.38; as restated in the FY2025 filing 344,650,993, 8,380,633,196, 1,416,797,320, 1,379,150,772 and 3.44 (see defect B009-4200-4). Both versions are in the transcript with a restated flag; none substituted.",
+   "not_read": [
+    "notes in every file (note 37 and note 25 restatement notes in particular)",
+    "equity statements except Q1 2026 p6",
+    "FY2021 own file fa59d193 and the FY2025 scan fb80ac00 (FY2021 known only from the FY2022 filing's comparative column)",
+    "all 2021-2025 interim filings (English and Arabic scans); Q1 2025 and H1 2025 are known only as restated comparatives in the 2026 filings"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_every_file_opened_inventory_classification_wrong_for_38_whole_file_scans",
+   "summary": "Every file opened (annual FY2022 to FY2025, Q1 and H1 2026) holds a statement of financial position, comprehensive income, changes in equity and cash flows. 37 of 39 files are whole-file scans with no text layer and the inventory classes them scanned_unreadable with no statement pages; only b98957d5 (FY2025) is born digital. Fifteen Arabic twin interims have no fiscal year in the inventory. A duplicate of the FY2022 file (c239b2bf) occupies the 2023|FY slot, so the FY2023 file sits in 2024|FY.",
+   "defect_ids": [
+    "B009-4200-1",
+    "B009-4200-2",
+    "B009-4200-3",
+    "B009-4200-5"
+   ]
+  },
+  "company_coverage": {
+   "status": "contiguous_2021Q1_to_2026H1_files_all_periods_present",
+   "present_in_files_by_page_derived_period": [
+    "2021|Q1",
+    "2021|H1",
+    "2021|9M",
+    "2021|FY",
+    "2022|Q1",
+    "2022|H1",
+    "2022|9M",
+    "2022|FY",
+    "2023|Q1",
+    "2023|H1",
+    "2023|9M",
+    "2023|FY",
+    "2024|Q1",
+    "2024|H1",
+    "2024|9M",
+    "2024|FY",
+    "2025|Q1",
+    "2025|H1",
+    "2025|9M",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_verified_from_own_pages": [
+    "2022|FY",
+    "2023|FY",
+    "2024|FY (original)",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "2021|FY (FY2022 filing)",
+    "2025|Q1 restated (Q1 2026 filing)",
+    "2025|H1 six months and Q2 restated (H1 2026 filing)",
+    "2024|FY restated (FY2025 filing)"
+   ],
+   "values_not_read": [
+    "2021|Q1",
+    "2021|H1",
+    "2021|9M",
+    "2021|FY own file",
+    "2022|Q1",
+    "2022|H1",
+    "2022|9M",
+    "2023|Q1",
+    "2023|H1",
+    "2023|9M",
+    "2024|Q1",
+    "2024|H1",
+    "2024|9M",
+    "2025|Q1 original",
+    "2025|H1 original",
+    "2025|9M"
+   ],
+   "missing": [
+    "everything before 2021 Q1 (no files)"
+   ],
+   "inventory_corrections": "annual FS are labelled by publication year except FY2022 and FY2021: 2024|FY is FY2023, 2025|FY holds both FY2024 (scan 1ae33a08) and FY2025 (b98957d5), 2026|FY is the FY2025 scan fb80ac00, and 2023|FY (c239b2bf) is a copy of FY2022. 15 files with fiscal year None are Arabic interims for 2021 to 2025. Interim files are labelled by the period they report. Page-derived: 22 distinct periods 2021 Q1 to 2026 H1 each have at least one file."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "b98957d57f6f8e59b072b19055ff71a260d804aba5e0208fc1a8ca5bdd4330de",
+   "actual_period": "FY ended 2025-12-31 audited (label 2025|FY correct for this file; the 2025|FY slot also holds the FY2024 scan 1ae33a08)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals)",
+   "reading": "text layer, income statement page rendered",
+   "relpath": "archive/SA/4200/b98957d57f6f8e59b072b19055ff71a260d804aba5e0208fc1a8ca5bdd4330de.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 49
+  },
+  {
+   "sha256": "1ae33a08cc2e2e55d3e2da5b44822ff51363c00e4c7f3e7b33510d23bfae59d5",
+   "actual_period": "FY ended 2024-12-31 audited, as originally filed (collector label 2025|FY)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals)",
+   "reading": "visual (whole-file scan, statement pages rendered and read)",
+   "relpath": "archive/SA/4200/1ae33a08cc2e2e55d3e2da5b44822ff51363c00e4c7f3e7b33510d23bfae59d5.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 47
+  },
+  {
+   "sha256": "97801f99309509efb56d12ce65edcdb87bac29334ece003182ab1e4218197442",
+   "actual_period": "FY ended 2023-12-31 audited, as originally filed (collector label 2024|FY)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 8,
+    "is": 9,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals)",
+   "reading": "visual (whole-file scan, statement pages rendered and read)",
+   "relpath": "archive/SA/4200/97801f99309509efb56d12ce65edcdb87bac29334ece003182ab1e4218197442.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 48
+  },
+  {
+   "sha256": "b19fb27edc7e9928de96fdda6937b6be6355091f2eb1bdd528279f9a1140b445",
+   "actual_period": "FY ended 2022-12-31 audited, as originally filed (label 2022|FY correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": 12
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "units": "SAR (full riyals)",
+   "reading": "visual (whole-file scan, statement pages rendered and read)",
+   "relpath": "archive/SA/4200/b19fb27edc7e9928de96fdda6937b6be6355091f2eb1bdd528279f9a1140b445.pdf",
+   "collector_label": "2022|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 50
+  },
+  {
+   "sha256": "5c2e8a911e78deee71556cefcb7ee2ea3854554b322fe3489b416618a7858d37",
+   "actual_period": "3M ended 2026-03-31 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals)",
+   "reading": "visual (statement pages textless images inside a PDF whose p3 review report is text)",
+   "relpath": "archive/SA/4200/5c2e8a911e78deee71556cefcb7ee2ea3854554b322fe3489b416618a7858d37.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 23
+  },
+  {
+   "sha256": "3c77bb99fd3ca18869658402dd4ace849bae433809d0b184c83d42659808a52f",
+   "actual_period": "3M and 6M ended 2026-06-30 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals)",
+   "reading": "visual (whole-file scan, statement pages rendered and read)",
+   "relpath": "archive/SA/4200/3c77bb99fd3ca18869658402dd4ace849bae433809d0b184c83d42659808a52f.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 27
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "126ad981b8b806806605109271a851214d157ae7be94b294bd12c3156d026b89",
+   "collector_label": "None|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 18,
+   "language": "ar",
+   "actual_period": "Arabic 9M ended 2021-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "176d442c570b23aa7024f23d6eea6fa6e1af0eba8ab66e997f5909b0f400d524",
+   "collector_label": "None|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "ar",
+   "actual_period": "Arabic 9M ended 2022-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "60407be6b33e341753b801502509e112891797b4828e37fb05614f9b3529d09b",
+   "collector_label": "None|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 21,
+   "language": "ar",
+   "actual_period": "Arabic 9M ended 2023-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "7fee7dc1543268e9de227aa15c56ea23832e54cada593a5a77573da0641d4b57",
+   "collector_label": "None|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "ar",
+   "actual_period": "Arabic 9M ended 2025-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "edc07db146cd6865f827fef7982393dc3fe03ba1b1ba317cf4811f08d74b644c",
+   "collector_label": "None|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 25,
+   "language": "ar",
+   "actual_period": "Arabic 9M ended 2024-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "08b8b4806877f5feea67263e2334d8b1e6f4375a7ddd0868e0200d89de4dea41",
+   "collector_label": "None|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 21,
+   "language": "ar",
+   "actual_period": "Arabic 6M ended 2023-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "327b0a860a99591f2dd2116b0947ad2d2ef0c19faaf69976069b49c97bff9e6d",
+   "collector_label": "None|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "ar",
+   "actual_period": "Arabic 6M ended 2022-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "51f02a8e7d65e03fa21ac63d3692a903abe4396d74db8ccd7a5cae779e28a201",
+   "collector_label": "None|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "ar",
+   "actual_period": "Arabic 6M ended 2025-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "5d2e32772453d051296925c3dc120d11441c5018c42ae19d7cd16839a13c761e",
+   "collector_label": "None|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 18,
+   "language": "ar",
+   "actual_period": "Arabic 6M ended 2021-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "85f9a3b4809c33344fc5cc9181fcc3f82f119cce3917a4fa8edc5a7a1fd8dd70",
+   "collector_label": "None|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 25,
+   "language": "ar",
+   "actual_period": "Arabic 6M ended 2024-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "00e5d3062c0728df941bb5bb66dafb244d204185ef2ad4a23f911e7032ed36df",
+   "collector_label": "None|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 22,
+   "language": "ar",
+   "actual_period": "Arabic 3M ended 2023-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "03179729c970c9decdfe682458a56e38107ac350e4bba94967895a0405e0eef8",
+   "collector_label": "None|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "ar",
+   "actual_period": "Arabic 3M ended 2022-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "6b30918cc86d2a5349c395337757dfc0766c667fe48822b3e4fe63326b57a637",
+   "collector_label": "None|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 23,
+   "language": "ar",
+   "actual_period": "Arabic 3M ended 2025-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "f9aca4f4b1767cdc0b5d9652a97c6560eed67bca8d0f810603b5e33bfaffd40a",
+   "collector_label": "None|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "ar",
+   "actual_period": "Arabic 3M ended 2024-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "fb36a34b82c2991fd8282ef5f3a185f02edb02a01e8cf24cfb49a4d50847cfa6",
+   "collector_label": "None|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 18,
+   "language": "ar",
+   "actual_period": "Arabic 3M ended 2021-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless, language twin of the English file for the same period (collector fiscal year None); not transcribed"
+  },
+  {
+   "sha256": "6fe356f500706214ccd3ddb455d500e72b3e6122df838c037f7b78eb4d6e61f1",
+   "collector_label": "2021|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "English 3M and 9M ended 2021-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "fa59d193d380d94fd620b45cdf6fa67419f83ac211ebb394f7902f53f1ecb7d6",
+   "collector_label": "2021|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 44,
+   "language": "en",
+   "actual_period": "FY ended 2021-12-31 (cover read; label 2021|FY correct)",
+   "note": "whole-file scan, 44 pages; not transcribed; FY2021 IS, BS and CF are known from the FY2022 filing's comparative column"
+  },
+  {
+   "sha256": "58b5adfc8f8405307601b64dac8ab1fc89e574d62458bf167ab67c94415f81bb",
+   "collector_label": "2021|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "English 3M and 6M ended 2021-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "b60394421827aa2b405c26629eb8cada40ac5ea5c63000a0a07652106affde5a",
+   "collector_label": "2021|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "English 3M ended 2021-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "4df22aa92d85257623a234da3ac788ea3726d0b5e582997bd98636df42d259ee",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "English 3M and 9M ended 2022-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "075fa07c3d0d2abbc35e26a2368d32c475fd55fa139023d0da675f1d01019bcb",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "English 3M and 6M ended 2022-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "f2d2a9a4504fa577af4c3a99e7cc57731e674a29c1ea21cfc6687baccd9ac4cf",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "English 3M ended 2022-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "e44b85558814ab526263ff935b52692fa40f1b369f07cac2ec4075bb808044c3",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 21,
+   "language": "en",
+   "actual_period": "English 3M and 9M ended 2023-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "c239b2bf52d06376e6392c34257d30f5bd89b73802a68ef070fee2ce3472faa0",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 50,
+   "language": "en",
+   "actual_period": "FY ended 2022-12-31 (cover read and BS page p9 compared visually with b19fb27e)",
+   "note": "copy of the FY2022 file mislabelled 2023|FY: BS page identical; FY2023 is in 97801f99 (labelled 2024|FY)"
+  },
+  {
+   "sha256": "e85337e918260cdebd200188ecc8ea9f15c8e234995649034745d9c10c8f10ff",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "English 3M and 6M ended 2023-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "b250a200e58ca8ca744952576ea131e7c0258a387a6bdb56ff871647c1c46240",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "English 3M ended 2023-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "28471bd0614438db4611674bf4872b8e18cb2d4dff6c80621090d742f50f3c22",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "en",
+   "actual_period": "English 3M and 9M ended 2024-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "18eefb13435069207517f7b5fb96473122e6a2b29829f6ec17df1d57b0c22971",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 25,
+   "language": "en",
+   "actual_period": "English 3M and 6M ended 2024-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "ac56e053e7b4808197753adee2e1a680886c9bebd8b49dc47c425d7ad44bfe5b",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "en",
+   "actual_period": "English 3M ended 2024-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "11816cf856f6d46bc1df882d5c3f68b661e1073f1ec27145049c378592767770",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "en",
+   "actual_period": "English 3M and 9M ended 2025-09-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed"
+  },
+  {
+   "sha256": "ef679b1b447d1c55025d0d5980756f86abfb36ad59f90bb09976b7cb30149473",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 24,
+   "language": "en",
+   "actual_period": "English 3M and 6M ended 2025-06-30 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed; the 2025 restated comparative is in the H1 2026 filing"
+  },
+  {
+   "sha256": "034089b9498abceebc6d9320ece59e3efc32fe448296914bff083724afe317b0",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 23,
+   "language": "en",
+   "actual_period": "English 3M ended 2025-03-31 (cover read)",
+   "note": "whole-file scan, all pages textless; not transcribed; the restated Q1 2025 comparative is in the Q1 2026 filing"
+  },
+  {
+   "sha256": "fb80ac0060962bf2ea92b2e52bce5349be07f65b6f79b96fd44c0acf83137d6e",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 49,
+   "language": "en",
+   "actual_period": "FY ended 2025-12-31 (cover read; label 2026|FY)",
+   "note": "whole-file scan twin of the born-digital FY2025 file b98957d5; not compared page by page"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B009-4200-1",
+   "class": "period_label_annual_mixed_and_duplicate",
+   "severity": "medium",
+   "evidence": "Covers read: 97801f99 (2024|FY) is 31 December 2023; 1ae33a08 and b98957d5 (both 2025|FY) are 31 December 2024 and 31 December 2025; fb80ac00 (2026|FY) is 31 December 2025; c239b2bf (2023|FY) has the FY2022 cover and a BS page identical to b19fb27e (2022|FY). No file in the 2023|FY slot reports FY2023."
+  },
+  {
+   "id": "B009-4200-2",
+   "class": "whole_file_scans_classed_unreadable",
+   "severity": "high",
+   "evidence": "37 of 39 files have no text layer on any page; the inventory lists no statement pages for them. Rendered pages are legible and contain all four primary statements. Q1 2026 5c2e8a91 is a text PDF whose statement pages p4-9 are images."
+  },
+  {
+   "id": "B009-4200-3",
+   "class": "language_twins_without_fiscal_year",
+   "severity": "low",
+   "evidence": "15 Arabic interim files (126ad981, 176d442c, 60407be6, edc07db1, 7fee7dc1, 5d2e3277, 327b0a86, 08b8b480, 85f9a3b4, 51f02a8e, fb36a34b, 03179729, 00e5d306, f9aca4f4, 6b30918c) carry fiscal_year None; covers give periods 2021 to 2025 Q1/H1/9M."
+  },
+  {
+   "id": "B009-4200-4",
+   "class": "restated_or_represented_comparatives",
+   "severity": "high",
+   "evidence": "(a) FY2024 restated (note 37) in the FY2025 filing: cost of revenue 18,477,334,023 -> 18,470,730,078, gross profit 811,218,990 -> 817,822,935, income before zakat 346,386,115 -> 352,990,060, net income 338,047,048 -> 344,650,993, EPS 3.38 -> 3.44; total assets 8,443,323,301 -> 8,380,633,196, equity 1,479,487,425 -> 1,416,797,320; opening Jan 2024 retained earnings reduced by 69,294,050 (total assets 7,506,130,159 -> 7,436,836,109, equity 1,235,919,779 -> 1,166,625,729); CFO 1,397,899,452 -> 1,379,150,772 and CFI -653,203,691 -> -634,455,011 (finance income received 18,748,680 moved to investing; capex and CFF unchanged). (b) FY2022 re-presented in the FY2023 filing: total assets 6,315,582,096 -> 6,358,693,699, total liabilities 5,206,237,770 -> 5,249,349,373, CFO 716,541,761 -> 772,759,064, CFF -325,155,162 -> -382,302,262, income from operations 370,841,922 -> 363,021,749; net income 241,826,918 and equity unchanged. (c) 2023 EPS 3.74 -> 2.81 in the FY2024 filing after the 1-for-3 bonus issue (share capital 750m -> 1,000m). (d) Q1 2025 and H1 2025 marked restated (note 25) in the 2026 filings (Q1 2025 net income 101,063,763; 6M 197,731,713); the originals were not read. Every version is in the transcript or listed as unread."
+  },
+  {
+   "id": "B009-4200-5",
+   "class": "page_header_mismatch",
+   "severity": "low",
+   "evidence": "FY2025 b98957d5 pdf p9 (printed 7) is the statement of profit or loss and comprehensive income but its running header reads STATEMENT OF CHANGES IN EQUITY; the equity statement is pdf p10. A parser keyed on headers would misfile it."
+  }
+ ],
+ "unread_items": [
+  "notes in all files, including notes 25 and 37 (restatement)",
+  "equity statements (except Q1 2026)",
+  "2021 to 2025 interim filings in English and Arabic (see files_not_audited_for_values)",
+  "FY2021 own file and FY2025 scan twin",
+  "Q1 2025 and H1 2025 originals (before restatement)",
+  "nothing before 2021 Q1: no files"
+ ],
+ "conclusion": "NOT claimed complete. Six filings value-verified from rendered pages with material restatements recorded (FY2024 note 37); all 22 periods 2021 Q1 to 2026 H1 have a file but 16 are not value-read in their own filing; 37 scans are misclassified as unreadable; no FY2023-labelled file holds FY2023."
+}
