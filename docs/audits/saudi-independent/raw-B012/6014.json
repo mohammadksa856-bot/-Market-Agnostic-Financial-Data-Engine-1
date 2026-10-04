@@ -1,0 +1,838 @@
+{
+ "schema_version": 1,
+ "symbol": "6014",
+ "name": "ALAMAR",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B012)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file (tools/rec.py). All 25 inventory files were opened and identified from their first pages (tools/survey.py). Statement pages located with tools/stm.py and read from the text layer with tools/auto.py (rows rebuilt from word coordinates, tools/ext.py) for 15 filings; five whole-file scans (H1 2021, Q1 2022, H1 2022, 9M 2022, H1 2026) and the image-only balance sheet page of the FY2023 filing (pdf p8) were rendered (tools/pg.py, tools/sheet.py) and read by eye. tools/check_transcripts.py over transcripts/6014.json checks BS identity, cash-flow sum and roll, gross profit, profit before zakat and tax to net profit, owners + non-controlling interests, Q1+Q2=H1 and H1+Q3=9M rolls and agreement of every comparative column with the original filing of the same period; the only differences are declared restatements.",
+  "tools": [
+   "tools/pg.py",
+   "tools/survey.py",
+   "tools/stm.py",
+   "tools/ext.py",
+   "tools/auto.py",
+   "tools/sheet.py",
+   "tools/tr.py",
+   "tools/rec.py",
+   "tools/check_transcripts.py",
+   "transcripts/6014.json",
+   "tools/spec_6014.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_20_filings_with_3_declared_cash_flow_representations",
+   "summary": "Headline balance sheet, income statement and cash flow values (full Saudi riyals, SAR) transcribed from pages for FY2021, FY2022, FY2023, FY2024, FY2025, H1 2021, Q1/H1/9M 2022 to 2025 and Q1/H1 2026 with comparative columns and Q2/Q3 columns. All identities hold with zero difference except one 1-riyal printed rounding (Q1 2023). Selected: FY2025 revenue 945,891,591, profit 45,545,497 (owners 47,572,833, non-controlling interests (2,027,336)), total assets 666,933,942, cash from operations 130,016,919; H1 2026 revenue 515,785,234, profit 17,603,194, total assets 765,465,535 (goodwill 121.1m after the Five Guys and Domino's branch acquisitions), cash from operations 80,734,710. The 6M 2026 cash roll includes 8,329,106 cash acquired with a subsidiary (recorded with the exchange difference). Comparatives agree with the originals except cash-flow re-presentations of cash from operations versus financing: FY2023 (190,417,437 -> 185,735,928), FY2024 (97,021,445 -> 96,684,795) and Q1 2024 (31,257,443 -> 29,918,445); both versions are declared, none substituted.",
+   "not_read": [
+    "notes to the financial statements in every file; statements of changes in equity; auditor reports; segment and related-party notes",
+    "Q1/9M 2021 originals (not in the file set)",
+    "FY2020 and earlier (comparative columns of FY2021 and H1 2021 only)"
+   ],
+   "periods_verified_from_own_pages": [
+    "2021-06-30 H1",
+    "2021-12-31 FY",
+    "2022-03-31 Q1",
+    "2022-06-30 H1",
+    "2022-09-30 9M",
+    "2022-12-31 FY",
+    "2023-03-31 Q1",
+    "2023-06-30 H1",
+    "2023-09-30 9M",
+    "2023-12-31 FY",
+    "2024-03-31 Q1",
+    "2024-06-30 H1",
+    "2024-09-30 9M",
+    "2024-12-31 FY",
+    "2025-03-31 Q1",
+    "2025-06-30 H1",
+    "2025-09-30 9M",
+    "2025-12-31 FY",
+    "2026-03-31 Q1",
+    "2026-06-30 H1"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_20_of_25_files_5_files_are_annual_reports_or_other",
+   "summary": "20 files carry all three primary statements (BS, income and OCI, cash flow) plus equity statements. Five of them are whole-file scans classed scanned_unreadable (2022 Q1, H1, 9M, the H1 2021 file and 2026 H1); the FY2023 statements file (f26ca95b) is classed partial_statements only because its balance sheet page (pdf p8) is an image inside a text-layer file. Three files are annual or board reports without statements (2022 ee906db2, 2023 e8baeda1, 2025 42cd9429), correctly classed no-statements. Collector label 2022|H1 holds two files; 233a32b3 is the 30 June 2021 interim, not H1 2022.",
+   "defect_ids": [
+    "B012-6014-1",
+    "B012-6014-2",
+    "B012-6014-3",
+    "B012-6014-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2021_to_FY2025_and_interims_2021H1_2022Q1_to_2026H1_each_with_own_filing",
+   "present_in_files_by_page_derived_period": [
+    "FY2021",
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2021 H1",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2020 (FY2021 filing)",
+    "2021 Q1 (Q1 2022 filing)",
+    "2021 9M and Q3 (9M 2022 filing)",
+    "2020 H1 and Q2 (H1 2021 filing)"
+   ],
+   "missing": [
+    "standalone FY2020, Q1 2021, 9M 2021 filings (not in the file set)",
+    "everything before 2020"
+   ],
+   "inventory_corrections": "annual labels are publication-year: 2022|FY holds FY2021, 2023|FY FY2022, 2024|FY FY2023, 2025|FY FY2024, 2026|FY FY2025; interim labels equal the interim year. 2022|H1 233a32b3 is H1 2021."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "233a32b37eb986629fe7d92d084d007f454ceb7b8eb6e03813ecf0d456d03de2",
+   "actual_period": "H1 ended 2021-06-30",
+   "label_ok": false,
+   "label_note": "WRONG: collector 2022|H1 holds the H1 period ended 2021-06-30",
+   "pdf_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p5 BS printed 3, p6 IS printed 4, p8 CF printed 6)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/233a32b37eb986629fe7d92d084d007f454ceb7b8eb6e03813ecf0d456d03de2.pdf",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 29
+  },
+  {
+   "sha256": "9d816fedafdc56bf0213492c0f9a57b7cdc0129a91e5e22bfd3de191dd94193e",
+   "actual_period": "FY ended 2021-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2022 holds FY2021 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     8
+    ],
+    "is": [
+     9
+    ],
+    "cf": [
+     11
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/9d816fedafdc56bf0213492c0f9a57b7cdc0129a91e5e22bfd3de191dd94193e.pdf",
+   "collector_label": "2022|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 64
+  },
+  {
+   "sha256": "694a4d4b4b53e69bd5494f2d511cc9f79da2ed22f4e2e93e78ff9cdbd9890a49",
+   "actual_period": "Q1 ended 2022-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 2, p5 IS printed 3, p7 CF printed 5)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/694a4d4b4b53e69bd5494f2d511cc9f79da2ed22f4e2e93e78ff9cdbd9890a49.pdf",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 27
+  },
+  {
+   "sha256": "19aa596d14899bf9d2e6418b2d57d1fd45282452d51f2dcd2c0f9712153c7847",
+   "actual_period": "H1 ended 2022-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 2, p5 IS printed 3, p7 CF printed 5)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/19aa596d14899bf9d2e6418b2d57d1fd45282452d51f2dcd2c0f9712153c7847.pdf",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 27
+  },
+  {
+   "sha256": "57f63047c7c48ee93262965bd20245ea714e6180d2c77a51083915437fb6c343",
+   "actual_period": "9M ended 2022-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 2, p5 IS printed 3, p7 CF printed 5)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/57f63047c7c48ee93262965bd20245ea714e6180d2c77a51083915437fb6c343.pdf",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 31
+  },
+  {
+   "sha256": "126c7ab1a86ca132912f8ef13f493bc8e335d6a85f3673ae27474ba62a9b4a69",
+   "actual_period": "FY ended 2022-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2023 holds FY2022 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     8
+    ],
+    "is": [
+     9
+    ],
+    "cf": [
+     11
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/126c7ab1a86ca132912f8ef13f493bc8e335d6a85f3673ae27474ba62a9b4a69.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 66
+  },
+  {
+   "sha256": "8b707ef3e98f1241474053df84def87d717c8afc3bf080cfcddd4e89f084336d",
+   "actual_period": "Q1 ended 2023-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/8b707ef3e98f1241474053df84def87d717c8afc3bf080cfcddd4e89f084336d.pdf",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 29,
+   "identity_tolerance": {
+    "tol": 1,
+    "reason": "printed net profit 13,860,775 differs by 1 riyal from owners 14,323,714 plus non-controlling interest (462,940) = 13,860,774 (printed rounding in the filing)"
+   }
+  },
+  {
+   "sha256": "976c8448b410fdd982483d119f266fa99f6e31ab9f2abc8d23a47d34779c4f8f",
+   "actual_period": "H1 ended 2023-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/976c8448b410fdd982483d119f266fa99f6e31ab9f2abc8d23a47d34779c4f8f.pdf",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 30
+  },
+  {
+   "sha256": "1e8bfc980342f6b9fb3937054a6328c3b0ba388234542dedd43d90d4a556f4b0",
+   "actual_period": "9M ended 2023-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/1e8bfc980342f6b9fb3937054a6328c3b0ba388234542dedd43d90d4a556f4b0.pdf",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 30
+  },
+  {
+   "sha256": "f26ca95b0bda03ad133adde618c658e8a03635b5d33087e0ebf065082f215912",
+   "actual_period": "FY ended 2023-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2024 holds FY2023 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     8
+    ],
+    "is": [
+     9
+    ],
+    "cf": [
+     11
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py); BS page pdf p8 is image-only inside a text-layer file; read visually",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/f26ca95b0bda03ad133adde618c658e8a03635b5d33087e0ebf065082f215912.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 57
+  },
+  {
+   "sha256": "3c4808368483de54cfd3249d97d5e30c6364d5e521c2ab3d438cba91a2d1463d",
+   "actual_period": "Q1 ended 2024-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/3c4808368483de54cfd3249d97d5e30c6364d5e521c2ab3d438cba91a2d1463d.pdf",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 28
+  },
+  {
+   "sha256": "8ab7c3893765e31ba29e4e40d2eefe502f0d0d360e714934c47a5bd23ac45274",
+   "actual_period": "H1 ended 2024-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/8ab7c3893765e31ba29e4e40d2eefe502f0d0d360e714934c47a5bd23ac45274.pdf",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 28
+  },
+  {
+   "sha256": "c2adb29710e32e96215c33c3a70d03f0f7cb541cb3ef9e1de2709c804b52e768",
+   "actual_period": "9M ended 2024-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/c2adb29710e32e96215c33c3a70d03f0f7cb541cb3ef9e1de2709c804b52e768.pdf",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 27
+  },
+  {
+   "sha256": "585447b7518ad1f0b0e08fd28f1cb0c1da2fdee713bdb0bfec76e6e7c709ef4d",
+   "actual_period": "FY ended 2024-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2025 holds FY2024 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     8
+    ],
+    "is": [
+     9
+    ],
+    "cf": [
+     11
+    ]
+   },
+   "printed_pages": {
+    "bs": 6,
+    "is": 7,
+    "cf": 9
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/585447b7518ad1f0b0e08fd28f1cb0c1da2fdee713bdb0bfec76e6e7c709ef4d.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 57,
+   "declared_restatements": [
+    "FY2023 comparative cash flow: cash from operations 185,735,928 (vs 190,417,437 as originally filed in f26ca95b) and financing (139,924,622) (vs (144,606,131)); difference 4,681,509 re-presented between operating and financing; net change unchanged"
+   ]
+  },
+  {
+   "sha256": "6420fa145398a0225bf9072f5634200b1132a1bfe0a223a68c017374afd6bd45",
+   "actual_period": "Q1 ended 2025-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/6420fa145398a0225bf9072f5634200b1132a1bfe0a223a68c017374afd6bd45.pdf",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 26,
+   "declared_restatements": [
+    "Q1 2024 comparative cash flow: cash from operations 29,918,445 (vs 31,257,443 as originally filed in 3c480836) and financing (19,682,680) (vs (21,021,678)); difference 1,338,998 re-presented between operating and financing; net change unchanged"
+   ]
+  },
+  {
+   "sha256": "40638be5da8fa88aff5184e9313f1c8e2ee8740313f810be150897ac25f76751",
+   "actual_period": "H1 ended 2025-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/40638be5da8fa88aff5184e9313f1c8e2ee8740313f810be150897ac25f76751.pdf",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 20
+  },
+  {
+   "sha256": "cada9f3936e3e9596f1a52270ec6483107773431a11a25ae01f09d0c2d8bb0ad",
+   "actual_period": "9M ended 2025-09-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/cada9f3936e3e9596f1a52270ec6483107773431a11a25ae01f09d0c2d8bb0ad.pdf",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 19
+  },
+  {
+   "sha256": "78819796cf5eaf52841ab4b13841cf28969c839898a9a9345b00ccedb001747c",
+   "actual_period": "FY ended 2025-12-31",
+   "label_ok": true,
+   "label_note": "collector FY2026 holds FY2025 (publication-year label, FY n+1)",
+   "pdf_pages": {
+    "bs": [
+     10
+    ],
+    "is": [
+     11
+    ],
+    "cf": [
+     13
+    ]
+   },
+   "printed_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": 12
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/78819796cf5eaf52841ab4b13841cf28969c839898a9a9345b00ccedb001747c.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 51,
+   "declared_restatements": [
+    "FY2024 comparative cash flow: cash from operations 96,684,795 (vs 97,021,445 as originally filed in 585447b7) and financing (122,626,759) (vs (122,963,409)); difference 336,650 (finance income) re-presented between operating and financing; net change unchanged"
+   ]
+  },
+  {
+   "sha256": "e45d4828e72cb8407a29fe06f74f297602529196501feb3a88f7375ccf73fc16",
+   "actual_period": "Q1 ended 2026-03-31",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": [
+     4
+    ],
+    "is": [
+     5
+    ],
+    "cf": [
+     7
+    ]
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "text layer, rows rebuilt from word coordinates (tools/auto.py)",
+   "values_read": [
+    "bs",
+    "is",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/e45d4828e72cb8407a29fe06f74f297602529196501feb3a88f7375ccf73fc16.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 19
+  },
+  {
+   "sha256": "9d80e54134683cee7e084f9fc194f5e2c814996eed8b61096b6d6483e15eeac7",
+   "actual_period": "H1 ended 2026-06-30",
+   "label_ok": true,
+   "label_note": "label matches the period",
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR (full riyals; every Alamar filing prints whole riyals, none in thousands)",
+   "reading": "visual: image-only statement pages rendered and read (pdf p4 BS printed 3, p5 IS printed 4, p7 CF printed 6)",
+   "values_read": [
+    "bs",
+    "is",
+    "is_q",
+    "cf"
+   ],
+   "relpath": "archive/SA/6014/9d80e54134683cee7e084f9fc194f5e2c814996eed8b61096b6d6483e15eeac7.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 21
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "ee906db2270bd041d2431408bee76cad3ae6783a1fd8cf4f5daa165f651f8943",
+   "collector_label": "2022|FY",
+   "inventory_file_class": "annual_report_no_statements_found",
+   "pdf_total_pages": 21,
+   "language": "en",
+   "actual_period": "Board of Directors report 2022 (cover read)",
+   "note": "no financial statements; not a statements file"
+  },
+  {
+   "sha256": "e8baeda16c2dbf1f9fdf6056721793df24b3234639c4d3e61742460ab01d2cf0",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "annual_report_no_statements_found",
+   "pdf_total_pages": 27,
+   "language": "en",
+   "actual_period": "Annual report 2023 (cover read)",
+   "note": "no financial statements"
+  },
+  {
+   "sha256": "42cd942957c6c8ff075d1b163bde001ef2f995f935966e27b61928b9490af245",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "annual_report_no_statements_found",
+   "pdf_total_pages": 37,
+   "language": "en",
+   "actual_period": "Annual report 2025 (cover read; financial year ended 31 December 2025)",
+   "note": "no financial statements; the FY2025 statements are 78819796"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B012-6014-1",
+   "class": "annual_label_is_publication_year",
+   "severity": "medium",
+   "evidence": "9d816fed (2022|FY) is FY2021 (pdf p8-11), 126c7ab1 (2023|FY) FY2022, f26ca95b (2024|FY) FY2023, 585447b7 (2025|FY) FY2024, 78819796 (2026|FY) FY2025; period read from the statement headings."
+  },
+  {
+   "id": "B012-6014-2",
+   "class": "image_only_statement_pages_flagged_unreadable_or_partial",
+   "severity": "medium",
+   "evidence": "57f63047, 19aa596d, 233a32b3, 694a4d4b (2022 interims and H1 2021) and 9d80e541 (2026|H1) are whole-file scans with full statements; f26ca95b (2024|FY) is classed partial_statements because pdf p8 (balance sheet, printed 6) is an image."
+  },
+  {
+   "id": "B012-6014-3",
+   "class": "mislabelled_period",
+   "severity": "high",
+   "evidence": "233a32b3 is labelled 2022|H1 but is the interim for the six months ended 30 June 2021 (pdf p5-8: balance sheet at 30 June 2021 against 31 December 2020, 6M 2021 revenue 401,653,223). A consumer trusting the label would take H1 2021 for H1 2022 (526,948,168 in 19aa596d)."
+  },
+  {
+   "id": "B012-6014-4",
+   "class": "restated_or_represented_comparatives",
+   "severity": "medium",
+   "evidence": "Cash from operations vs financing re-presented in comparatives: FY2023 190,417,437 (f26ca95b) -> 185,735,928 (585447b7); FY2024 97,021,445 (585447b7) -> 96,684,795 (78819796); Q1 2024 31,257,443 (3c480836) -> 29,918,445 (6420fa14). Net change in cash unchanged. Income statement and balance sheet comparatives agree for every period read."
+  },
+  {
+   "id": "B012-6014-5",
+   "class": "printed_rounding",
+   "severity": "low",
+   "evidence": "8b707ef3 (Q1 2023): printed profit 13,860,775 versus owners 14,323,714 plus non-controlling interests (462,940) = 13,860,774."
+  },
+  {
+   "id": "B012-6014-6",
+   "class": "cash_roll_includes_acquired_cash",
+   "severity": "low",
+   "evidence": "9d80e541 pdf p7: opening cash 38,932,536 + net decrease (18,260,412) + cash from acquisition of subsidiary 8,329,106 + exchange 1,581,125 = 30,582,355."
+  },
+  {
+   "id": "B012-6014-7",
+   "class": "typo_in_statement_heading",
+   "severity": "low",
+   "evidence": "19aa596d pdf p4 balance sheet is headed 'INDEPENDENT AUDITOR'S REPORT ON CONDENSED CONSOLIDATED INTERIMD FINANCIAL STATEMENTS' (heading error in the filing; the page is the balance sheet)."
+  }
+ ],
+ "unread_items": [
+  "notes to the financial statements in every file; statements of changes in equity; auditor reports; segment and related-party notes",
+  "equity statements of every file (present, not transcribed)",
+  "Q1/9M 2021 and FY2020 originals (absent)",
+  "annual reports 2022, 2023 and 2025 (no statements; only identified)"
+ ],
+ "conclusion": "NOT claimed complete. Twenty filings value-verified from pages against each other (FY2021 to FY2025 annual, H1 2021, 2022 to 2025 Q1/H1/9M, 2026 Q1/H1); 3 cash-flow representations declared; collector label 2022|H1 233a32b3 is H1 2021; 5 files are annual reports or scans without being statements-text; notes and equity statements not read; Q1/9M 2021 and FY2020 standalone files absent."
+}

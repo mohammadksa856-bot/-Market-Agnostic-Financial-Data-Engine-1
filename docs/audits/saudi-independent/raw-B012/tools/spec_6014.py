@@ -1,0 +1,64 @@
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+NOTES_UNREAD = "notes to the financial statements in every file; statements of changes in equity; auditor reports; segment and related-party notes"
+spec = {
+    "method": ("SHA-256 recomputed for every audited file (tools/rec.py). All 25 inventory files were opened and identified from their first pages (tools/survey.py). "
+               "Statement pages located with tools/stm.py and read from the text layer with tools/auto.py (rows rebuilt from word coordinates, tools/ext.py) for 15 filings; "
+               "five whole-file scans (H1 2021, Q1 2022, H1 2022, 9M 2022, H1 2026) and the image-only balance sheet page of the FY2023 filing (pdf p8) were rendered "
+               "(tools/pg.py, tools/sheet.py) and read by eye. tools/check_transcripts.py over transcripts/6014.json checks BS identity, cash-flow sum and roll, "
+               "gross profit, profit before zakat and tax to net profit, owners + non-controlling interests, Q1+Q2=H1 and H1+Q3=9M rolls and agreement of every comparative "
+               "column with the original filing of the same period; the only differences are declared restatements."),
+    "dimensions": {
+        "value_correctness": {
+            "status": "verified_for_20_filings_with_3_declared_cash_flow_representations",
+            "summary": ("Headline balance sheet, income statement and cash flow values (full Saudi riyals, SAR) transcribed from pages for FY2021, FY2022, FY2023, FY2024, FY2025, "
+                        "H1 2021, Q1/H1/9M 2022 to 2025 and Q1/H1 2026 with comparative columns and Q2/Q3 columns. All identities hold with zero difference except one 1-riyal printed "
+                        "rounding (Q1 2023). Selected: FY2025 revenue 945,891,591, profit 45,545,497 (owners 47,572,833, non-controlling interests (2,027,336)), total assets 666,933,942, "
+                        "cash from operations 130,016,919; H1 2026 revenue 515,785,234, profit 17,603,194, total assets 765,465,535 (goodwill 121.1m after the Five Guys and Domino's "
+                        "branch acquisitions), cash from operations 80,734,710. The 6M 2026 cash roll includes 8,329,106 cash acquired with a subsidiary (recorded with the exchange difference). "
+                        "Comparatives agree with the originals except cash-flow re-presentations of cash from operations versus financing: FY2023 (190,417,437 -> 185,735,928), "
+                        "FY2024 (97,021,445 -> 96,684,795) and Q1 2024 (31,257,443 -> 29,918,445); both versions are declared, none substituted."),
+            "not_read": [NOTES_UNREAD, "Q1/9M 2021 originals (not in the file set)", "FY2020 and earlier (comparative columns of FY2021 and H1 2021 only)"]},
+        "document_completeness": {
+            "status": "primary_statements_present_in_20_of_25_files_5_files_are_annual_reports_or_other",
+            "summary": ("20 files carry all three primary statements (BS, income and OCI, cash flow) plus equity statements. Five of them are whole-file scans classed scanned_unreadable "
+                        "(2022 Q1, H1, 9M, the H1 2021 file and 2026 H1); the FY2023 statements file (f26ca95b) is classed partial_statements only because its balance sheet page "
+                        "(pdf p8) is an image inside a text-layer file. Three files are annual or board reports without statements (2022 ee906db2, 2023 e8baeda1, 2025 42cd9429), correctly "
+                        "classed no-statements. Collector label 2022|H1 holds two files; 233a32b3 is the 30 June 2021 interim, not H1 2022."),
+            "defect_ids": ["B012-6014-1", "B012-6014-2", "B012-6014-3", "B012-6014-4"]},
+        "company_coverage": {
+            "status": "annual_FY2021_to_FY2025_and_interims_2021H1_2022Q1_to_2026H1_each_with_own_filing",
+            "present_in_files_by_page_derived_period": ["FY2021", "FY2022", "FY2023", "FY2024", "FY2025", "2021 H1", "2022 Q1", "2022 H1", "2022 9M", "2023 Q1", "2023 H1", "2023 9M",
+                                                         "2024 Q1", "2024 H1", "2024 9M", "2025 Q1", "2025 H1", "2025 9M", "2026 Q1", "2026 H1"],
+            "values_known_only_as_comparatives": ["FY2020 (FY2021 filing)", "2021 Q1 (Q1 2022 filing)", "2021 9M and Q3 (9M 2022 filing)", "2020 H1 and Q2 (H1 2021 filing)"],
+            "missing": ["standalone FY2020, Q1 2021, 9M 2021 filings (not in the file set)", "everything before 2020"],
+            "inventory_corrections": ("annual labels are publication-year: 2022|FY holds FY2021, 2023|FY FY2022, 2024|FY FY2023, 2025|FY FY2024, 2026|FY FY2025; interim labels equal "
+                                      "the interim year. 2022|H1 233a32b3 is H1 2021.")}},
+    "defects": [
+        {"id": "B012-6014-1", "class": "annual_label_is_publication_year", "severity": "medium",
+         "evidence": "9d816fed (2022|FY) is FY2021 (pdf p8-11), 126c7ab1 (2023|FY) FY2022, f26ca95b (2024|FY) FY2023, 585447b7 (2025|FY) FY2024, 78819796 (2026|FY) FY2025; period read from the statement headings."},
+        {"id": "B012-6014-2", "class": "image_only_statement_pages_flagged_unreadable_or_partial", "severity": "medium",
+         "evidence": "57f63047, 19aa596d, 233a32b3, 694a4d4b (2022 interims and H1 2021) and 9d80e541 (2026|H1) are whole-file scans with full statements; f26ca95b (2024|FY) is classed partial_statements because pdf p8 (balance sheet, printed 6) is an image."},
+        {"id": "B012-6014-3", "class": "mislabelled_period", "severity": "high",
+         "evidence": "233a32b3 is labelled 2022|H1 but is the interim for the six months ended 30 June 2021 (pdf p5-8: balance sheet at 30 June 2021 against 31 December 2020, 6M 2021 revenue 401,653,223). A consumer trusting the label would take H1 2021 for H1 2022 (526,948,168 in 19aa596d)."},
+        {"id": "B012-6014-4", "class": "restated_or_represented_comparatives", "severity": "medium",
+         "evidence": "Cash from operations vs financing re-presented in comparatives: FY2023 190,417,437 (f26ca95b) -> 185,735,928 (585447b7); FY2024 97,021,445 (585447b7) -> 96,684,795 (78819796); Q1 2024 31,257,443 (3c480836) -> 29,918,445 (6420fa14). Net change in cash unchanged. Income statement and balance sheet comparatives agree for every period read."},
+        {"id": "B012-6014-5", "class": "printed_rounding", "severity": "low",
+         "evidence": "8b707ef3 (Q1 2023): printed profit 13,860,775 versus owners 14,323,714 plus non-controlling interests (462,940) = 13,860,774."},
+        {"id": "B012-6014-6", "class": "cash_roll_includes_acquired_cash", "severity": "low",
+         "evidence": "9d80e541 pdf p7: opening cash 38,932,536 + net decrease (18,260,412) + cash from acquisition of subsidiary 8,329,106 + exchange 1,581,125 = 30,582,355."},
+        {"id": "B012-6014-7", "class": "typo_in_statement_heading", "severity": "low",
+         "evidence": "19aa596d pdf p4 balance sheet is headed 'INDEPENDENT AUDITOR'S REPORT ON CONDENSED CONSOLIDATED INTERIMD FINANCIAL STATEMENTS' (heading error in the filing; the page is the balance sheet)."}],
+    "unread_items": [NOTES_UNREAD, "equity statements of every file (present, not transcribed)", "Q1/9M 2021 and FY2020 originals (absent)", "annual reports 2022, 2023 and 2025 (no statements; only identified)"],
+    "conclusion": ("NOT claimed complete. Twenty filings value-verified from pages against each other (FY2021 to FY2025 annual, H1 2021, 2022 to 2025 Q1/H1/9M, 2026 Q1/H1); "
+                   "3 cash-flow representations declared; collector label 2022|H1 233a32b3 is H1 2021; 5 files are annual reports or scans without being statements-text; "
+                   "notes and equity statements not read; Q1/9M 2021 and FY2020 standalone files absent."),
+    "identified": {
+        "ee906db2": ["Board of Directors report 2022 (cover read)", "no financial statements; not a statements file"],
+        "e8baeda1": ["Annual report 2023 (cover read)", "no financial statements"],
+        "42cd9429": ["Annual report 2025 (cover read; financial year ended 31 December 2025)", "no financial statements; the FY2025 statements are 78819796"],
+    },
+}
+(HERE / "spec_6014.json").write_text(json.dumps(spec, indent=1, ensure_ascii=False) + "\n", encoding="utf8")
