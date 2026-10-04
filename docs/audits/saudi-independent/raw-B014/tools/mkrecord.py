@@ -34,12 +34,15 @@ def main(sym):
         ok = pg.sha(path) == f['sha256']
         doc = pymupdf.open(path)
         pe, dur = cover_period(doc)
+        src = 'cover text'
+        if not pe and f.get('period_end_detected_in_text'):
+            pe = f['period_end_detected_in_text']; src = 'inventory text detection (cover is image or non-latin)'
         s = slot_of(pe, dur)
         pre = f['sha256'][:8]
         # actual period
         if pe and s:
             sl, y = s
-            actual = f"{sl} {y} (period end {pe})" if sl != 'FY' else f"FY {y} (period end {pe})"
+            actual = (f"{sl} {y}" if sl != 'FY' else f"FY {y}") + f" (period end {pe}; from {src})"
         else:
             actual = f"not detected from cover text (inventory text-detected: {f.get('period_end_detected_in_text')})"
         lab = f"{f['fiscal_year']}|{f['period_slot']}"
