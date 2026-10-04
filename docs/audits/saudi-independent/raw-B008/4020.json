@@ -1,0 +1,231 @@
+{
+ "schema_version": 1,
+ "symbol": "4020",
+ "name": "Saudi Real Estate Company (Al Akaria)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B008)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed per audited file (tools/expand_sha.py). FY2023 and FY2024 filings and the FY2025 statements were rendered and read by eye; Q1 2026 and H1 2026 were read from the text layer with identity checks (BS, cash roll, NI split, Q1+Q2=H1) and a few garbled cells verified against FY2025 values. Covers of six scanned files rendered to establish periods. Checks in tools/check_transcripts.py over transcripts/4020.json (all pass).",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/montage.py",
+   "tools/check_transcripts.py",
+   "tools/expand_sha.py",
+   "transcripts/4020.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_5_filings_FY2023_FY2024_FY2025_Q1_2026_H1_2026",
+   "summary": "SAR thousand in every file (headers: In Saudi Riyals Thousands). Balance sheets satisfy assets = liabilities + equity for Dec 2022 to Dec 2025, 31 Mar 2026 and 30 Jun 2026; cash-flow columns satisfy CFO+CFI+CFF = net change and begin + net = end for FY2022 to FY2025, Q1 and H1 of 2025 and 2026; net profit = parent + NCI. Q1 2026 + Q2 2026 = H1 2026 exactly for revenue (319,822 + 422,958 = 742,780), gross profit, pre-zakat profit (554,086 + 148,358 = 702,444) and net profit (514,668 + 142,080 = 656,748), and the 2025 comparatives roll (628,075 + 488,986 = 1,117,061; 177,061 + 124,931 = 301,992). Selected: FY2025 revenue 1,880,085, net profit 429,735, CFO 973,686, cash 1,552,604; H1 2026 revenue 742,780, net profit 656,748 including a one-off gain on remeasurement of a retained investment of 640,404 after loss of significant influence, cash 1,176,135. FY2024 cash flow exists in two versions (as filed and re-presented) and the FY2025 filing prints an inconsistent 2024 CFO subtotal (defects B008-4020-2, -3).",
+   "not_read": [
+    "notes in all files; equity statements and OCI (except as totals)",
+    "Q1 2026: operating profit, zakat line and other rows not transcribed; Q1 2026 and H1 2026 not visually rendered",
+    "own filings for FY2022 (3be954a8 scan, cover only) and all 2022-2025 interims other than H1 2026 and Q1 2026 (12 files incl. 5 scans)",
+    "results-announcement style short files (e68690e7, edeae920, 91e9f3c7, 8ecf59cf, 6c97c4ee)",
+    "H1 2025 and Q1 2025 own filings (4a734dac, 48905327 flagged partial) not read; their values only as 2026 comparatives"
+   ]
+  },
+  "document_completeness": {
+   "status": "statements_present_in_most_files_inventory_flags_wrong_for_a_few",
+   "summary": "Born-digital FY2023 (81bb8275), FY2024 (af48cbd0), FY2025 (9304514b), Q1 2026 (123fef27) and H1 2026 (731f05db) files hold all primary statements; the inventory also classes 9M 2025 (53eebc27), 9M 2024 (d2e74aeb) and H1 2024 (a2b0897c) as complete, not opened here. The inventory marks 4a734dac and 48905327 (H1 and Q1 2025) partial because the balance sheet page is missing from the statement-page detection; not opened. Five short files (4 to 6 pages) are not statements. Six whole-file scans were identified by cover only: 9M 2022 (0087a7a1), H1 2022 (ed24a3ca), FY2022 (3be954a8, labelled 2023|FY), 9M 2023 (aa363a8d), H1 2023 (85f3fcdf), Q1 2023 (e9b250c1). Q1 2022 (ef78f858) is partly scanned and not read. Text-layer defects: cells in the FY2025, Q1 2026 and H1 2026 files have split or reordered digits (see defect -4).",
+   "defect_ids": [
+    "B008-4020-1",
+    "B008-4020-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "contiguous_2022Q1_to_2026H1_in_files_nothing_before",
+   "present_in_files_by_page_derived_period": [
+    "2022|Q1",
+    "2022|H1",
+    "2022|9M",
+    "2022|FY",
+    "2023|Q1",
+    "2023|H1",
+    "2023|9M",
+    "2023|FY",
+    "2024|Q1 (not statements)",
+    "2024|H1",
+    "2024|9M",
+    "2024|FY",
+    "2025|Q1",
+    "2025|H1",
+    "2025|9M",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_verified_from_own_pages": [
+    "2023|FY",
+    "2024|FY",
+    "2025|FY",
+    "2026|Q1",
+    "2026|H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "2022|FY (FY2023 filing: all three statements)",
+    "2025|Q1 and 2025|H1 and 2025|Q2 (2026 filings)"
+   ],
+   "values_not_read": [
+    "2022 Q1/H1/9M/FY (own)",
+    "2023 Q1/H1/9M",
+    "2024 Q1/H1/9M",
+    "2025 Q1/H1/9M (own)"
+   ],
+   "missing": [
+    "2024|Q1 statements (the file 6c97c4ee is not statements)",
+    "all periods before 2022 Q1 (inventory window starts 2013|H1)"
+   ],
+   "inventory_corrections": "Annual labels equal publication year: 3be954a8 (2023|FY) covers FY2022, 81bb8275 (2024|FY) FY2023, af48cbd0 (2025|FY) FY2024, 9304514b (2026|FY) FY2025 (covers and statement headers); inventory reports 2022|FY and others as gaps and 2026|FY as unexpected. Interim labels match their covers. Fiscal year end 31 December confirmed."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "81bb82751e97bdffaec54cf20bdf4ed6911feea80f3638a2cbd9c7691ffb7929",
+   "actual_period": "FY ended 2023-12-31 audited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 9
+   },
+   "units": "SAR thousand",
+   "reading": "visual",
+   "relpath": "archive/SA/4020/81bb82751e97bdffaec54cf20bdf4ed6911feea80f3638a2cbd9c7691ffb7929.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 56
+  },
+  {
+   "sha256": "af48cbd0a597a9d68665a0793324b7d7e409f8bd8dc8ef15ab2b9f41d652aedb",
+   "actual_period": "FY ended 2024-12-31 audited as originally filed",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 11
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 9
+   },
+   "units": "SAR thousand",
+   "reading": "visual",
+   "relpath": "archive/SA/4020/af48cbd0a597a9d68665a0793324b7d7e409f8bd8dc8ef15ab2b9f41d652aedb.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 51
+  },
+  {
+   "sha256": "9304514b7bcbd56709ea52baa1e9854fc8f03e250eb734979d322609ccacfc53",
+   "actual_period": "FY ended 2025-12-31 audited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "SAR thousand",
+   "reading": "text layer plus rendered pages",
+   "relpath": "archive/SA/4020/9304514b7bcbd56709ea52baa1e9854fc8f03e250eb734979d322609ccacfc53.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 54
+  },
+  {
+   "sha256": "123fef278b1b7becc4dcc5e70c039eb77d3768e113d8265f82b4e45b233b1cfa",
+   "actual_period": "3M ended 2026-03-31 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR thousand",
+   "reading": "text layer",
+   "relpath": "archive/SA/4020/123fef278b1b7becc4dcc5e70c039eb77d3768e113d8265f82b4e45b233b1cfa.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 17
+  },
+  {
+   "sha256": "731f05db35bee42f78d50074a6b0c8f24aa254352a9f5675a31c9571bb7d4ad1",
+   "actual_period": "3M and 6M ended 2026-06-30 reviewed",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 3,
+    "is": 4,
+    "cf": 6
+   },
+   "units": "SAR thousand",
+   "reading": "text layer",
+   "relpath": "archive/SA/4020/731f05db35bee42f78d50074a6b0c8f24aa254352a9f5675a31c9571bb7d4ad1.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 19
+  }
+ ],
+ "files_not_audited_for_values": [
+  "all other 4020 files; see unread_items"
+ ],
+ "defects": [
+  {
+   "id": "B008-4020-1",
+   "class": "period_label_publication_year",
+   "severity": "medium",
+   "evidence": "Annual files 3be954a8, 81bb8275, af48cbd0, 9304514b cover FY2022, FY2023, FY2024, FY2025 but are labelled 2023|FY, 2024|FY, 2025|FY, 2026|FY."
+  },
+  {
+   "id": "B008-4020-2",
+   "class": "restated_comparatives",
+   "severity": "high",
+   "evidence": "FY2024 cash flow re-presented in the FY2025 filing: CFO 735,698 (af48cbd0 p11) -> 928,030 (9304514b p10, by arithmetic), CFI -430,705 -> -461,946, CFF -65,904 -> -226,995; financial charges paid (161,091) moved from operating to financing; net change in cash 239,089 and ending cash 1,076,758 unchanged. FY2024 income-statement expense lines regrouped (G&A 207,541 -> 215,832, selling 20,772 -> 12,481, other income 25,246 -> 26,032) with operating profit 481,020 and net profit 306,008 unchanged. Dec 2025 current assets are regrouped in the H1 2026 filing (trade receivables 199,773 -> 369,450, prepayments 309,194 -> 139,517; total unchanged)."
+  },
+  {
+   "id": "B008-4020-3",
+   "class": "printed_arithmetic_inconsistency",
+   "severity": "medium",
+   "evidence": "FY2025 filing cash-flow page (9304514b pdf p10, printed 8): 2024 column prints net cash from operating activities 959,311, which equals the pre-deduction subtotal; after employee benefits paid (5,859) and zakat paid (25,422) the line is 928,030, which is the figure that reconciles to CFI -461,946 + CFF -226,995 = net change 239,089. The printed 959,311 does not reconcile. Use 928,030 and record the printed value."
+  },
+  {
+   "id": "B008-4020-4",
+   "class": "garbled_text_cells",
+   "severity": "low",
+   "evidence": "Text rows of 9304514b, 123fef27 and 731f05db contain split or reordered digits in some cells (total equity 5,605,830 appears as '830 , 605 5,'; accrued expenses 384,620 and 525,877 split; FY2025 net profit 2024 split as '8 306,00'); rendered FY2025 pages confirm values. Parsers must cross-check totals."
+  }
+ ],
+ "unread_items": [
+  "notes in all files",
+  "equity statements and OCI",
+  "Q1 2026 operating profit and zakat rows; no render of Q1/H1 2026 pages",
+  "own filings for FY2022 and 2022-2025 interims (about 12 files, 6 scans identified by cover only)",
+  "H1/Q1 2025 originals flagged partial",
+  "short non-statement files",
+  "periods before 2022 Q1 (no files)"
+ ],
+ "conclusion": "NOT claimed complete. Five filings read (FY2023 to H1 2026) with FY2022 as comparative; the FY2024 cash flow exists in two versions and the FY2025 filing prints a non-reconciling 2024 CFO; interims 2022 to 2025 and FY2022 not value-read; nothing before 2022 Q1."
+}
