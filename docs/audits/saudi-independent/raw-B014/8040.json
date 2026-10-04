@@ -1,12 +1,12 @@
 {
  "schema_version": 1,
  "symbol": "8040",
- "name": "x",
+ "name": "MUTAKAMELA (Mutakamela Insurance Company, formerly Allianz Saudi Fransi Cooperative Insurance Company, Tadawul 8040)",
  "audit": {
   "audited_on": "2026-10-04",
   "auditor": "Claude Sonnet 5.5 (independent, raw-B014)",
-  "scope": "",
-  "method": "",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase; SHA-256 recomputed for every document listed (33 files in the inventory, all match). Entity: Allianz Saudi Fransi Cooperative Insurance Company until the 2024 annual; the FY2024 annual and every 2025 filing print Mutakamela Insurance Company (formerly Allianz Saudi Fransi), and the FY2025 and 2026 filings print Mutakamela only. Same company (same share capital 600,000,000, same statements chain). All amounts are whole SAR as printed, not thousands.",
+  "method": "Almost every primary statement of this issuer is image-only or has a scrambled OCR text layer, so each transcribed set was rendered (1.8x to 2x) and read by eye: FY2022 (IFRS 4 original), FY2023, FY2024, FY2025, Q1/H1/9M 2024, Q1 2023 and H1 2023 (OCR text layer unusable), Q1 2025, 9M 2025, Q1 2026. Clean text layers were used for H1 2025 and H1 2026 (BS/IS/CF rows). Every column passes the identities in tools/check_transcripts.py (BS equation; insurance service result = revenue + service expenses + net reinsurance; total service result = direct + pool surplus; net insurance and investment result chain; profit before zakat chain; net income after zakat; cash-flow sum and roll; Q1+Q2=H1 and H1+Q3=9M chains). Four one-unit or footing differences are declared; 108 cross-filing differences are declared with both values and reason.",
   "tools": [
    "tools/pg.py",
    "tools/rows.py",
@@ -21,12 +21,56 @@
    "transcripts/8040.json"
   ]
  },
- "dimensions": {},
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_from_pages_for_14_statement_sets_FY2022_to_H1_2026_with_declared_prior_period_error_restatement",
+   "summary": "SAR (whole). Transcribed headline sets: FY2022 (IFRS 4), FY2023, FY2024, FY2025; Q1/H1 2023; Q1/H1/9M 2024; Q1/H1/9M 2025; Q1/H1 2026 (14 sets, each with comparative columns, H1/9M with quarter columns). KEY FINDING: the FY2025 annual (note 33, read from text pp121-123) and the 9M 2025 filing restate 31 Dec 2023 and 31 Dec 2024 for a material prior-year error in expected premium receipts on insurance contracts (insurance contract assets overstated, liabilities understated) and a reversal of the statutory reserve transfer: total equity 800,684,313 (audited FY2023) -> 689,885,283; 813,091,361 (audited FY2024) -> 702,292,331; total assets 2,155,386,277 -> 2,062,069,139 and 2,048,366,016 -> 1,987,355,223. The note states income and cash flows of 2024 were not affected (FY2024 net income 15,167,075 identical in both; 2023 net income 36,986,892 is not re-presented in the pages read, although the note says the 2023 profit turns into a loss after restatement A: the restated 2023 income statement is NOT in any collected page, flagged as an open item). Other findings: (1) IFRS 17 transition restated 2022 (net income 19,919,347 IFRS 4 -> 8,575,802; equity 699,876,930 -> 745,679,703), and the 31 Dec 2022 balance sheet differs between the 2023 interims (2,119,368,916 / equity 748,744,118) and the FY2023 annual (2,050,052,354 / 745,679,703). (2) 2023 quarter comparatives printed as Restated in the 2024 interims differ from the 2023 originals in components (service expenses, pool surplus, investment income) with profit before zakat and net income unchanged. (3) H1 2023 original prints cash from operations 67,759,541 that does not foot (components 67,756,541); the 2024 comparative has 67,756,541. (4) H1 2026 net loss -22,021,909 (Q1 -10,628,132, Q2 -11,393,778) vs H1 2025 profit 14,524,232. Net income: FY2025 7,406,036; FY2024 15,167,075; FY2023 36,986,892; FY2022 19,919,347 (IFRS 4) / 8,575,802 (IFRS 17).",
+   "not_read": [
+    "notes to the statements except note 33 (restatement), going-concern/name-change snippets",
+    "equity statements and OCI (located, not transcribed)",
+    "balance-sheet component lines other than totals, cash and insurance contract liabilities",
+    "restated 2023 income statement (not in any collected file)",
+    "9M 2023 (00779604) statements: located, values not transcribed (its quarter comparatives appear restated in 9M 2024)",
+    "all IFRS 4 interims 2022 and earlier (7b32985f, 736457be, 5ce4c8d5) and every Arabic file"
+   ]
+  },
+  "document_completeness": {
+   "status": "english_statement_files_complete_arabic_twins_and_2020_2021_arabic_only_interims_unread",
+   "summary": "Every English file read is a full statement set (BS, IS, OCI, equity, CF) but the statements are image-only pages in FY2022, FY2023, FY2024, FY2025, Q1-9M 2022, Q1-9M 2024, Q1 2025, 9M 2025, Q1 2026, and an unusable OCR text layer in the 2023 interims; the inventory flags c26a790d (9M 2024) and f2ab33c6 (Q1 2025) partial_statements although both hold BS, IS, OCI, equity and CF (read), and flags 1949fedd, a53dc12b, 226217a9 missing cash flows although CF is present as an image page. 15 files are Arabic-language (2020-2021 interims have no English twin; 2022-2024 have twins), identified from covers only. Three files labelled annual_report_with_statements (cafb32c4, 95d6c2d7, b793d359) are Arabic 2023 interim reports."
+  },
+  "company_coverage": {
+   "status": "partial_Q1_2020_to_H1_2026_interims_present_annuals_FY2022_to_FY2025_only",
+   "present_page_derived": [
+    "Q1/H1/9M 2020 (Arabic only)",
+    "Q1/H1/9M 2021 (Arabic only)",
+    "Q1/H1/9M 2022 (English and Arabic)",
+    "FY2022",
+    "Q1/H1/9M 2023",
+    "FY2023",
+    "Q1/H1/9M 2024",
+    "FY2024",
+    "Q1/H1/9M 2025",
+    "FY2025",
+    "Q1 2026",
+    "H1 2026"
+   ],
+   "derivable_from_comparatives": [
+    "2023 and 2024 quarters from comparative columns (labelled Restated)",
+    "Q4 of each year by subtraction (FY - 9M), never filed stand-alone"
+   ],
+   "missing": [
+    "FY2019, FY2020 and FY2021 annual statements (no annual file for 2020|FY and 2021|FY)",
+    "history before 2020",
+    "9M and FY2026 (not yet due)"
+   ],
+   "inventory_correction": "Annual labels 2023|FY, 2024|FY, 2025|FY, 2026|FY are FY2022, FY2023, FY2024, FY2025 (publication year). The inventory leading gaps list 2010 onward; Arabic-only 2020-2021 interims are present but unread."
+  }
+ },
  "documents": [
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2020-09-30)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "9M 2020 (period end 2020-09-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "07162706dbec88a514ce97d4d68e4d7eb650d9f24bcb5e20780569ddf796ae8d",
    "sha256_recomputed_ok": true,
@@ -60,9 +104,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2020-06-30)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "H1 2020 (period end 2020-06-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "aa0cdd914afa426e711d2c6c510d6b0c06d7593f3b93e63aa8b443b1c13e3974",
    "sha256_recomputed_ok": true,
@@ -95,9 +139,9 @@
    }
   },
   {
-   "actual_period": "Q1 2020 (period end 2020-03-31)",
+   "actual_period": "Q1 2020 (period end 2020-03-31; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "41f17854792e4f4a0840c2f331a56daf75f89dead4f7b58876bfa9efa3b6e16e",
    "sha256_recomputed_ok": true,
@@ -138,9 +182,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2021-09-30)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "9M 2021 (period end 2021-09-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "9077eae82b953bfbb51858fcd13f03fa665504db392084d582733460f88570b0",
    "sha256_recomputed_ok": true,
@@ -178,9 +222,9 @@
    }
   },
   {
-   "actual_period": "H1 2021 (period end 2021-06-30)",
+   "actual_period": "H1 2021 (period end 2021-06-30; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "0028a2a74c4b2d8c607460c801610cf14311bb1a96e545bdd700819c847fb833",
    "sha256_recomputed_ok": true,
@@ -220,9 +264,9 @@
    }
   },
   {
-   "actual_period": "Q1 2021 (period end 2021-03-31)",
+   "actual_period": "Q1 2021 (period end 2021-03-31; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "9b140b98af45b9cf845d04ea8d54b53d7141815207b39a823aefdcb9b6671616",
    "sha256_recomputed_ok": true,
@@ -258,9 +302,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2022-09-30)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "9M 2022 (period end 2022-09-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not transcribed (IFRS 4 interim, image-only statements located by cover only)",
    "transcript_docs": [],
    "sha256": "7b32985fb9a06cfb329dd702791785deab71bd7bcb48fe2dd8acc49c6d39ba08",
    "sha256_recomputed_ok": true,
@@ -288,9 +332,9 @@
    }
   },
   {
-   "actual_period": "9M 2022 (period end 2022-09-30)",
+   "actual_period": "9M 2022 (period end 2022-09-30; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "a85f53e056f5dc2039efd58f1393e2bea4a5fac8780e80c05452c9572efc95f9",
    "sha256_recomputed_ok": true,
@@ -330,7 +374,7 @@
   {
    "actual_period": "not detected from cover text (inventory text-detected: None)",
    "label_ok": null,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "513b7b9366733a024f67a2c01bbd0abd70addd231a5bb6b7cea9be391ecfd83c",
    "sha256_recomputed_ok": true,
@@ -369,9 +413,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2022-06-30)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "H1 2022 (period end 2022-06-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not transcribed (IFRS 4 interim, image-only statements located by cover only)",
    "transcript_docs": [],
    "sha256": "736457be7ca5f742ad39194e08ef08e9d507d43a5f10f6ae4a6c202462ca67d1",
    "sha256_recomputed_ok": true,
@@ -400,9 +444,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2022-03-31)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "Q1 2022 (period end 2022-03-31; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not transcribed (IFRS 4 interim, image-only statements located by cover only)",
    "transcript_docs": [],
    "sha256": "5ce4c8d5386dd71528f60912a3d47627a180f0f830ef76b76eaf13f9c58be700",
    "sha256_recomputed_ok": true,
@@ -430,9 +474,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2021-12-31)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "Q1 2022 (Arabic; cover says 31 March 2022, inventory text detection 2021-12-31 is the comparative balance sheet date)",
+   "label_ok": true,
+   "statements": "not read (Arabic)",
    "transcript_docs": [],
    "sha256": "eaff063de1c8733b9ae22719b3aab1368fd80a94fc317bd4d47b0b7aa8fe28ce",
    "sha256_recomputed_ok": true,
@@ -470,9 +514,9 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2023-09-30)",
-   "label_ok": null,
-   "statements": "not transcribed",
+   "actual_period": "9M 2023 (period end 2023-09-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
+   "statements": "not transcribed (text layer OCR, located only)",
    "transcript_docs": [],
    "sha256": "00779604e13a463567a5e4dc89c6fa511a79fed966ab3ec399723ace799c1c6e",
    "sha256_recomputed_ok": true,
@@ -497,12 +541,13 @@
     "equity": [
      7
     ]
-   }
+   },
+   "note": "9M 2023 English interim; values appear only via 9M 2024 restated comparatives"
   },
   {
-   "actual_period": "9M 2023 (period end 2023-09-30)",
+   "actual_period": "9M 2023 (period end 2023-09-30; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic)",
    "transcript_docs": [],
    "sha256": "cafb32c409555fcd1f839574f978e313021e7709d9cf8b75e6a2890a7304fc69",
    "sha256_recomputed_ok": true,
@@ -540,10 +585,11 @@
     "equity": [
      73
     ]
-   }
+   },
+   "note": "Arabic 2023 9M interim; inventory class annual_report_with_statements is wrong"
   },
   {
-   "actual_period": "FY 2022 (period end 2022-12-31)",
+   "actual_period": "FY 2022 (period end 2022-12-31; from cover text)",
    "label_ok": false,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
@@ -579,10 +625,11 @@
     "equity": [
      71
     ]
-   }
+   },
+   "note": "inventory label 2023|FY is publication year; FY2022 IFRS 4 original; statements image-only (read by eye)"
   },
   {
-   "actual_period": "H1 2023 (period end 2023-06-30)",
+   "actual_period": "H1 2023 (period end 2023-06-30; from cover text)",
    "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
@@ -614,12 +661,13 @@
      3,
      7
     ]
-   }
+   },
+   "note": "text layer scrambled OCR; read by eye; prints a non-footing cash from operations"
   },
   {
    "actual_period": "not detected from cover text (inventory text-detected: None)",
    "label_ok": null,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic)",
    "transcript_docs": [],
    "sha256": "95d6c2d7dd3cfb537c7fdb3a6c591cfe361766fdf2bf449a1baaf034d243c799",
    "sha256_recomputed_ok": true,
@@ -659,12 +707,13 @@
      67,
      71
     ]
-   }
+   },
+   "note": "Arabic 2023 H1 interim; inventory class annual_report_with_statements is wrong; cover text names Allianz with transposed Arabic words"
   },
   {
    "actual_period": "not detected from cover text (inventory text-detected: None)",
    "label_ok": null,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic)",
    "transcript_docs": [],
    "sha256": "b793d3596dd8ff74bf9253a8aa706e465284eddc281ed09cbe6bd5a57cce0814",
    "sha256_recomputed_ok": true,
@@ -700,11 +749,12 @@
     "equity": [
      68
     ]
-   }
+   },
+   "note": "Arabic 2023 Q1 interim; inventory class annual_report_with_statements is wrong"
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2023-03-31)",
-   "label_ok": null,
+   "actual_period": "Q1 2023 (period end 2023-03-31; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "Q1 2023"
@@ -732,12 +782,13 @@
     "equity": [
      7
     ]
-   }
+   },
+   "note": "text layer scrambled OCR; read by eye"
   },
   {
-   "actual_period": "9M 2024 (period end 2024-09-30)",
+   "actual_period": "9M 2024 (period end 2024-09-30; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "2b38f7fe96b16ecbaa28167ef6854514505f230fe3362857f8ca243ca5109b8e",
    "sha256_recomputed_ok": true,
@@ -772,8 +823,8 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2024-09-30)",
-   "label_ok": null,
+   "actual_period": "9M 2024 (period end 2024-09-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "9M 2024"
@@ -798,10 +849,12 @@
     "equity": [
      40
     ]
-   }
+   },
+   "class_ok": false,
+   "note": "inventory partial_statements is wrong: BS p4, IS p5, OCI p6, equity p7, CF p8 all present as images"
   },
   {
-   "actual_period": "FY 2023 (period end 2023-12-31)",
+   "actual_period": "FY 2023 (period end 2023-12-31; cover period not text-detectable, read from BS p10)",
    "label_ok": false,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
@@ -833,12 +886,14 @@
     "equity": [
      131
     ]
-   }
+   },
+   "class_ok": false,
+   "note": "inventory missing_primary_statement:cash_flows is wrong: CF is on landscape image page 14; first IFRS 17 annual; 2022 comparatives restated"
   },
   {
-   "actual_period": "H1 2024 (period end 2024-06-30)",
+   "actual_period": "H1 2024 (period end 2024-06-30; from cover text)",
    "label_ok": true,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "0e602ad80a7dac078d138b7f45525732ff740a4a439170472c0355269ed3cd43",
    "sha256_recomputed_ok": true,
@@ -873,8 +928,8 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2024-06-30)",
-   "label_ok": null,
+   "actual_period": "H1 2024 (period end 2024-06-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "H1 2024"
@@ -904,8 +959,8 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2024-03-31)",
-   "label_ok": null,
+   "actual_period": "Q1 2024 (period end 2024-03-31; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "Q1 2024"
@@ -937,7 +992,7 @@
   {
    "actual_period": "not detected from cover text (inventory text-detected: None)",
    "label_ok": null,
-   "statements": "not transcribed",
+   "statements": "not read (Arabic-language file, cover/period only)",
    "transcript_docs": [],
    "sha256": "df6990716305ed67410ca0e373d7f780374cd8de4591d3725274adfca6e816b2",
    "sha256_recomputed_ok": true,
@@ -971,8 +1026,8 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2025-09-30)",
-   "label_ok": null,
+   "actual_period": "9M 2025 (period end 2025-09-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "9M 2025"
@@ -1004,7 +1059,7 @@
    }
   },
   {
-   "actual_period": "FY 2024 (period end 2024-12-31)",
+   "actual_period": "FY 2024 (period end 2024-12-31; from cover text)",
    "label_ok": false,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
@@ -1031,11 +1086,13 @@
      73,
      109
     ]
-   }
+   },
+   "class_ok": false,
+   "note": "inventory missing cash_flows is wrong (CF image p12); first filing printing the Mutakamela name (formerly Allianz Saudi Fransi); label 2025|FY is publication year"
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2025-06-30)",
-   "label_ok": null,
+   "actual_period": "H1 2025 (period end 2025-06-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "H1 2025"
@@ -1068,8 +1125,8 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2025-03-31)",
-   "label_ok": null,
+   "actual_period": "Q1 2025 (period end 2025-03-31; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "Q1 2025"
@@ -1091,10 +1148,12 @@
     "cash_flows": [
      12
     ]
-   }
+   },
+   "class_ok": false,
+   "note": "inventory partial_statements is wrong: BS p4, IS p5, CF p8 present as images"
   },
   {
-   "actual_period": "FY 2025 (period end 2025-12-31)",
+   "actual_period": "FY 2025 (period end 2025-12-31; from cover text)",
    "label_ok": false,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
@@ -1132,11 +1191,13 @@
      11,
      121
     ]
-   }
+   },
+   "class_ok": false,
+   "note": "FY2025; restates 2024 and 2023 (note 33); label 2026|FY is publication year; inventory missing cash_flows is wrong (CF image p12)"
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2026-06-30)",
-   "label_ok": null,
+   "actual_period": "H1 2026 (period end 2026-06-30; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "H1 2026"
@@ -1172,8 +1233,8 @@
    }
   },
   {
-   "actual_period": "not detected from cover text (inventory text-detected: 2026-03-31)",
-   "label_ok": null,
+   "actual_period": "Q1 2026 (period end 2026-03-31; from inventory text detection (cover is image or non-latin))",
+   "label_ok": true,
    "statements": "transcribed from pages (see transcripts)",
    "transcript_docs": [
     "Q1 2026"
@@ -1200,7 +1261,52 @@
    }
   }
  ],
- "defects": [],
- "unread_items": [],
- "conclusion": ""
+ "defects": [
+  {
+   "id": "B014-8040-1",
+   "klass": "prior_period_error_restatement_of_audited_balance_sheets",
+   "severity": "high",
+   "evidence": "FY2025 note 33 and 9M 2025: 31 Dec 2023 equity 800,684,313 -> 689,885,283 and 31 Dec 2024 equity 813,091,361 -> 702,292,331 (about SAR 110m overstatement of retained earnings); Q1 and H1 2025 still carry the original; the restated 2023 income statement is not in the collected pages although the note says 2023 profit converts to a loss"
+  },
+  {
+   "id": "B014-8040-2",
+   "klass": "annual_period_label_is_publication_year",
+   "severity": "high",
+   "evidence": "978d3b51, 1949fedd, a53dc12b, 226217a9 are FY2022, FY2023, FY2024, FY2025 but labelled 2023|FY, 2024|FY, 2025|FY, 2026|FY"
+  },
+  {
+   "id": "B014-8040-3",
+   "klass": "entity_renamed",
+   "severity": "medium",
+   "evidence": "Allianz Saudi Fransi Cooperative Insurance Company (2020 to FY2023 annual and 2024 interims) became Mutakamela Insurance Company; the first Mutakamela cover is the FY2024 annual (a53dc12b), still printed (formerly Allianz Saudi Fransi); same share capital and statement chain; Arabic 2023 cover words transposed"
+  },
+  {
+   "id": "B014-8040-4",
+   "klass": "image_only_or_ocr_corrupted_statements",
+   "severity": "high",
+   "evidence": "FY2022-FY2025 annuals, Q1-9M 2022, Q1-9M 2024, Q1 2025, 9M 2025, Q1 2026 have zero-text statement pages; Q1-9M 2023 interims have a scrambled OCR text layer (values detached from labels); text extraction yields wrong or empty statements; inventory class partial_statements / missing cash flows is wrong for 1949fedd, a53dc12b, 226217a9, c26a790d, f2ab33c6"
+  },
+  {
+   "id": "B014-8040-5",
+   "klass": "unstable_comparatives_across_filings",
+   "severity": "medium",
+   "evidence": "31 Dec 2022 total assets 2,537,136,500 (IFRS 4) / 2,119,368,916 (2023 interims) / 2,050,052,354 (FY2023); 1 Jan 2022 total assets 2,249,103,623 vs 2,245,206,738; 2023 quarter components restated in 2024 interims; H1 2023 cash from operations typo 67,759,541 vs 67,756,541"
+  },
+  {
+   "id": "B014-8040-6",
+   "klass": "rounding_and_precision",
+   "severity": "low",
+   "evidence": "H1 2025 Q2 net insurance and investment result 17,733,408 vs components 17,733,407; Q1+Q2 vs H1 one-unit differences in 2025 and 2026; EPS printed at 2 or 3 decimals"
+  }
+ ],
+ "unread_items": [
+  "notes to the statements in all files (except FY2025 note 33 and cover/going-concern snippets)",
+  "equity statements and OCI (located, not transcribed)",
+  "restated 2023 income statement (does not exist in the collected files)",
+  "9M 2023 English interim (00779604) statements: located only",
+  "IFRS 4 interims Q1/H1/9M 2022 English (5ce4c8d5, 736457be, 7b32985f): covers only",
+  "all 15 Arabic-language files (2020 and 2021 interims have no English twin; 2022-2024 twins): cover/period only, values not read",
+  "FY2019-FY2021 annual statements are not in the raw set; 2010-2019 history absent"
+ ],
+ "conclusion": "Value correctness: headline three-statement values verified from pages for 14 sets (FY2022-FY2025, Q1/H1 2023, Q1/H1/9M 2024-2025, Q1/H1 2026) with a major prior-period-error restatement of 2023 and 2024 balance sheets and several comparative reclassifications declared with both values. Document completeness: English statement files complete but mostly image-only or OCR-corrupted; 15 Arabic files unread. Company coverage: partial: interims 2020-2026 present (2020-2021 Arabic only), annuals only FY2022-FY2025, restated 2023 income statement unavailable. Not complete."
 }
