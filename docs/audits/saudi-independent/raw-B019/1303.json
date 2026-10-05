@@ -1,0 +1,368 @@
+{
+ "schema_version": 1,
+ "symbol": "1303",
+ "name": "EIC (Electrical Industries Company)",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B019)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. All statement pages of the seven audited filings are image-only (text layer holds titles only or is empty) and were rendered and read by eye; the H1 2026 review report was read from its text layer. tools/check_transcripts.py over transcripts/1303.json checks BS identity, cash-flow sum and roll (with the foreign-exchange effect), gross profit, profit before zakat less zakat to profit, cross-filing agreement of comparatives (re-presented columns carry written reasons, one 1-riyal rounding via _tol) and Q1+Q2=H1 / H1+Q3=9M rolls for revenue, cost of revenue and profit; all pass. The group has no non-controlling interest, so profit equals profit attributable to shareholders.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/check_transcripts.py",
+   "transcripts/1303.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_7_filings_with_declared_cash_flow_reclassifications",
+   "summary": "Headline BS, income and cash-flow values (full SAR) read from pages for FY2022-FY2025, 3M 2026, 6M 2026 and 9M 2025 (plus 3M/6M 2025 and 9M 2024 and FY2021 as comparatives); identities hold with zero difference except a 1-riyal printed rounding in the FY2022 cash flow. FY2025: revenue 2,296,241,064, profit 629,929,051, total assets 2,595,425,829, equity 1,298,005,021, CFO 673,500,466, cash 350,381,125. FY2024: revenue 1,987,068,838, profit 401,730,829, CFO 688,229,937. FY2023: revenue 1,559,350,954, profit 201,033,987. FY2022: revenue 1,066,088,833, profit 94,170,010; FY2021 revenue 770,687,910, profit 48,845,470. 6M 2026: revenue 1,370,004,882, profit 402,302,932 (Q1 190,770,347 + Q2 211,532,585 rolls exactly; Q1+Q2 revenue and cost roll exactly); 9M 2025: revenue 1,598,066,902, profit 421,215,163 (6M 260,148,012 + Q3 161,067,151). Dividends paid 417,187,500 in H1 2026 (140,625,000 in Q1). Declared differences, never substituted: (1) FY2023 cash flow in the FY2023 filing CFO 107,136,111 / CFI -29,689,779 vs 107,137,204 / -29,690,872 in the FY2024 filing (dividend income 1,093 moved). (2) FY2022 cash flow in the FY2022 filing CFO -87,649,795 / CFI -10,430,908 vs -87,650,807 / -10,429,895 in the FY2023 filing; FY2022 printed components sum to 56,676,582 against a printed net change of 56,676,583. (3) Balance-sheet presentation: advances from customers are shown separately from the FY2025 filing whereas the FY2024 filing includes them in accrued expenses and other current liabilities (632,827,401); totals unchanged. Interim cash flow: Q1 2026 CFO 72,627,200 vs H1 2026 195,246,399 and Q1 2025 CFO 168,994,483 vs H1 2025 242,748,098; a Q2 by subtraction from cash flow was not validated against any issued three-month cash flow. No going-concern uncertainty in note 2.3 of FY2025; the H1 2026 review conclusion is unqualified. The 2025 and 2026 filings denote currency by the new riyal glyph; unit remains riyals.",
+   "not_read": [
+    "notes in every file except FY2025 note 1-2.3 (pdf p11)",
+    "statements of changes in equity",
+    "auditor report pages other than H1 2026 pdf p3-4",
+    "3M, 6M, 9M interim filings of 2022, 2023, 2024; own Q1 2025 and H1 2025 filings",
+    "FY2021 and earlier own FS"
+   ]
+  },
+  "document_completeness": {
+   "status": "annual_FY2022_to_FY2025_and_interims_9M2025_Q1_2026_H1_2026_read; other files identified by cover only",
+   "summary": "The inventory understates content: it classes FY2023 FS (6473e18e) and Q1 2026, H1 2026, 9M 2025 interims as other_no_statements_found and FY2024, FY2025 as partial, but all carry complete BS, income and cash-flow statements as page images (no text layer on the statement pages). Inventory reports 0 files with all three statements; page evidence shows at least 7. FS FY labels are publication years (2023|FY = FY2022, 2024|FY = FY2023, 2025|FY = FY2024, 2026|FY = FY2025). One interim (3a558f2d) has a garbled text layer; its cover image shows 3M ended 2024-03-31. No Arabic twins in this set. Unit is full SAR.",
+   "defect_ids": [
+    "B019-1303-1",
+    "B019-1303-2"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2022_to_FY2025_present_with_statements; all interims 2022_Q1_to_2026_H1_present_by_cover",
+   "present_in_files_by_page_derived_period": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (FY2022 filing)",
+    "2024 9M and Q3 (9M 2025 filing)",
+    "2025 Q1, H1, Q2 (2026 filings)"
+   ],
+   "values_not_read": [
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1 own filing",
+    "2025 H1 own filing"
+   ],
+   "missing": [
+    "FY2021 and earlier own FS (first observed 2014|FY per inventory)",
+    "no annual report file"
+   ],
+   "inventory_corrections": "periods_with_complete_statements is 0 in the inventory but page evidence shows complete statements for FY2022-FY2025 and three interims."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "d2f5da1635795db0306845301932858f0c586ab4eef418c56bca08e51b548f98",
+   "actual_period": "FY ended 2025-12-31 consolidated FS, label 2026|FY = publication year; inventory class partial_statements",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 4
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "note": "pdf p9 equity statement not read; pdf p11 (notes p5) viewed for going-concern note 2.3 (no material uncertainty)",
+   "relpath": "archive/SA/1303/d2f5da1635795db0306845301932858f0c586ab4eef418c56bca08e51b548f98.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 64
+  },
+  {
+   "sha256": "032188a225f4a9352fc2f214d20e20f276e47270eff54a4cc0d44f62eaa2dc5d",
+   "actual_period": "FY ended 2024-12-31 consolidated FS as issued, label 2025|FY = publication year; inventory class partial_statements",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 4
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/1303/032188a225f4a9352fc2f214d20e20f276e47270eff54a4cc0d44f62eaa2dc5d.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 65
+  },
+  {
+   "sha256": "6473e18e788f562eea19b44d79571e9052f4bbf4f08757eb7ff35de70e88d733",
+   "actual_period": "FY ended 2023-12-31 consolidated FS as issued, label 2024|FY = publication year; inventory class other_no_statements_found",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 4
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/1303/6473e18e788f562eea19b44d79571e9052f4bbf4f08757eb7ff35de70e88d733.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 68
+  },
+  {
+   "sha256": "4419e46918f4ce238d1f10817f3b6001181fa8b473ffdd4a250677587c91dffe",
+   "actual_period": "FY ended 2022-12-31 consolidated FS as issued, label 2023|FY = publication year",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 5
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/1303/4419e46918f4ce238d1f10817f3b6001181fa8b473ffdd4a250677587c91dffe.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 68
+  },
+  {
+   "sha256": "6128a0a9f1877a890edbbaaf9a396f7177a7843432a457df9670c0de1a58ef41",
+   "actual_period": "3M and 6M ended 2026-06-30; inventory class other_no_statements_found",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 4
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "note": "pdf p7 equity statement not read; review report pdf p3-4 text layer read (conclusion without qualification)",
+   "relpath": "archive/SA/1303/6128a0a9f1877a890edbbaaf9a396f7177a7843432a457df9670c0de1a58ef41.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 20
+  },
+  {
+   "sha256": "b8df8fee14b03ebf02bff3082bc6631772eebedf18852c4ebda85ce1f60b6ac4",
+   "actual_period": "3M ended 2026-03-31; inventory class other_no_statements_found",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 4
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/1303/b8df8fee14b03ebf02bff3082bc6631772eebedf18852c4ebda85ce1f60b6ac4.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 18
+  },
+  {
+   "sha256": "7f200b75b7849b98051a77ec68d9853c7fc8d48eb415535e5511f6847ed476ec",
+   "actual_period": "3M and 9M ended 2025-09-30; inventory class other_no_statements_found",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "printed_pages": {
+    "bs": 1,
+    "is": 2,
+    "cf": 4
+   },
+   "units": "full SAR",
+   "reading": "visual (statement pages textless, rendered and read)",
+   "relpath": "archive/SA/1303/7f200b75b7849b98051a77ec68d9853c7fc8d48eb415535e5511f6847ed476ec.pdf",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 19
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "c45755ae44c1d3066e60c1943c9febb0ea3fff4ba8774eb13189d7c5d9c57ec2",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2022-09-30 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "ffc16af8042307c4f2cd27d6dbb9f8d29b9feb26d007ca1be4b6e0fff8ee48bb",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2022-06-30 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "7644ca90a197d11c154fa39bb8b9f050ae30d3962298c7e11b1876d9b2b593e6",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 16,
+   "language": "en",
+   "actual_period": "3M ended 2022-03-31 (cover text)",
+   "note": "statement pages pdf p4-7 textless; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "8eaff8d3f160c04111dd65e57f9407ab50fb9bd6d6ea78ecd78edba4ed62b9d3",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2023-09-30 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "715b275b346d3f60eb91a0b6405f19e866596d5ffb6bca673e03cd6bdbaf7d04",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2023-06-30 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "8920864abd4e9bdcf0deba40c922ba1188025cbf4560b725fb9e9f10780cf40a",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "3M ended 2023-03-31 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "cfdf32f2a377a107497f086179eb7de0b9b8348b2694663e9d4d9d215269942d",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2024-09-30 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "64e8d935a085d514d35f7966bb4ba6dae5cdfaddef03e7a0b32f6ccfc955a972",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2024-06-30 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed"
+  },
+  {
+   "sha256": "3a558f2d6d454b127c245efb167d13c195189abb1c28e5a4df354b82e5208002",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "3M ended 2024-03-31 (cover image viewed; text layer garbled)",
+   "note": "classed other_no_statements_found; statements not read"
+  },
+  {
+   "sha256": "a47779dc32d7b1de6a09ef99b9ff47c5ed860ada10a707d7ddb63bcd2f4c6706",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2025-06-30 (cover text)",
+   "note": "statement pages pdf p5-8 textless; cover text; statements not transcribed; 6M and Q2 2025 known from the H1 2026 comparatives"
+  },
+  {
+   "sha256": "a091e87d483aa3b9f6df420f848874098728bfa75cd1000cbe0825c6e154f1d1",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "3M ended 2025-03-31 (cover text)",
+   "note": "classed other_no_statements_found; cover text; statements not transcribed; Q1 2025 known from the Q1 2026 comparatives"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B019-1303-1",
+   "kind": "inventory_class",
+   "detail": "All statement pages are image-only; files classed other_no_statements_found (6473e18e, b8df8fee, 6128a0a9, 7f200b75) or partial_statements (032188a2, d2f5da16) hold complete statements; inventory shows 0 complete-statement files."
+  },
+  {
+   "id": "B019-1303-2",
+   "kind": "label_semantics_and_reclassification",
+   "detail": "FS FY labels are publication years; FY2022 and FY2023 cash flows differ by about 1,000 riyals between the issuing and the following filing (dividend income reclassified); a 1-riyal printed rounding in the FY2022 cash flow."
+  }
+ ],
+ "unread_items": [
+  "notes to the financial statements in every file except FY2025 notes 1-2.3",
+  "statements of changes in equity; auditor reports except H1 2026",
+  "2022, 2023, 2024 interim filings; own Q1 2025 and H1 2025 filings",
+  "FY2021 and earlier own FS"
+ ],
+ "conclusion": "Company is NOT claimed complete: annual FY2022-FY2025 and three recent interims were read; 2022-2024 interims, own 2025 Q1/H1 filings, notes, equity statements and pre-FY2022 filings are unread."
+}
