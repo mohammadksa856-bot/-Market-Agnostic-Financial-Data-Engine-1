@@ -4,7 +4,7 @@ Per document column (cur / prior):
   * balance sheet: total_assets == total_liabilities + total_equity (when both liabilities and equity transcribed)
   * cash flow: cfo + cfi + cff == net_change; cash_begin + net_change + fx == cash_end
   * income ('is' and 'is_q'): net_income == ni_parent + ni_nci
-Cross-document: columns that describe the same block and period end (doc period_end for 'cur', doc prior_end for 'prior')
+Cross-document (optional per-doc "scale" = divisor to SAR thousands, tolerance SCALE_TOL thousand across different scales; optional "prior2" column with doc "prior2_end"): columns that describe the same block and period end (doc period_end for 'cur', doc prior_end for 'prior')
 must agree on revenue, net_income, ni_parent, cfo, cfi, cff, net_change, total_assets, total_equity, ppe, cash_end, unless the later column is flagged
 "restated": true (then the difference is expected and must be listed in the document's "restatements") or the key carries a written reason in the
 column's "_declared_diff" map ({"key": "reason"}; used for copies of the same statements that differ by rounding or presentation).
@@ -19,13 +19,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 INV = ROOT.parent / "raw-coverage" / "companies"
 TR = ROOT / "transcripts"
+SCALE_TOL = 1.5  # thousands, only between filings in different units
 XKEYS = ("revenue", "net_income", "ni_parent", "cfo", "cfi", "cff", "net_change", "total_assets", "total_equity", "ppe", "cash_end",
          "cost_of_revenue", "gross_profit", "operating_income", "pbt")
 
 
 def identities(doc):
     bad = []
-    for col in ("cur", "prior"):
+    for col in ("cur", "prior", "prior2"):
         bs = doc.get("bs", {}).get(col)
         if bs and {"total_assets", "total_liabilities", "total_equity"} <= bs.keys():
             if bs["total_assets"] != bs["total_liabilities"] + bs["total_equity"]:
@@ -50,24 +51,37 @@ def identities(doc):
 
 
 def cross(docs):
+    """Cross-filing agreement. A document may carry "scale" (divisor to SAR thousands; 1000 for a filing in full SAR). Columns from filings with
+    different scales agree if they differ by at most SCALE_TOL thousand (rounding of the thousands copy); same-scale columns must be equal."""
     seen = {}
     bad = []
     for d in docs:
+        sc = d.get("scale", 1)
         for block in ("bs", "is", "is_q", "cf"):
-            for col in ("cur", "prior"):
+            for col in ("cur", "prior", "prior2"):
                 c = d.get(block, {}).get(col)
                 if not c:
                     continue
-                end = d["period_end"] if col == "cur" else (d.get("bs_prior_end") if block == "bs" and d.get("bs_prior_end") else d.get("prior_end"))
+                if col == "cur":
+                    end = d["period_end"]
+                elif col == "prior":
+                    end = d.get("bs_prior_end") if block == "bs" and d.get("bs_prior_end") else d.get("prior_end")
+                else:
+                    end = d.get("prior2_end")
                 if end is None:
                     continue
                 for k in XKEYS + tuple(c.get("_extra_keys", [])):
                     if k in c:
                         key = (block, end, k)
                         declared = bool(c.get("restated")) or bool(c.get("_declared_diff", {}).get(k))
-                        if key in seen and seen[key][0] != c[k] and not declared and not seen[key][2]:
-                            bad.append((d["label"], block, col, k, c[k], "vs", seen[key][1], seen[key][0]))
-                        seen.setdefault(key, (c[k], d["label"], declared))
+                        norm = c[k] / sc
+                        if key in seen:
+                            pv, plabel, pdecl, psc, praw = seen[key]
+                            tol = 0 if psc == sc else SCALE_TOL
+                            if abs(pv - norm) > tol and not declared and not pdecl:
+                                bad.append((d["label"], block, col, k, c[k], "vs", plabel, praw))
+                        else:
+                            seen[key] = (norm, d["label"], declared, sc, c[k])
     return bad
 
 
