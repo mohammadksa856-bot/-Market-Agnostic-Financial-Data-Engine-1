@@ -1,0 +1,438 @@
+{
+ "schema_version": 1,
+ "symbol": "1322",
+ "name": "AL MASANE AL KOBRA MINING COMPANY (AMAK)",
+ "audit": {
+  "audited_on": "2026-10-05",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B018)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. Statements read from rendered images (and clean text where available). The two H1 2026 files were compared page by page by text layer. tools/check_transcripts.py over transcripts/1322.json checks balance-sheet identity, revenue + direct costs = gross profit, profit before tax less zakat, income tax and severance fees = net profit, cash-flow sum and roll, cross-filing comparatives (declared differences only) and Q1 + Q2 = H1 (2026; 2025 comparatives within a written 2-riyal tolerance) and H1 + Q3 = 9M (2025) rolls; all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/rec1322.py",
+   "tools/tr1322.py",
+   "tools/check_transcripts.py",
+   "transcripts/1322.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_8_filings_declared_restatements_and_printed_roundings_noted",
+   "summary": "Headline balance sheet, income and cash-flow values (full SAR as printed) read from rendered pages (FY2022, FY2023, FY2024, Q1, H1 and 9M 2025, Q1 and H1 2026) and the clean text layer (FY2025). All identities pass exactly: assets = liabilities + equity, revenue + direct costs = gross profit, profit before zakat, income tax and severance fees less zakat, income tax and severance fees = net profit, cash-flow sum and cash roll, with printed one-riyal differences declared (H1 2026 comparative cash flow). FY2025: revenue 1,026,083,423, net profit 280,597,983 (EPS 3.17), total assets 1,548,195,235, equity 1,325,631,464, CFO 469,947,428, closing cash 14,547,517. FY2024 net profit 177,898,746; FY2023 54,582,956; FY2022 126,331,146. H1 2026 net profit 94,761,836 (Q2 34,657,788; Q1 60,104,048). Rolls pass: Q1 + Q2 = H1 2026 exactly; 2025 comparative Q1 + Q2 = H1 within 1-2 riyal printed rounding; H1 + Q3 = 9M 2025 exactly. Declared, never substituted: severance fees moved from direct costs to a separate line (FY2023 as issued versus restated in the FY2024 filing; 2024 interim comparatives restated in the 2025 interim filings, Note 18); H1 2026 comparative cash-flow one-riyal differences.",
+   "not_read": [
+    "notes in every file (including Notes 18 and 35 restatement tables)",
+    "statements of changes in equity",
+    "audit reports and review reports",
+    "Q2 and Q3 cash flow by subtraction not validated",
+    "eleven older interim files 2022 to 2025 Q1 not value-read",
+    "annual reports 2023 and 2024"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_eight_files_five_have_image_only_statement_pages_inventory_flags_unreliable",
+   "summary": "FY2022, FY2023, FY2024 annual files and the 9M 2025 interim have image-only statement pages (empty text layer on pdf p3-10 or p4-7) although the inventory counts statements in them from note pages; the H1 2025 file has partial text. The inventory classes the Q1 2025, H1 2024 and H1 2022 interim files as no statements found and most other 2022-2025 interims as partial_statements; the covers of those files were seen but their statements were not opened, so completeness of those files is unverified. 65d75123 and 9b555f86 are the same document from two sources.",
+   "defect_ids": [
+    "B018-1322-1",
+    "B018-1322-2",
+    "B018-1322-3",
+    "B018-1322-4"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2022_to_FY2025_and_interims_2022_Q1_to_2026_H1_present_by_page_derived_period_pre_2022_absent",
+   "present_in_files_by_page_derived_period": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2022",
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "2025 H1",
+    "2025 9M",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (FY2022 filing)",
+    "FY2023 restated (FY2024 filing)",
+    "2025 Q1 (2026 Q1 filing) and Q2 (2026 H1 filing)",
+    "2024 H1 and 9M restated (2025 filings)"
+   ],
+   "values_not_read": [
+    "2022 Q1/H1/9M",
+    "2023 Q1/H1/9M",
+    "2024 Q1/H1/9M originals",
+    "2025 Q1 original"
+   ],
+   "missing": [
+    "FY2021 and earlier own filings (oldest file is the 2022 Q1 interim)",
+    "2026 9M (not yet due)"
+   ],
+   "inventory_corrections": "Annual labels equal the publication year (FY2022 labelled 2023|FY, FY2023 labelled 2024|FY, FY2024 labelled 2025|FY, FY2025 labelled 2026|FY); interim labels match page periods; the inventory's 2023|FY second file b6218a12 is an annual report, not a separate period. Two H1 2026 files are one document."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "65d75123c4cbd02f1e9adb33d336060b20042e72361cd1c0a6ea39ecdf3159da",
+   "actual_period": "3M and 6M ended 2026-06-30 interim (label 2026|H1 correct); latest period in the collection",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read) plus text layer",
+   "note": "byte-different duplicate 9b555f86 (issuer-site copy versus Saudi Exchange copy): text of all 26 pages is identical; 2025 comparative cash flow prints operating 112,313,176 versus 112,313,177 in the H1 2025 original and its column sum is off by 1",
+   "relpath": "archive/SA/1322/65d75123c4cbd02f1e9adb33d336060b20042e72361cd1c0a6ea39ecdf3159da.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 26
+  },
+  {
+   "sha256": "1bc66fa2ed0af6c5a6ddf68e158f5097c1a295406e8058b4585779f5691fb05e",
+   "actual_period": "3M ended 2026-03-31 interim (label 2026|Q1 correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read)",
+   "relpath": "archive/SA/1322/1bc66fa2ed0af6c5a6ddf68e158f5097c1a295406e8058b4585779f5691fb05e.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 22
+  },
+  {
+   "sha256": "6646c89ef9c6d57da2bf137f755b0cc29bbf7333146f8c7f7a67441522f4d426",
+   "actual_period": "FY ended 2025-12-31 audited FS (label 2026|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "text layer (clean; identities pass)",
+   "relpath": "archive/SA/1322/6646c89ef9c6d57da2bf137f755b0cc29bbf7333146f8c7f7a67441522f4d426.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 55
+  },
+  {
+   "sha256": "2a555f18b497d55ef6d77c17c8598938128e6492b466383f66d2fb868280ec30",
+   "actual_period": "3M and 9M ended 2025-09-30 interim (label 2025|9M correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read) (pdf p4-7 no text layer)",
+   "note": "2024 comparatives marked restated (Note 18); dividends payable 110,700,703 on the balance sheet",
+   "relpath": "archive/SA/1322/2a555f18b497d55ef6d77c17c8598938128e6492b466383f66d2fb868280ec30.pdf",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 24
+  },
+  {
+   "sha256": "27bb485178c61d6888c975debf9bdf54fed8df055de544e71aa2439c5fabc483",
+   "actual_period": "3M and 6M ended 2025-06-30 interim (label 2025|H1 correct)",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read)",
+   "note": "2024 comparatives marked restated (Note 18)",
+   "relpath": "archive/SA/1322/27bb485178c61d6888c975debf9bdf54fed8df055de544e71aa2439c5fabc483.pdf",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 25
+  },
+  {
+   "sha256": "8070bf283c92c246357e6259cd3f6840eb73d25e311777ee3f98b70496441a5d",
+   "actual_period": "FY ended 2024-12-31 audited FS (label 2025|FY = publication year); 2023 comparative restated (Note 35)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read) (pdf p3, 5-10 no text layer)",
+   "note": "first filing with severance fees as a separate line; FY2023 profit before zakat and income tax restated 68,001,062 versus 60,456,930 as issued",
+   "relpath": "archive/SA/1322/8070bf283c92c246357e6259cd3f6840eb73d25e311777ee3f98b70496441a5d.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 55
+  },
+  {
+   "sha256": "3ca65fbb5af54d9eff631b64d781a4b47fed8029557fd6b272b7f41c773c5855",
+   "actual_period": "FY ended 2023-12-31 audited FS as issued (label 2024|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read) (pdf p3, 5-10 no text layer)",
+   "note": "severance fees inside direct costs as issued; restated in the FY2024 filing; both values declared",
+   "relpath": "archive/SA/1322/3ca65fbb5af54d9eff631b64d781a4b47fed8029557fd6b272b7f41c773c5855.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 52
+  },
+  {
+   "sha256": "36790b1265d40ff335274bdcbeb72bf6e5e976d4e2936a17ba0ede8b59fb3150",
+   "actual_period": "FY ended 2022-12-31 audited FS as issued (label 2023|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": 8
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands)",
+   "reading": "visual (rendered image read) (pdf p6-10 no text layer)",
+   "note": "also carries FY2021 comparatives (revenue 586,653,318, net profit 197,264,769)",
+   "relpath": "archive/SA/1322/36790b1265d40ff335274bdcbeb72bf6e5e976d4e2936a17ba0ede8b59fb3150.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 52
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "b0f1cf1f90ea216a3796c21b58737511715a0af10f9f5a589a8ca653c2cc60f0",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 21,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2022-09-30 interim (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "118422c93a14193d18825aaf1d0414a0994a7484ac86a15dcd673949078d5d44",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 21,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2022-06-30 interim (cover/title or first-page text only)",
+   "note": "inventory class other_no_statements_found; not value-read"
+  },
+  {
+   "sha256": "d92b95dc089777de5263cb98edc212f7226dc171ca61f3d08042b9c0ff61ee7c",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "3M ended 2022-03-31 interim (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "fa1ec55e1901a1ee3e18cd7776f34da43bced5ef7e97eb0777a3fa5748b90758",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2023-09-30 interim (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "b6218a125d48a027139077b3af9c9165b6b91643e47b2f0e53cf4dbbb2dcf1fb",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 80,
+   "language": "en",
+   "actual_period": "Annual report (80 pages, English; year not verified; inventory label 2023|FY)",
+   "note": "contents page only read; inventory class financial_statements from summary tables; audited statements are in 36790b12 and 3ca65fbb"
+  },
+  {
+   "sha256": "9c4a7cabc3874c9ced80a4fa1aefc6389383ba2d0b5c6a40d1b4b0291ce21558",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2023-06-30 interim (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "5142393c125d2cad6963b2cfaac065cc74aac719a29fd57a0103b4ed74cb7809",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 18,
+   "language": "en",
+   "actual_period": "3M ended 2023-03-31 interim (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "944a6c7542079a6f3b2c10b1dbb81af2e0a8f24a37d3f1472b102fa4b281313b",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 23,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2024-09-30 interim (cover/title or first-page text only)",
+   "note": "not value-read; restated 9M 2024 comparatives seen in 2a555f18"
+  },
+  {
+   "sha256": "9e5fc45a9df8d1c1b1aa063de336cbccb1b512969856ab5cedc82dc08d1ae11e",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 123,
+   "language": "en",
+   "actual_period": "2024 annual report (123 pages, English)",
+   "note": "cover only; not read"
+  },
+  {
+   "sha256": "d00f138e66e2d7b2e28da33b93e1008deebd5c5b8f508c9362912f304b52baa9",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 22,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2024-06-30 interim (cover/title or first-page text only)",
+   "note": "inventory class other_no_statements_found; not value-read; H1 2024 restated comparatives seen in 27bb4851"
+  },
+  {
+   "sha256": "bb1f5bbfae7b243ede6db16bff54435348a6445d272369685be2ffe34ef0a31f",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "3M ended 2024-03-31 interim (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "1c884e926caa2abf2d66cf0d044ca256c2a0ca69cfeecc714365a88ac257fbaa",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M ended 2025-03-31 interim (cover/title or first-page text only)",
+   "note": "inventory class other_no_statements_found; not value-read; Q1 2025 comparatives read in 1bc66fa2"
+  },
+  {
+   "sha256": "9b555f86e9c613ba32c1e7c66fb62b0723979fbc738e4704d92e8f5353729d34",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 26,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2026-06-30 interim, duplicate of 65d75123",
+   "note": "text of all 26 pages identical to 65d75123 (programmatic comparison); different bytes and source URL (Saudi Exchange copy versus issuer site)"
+  },
+  {
+   "sha256": "dd7a773d95e6251f802c9941d9a284d9558b2f5fb48babc623d66ef2b15fb971",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 8,
+   "language": "en",
+   "actual_period": "Financial and production summary year-to-date Q2 2026 (8 pages)",
+   "note": "first page only; not a statements file"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B018-1322-1",
+   "class": "image_only_or_scanned_statements_flagged_as_present_or_partial",
+   "severity": "medium",
+   "evidence": "36790b12 pdf p6-10, 3ca65fbb p3 and 5-10, 8070bf28 p3 and 5-10, 2a555f18 p4-7 are image-only; 1c884e92, 118422c9, d00f138e are classed other_no_statements_found and nine interims partial_statements; those files were not opened for statements, so the class is unverified rather than wrong."
+  },
+  {
+   "id": "B018-1322-2",
+   "class": "fiscal_year_label_mismatch",
+   "severity": "medium",
+   "evidence": "36790b12 FY2022 labelled 2023|FY, 3ca65fbb FY2023 labelled 2024|FY, 8070bf28 FY2024 labelled 2025|FY, 6646c89e FY2025 labelled 2026|FY; the annual report b6218a12 also labelled 2023|FY."
+  },
+  {
+   "id": "B018-1322-3",
+   "class": "restated_or_represented_comparatives",
+   "severity": "high",
+   "evidence": "FY2023: direct costs 371,999,011 and profit before zakat and income tax 60,456,930 as issued (3ca65fbb pdf p8) versus 364,454,879 and 68,001,062 with a separate severance fees line 7,544,132 restated (8070bf28 pdf p8); net profit 54,582,956 unchanged. 2024 H1 and 9M comparatives marked restated in 27bb4851 pdf p5 and 2a555f18 pdf p5. All recorded with both values."
+  },
+  {
+   "id": "B018-1322-4",
+   "class": "duplicate_files_and_printed_roundings",
+   "severity": "low",
+   "evidence": "65d75123 and 9b555f86 hold identical text on all 26 pages; one-riyal differences: H1 2025 original CFO 112,313,177 (27bb4851 pdf p7) versus 112,313,176 comparative (65d75123 pdf p7); Q1 2025 + Q2 2025 net profit 128,287,272 versus six-month 128,287,270."
+  }
+ ],
+ "unread_items": [
+  "notes in every file (including Notes 18 and 35)",
+  "statements of changes in equity",
+  "audit and review reports",
+  "eleven interim files 2022 Q1 to 2025 Q1 and 2024 H1/9M (covers only)",
+  "annual reports b6218a12 and 9e5fc45a",
+  "FY2021 and earlier (no file)",
+  "Arabic originals (none in collection)",
+  "Q2 / Q3 cash flow by subtraction not validated"
+ ],
+ "conclusion": "NOT claimed complete. Eight filings value-verified (FY2022-FY2025; Q1, H1, 9M 2025; Q1, H1 2026) from rendered image pages and text; the severance-fee restatement is declared with both values; eleven older interims identified but not value-read; notes, audit reports and equity statements unread; no pre-2022 own filings."
+}
