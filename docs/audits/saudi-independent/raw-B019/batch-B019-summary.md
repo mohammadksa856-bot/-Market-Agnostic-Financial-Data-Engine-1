@@ -11,3 +11,8 @@ Status: in progress. Companies are appended as they are finished; see progress.j
 - Value correctness: FY2022-FY2025, 3M/6M/9M 2025, 3M/6M 2026 read from pages (annuals and H1 2026 image-only); all identities and Q1+Q2=H1, H1+Q3=9M rolls pass; FY2024 and 2025-interim comparatives re-presented in later filings (cost, gross profit, operating income) declared; interim CFO by subtraction not validated (9M CFO < 6M CFO).
 - Document completeness: 24 of 78 files have no fiscal year; periods recovered from cover images; three annual-period files labelled Q1; FS FY labels = publication year but press-release FY labels = fiscal year; Arabic twins exist.
 - Company coverage: annual FY2022-FY2025 present with statements; 2015-2024 interims, FY2015-FY2021 FS, notes and press releases unread; FY2016/2017/2019-2021 annual FS files absent.
+
+## 1304 Al Yamamah Steel (fiscal year ends 30 September)
+- Value correctness: FY2022-FY2025 (years to 30 Sep), 3M to Dec 2025, 6M to Mar 2026, 9M to Jun 2025 and Jun 2026 read from page images (all statements image-only); identities and revenue/pre-zakat/net-profit quarter rolls pass; FY2022/FY2023 comparatives re-presented, 9M 2025 cash flow re-presented, cost-of-sales quarters do not roll in 2026, 1 to 7 riyal rounding differences declared.
+- Document completeness: every file is image-only or a scan; four whole-file scans hold full statements per covers; FY labels inconsistent (2022 = fiscal, later = year+1, no 2023 file).
+- Company coverage: annual FY2022-FY2025 present; interims FY2022-FY2026 present by cover; earlier interims, notes, equity statements unread; FY2021 and earlier absent.

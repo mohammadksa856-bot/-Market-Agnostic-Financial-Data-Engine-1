@@ -10,6 +10,7 @@ must agree on revenue, net_income, ni_parent, cfo, cfi, cff, net_change, total_a
 column's "_declared_diff" map ({"key": "reason"}; used for copies of the same statements that differ by rounding or presentation).
 Roll checks (transcript key "roll_checks"): total == sum(parts) within tol (Q1 + Q2 = H1 etc.).
 Every sha256_prefix must exist in the raw-coverage inventory.
+A column may carry "_tol" (integer, riyals) when the issuer's own printed figures differ by rounding; the reason must be written in the column's "_note".
 Usage: python check_transcripts.py [symbol ...]
 """
 import json
@@ -28,23 +29,23 @@ def identities(doc):
     for col in ("cur", "prior"):
         bs = doc.get("bs", {}).get(col)
         if bs and {"total_assets", "total_liabilities", "total_equity"} <= bs.keys():
-            if bs["total_assets"] != bs["total_liabilities"] + bs["total_equity"]:
+            if abs(bs["total_assets"] - (bs["total_liabilities"] + bs["total_equity"])) > bs.get("_tol", 0):
                 bad.append((doc["label"], col, "bs", bs["total_assets"], bs["total_liabilities"] + bs["total_equity"]))
         cf = doc.get("cf", {}).get(col)
         if cf:
-            if {"cfo", "cfi", "cff", "net_change"} <= cf.keys() and cf["cfo"] + cf["cfi"] + cf["cff"] != cf["net_change"]:
+            if {"cfo", "cfi", "cff", "net_change"} <= cf.keys() and abs(cf["cfo"] + cf["cfi"] + cf["cff"] - cf["net_change"]) > cf.get("_tol", 0):
                 bad.append((doc["label"], col, "cf-sum", cf["net_change"], cf["cfo"] + cf["cfi"] + cf["cff"]))
             if {"cash_begin", "net_change", "cash_end"} <= cf.keys():
                 rolled = cf["cash_begin"] + cf["net_change"] + cf.get("fx", 0)
-                if rolled != cf["cash_end"]:
+                if abs(rolled - cf["cash_end"]) > cf.get("_tol", 0):
                     bad.append((doc["label"], col, "cf-roll", cf["cash_end"], rolled))
         for key in ("is", "is_q"):
             i = doc.get(key, {}).get(col)
-            if i and {"net_income", "ni_parent", "ni_nci"} <= i.keys() and i["net_income"] != i["ni_parent"] + i["ni_nci"]:
+            if i and {"net_income", "ni_parent", "ni_nci"} <= i.keys() and abs(i["net_income"] - i["ni_parent"] - i["ni_nci"]) > i.get("_tol", 0):
                 bad.append((doc["label"], col, key, i["net_income"], i["ni_parent"] + i["ni_nci"]))
-            if i and {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and i["revenue"] + i["cost_of_revenue"] != i["gross_profit"]:
+            if i and {"revenue", "cost_of_revenue", "gross_profit"} <= i.keys() and abs(i["revenue"] + i["cost_of_revenue"] - i["gross_profit"]) > i.get("_tol", 0):
                 bad.append((doc["label"], col, key + "-gross", i["gross_profit"], i["revenue"] + i["cost_of_revenue"]))
-            if i and {"pbt", "tax", "net_income"} <= i.keys() and i["pbt"] + i["tax"] + i.get("discontinued", 0) != i["net_income"]:
+            if i and {"pbt", "tax", "net_income"} <= i.keys() and abs(i["pbt"] + i["tax"] + i.get("discontinued", 0) - i["net_income"]) > i.get("_tol", 0):
                 bad.append((doc["label"], col, key + "-tax", i["net_income"], i["pbt"] + i["tax"] + i.get("discontinued", 0)))
     return bad
 
