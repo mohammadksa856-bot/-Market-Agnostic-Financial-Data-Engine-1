@@ -33,7 +33,7 @@ def identities(doc):
                 bad.append((doc["label"], col, "bs", bs["total_assets"], bs["total_liabilities"] + bs["total_equity"]))
         cf = doc.get("cf", {}).get(col)
         if cf:
-            if {"cfo", "cfi", "cff", "net_change"} <= cf.keys() and cf["cfo"] + cf["cfi"] + cf["cff"] != cf["net_change"]:
+            if {"cfo", "cfi", "cff", "net_change"} <= cf.keys() and cf["cfo"] + cf["cfi"] + cf["cff"] + (cf.get("sum_rounding", 0) if cf.get("sum_rounding_reason") else 0) != cf["net_change"]:
                 bad.append((doc["label"], col, "cf-sum", cf["net_change"], cf["cfo"] + cf["cfi"] + cf["cff"]))
             if {"cash_begin", "net_change", "cash_end"} <= cf.keys():
                 rolled = cf["cash_begin"] + cf["net_change"] + cf.get("fx", 0) + (cf.get("rounding", 0) if cf.get("rounding_reason") else 0)

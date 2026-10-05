@@ -1,0 +1,528 @@
+{
+ "schema_version": 1,
+ "symbol": "1321",
+ "name": "EAST PIPES INTEGRATED COMPANY FOR INDUSTRY",
+ "audit": {
+  "audited_on": "2026-10-05",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B018)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. Statements read from text layers where clean and from rendered images for the FY2023 scan and the FY26 and FY27 interims. tools/check_transcripts.py over transcripts/1321.json checks balance-sheet identity, revenue + cost = gross profit, profit before tax + zakat + income tax = net profit, cash-flow sum and roll, cross-filing comparatives (declared differences only) and Q1 + Q2 = H1, H1 + Q3 = 9M rolls for FY26 and FY25 comparatives; all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/rec1321.py",
+   "tools/tr1321.py",
+   "tools/check_transcripts.py",
+   "transcripts/1321.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_8_filings_declared_representations_noted",
+   "summary": "Headline balance sheet, income and cash-flow values (full SAR as printed) read from clean text layers (FY2024, FY2025, FY2026) and rendered images (FY2023 scan, Q1 FY26 to Q1 FY27). All identities pass exactly: assets = liabilities + equity, revenue + cost = gross profit, profit before zakat and tax + zakat + income tax = net profit, cash-flow sum and cash roll (one 2-riyal printed rounding in the 9M FY26 cash flow declared). FY2026 (year to 31 Mar 2026): revenue 2,297,739,980, net profit 573,262,283 (EPS 18.20), total assets 1,969,890,077, equity 1,563,827,299, CFO 973,110,362, closing cash 680,946,579. FY2025 net profit 382,123,608; FY2024 267,507,881; FY2023 99,920,835; FY2022 (comparative) net loss -3,245,320. Q1 FY27 net profit 122,917,040. Rolls pass: Q1 + Q2 = H1 and H1 + Q3 = 9M for revenue, profit before tax, zakat plus income tax and net profit in FY26 and for the FY25 comparatives. Cross-filing comparatives agree except two declared re-presentations: the 31 March 2025 balance sheet (total assets 1,638,543,651 in the FY2026 filing versus 1,632,108,105 audited) and Q1 FY26 operating profit (98,651,233 re-presented versus 104,581,273 first reported; finance income split out). Fiscal year ends 31 March, so annual and interim labels are shifted against calendar years.",
+   "not_read": [
+    "notes in every file",
+    "statements of changes in equity (seen as text in FY2024 and FY2026, not transcribed)",
+    "audit reports (pdf p3-6 of FY2024 and FY2023, p7 of FY2026 are image pages)",
+    "Q2 and Q3 cash flow by subtraction not validated",
+    "nine older interim files FY23-FY25 not value-read",
+    "Arabic twins and annual reports"
+   ]
+  },
+  "document_completeness": {
+   "status": "primary_statements_present_in_eight_files_one_whole_file_scan_and_several_image_only_statement_pages",
+   "summary": "FY2023 file (8f5b16dd) is a whole-file scan holding full audited statements although the inventory classes it scanned_unreadable. The Q1 FY26 file has image-only statement pages; the 9M and H1 FY26 files have partial text layers. Inventory classes FY2026 as partial_statements and FY2024 as lacking cash flows though both contain all three statements. The standalone audited statements for FY ended 31 March 2022 are absent: FY2022 appears only as the comparative column in the FY2023 filing and in the annual report five-year table. The annual-report files read (84724b08 p41-42, 83a50e6b p53) show only summary tables; their other pages are unread.",
+   "defect_ids": [
+    "B018-1321-1",
+    "B018-1321-2",
+    "B018-1321-3"
+   ]
+  },
+  "company_coverage": {
+   "status": "annual_FY2023_to_FY2026_and_all_interim_quarters_FY2023_to_Q1_FY2027_present_by_page_derived_period_FY2022_only_as_comparative",
+   "present_in_files_by_page_derived_period": [
+    "FY2023 (year to 2023-03-31)",
+    "FY2024",
+    "FY2025",
+    "FY2026",
+    "Q1 FY23 (2022-06-30)",
+    "Q2 FY23 (2022-09-30)",
+    "Q3 FY23 (2022-12-31)",
+    "Q1 FY24",
+    "Q2 FY24",
+    "Q3 FY24",
+    "Q1 FY25",
+    "Q2 FY25",
+    "Q3 FY25",
+    "Q1 FY26",
+    "Q2 FY26",
+    "Q3 FY26",
+    "Q1 FY27 (2026-06-30)"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2023",
+    "FY2024",
+    "FY2025",
+    "FY2026",
+    "Q1 FY26",
+    "Q2 FY26",
+    "Q3 FY26",
+    "Q1 FY27"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2022 (year to 2022-03-31) from the FY2023 filing",
+    "Q1, Q2, Q3 FY25 (FY26 filings)",
+    "Q1 FY26 re-presented (Q1 FY27 filing)",
+    "31 March 2025 balance sheet re-presented (FY2026 filing)"
+   ],
+   "values_not_read": [
+    "Q1-Q3 FY23 originals",
+    "Q1-Q3 FY24 originals",
+    "Q1-Q3 FY25 originals"
+   ],
+   "missing": [
+    "standalone audited statements for FY ended 2022-03-31 and earlier (the file labelled 2021|FY is the 2021-2022 annual report without statements)",
+    "FY2027 full year and Q2 FY27 (not yet due)"
+   ],
+   "inventory_corrections": "Collector labels are calendar-style: a period to 30 June is labelled Q1 of the calendar year of its end date, 30 September H1, 31 December 9M, and the 31 March year end FY of the year in which it ends; the fiscal Q1 FY27 file is labelled 2026|Q1 and a results announcement for it 2027|Q1; the 9M label 2025|9M holds period ended 2025-12-31 and 2024|9M holds period ended 2024-12-31. The file labelled 2021|FY is the 2021-2022 annual report (year to 2022-03-31)."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "881ec696059c0d7c6a367fc258b79b982c5980e1acdc46854ce1459c4d9da5be",
+   "actual_period": "3M ended 2026-06-30 interim = fiscal Q1 of FY ending 2027-03-31 (label 2026|Q1 is a calendar-style label)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 4,
+    "bs": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "is": 2,
+    "bs": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "visual (rendered image read) plus text layer",
+   "note": "latest period in the collection; Q1 FY26 comparative re-presented (finance income split out of other operating income)",
+   "relpath": "archive/SA/1321/881ec696059c0d7c6a367fc258b79b982c5980e1acdc46854ce1459c4d9da5be.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 21
+  },
+  {
+   "sha256": "c032fedd36651826923641611a5cb3a37082f915b46e35f05ccac341bd341ab9",
+   "actual_period": "FY ended 2026-03-31 audited FS (label 2026|FY; inventory class partial_statements although all three statements are present)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 8,
+    "bs": 9,
+    "cf": 11
+   },
+   "printed_pages": {
+    "is": 6,
+    "bs": 7,
+    "cf": 9
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "text layer (clean; identities pass)",
+   "note": "31 March 2025 comparative balance sheet re-presented (total assets 1,638,543,651 versus 1,632,108,105 as audited); statement of changes in equity pdf p10 seen in text, not transcribed; auditor report p7 image page not read",
+   "relpath": "archive/SA/1321/c032fedd36651826923641611a5cb3a37082f915b46e35f05ccac341bd341ab9.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 48
+  },
+  {
+   "sha256": "6366e4d428213807439547b961327f7fcfcc47cffd4f9cd444e8e33f228ddab8",
+   "actual_period": "3M and 9M ended 2025-12-31 interim = fiscal Q3 of FY ending 2026-03-31 (label 2025|9M)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 4,
+    "bs": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "is": 2,
+    "bs": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "visual (rendered image read) (text layer garbled)",
+   "note": "net change in cash printed 388,542,754 against a column sum of 388,542,756 (2 riyal source rounding, verified on zoomed render)",
+   "relpath": "archive/SA/1321/6366e4d428213807439547b961327f7fcfcc47cffd4f9cd444e8e33f228ddab8.pdf",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 24
+  },
+  {
+   "sha256": "8a30cf4b5cf865286337cf2b9f3325c6137d8129206bbafb6b82e8161daf3f3f",
+   "actual_period": "3M and 6M ended 2025-09-30 interim = fiscal Q2 of FY ending 2026-03-31 (label 2025|H1)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 4,
+    "bs": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "is": 2,
+    "bs": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "visual (rendered image read)",
+   "relpath": "archive/SA/1321/8a30cf4b5cf865286337cf2b9f3325c6137d8129206bbafb6b82e8161daf3f3f.pdf",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 24
+  },
+  {
+   "sha256": "a97bb7a66a2021330fd6de5ac693c028baaf6507b2b36335e7c3e362917dba6e",
+   "actual_period": "3M ended 2025-06-30 interim = fiscal Q1 of FY ending 2026-03-31 (label 2025|Q1; inventory partial_statements)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 4,
+    "bs": 5,
+    "cf": 7
+   },
+   "printed_pages": {
+    "is": 2,
+    "bs": 3,
+    "cf": 5
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "visual (rendered image read) (pdf p3-7 have no text layer)",
+   "relpath": "archive/SA/1321/a97bb7a66a2021330fd6de5ac693c028baaf6507b2b36335e7c3e362917dba6e.pdf",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 23
+  },
+  {
+   "sha256": "285c64ee6347054e05e1deee1d7fd36e12bd2b8c803ce0c86fa3659762662b4b",
+   "actual_period": "FY ended 2025-03-31 audited FS (label 2025|FY)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 8,
+    "bs": 9,
+    "cf": "11-12"
+   },
+   "printed_pages": {
+    "is": 6,
+    "bs": 7,
+    "cf": "9-10"
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "text layer (clean; identities pass)",
+   "relpath": "archive/SA/1321/285c64ee6347054e05e1deee1d7fd36e12bd2b8c803ce0c86fa3659762662b4b.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 50
+  },
+  {
+   "sha256": "038edf7dc6276ce112f7e0154697136822c50427fe265f5849233e00da184da5",
+   "actual_period": "FY ended 2024-03-31 audited FS (label 2024|FY)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 7,
+    "bs": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "is": 5,
+    "bs": 6,
+    "cf": 8
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "text layer (clean; identities pass)",
+   "note": "auditor report pdf p3-6 image-only (not read); inventory flags no cash flow statement though it is on pdf p10",
+   "relpath": "archive/SA/1321/038edf7dc6276ce112f7e0154697136822c50427fe265f5849233e00da184da5.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 47
+  },
+  {
+   "sha256": "8f5b16dd5736fe01749aa08cc5d6344516eedf1a37f037fe8602a2d71029051d",
+   "actual_period": "FY ended 2023-03-31 audited FS, whole-file scan (label 2023|FY; inventory class scanned_unreadable)",
+   "label_ok": true,
+   "pdf_pages": {
+    "is": 7,
+    "bs": 8,
+    "cf": 10
+   },
+   "printed_pages": {
+    "is": 5,
+    "bs": 6,
+    "cf": 8
+   },
+   "units": "Saudi riyals (SAR), full units as printed (not thousands); fiscal year ends 31 March",
+   "reading": "visual (rendered image read) (no text layer on any page)",
+   "note": "also carries the FY ended 2022-03-31 comparatives (revenue 597,465,405, net loss -3,245,320); the standalone FY2022 financial statements are not in the collection",
+   "relpath": "archive/SA/1321/8f5b16dd5736fe01749aa08cc5d6344516eedf1a37f037fe8602a2d71029051d.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 46
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "83a50e6bc493f2e7e01cdb4aa491d9dfb259d45cbe40190df8afd36ee6b57681",
+   "collector_label": "2021|FY",
+   "inventory_file_class": "annual_report_no_statements_found",
+   "pdf_total_pages": 61,
+   "language": "en",
+   "actual_period": "Annual report 2021-2022 (FY ended 2022-03-31), English, 61 pages",
+   "note": "p53 five-year financial summary in SAR thousands read from text (FY2022 sales 597,465, net income -3,245) only; no audited statements in the file; summary cost of sales 562,965 differs in presentation from the audited comparative 569,720,077"
+  },
+  {
+   "sha256": "b479f1fe77d95c0e1fccefd4e74c07f23deeae8f2855a74847a40cb681f1d305",
+   "collector_label": "2021|FY",
+   "inventory_file_class": "annual_report_no_statements_found",
+   "pdf_total_pages": 61,
+   "language": "ar",
+   "actual_period": "Annual report 2021-2022, Arabic twin of 83a50e6b",
+   "note": "not read"
+  },
+  {
+   "sha256": "64865887f7e260b5a9375792ee6cf672432622efaa27e8e6b5d2da12909fc467",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2022-12-31 interim = fiscal Q3 of FY2023 (cover viewed)",
+   "note": "whole-file scan (20 pages, no text); not value-read"
+  },
+  {
+   "sha256": "d8006bc1de7178a4c3dda606ba187dc4212ab1051fce71758374957d50f71126",
+   "collector_label": "2022|FY",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 4,
+   "language": "en",
+   "actual_period": "Results announcement FY2022 (year ended 2022-03-31), 4 pages",
+   "note": "not read; announcement, not statements"
+  },
+  {
+   "sha256": "f9cc430d51d6da1a1032582121715a0db1ec3f7d19b54f42e11d2992646166d8",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2022-09-30 interim = fiscal Q2 of FY2023 (cover viewed)",
+   "note": "inventory class other_no_statements_found; not value-read"
+  },
+  {
+   "sha256": "7298b0d67ccfa901e551b791a3f14eb3f8cd7ca984904e128a53a641507603e4",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 16,
+   "language": "en",
+   "actual_period": "3M ended 2022-06-30 interim = fiscal Q1 of FY2023 (cover/title or first-page text only)",
+   "note": "inventory class other_no_statements_found; not value-read"
+  },
+  {
+   "sha256": "b5fbd5f175bcf286f176c55012a207236836d022deae63ac95e288b30c5adf52",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 21,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2023-12-31 interim = fiscal Q3 of FY2024 (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "84724b08861b0b2a59e98c850ec136f6d443cfdc4f3bb070495a0bfa760c8de5",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 50,
+   "language": "en",
+   "actual_period": "Annual report FY2023 (year ended 2023-03-31), English, 50 pages (inventory class financial_statements)",
+   "note": "pdf p41-42 read: five-year summary tables (garbled text), not audited statements; other pages unread; the audited FY2023 statements are in 8f5b16dd"
+  },
+  {
+   "sha256": "519dabc9bf97c1e286bfb0af2555b095467dd56cb58251918d01b63a8d93889b",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2023-09-30 interim = fiscal Q2 of FY2024 (cover/title or first-page text only)",
+   "note": "not value-read"
+  },
+  {
+   "sha256": "aa7fc2a746c0c652ade3d20f52462c6da92dd577caf2133a76338b72361967d8",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 4,
+   "language": "en",
+   "actual_period": "Results announcement Q2 FY2023, 4 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "4efe52a0a4b74bcd863c9de80f5a2fde311bb1f024e716aeb5e99856c929a05d",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 4,
+   "language": "en",
+   "actual_period": "Results announcement Q1 FY2023, 4 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "d2121e916a2717bd342616612328ce1277eba794ce6b710070aa3ab73fb8a42e",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 19,
+   "language": "en",
+   "actual_period": "3M ended 2023-06-30 interim = fiscal Q1 of FY2024 (cover/title or first-page text only)",
+   "note": "not value-read; text layer present except pdf p3"
+  },
+  {
+   "sha256": "42f3f9dd110a49b2c502b0d266181b1ac5507dde4ea18cffefd6373223021493",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 9M ended 2024-12-31 interim = fiscal Q3 of FY2025 (cover/title or first-page text only)",
+   "note": "not value-read; 9M FY25 comparatives read in 6366e4d4"
+  },
+  {
+   "sha256": "592bf05e13de25fb5088a2de308b39601ed0265f5747f1516459925cd1a6eadf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 69,
+   "language": "ar",
+   "actual_period": "Annual report FY2024 (1444-1445 H), Arabic, 69 pages",
+   "note": "not read"
+  },
+  {
+   "sha256": "fb7fd69f7e68be584774fb591fd58f3282fa6520257f28af76bcea48a6e50b8e",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 69,
+   "language": "en",
+   "actual_period": "Annual report FY2024 (1444-1445 H), English, 69 pages",
+   "note": "not read"
+  },
+  {
+   "sha256": "6a1048908689c76e8f4ed66c7ca3e9ad8b86e5b45f3ddc39762e6e148fd59c22",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M and 6M ended 2024-09-30 interim = fiscal Q2 of FY2025 (cover/title or first-page text only)",
+   "note": "not value-read; H1 FY25 comparatives read in 8a30cf4b"
+  },
+  {
+   "sha256": "71f87d3a380316dbbc47e64cb39aff49dd90b89ecec80d67925e387ef24e1f1b",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 20,
+   "language": "en",
+   "actual_period": "3M ended 2024-06-30 interim = fiscal Q1 of FY2025 (cover/title or first-page text only)",
+   "note": "not value-read; Q1 FY25 comparatives read in a97bb7a6"
+  },
+  {
+   "sha256": "b02410d6fa8ff027adec628622733742c825c8d3b895c46c9c49beb39af7005a",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "other_no_statements_found",
+   "pdf_total_pages": 24,
+   "language": "unknown",
+   "actual_period": "3M and 9M ended 2025-12-31 interim, Arabic (cover viewed)",
+   "note": "Arabic twin of 6366e4d4; not value-read"
+  },
+  {
+   "sha256": "0877f27e3f7c37f2e320c4358f0781779b35e48cd4ad1be1935845c6731b88f1",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 5,
+   "language": "en",
+   "actual_period": "Results announcement FY2025, 5 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "8063ef326a6cc7e0ae14f5c1043247901cb0bdb13fd43ee820d6579294fc90b5",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "annual_report_no_statements_found",
+   "pdf_total_pages": 71,
+   "language": "ar",
+   "actual_period": "Annual report FY2025, Arabic, 71 pages",
+   "note": "not read"
+  },
+  {
+   "sha256": "053cf14461241383ac218df2307f8d39fc47d66a2974e08f20f028784c140607",
+   "collector_label": "2026|9M",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 3,
+   "language": "en",
+   "actual_period": "Results announcement 9M FY2026, 3 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "dc6242aed7a0abc294ef632a49062b7c84883007f96578bf07f81be6a5bdf258",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 3,
+   "language": "en",
+   "actual_period": "Results announcement FY2026, 3 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "12893dfe1f81580441897d50805683e19e04ec42eee3414a7f918140ec3dd825",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 3,
+   "language": "en",
+   "actual_period": "Results announcement Q2 FY2026, 3 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "00fe9261ad11eb56eb5e33c02d4c8aa2d807c59a53e24d6ebc010c6e504435b3",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 3,
+   "language": "en",
+   "actual_period": "Results announcement Q1 FY2026, 3 pages",
+   "note": "not read; announcement"
+  },
+  {
+   "sha256": "d608129f4ec0fb5bf9fbefed0307caad26203a624a00ffa44183e96e4d08cfa5",
+   "collector_label": "2027|Q1",
+   "inventory_file_class": "results_announcement",
+   "pdf_total_pages": 3,
+   "language": "en",
+   "actual_period": "Results announcement Q1 FY2027, 3 pages",
+   "note": "not read; announcement"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B018-1321-1",
+   "class": "image_only_or_scanned_statements_flagged_as_present_or_partial",
+   "severity": "high",
+   "evidence": "8f5b16dd 46-page scan (no text on any page) holds balance sheet pdf p8, income pdf p7 and cash flow pdf p10, classed scanned_unreadable; a97bb7a6 pdf p3-7 image-only; 64865887 20-page scan not opened; c032fedd classed partial_statements and 038edf7d flagged missing cash flows although complete."
+  },
+  {
+   "id": "B018-1321-2",
+   "class": "fiscal_year_label_mismatch",
+   "severity": "medium",
+   "evidence": "March year end: interim labels are calendar-style (2025|H1 = period to 2025-09-30; 2024|9M = period to 2024-12-31; 2026|Q1 = period to 2026-06-30 while its announcement is labelled 2027|Q1); the 2021|FY file is the annual report for the year to 2022-03-31 and the 2025|9M file pair (6366e4d4 English, b02410d6 Arabic) both cover period to 2025-12-31."
+  },
+  {
+   "id": "B018-1321-3",
+   "class": "restated_or_represented_comparatives",
+   "severity": "medium",
+   "evidence": "31 March 2025 balance sheet: total assets 1,632,108,105 (285c64ee pdf p9) versus 1,638,543,651 (c032fedd pdf p9); Q1 FY26 operating profit 104,581,273 (a97bb7a6 pdf p4) versus 98,651,233 (881ec696 pdf p4). Both recorded; none substituted. FY2022 cost of revenue 569,720,077 in the audited comparative versus 562,965 thousand in the annual report summary (different grouping, depreciation shown separately)."
+  }
+ ],
+ "unread_items": [
+  "notes in every file",
+  "statements of changes in equity",
+  "audit reports and opinions (image pages)",
+  "nine interim files FY2023 to FY2025 (covers/first-page text only)",
+  "Arabic twins (b479f1fe, 592bf05e, 8063ef32, b02410d6)",
+  "annual reports 83a50e6b, 84724b08, fb7fd69f beyond summary tables",
+  "results announcements (9 files)",
+  "standalone FY2022 statements (absent)",
+  "Q2 / Q3 cash flow by subtraction not validated"
+ ],
+ "conclusion": "NOT claimed complete. Eight filings value-verified (FY2023-FY2026 audited; Q1-Q3 FY26; Q1 FY27); two re-presentations declared with both values; nine older interim files identified but not value-read; standalone FY2022 audited statements absent (comparative only); notes, audit reports and equity statements unread."
+}
