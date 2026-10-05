@@ -1,0 +1,381 @@
+{
+ "schema_version": 1,
+ "symbol": "8170",
+ "name": "AL-ETIHAD COOPERATIVE INSURANCE COMPANY",
+ "audit": {
+  "audited_on": "2026-10-04",
+  "auditor": "Claude Sonnet 5.5 (independent, raw-B016)",
+  "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
+  "method": "SHA-256 recomputed for every audited file. Every audited statement page is an image and was rendered at 1.6-1.8x and read by eye (the 51-page H1 2026 whole-file scan included). tools/check_transcripts.py over transcripts/8170.json checks balance-sheet identity, cash-flow sum and roll, pre-zakat result plus zakat to net result, cross-filing comparatives (restated columns flagged) and five Q1+Q2=H1 roll checks; all pass.",
+  "tools": [
+   "tools/pg.py",
+   "tools/rows.py",
+   "tools/head.py",
+   "tools/survey.py",
+   "tools/tl.py",
+   "tools/mkrecord.py",
+   "tools/check_transcripts.py",
+   "transcripts/8170.json"
+  ]
+ },
+ "dimensions": {
+  "value_correctness": {
+   "status": "verified_for_6_filings_IFRS17_restatement_reclassification_and_going_concern_declared",
+   "summary": "Headline balance sheet, income and cash-flow values read from rendered pages for FY2025, FY2024 as issued, FY2023, FY2022 as issued (full SAR), H1 2026 (six and three months) and Q1 2026 (cash flow only net change). Balance-sheet identity, cash-flow sum and roll, and pre-zakat result plus zakat to net result hold exactly; five Q1+Q2=H1 roll checks (2026 and 2025: net result, insurance revenue, pre-zakat result) close exactly. SAR thousands: FY2025 insurance revenue 1,254,553, net loss -244,444 (EPS -4.89), total assets 1,201,190, equity 449,585, CFO -236,436, closing cash 94,988. FY2024 as issued: 1,489,646 and net income 49,134 (EPS 0.98), total assets 1,550,782. FY2023: 1,202,169 and 93,896 (EPS 2.09). FY2022 as issued under IFRS 4 in full SAR: total revenues 1,037,956,465, income attributable to shareholders 32,290,996, total assets 1,810,631,516. H1 2026: insurance revenue 603,164, net loss -92,194 (Q2 -52,629), total assets 1,053,867, equity 357,391. Declared differences: (1) FY2022 restated to IFRS 17 in the FY2023 filing and labelled unaudited: total assets 1,810,631,516 -> 1,515,459 thousand, shareholders equity 565,258,467 -> 536,614, net income 32,290,996 -> 12,702 thousand, revenue 1,037,956,465 (IFRS 4 total revenues) -> 1,072,869 (IFRS 17 insurance revenue), CFO 89,391,163 -> 89,392 thousand. (2) FY2024 reclassified in the FY2025 filing (note 35, pdf p91-92): total assets 1,550,782 -> 1,509,526, total liabilities 839,125 -> 797,869, CFO -338,081 -> -320,454, CFI 393,774 -> 380,422, CFF -27,000 -> -31,275; net income 49,134 and equity 711,657 unchanged. (3) EPS: 2023 EPS 2.09 as issued versus 1.88 in the FY2024 filing (bonus shares); 2022 EPS 0.72 as issued versus 0.28 restated. (4) unit scale changes from full SAR (FY2022) to SAR thousands (FY2023 onward). (5) the FY2023 income statement was re-presented in the FY2024 filing (insurance service expenses 1,088,617 versus 1,089,714, other income 189 versus 26,244; pre-zakat income 103,896 and net income 93,896 unchanged). Interim cash flows are cumulative; a Q2 2026 CFO by subtraction is impossible because the Q1 2026 operating section was not read.",
+   "not_read": [
+    "notes in every file (except note 35, the going-concern note and note 1 headings)",
+    "statements of changes in equity",
+    "insurance operations / shareholders split (note 33 of FY2022 and similar)",
+    "Q1 2026 operating and investing cash flows (pdf p8)",
+    "own filings of 12 interims 2022 to 2025",
+    "FY2021 and earlier (comparatives only)"
+   ]
+  },
+  "document_completeness": {
+   "status": "statements_present_for_every_period_2022Q1_to_2026H1_all_statement_pages_image_only",
+   "summary": "Eighteen files cover every period from Q1 2022 to H1 2026; four annuals are annual-report-style FS files. Every statement page examined is an image: the whole-file 51-page H1 2026 scan (e663a175) is classed scanned_unreadable but holds a review report and full statements; all other files have textless statement pages (pdf p3-14 in annuals, p3-10 in interims). Four 2024-2025 Q1/H1/9M files are classed partial_statements (inventory found only income pages) although the covers show full condensed statements. No Arabic twins.",
+   "defect_ids": [
+    "B016-8170-1",
+    "B016-8170-2",
+    "B016-8170-3",
+    "B016-8170-4",
+    "B016-8170-5"
+   ]
+  },
+  "company_coverage": {
+   "status": "contiguous_quarterly_and_annual_coverage_2022Q1_to_2026H1_nothing_earlier_than_2022",
+   "present_in_files_by_page_derived_period": [
+    "2022 Q1",
+    "2022 H1",
+    "2022 9M",
+    "FY2022 (label 2023|FY)",
+    "2023 Q1",
+    "2023 H1",
+    "2023 9M",
+    "FY2023 (label 2024|FY)",
+    "2024 Q1",
+    "2024 H1",
+    "2024 9M",
+    "FY2024 (label 2025|FY)",
+    "2025 Q1",
+    "2025 H1",
+    "2025 9M",
+    "FY2025 (label 2026|FY)",
+    "2026 Q1",
+    "2026 H1"
+   ],
+   "values_verified_from_own_pages": [
+    "FY2022 (as issued)",
+    "FY2023",
+    "FY2024 (as issued)",
+    "FY2025",
+    "2026 Q1 (BS, IS)",
+    "2026 H1 and Q2"
+   ],
+   "values_known_only_as_comparatives": [
+    "FY2021 (FY2022 filing)",
+    "FY2022 restated (FY2023 filing)",
+    "FY2024 reclassified (FY2025 filing)",
+    "2025 Q1 (Q1 2026 filing)",
+    "2025 H1 and Q2 (H1 2026 filing)"
+   ],
+   "values_not_read": [
+    "2022 Q1, H1, 9M",
+    "2023 Q1, H1, 9M",
+    "2024 Q1, H1, 9M",
+    "2025 Q1, H1, 9M own filings",
+    "2026 Q1 cash-flow detail"
+   ],
+   "missing": [
+    "FY2021 and earlier (no file; the inventory window opening at 2011 precedes the collection)"
+   ],
+   "inventory_corrections": "Annual labels equal publication year (2023|FY = FY2022 ... 2026|FY = FY2025); no 2022|FY label. Entity is Al-Etihad Cooperative Insurance Company, same name in every file (Khobar head office, commercial registration 2051036304 per FY2022 note 1); no merger or rename appears in the pages read. The four period_mismatch flags the inventory raised for 8170 are correct (publication-year labels)."
+  }
+ },
+ "documents": [
+  {
+   "sha256": "32269f8093c875a99cb7c1f6cde34bd5868f0816ee48353caa55d9dd1255b378",
+   "actual_period": "FY ended 2025-12-31 audited FS (collector label 2026|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": "11-12"
+   },
+   "printed_pages": {
+    "bs": 5,
+    "is": 6,
+    "cf": "9-10"
+   },
+   "units": "SAR thousands as printed",
+   "reading": "visual (rendered and read by eye)",
+   "note": "net loss -244,444; accumulated losses -162,072; going-concern assessment note (pdf p13) cites net loss, operating cash outflow and solvency; 2024 comparatives reclassified (note 35, pdf p91-92)",
+   "relpath": "archive/SA/8170/32269f8093c875a99cb7c1f6cde34bd5868f0816ee48353caa55d9dd1255b378.pdf",
+   "collector_label": "2026|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 100
+  },
+  {
+   "sha256": "7a886b41501cc0ce1a67151fc9d5a9b159886aaa6ccd108e82542206b89f9900",
+   "actual_period": "FY ended 2024-12-31 audited FS as issued (label 2025|FY = publication year)",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": 13
+   },
+   "printed_pages": {
+    "bs": 7,
+    "is": 8,
+    "cf": 11
+   },
+   "units": "SAR thousands as printed",
+   "reading": "visual (rendered and read by eye)",
+   "note": "FY2024 balance sheet and cash flow later reclassified in the FY2025 filing; both values declared",
+   "relpath": "archive/SA/8170/7a886b41501cc0ce1a67151fc9d5a9b159886aaa6ccd108e82542206b89f9900.pdf",
+   "collector_label": "2025|FY",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 87
+  },
+  {
+   "sha256": "c7fd5fda2fe9bb89663720bba6c4c882497c745429118f07182cc1dcb80fad37",
+   "actual_period": "FY ended 2023-12-31 audited FS (label 2024|FY = publication year); 2022 and 1 Jan 2022 restated to IFRS 17 and labelled unaudited",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": 11,
+    "is": 12,
+    "cf": 15
+   },
+   "printed_pages": {
+    "bs": 9,
+    "is": 10,
+    "cf": 13
+   },
+   "units": "SAR thousands as printed",
+   "reading": "visual (rendered and read by eye)",
+   "relpath": "archive/SA/8170/c7fd5fda2fe9bb89663720bba6c4c882497c745429118f07182cc1dcb80fad37.pdf",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 99
+  },
+  {
+   "sha256": "108aea03a56012ff1ad99e2a4406e167e912211e7ee856eb54594578a7ff7d40",
+   "actual_period": "FY ended 2022-12-31 audited FS as issued under IFRS 4 (label 2023|FY = publication year); FULL SAR",
+   "label_ok": false,
+   "pdf_pages": {
+    "bs": "8-9",
+    "is": "10-11",
+    "cf": 14
+   },
+   "printed_pages": {
+    "bs": "6-7",
+    "is": "8-9",
+    "cf": 12
+   },
+   "units": "SAR full riyals as printed",
+   "reading": "visual (rendered and read by eye)",
+   "note": "statements are combined (insurance operations and shareholders together, surplus attribution shown); the separate split is in note 33 (not read); transcript total_equity adds accumulated surplus and reserves 1,642,868 to shareholders equity 565,258,467",
+   "relpath": "archive/SA/8170/108aea03a56012ff1ad99e2a4406e167e912211e7ee856eb54594578a7ff7d40.pdf",
+   "collector_label": "2023|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 90
+  },
+  {
+   "sha256": "e663a1753931522f24b2405f321b9a9b85410127a1d6965689f9ccd79c54ab7d",
+   "actual_period": "H1 2026 reviewed interim (label 2026|H1 correct); whole-file 51-page scan classed scanned_unreadable but holds review report and full statements",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": "8-9"
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": "6-7"
+   },
+   "units": "SAR thousands as printed",
+   "reading": "visual (rendered and read by eye)",
+   "note": "review report (pdf p3) carries a MATERIAL UNCERTAINTY RELATED TO GOING CONCERN: net loss 92.2m, operating outflow 92.8m, accumulated loss 212.9m, solvency margin below the minimum; statutory reserve 41,362 transferred to accumulated losses",
+   "relpath": "archive/SA/8170/e663a1753931522f24b2405f321b9a9b85410127a1d6965689f9ccd79c54ab7d.pdf",
+   "collector_label": "2026|H1",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 51
+  },
+  {
+   "sha256": "39ad317e73139118f9b95d63e1dfb5cd965b3621fcea8f5d36cc0d6508813244",
+   "actual_period": "Q1 2026 interim (label 2026|Q1 correct); image-only",
+   "label_ok": true,
+   "pdf_pages": {
+    "bs": 4,
+    "is": 5,
+    "cf": 9
+   },
+   "printed_pages": {
+    "bs": 2,
+    "is": 3,
+    "cf": 7
+   },
+   "units": "SAR thousands as printed",
+   "reading": "visual (rendered and read by eye)",
+   "note": "cash-flow operating and investing sections (pdf p8) not read; only net change 15,151 and closing cash 110,139 seen",
+   "relpath": "archive/SA/8170/39ad317e73139118f9b95d63e1dfb5cd965b3621fcea8f5d36cc0d6508813244.pdf",
+   "collector_label": "2026|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 44
+  }
+ ],
+ "files_not_audited_for_values": [
+  {
+   "sha256": "ad366c0b424345eaa3a479e2940329a1818bb312f44a445508294d8b3c20fffd",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 48,
+   "language": "en",
+   "actual_period": "9M 2022 interim (cover: ended September 30, 2022); pdf p3-10 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "8b248946823b1f4eb984b8cdaa5916ba04f884c9185e2d61ccd0a06eb85a2fe3",
+   "collector_label": "2022|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 48,
+   "language": "en",
+   "actual_period": "H1 2022 interim (cover: ended June 30, 2022); pdf p3-10 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "7c7b408a429d97ef01ffe73d20428c9dfac9b956c3a6f9af520d674fc9fb1009",
+   "collector_label": "2022|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 43,
+   "language": "en",
+   "actual_period": "Q1 2022 interim (cover: ended March 31, 2022); pdf p3-10 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "9e135e59ff7770044235a9e5ba86d3eaf673d8bd4d4a5060447beb142ef7d787",
+   "collector_label": "2023|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 51,
+   "language": "en",
+   "actual_period": "9M 2023 interim (cover: ended September 30, 2023); pdf p3-8 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "dc508913e47f283883e3b2367433b54d8b32301a60d1c29766c340a717b61db2",
+   "collector_label": "2023|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 51,
+   "language": "en",
+   "actual_period": "H1 2023 interim (cover: ended June 30, 2023); pdf p3-8 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "d61e3e8a3cf6d1ec8e492befd47401c5685796fbb262104863093ce1656a32e2",
+   "collector_label": "2023|Q1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 49,
+   "language": "en",
+   "actual_period": "Q1 2023 interim (cover: ended March 31, 2023); pdf p3-8 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "1019f1f2c2241bcaf5034037581cf21d7fb9d3bbf93da119d66ad7005830e4a3",
+   "collector_label": "2024|9M",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 45,
+   "language": "en",
+   "actual_period": "9M 2024 interim (cover: ended September 30, 2024); classed partial_statements",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "c80dd7499ef16f6444293dd439ce56d1a74265165347662ed66fb17ce8fbf0c3",
+   "collector_label": "2024|H1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 45,
+   "language": "en",
+   "actual_period": "H1 2024 interim (cover: ended June 30, 2024); classed partial_statements",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "f50f68f100385ea2e50abdd1cb35bd3504e2ce704ac55ebbf66741f13de75b3b",
+   "collector_label": "2024|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 39,
+   "language": "en",
+   "actual_period": "Q1 2024 interim (cover: ended March 31, 2024); classed partial_statements; pdf p3-8 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "c707d6a19738fb2bb75c868e4387c2d63ae42a94689c6623ed412dae7b2037bd",
+   "collector_label": "2025|9M",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 49,
+   "language": "en",
+   "actual_period": "9M 2025 interim (cover: ended September 30, 2025); pdf p3-9 textless",
+   "note": "not transcribed"
+  },
+  {
+   "sha256": "e34771bbf98c5afae15982d774f69d91945d7471a26041c6b37559f5d0509b1b",
+   "collector_label": "2025|H1",
+   "inventory_file_class": "financial_statements",
+   "pdf_total_pages": 49,
+   "language": "en",
+   "actual_period": "H1 2025 interim (cover: ended June 30, 2025); pdf p3-9 textless",
+   "note": "not transcribed; H1 and Q2 2025 values known only as comparatives in e663a175"
+  },
+  {
+   "sha256": "2f7ed244e5b3f8a3021235b6bf858f669738a40649ffdbd6b35b86a619e8eb4f",
+   "collector_label": "2025|Q1",
+   "inventory_file_class": "partial_statements",
+   "pdf_total_pages": 37,
+   "language": "en",
+   "actual_period": "Q1 2025 interim (cover: ended March 31, 2025); classed partial_statements; pdf p3-8 textless",
+   "note": "not transcribed; Q1 2025 values known only as comparatives in 39ad317e"
+  }
+ ],
+ "defects": [
+  {
+   "id": "B016-8170-1",
+   "class": "fiscal_year_label_mismatch",
+   "severity": "medium",
+   "evidence": "108aea03 (FY2022) is 2023|FY, c7fd5fda (FY2023) 2024|FY, 7a886b41 (FY2024) 2025|FY, 32269f80 (FY2025) 2026|FY; the inventory period_mismatch_candidate flags for 8170 are correct."
+  },
+  {
+   "id": "B016-8170-2",
+   "class": "image_only_or_scanned_statements_flagged_as_present_or_unreadable",
+   "severity": "high",
+   "evidence": "e663a175 (51 pages, zero text) is classed scanned_unreadable but pdf p3 is the review report and pdf p4-9 are the full interim statements; all other files read have textless statement pages; four Q1/H1/9M 2024-2025 files are classed partial_statements."
+  },
+  {
+   "id": "B016-8170-3",
+   "class": "restated_or_represented_comparatives_ifrs17_and_reclassification",
+   "severity": "high",
+   "evidence": "FY2022 as issued (108aea03 pdf p8-11) versus restated unaudited column (c7fd5fda pdf p11-12): equity 565,258,467 vs 536,614 thousand, net income 32,290,996 vs 12,702 thousand. FY2024 as issued (7a886b41 pdf p9, p13) versus FY2025 restated (32269f80 pdf p7, p11): total assets 1,550,782 vs 1,509,526, CFO -338,081 vs -320,454; note 35 (pdf p91-92) lists salvage recoveries, murabaha receivables and intangibles reclassifications. Both values recorded, none substituted."
+  },
+  {
+   "id": "B016-8170-4",
+   "class": "unit_scale_change",
+   "severity": "high",
+   "evidence": "108aea03 prints SR full riyals (total assets 1,810,631,516); c7fd5fda and later print SR'000 thousands. Restated FY2022 values appear in thousands in the FY2023 filing."
+  },
+  {
+   "id": "B016-8170-5",
+   "class": "going_concern_material_uncertainty",
+   "severity": "high",
+   "evidence": "H1 2026 review report (e663a175 pdf p3): MATERIAL UNCERTAINTY RELATED TO GOING CONCERN citing net loss 92.2m, operating cash outflow 92.8m, accumulated loss 212.9m and solvency margin below the Insurance Authority minimum. FY2025 audited note (32269f80 pdf p13): net loss 244.4m, accumulated loss 162.1m, solvency continues to be in compliance. Equity fell from 711,657 (Dec 2024) to 357,391 (Jun 2026) thousand."
+  }
+ ],
+ "unread_items": [
+  "notes in every file",
+  "statements of changes in equity",
+  "insurance operations / shareholders operations split",
+  "Q1 2026 operating and investing cash flows",
+  "own filings of 12 interims 2022-2025 (identified by cover only)",
+  "going-concern wording of the FY2025 auditor report beyond the note",
+  "FY2021 and earlier (no file)",
+  "Arabic originals (none in collection)"
+ ],
+ "conclusion": "NOT claimed complete. Six filings value-verified from rendered pages (FY2022 as issued, FY2023, FY2024 as issued, FY2025, Q1 2026 partly, H1 2026); IFRS 17 restatement of FY2022, FY2024 reclassification and a unit-scale change are declared; the H1 2026 review report carries a going-concern material uncertainty. A statement file exists for every period Q1 2022 to H1 2026, but twelve interim files are identified by cover only and unread; no pre-2022 filing exists."
+}

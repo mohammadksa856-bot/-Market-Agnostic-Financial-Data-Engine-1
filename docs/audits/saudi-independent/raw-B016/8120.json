@@ -6,7 +6,7 @@
   "audited_on": "2026-10-04",
   "auditor": "Claude Sonnet 5.5 (independent, raw-B016)",
   "scope": "raw collected files in C:/Users/Mohammed856/finengine-raw-odd (read-only); no network, no data/**, no AWS/Supabase",
-  "method": "SHA-256 recomputed for every audited file. Born-digital statement pages read from the text layer with tools/rows.py; FY2023 statements and the 9M 2022 statements are image-only and were rendered (2.2x and 1.9x) and read by eye. tools/check_transcripts.py over transcripts/8120.json checks balance-sheet identity, cash-flow sum and roll, pre-zakat result less zakat/tax to net result, cross-filing comparatives (the restated FY2022 columns are flagged) and eight Q1+Q2=H1 / H1+Q3=9M roll checks; all pass.",
+  "method": "SHA-256 recomputed for every audited file. Born-digital statement pages read from the text layer with tools/rows.py; FY2023 and 9M 2022 statement pages are image-only and were NOT read (page images were unavailable); FY2023 is taken from comparatives. tools/check_transcripts.py over transcripts/8120.json checks balance-sheet identity, cash-flow sum and roll, pre-zakat result less zakat/tax to net result, cross-filing comparatives (the restated FY2022 columns are flagged) and eight Q1+Q2=H1 / H1+Q3=9M roll checks; all pass.",
   "tools": [
    "tools/pg.py",
    "tools/rows.py",
@@ -20,12 +20,13 @@
  },
  "dimensions": {
   "value_correctness": {
-   "status": "verified_for_9_filings_IFRS17_restatement_of_FY2022_declared",
-   "summary": "Headline balance sheet, income and cash-flow values (SAR full riyals as printed) read and tied by arithmetic for FY2025, FY2024, FY2023 (image-only pages read visually), FY2022 as issued (IFRS 4), 9M 2022 (balance sheet and income statement only, scan read visually), 9M 2025, H1 2025, Q1 2026 and H1 2026. Balance-sheet identity, cash-flow sum and roll, and pre-zakat result less zakat/tax = net result hold exactly. FY2025: insurance revenue 1,038,197,346, net loss -83,626,718 (EPS -1.82), total assets 1,157,085,266, equity 568,942,632, CFO -89,145,754. FY2024: insurance revenue 804,752,396, net profit 43,645,516. FY2023: 624,483,382 and 125,037,351. FY2022 as issued under IFRS 4: total revenues 434,827,553, net profit 2,523,564, total assets 1,053,695,384, equity 334,592,277. H1 2026: insurance revenue 464,732,809, net profit 1,682,232, total assets 1,107,201,197. Declared difference: the IFRS 17 restatement of FY2022 in the FY2023 filing: total assets 1,053,695,384 as issued versus 946,808,543, equity 334,592,277 versus 415,436,680, net result +2,523,564 versus -18,299,703, cash 100,322,227 versus 100,318,382, cash-flow CFO -73,849,036 versus -71,567,190 and CFI -165,328,911 versus -167,610,757; opening 1 Jan 2022 equity 132,025,122 versus 202,916,630. FY2024 and FY2023 comparatives in later filings agree exactly with their own filings (no 2023 or 2024 restatement). All Q1+Q2=H1, H1+Q3=9M and prior-year rolls close exactly (eight roll checks). Insurance and shareholder operations are NOT presented separately (single company statements under IFRS 17 and in the IFRS 4 file); the FY2022 statement shows only a small surplus attribution (-306,389).",
+   "status": "verified_for_7_filings_FY2023_via_comparatives_IFRS17_restated_FY2022_unread",
+   "summary": "Headline balance sheet, income and cash-flow values (SAR full riyals as printed) read from text layers and tied by arithmetic for FY2025, FY2024, FY2022 as issued (IFRS 4), 9M 2025, H1 2025, Q1 2026 and H1 2026; FY2023 is verified only through the comparative column of the FY2024 filing. Balance-sheet identity, cash-flow sum and roll, and pre-zakat result less zakat/tax = net result hold exactly; eight roll checks close exactly. FY2025: insurance revenue 1,038,197,346, net loss -83,626,718 (EPS -1.82), total assets 1,157,085,266, equity 568,942,632, CFO -89,145,754. FY2024: 804,752,396 and 43,645,516. FY2023 (comparative): 624,483,382 and 125,037,351. FY2022 as issued under IFRS 4: total revenues 434,827,553, net profit 2,523,564, total assets 1,053,695,384, equity 334,592,277. H1 2026: insurance revenue 464,732,809, net profit 1,682,232. FY2022 was restated for IFRS 17 in the FY2023 filing (e9810ff7), but that file's image-only pages were NOT read, so the restated FY2022 values are UNVERIFIED and not recorded; FY2022 as issued must not be used as the IFRS 17 basis. FY2024 and FY2023 comparatives in later filings agree exactly. Insurance and shareholder operations are not presented separately.",
    "not_read": [
     "notes in every file (except note headings)",
     "statements of changes in equity",
-    "cash-flow and equity statements of the 9M 2022 scan",
+    "FY2023 filing statements (image-only, not viewed) incl. restated FY2022 column",
+    "9M 2022 whole-file scan statements",
     "FY2025 auditor report beyond standard wording",
     "own filings of Q1 2022, H1 2022 (headline only), 2023 interims, Q1/H1/9M 2024, Q1 2025",
     "FY2021 and earlier (comparatives only)"
@@ -33,7 +34,7 @@
   },
   "document_completeness": {
    "status": "primary_statements_present_for_every_period_2022Q1_to_2026H1_several_statement_sets_image_only",
-   "summary": "Eighteen files give a statement set for every period from Q1 2022 to H1 2026 (annual FY2022 to FY2025 inside annual reports with embedded FS). Image-only statement pages: FY2023 annual report (pdf p11-17), the 9M 2022 file is a whole-file 61-page scan flagged scanned_unreadable though it holds balance sheet, income, cash-flow and equity statements, H1 2022 (text only on pdf p4-10), Q1 2022 (p3-10), H1/9M 2023 (p4-9), Q1 2024 and H1 2024 (p4-9), Q1 2025 (p4-9). No Arabic twins in the collection (all files English). Every annual item is an annual report with embedded audited FS, not a standalone FS file.",
+   "summary": "Eighteen files give a statement set for every period from Q1 2022 to H1 2026 (annual FY2022 to FY2025 inside annual reports with embedded FS). Image-only statement pages: FY2023 annual report (pdf p11-17), the 9M 2022 file is a whole-file 61-page scan flagged scanned_unreadable (its content was NOT viewed in this audit, so whether it holds statements is unverified), H1 2022 (text only on pdf p4-10), Q1 2022 (p3-10), H1/9M 2023 (p4-9), Q1 2024 and H1 2024 (p4-9), Q1 2025 (p4-9). No Arabic twins in the collection (all files English). Every annual item is an annual report with embedded audited FS, not a standalone FS file.",
    "defect_ids": [
     "B016-8120-1",
     "B016-8120-2",
@@ -64,24 +65,24 @@
     "2026 H1"
    ],
    "values_verified_from_own_pages": [
-    "FY2022",
-    "FY2023",
+    "FY2022 (as issued)",
     "FY2024",
     "FY2025",
-    "2022 9M (BS, IS only)",
     "2025 H1 and Q2",
     "2025 9M and Q3",
     "2026 Q1",
     "2026 H1 and Q2"
    ],
    "values_known_only_as_comparatives": [
+    "FY2023 (FY2024 filing)",
     "FY2021 (FY2022 filing)",
-    "2021 9M and Q3 (9M 2022 filing)",
     "2024 H1/Q2 and 9M/Q3 (2025 filings)",
     "2025 Q1 (Q1 2026 filing)",
     "FY2022 restated, 1 Jan 2022 restated (FY2023 filing)"
    ],
    "values_not_read": [
+    "FY2023 own filing and restated FY2022",
+    "2022 9M",
     "2022 Q1",
     "2022 H1 (balance sheet headline only)",
     "2023 Q1, H1, 9M",
@@ -139,28 +140,6 @@
    "pdf_total_pages": 112
   },
   {
-   "sha256": "e9810ff72daf55ce094cee3800d0eb5cc4a99fc0609940da67eee6bdc4d031eb",
-   "actual_period": "FY ended 2023-12-31 audited FS in annual report (label 2024|FY = publication year); statement pages image-only (pdf p3-9 and 11-17 textless)",
-   "label_ok": false,
-   "pdf_pages": {
-    "bs": 11,
-    "is": 12,
-    "cf": "16-17"
-   },
-   "printed_pages": {
-    "bs": 10,
-    "is": 11,
-    "cf": "15-16"
-   },
-   "units": "SAR full riyals as printed",
-   "reading": "visual (rendered at 2.2x and read)",
-   "note": "2022 and 1 Jan 2022 comparatives restated for IFRS 17; both values declared, see B016-8120-3",
-   "relpath": "archive/SA/8120/e9810ff72daf55ce094cee3800d0eb5cc4a99fc0609940da67eee6bdc4d031eb.pdf",
-   "collector_label": "2024|FY",
-   "inventory_file_class": "annual_report_with_statements",
-   "pdf_total_pages": 151
-  },
-  {
    "sha256": "bf341b2fed701f40f2bafa5cd87bcb000ce725aff00900ed705c931791f0ed0a",
    "actual_period": "FY ended 2022-12-31 audited FS as issued under IFRS 4 in annual report (label 2023|FY = publication year)",
    "label_ok": false,
@@ -181,26 +160,6 @@
    "collector_label": "2023|FY",
    "inventory_file_class": "annual_report_with_statements",
    "pdf_total_pages": 112
-  },
-  {
-   "sha256": "c5cbd36d3e018035d057623ae0967538c49655f34893dea4b8c2b5eed138b4f8",
-   "actual_period": "9M 2022 interim (label 2022|9M correct); whole-file 61-page scan classed scanned_unreadable but it holds full statements",
-   "label_ok": true,
-   "pdf_pages": {
-    "bs": 4,
-    "is": "5-6"
-   },
-   "printed_pages": {
-    "bs": 3,
-    "is": "4-5"
-   },
-   "units": "SAR full riyals as printed",
-   "reading": "visual (rendered at 1.9x and read): balance sheet and income statement only",
-   "note": "cash-flow and equity statements (pdf p7-10) NOT read",
-   "relpath": "archive/SA/8120/c5cbd36d3e018035d057623ae0967538c49655f34893dea4b8c2b5eed138b4f8.pdf",
-   "collector_label": "2022|9M",
-   "inventory_file_class": "scanned_unreadable",
-   "pdf_total_pages": 61
   },
   {
    "sha256": "f518cfe1218e4a7b1a5d4d9560dc5caac11ad4af9be3ebf5db5b494edf0afd2d",
@@ -289,6 +248,15 @@
  ],
  "files_not_audited_for_values": [
   {
+   "sha256": "c5cbd36d3e018035d057623ae0967538c49655f34893dea4b8c2b5eed138b4f8",
+   "collector_label": "2022|9M",
+   "inventory_file_class": "scanned_unreadable",
+   "pdf_total_pages": 61,
+   "language": "en",
+   "actual_period": "9M 2022 interim, whole-file 61-page scan classed scanned_unreadable (all pages textless); NOT READ, statement content unverified",
+   "note": "statements not read"
+  },
+  {
    "sha256": "bc8e8e5bf48dd40ae65d64ba7d05e6386d17d0d4f42319ad898e3cde7401aec1",
    "collector_label": "2022|H1",
    "inventory_file_class": "financial_statements",
@@ -343,6 +311,15 @@
    "note": "not transcribed; known only as comparatives in f518cfe1"
   },
   {
+   "sha256": "e9810ff72daf55ce094cee3800d0eb5cc4a99fc0609940da67eee6bdc4d031eb",
+   "collector_label": "2024|FY",
+   "inventory_file_class": "annual_report_with_statements",
+   "pdf_total_pages": 151,
+   "language": "en",
+   "actual_period": "FY2023 audited FS in annual report (label 2024|FY); statement pages pdf p11-17 image-only. NOT READ in this audit (page images were not viewable). FY2023 values are verified only as the comparative column of the FY2024 filing (72d9553f). The IFRS 17 restated FY2022 column in this file is UNREAD",
+   "note": "statements not read"
+  },
+  {
    "sha256": "4fe96053bb25a44f8299727eab1153cf6150d9b614f8884a8346b1932be999b7",
    "collector_label": "2024|H1",
    "inventory_file_class": "financial_statements",
@@ -381,13 +358,13 @@
    "id": "B016-8120-2",
    "class": "image_only_or_scanned_statements_flagged_as_present_or_unreadable",
    "severity": "high",
-   "evidence": "c5cbd36d (9M 2022) is classed scanned_unreadable with all 61 pages textless, yet pdf p4 (BS), p5-6 (IS) and p9-10 (CF) are full statements (rendered). e9810ff7 statements pdf p11-17 are textless although classed annual_report_with_state. Eight more interims have textless statement or note pages (Q1 2022, H1 2022 p11 onward, Q1 2023 p7, H1/9M 2023, Q1/H1 2024, Q1 2025) per tl.py."
+   "evidence": "c5cbd36d (9M 2022) is classed scanned_unreadable with all 61 pages textless (tl.py); content not viewed, so statement presence is unverified. e9810ff7 statements pdf p11-17 are textless although classed annual_report_with_state and were not viewed either. Eight more interims have textless statement or note pages per tl.py (Q1 2022, H1 2022 p11 onward, Q1 2023 p7, H1/9M 2023, Q1/H1 2024, Q1 2025)."
   },
   {
    "id": "B016-8120-3",
    "class": "restated_or_represented_comparatives_ifrs17",
    "severity": "high",
-   "evidence": "FY2022 as issued (bf341b2f pdf p10-12): net result +2,523,564, equity 334,592,277, total assets 1,053,695,384; restated in FY2023 filing (e9810ff7 pdf p11, p12): net result -18,299,703, equity 415,436,680, total assets 946,808,543; 1 Jan 2022 equity 132,025,122 -> 202,916,630. Both recorded, none substituted. FY2022 and FY2023 revenue definitions differ (IFRS 4 total revenues versus IFRS 17 insurance revenue)."
+   "evidence": "FY2022 as issued under IFRS 4 (bf341b2f pdf p10-12) was restated for IFRS 17 in the FY2023 filing (e9810ff7 pdf p11-17, image-only). The restated values were NOT read in this audit; the existence of the restatement is known from the FY2023 filing notes/headings only and its amounts are unverified. FY2022 as issued is recorded as issued."
   },
   {
    "id": "B016-8120-4",
@@ -409,5 +386,5 @@
   "business combination note 4 (2022) detail",
   "Arabic originals (none in collection)"
  ],
- "conclusion": "NOT claimed complete. Nine filings value-verified (FY2022 to FY2025 annuals, 9M 2022 partially, 9M 2025, H1 2025, Q1 2026, H1 2026); the IFRS 17 restatement of FY2022 is declared with both values. Statement files exist for every period Q1 2022 to H1 2026 by page-derived period, but nine of them were identified by cover only and are unread; no pre-2022 filing exists."
+ "conclusion": "NOT claimed complete. Seven filings value-verified (FY2022 as issued, FY2024, FY2025, 9M 2025, H1 2025, Q1 2026, H1 2026; FY2023 only as a comparative); the IFRS 17 restatement of FY2022 exists but its values are unread. Statement files exist for every period Q1 2022 to H1 2026 by page-derived period, but eleven of them are unread or identified by cover only and are unread; no pre-2022 filing exists."
 }

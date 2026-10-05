@@ -14,9 +14,9 @@ def doc(sha, period, ok, pdf, printed, reading, note=None, units=K):
 
 documents = [
     doc("c3fdea9b", "FY ended 2025-12-31 audited FS (collector label 2026|FY = publication year)", False, {"bs": 8, "is": 9, "cf": 13}, {"bs": 8, "is": 9, "cf": 13}, V,
-        "text layer is garbled OCR (digits misread, e.g. '689,218l'); values taken from the images. Net income 22,177 after 28,431 pre-zakat; no financing cash flows"),
+        "PARTLY READ: only the cash-flow page (pdf p13) was viewed as an image. Balance-sheet values come from the 31 Dec 2025 column of the H1 2026 filing and income-statement values from the garbled OCR text layer corroborated by pdf p13 (pre-zakat 28,431) and the equity statement text (22,177); pdf p8-9 images were not viewed. Net income 22,177 after 28,431 pre-zakat; no financing cash flows"),
     doc("3751df76", "FY ended 2024-12-31 audited FS (label 2025|FY = publication year)", False, {"bs": 7, "is": 8, "cf": 12}, {"bs": 7, "is": 8, "cf": 12}, V,
-        "2023 comparative marked Restated - Note 26 (presentation: share of insurance-pool surplus 20,636 moved into insurance service result); headline net income 71,098 unchanged"),
+        "PARTLY READ: only the cash-flow page (pdf p12) was viewed; balance-sheet and income-statement values come from comparative columns in the FY2025 text layer and the H1 2025 filing, pdf p7-8 images were not viewed"),
     doc("6120d98d", "FY ended 2023-12-31 audited FS (label 2024|FY = publication year); 2022 and 1 Jan 2022 restated for IFRS 17 and IFRS 9", False, {"bs": 10, "is": 11, "cf": 15, "equity": 13}, {"bs": 8, "is": 9, "cf": 13, "equity": 11}, V,
         "printed page numbers are pdf page minus 2; auditors' report heading reads 'Arabia Insurance Cooperative Company' (pdf p8-9)"),
     doc("1601d15b", "FY ended 2022-12-31 audited FS as issued under IFRS 4 (label 2023|FY = publication year); FULL SAR, not thousands", False, {"bs": 8, "is": 9, "cf": 13}, {"bs": 6, "is": 7, "cf": 11}, V,
@@ -48,11 +48,11 @@ dimensions = {
                     "nine Q1+Q2=H1 / H1+Q3=9M roll checks (net income and insurance revenue, 2024, 2025, 2026) close exactly. SAR thousands: FY2025 insurance revenue 1,156,884, net income 22,177 (EPS 0.74), total assets 2,224,346, equity 415,217, CFO 16,647, closing cash 180,006. FY2024: 1,080,637 and 49,318 (EPS 1.64). FY2023: 1,044,519 and 71,098. "
                     "FY2022 as issued under IFRS 4 in FULL SAR: net loss -37,204,718, total assets 1,461,610,325, equity 257,924,099, cash 36,736,221. H1 2026: insurance revenue 743,740, net income 15,951, total assets 2,180,071. "
                     "Declared differences: (1) IFRS 17/IFRS 9 restatement of FY2022 in the FY2023 filing: total assets 1,461,610 thousand as issued versus 1,150,965, equity 257,924 versus 235,438, net loss -37,205 versus -61,647, cash 36,736 versus 43,072, CFO 10,943 versus 18,145; opening 1 Jan 2022 equity 292,735 -> 292,021. "
-                    "(2) unit scale changes from full SAR (FY2022 filing) to SAR thousands (FY2023 onwards). (3) FY2023 presentation restatement in the FY2024 filing (note 26): insurance service result 51,755 versus 72,391 and net insurance and investment result 70,147 versus 90,783, pre-zakat income 78,333 and net income 71,098 unchanged. "
+                    "(2) unit scale changes from full SAR (FY2022 filing) to SAR thousands (FY2023 onwards). "
                     "Interim cash flows are cumulative: H1 2026 CFO 129,693 versus Q1 2026 157,041; 6M 2025 CFO -56,256 versus Q1 2025 114,543, so a Q2 CFO by subtraction (-27,348 in 2026, -170,799 in 2025) is NOT validated and not used. "
                     "Statements are single-company (insurance and shareholders' operations are not presented separately; only the cash note splits them)."),
         "not_read": ["notes in every file (except Q1 2026 note 4 cash split)", "statements of changes in equity (read for the FY2023 opening restatement only)", "FY2022 revenue and underwriting lines", "auditor reports (headings only)",
-                     "own filings of Q1/H1/9M 2022, 2023, 2024 and Q1 2025", "Note 26 and note 4 restatement detail", "FY2021 and earlier (comparatives only)"],
+                     "own filings of Q1/H1/9M 2022, 2023, 2024 and Q1 2025", "note 4 restatement detail", "FY2021 and earlier (comparatives only)"],
     },
     "document_completeness": {
         "status": "statements_present_for_every_period_2022Q1_to_2026H1_nearly_all_image_only_or_garbled_OCR",
@@ -76,9 +76,9 @@ defects = [
     {"id": "B016-8100-1", "class": "fiscal_year_label_mismatch_and_wrong_file_in_slot", "severity": "medium",
      "evidence": "1601d15b (FY2022) is 2023|FY, 6120d98d (FY2023) 2024|FY, 3751df76 (FY2024) 2025|FY, c3fdea9b (FY2025) 2026|FY; 57646c58 (Audit Committee report dated 4 February 2026) sits in 2024|FY; 7fbc75b1 (provider list) in 2025|Q1."},
     {"id": "B016-8100-2", "class": "image_only_or_scanned_or_garbled_statements_flagged_as_present_or_unreadable", "severity": "high",
-     "evidence": "c3fdea9b pdf p8-12 carry garbled OCR ('l\\'otc', '[4.461]'-type misreads); 1601d15b, 6120d98d, 3751df76, 01c03433, f37d8748, ccb6adbe, e17189e9 statement pages are textless images; e4fadf26 and f2fbd21b are whole-file scans classed scanned_unreadable (covers rendered)."},
+     "evidence": "c3fdea9b pdf p8-12 carry garbled OCR (the text layer reads the note column as 'l\'otc' and prints figures such as '{689,218l'; values taken from the images); 1601d15b, 6120d98d, 3751df76, 01c03433, f37d8748, ccb6adbe, e17189e9 statement pages are textless images; e4fadf26 and f2fbd21b are whole-file scans classed scanned_unreadable (covers rendered)."},
     {"id": "B016-8100-3", "class": "restated_or_represented_comparatives_ifrs17", "severity": "high",
-     "evidence": "FY2022 as issued (1601d15b pdf p8-9): net loss -37,204,718, equity 257,924,099; FY2023 filing (6120d98d pdf p10-11): net loss -61,647 thousand, equity 235,438 thousand; equity statement (pdf p13): IFRS 17 adjustment -25,851, IFRS 9 adjustment +25,137. FY2023 comparatives re-presented in FY2024 filing (3751df76 pdf p8): insurance service result 72,391 versus 51,755. Both values recorded, none substituted."},
+     "evidence": "FY2022 as issued (1601d15b pdf p8-9): net loss -37,204,718, equity 257,924,099; FY2023 filing (6120d98d pdf p10-11): net loss -61,647 thousand, equity 235,438 thousand; equity statement (pdf p13): IFRS 17 adjustment -25,851, IFRS 9 adjustment +25,137. Both values recorded, none substituted."},
     {"id": "B016-8100-4", "class": "unit_scale_change", "severity": "high",
      "evidence": "1601d15b states 'All amounts in Saudi Riyals' (e.g. total assets 1,461,610,325); 6120d98d and later state 'Thousands Saudi Riyals' (2022 restated total assets 1,150,965). A series spanning FY2022 and FY2023 must rescale; the two FY2022 values are not comparable even after rescaling (restatement)."},
     {"id": "B016-8100-5", "class": "interim_cash_flow_quarter_by_subtraction_invalid", "severity": "medium",
@@ -86,7 +86,7 @@ defects = [
 ]
 unread = ["notes in every file", "statements of changes in equity (except FY2023 opening)", "FY2022 revenue/underwriting lines", "auditor reports", "own filings of Q1/H1/9M 2022, 2023, 2024 and Q1 2025 (identified by cover only)",
           "Q1 2022 and H1 2022 whole-file scans", "FY2021 and earlier (no file)", "Arabic originals (none in collection)"]
-conclusion = ("NOT claimed complete. Eight filings value-verified from rendered pages (FY2022 as issued, FY2023, FY2024, FY2025, 9M 2025, H1 2025, Q1 2026, H1 2026); IFRS 17 restatement of FY2022, a unit-scale change and a FY2023 presentation restatement are declared. "
+conclusion = ("NOT claimed complete. Eight filings value-verified from rendered pages (FY2022 as issued, FY2023, FY2024, FY2025, 9M 2025, H1 2025, Q1 2026, H1 2026); IFRS 17 restatement of FY2022 and a unit-scale change are declared. "
               "A statement file exists for every period Q1 2022 to H1 2026, but ten interim files are identified by cover only and unread; no pre-2022 filing exists.")
 mkrecord.build(dict(
     symbol="8100", name="SAUDI ARABIAN COOPERATIVE INSURANCE COMPANY (SAICO)", documents=documents, identified=identified, dimensions=dimensions, defects=defects,

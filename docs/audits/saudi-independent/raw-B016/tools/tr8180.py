@@ -26,19 +26,7 @@ docs = [
       dict(cur=BS23, prior=bs(567895461, 414437387, 153458074, cash=222966665, ppe=5248300, restated=True)),
       dict(cur=isx(486224565, 49499859, -7200000, 42299859, 3.02), prior=isx(473347548, -48859717, -4600000, -53459717, -3.82, restated=True)),
       dict(cur=CF23, prior=cf(-72316933, 8356541, -1291196, -65251588, 288218253, 222966665)),
-      restatements=["FY2022 restated for the IFRS 17 transition (notes 3 and 5): total assets 666,141,428 as issued -> 567,895,461; total equity 130,324,813 -> 153,458,074; net loss -73,496,262 -> -53,459,717; pre-zakat loss -68,896,262 -> -48,859,717; loss per share -5.25 -> -3.82; 1 Jan 2022 total assets 753,782,100 -> 663,697,390 and equity 213,276,938 -> 202,697,716. Cash and cash-flow totals are unchanged."]),
-    D("a20d60af", "FY2022 audited FS as issued under IFRS 4 in annual report (label 2023|FY = publication year); statement pages carry a garbled OCR text layer, read from images", "2022-12-31", "2021-12-31", "FY",
-      "visual: pdf p8 BS (printed 7), p10 IS continued (printed 9), p13-14 CF (12-13) rendered and read; revenue and underwriting page (pdf p9) NOT transcribed", dict(bs=8, is_="9-10", cf="13-14"),
-      dict(cur=bs(666141428, 535816615, 130324813, cash=222966665, ppe=5248300), prior=bs(753782100, 540505162, 213276938, cash=288218253, ppe=5210239)),
-      dict(cur=isx(None, -68896262, -4600000, -73496262, -5.25), prior=isx(None, -72701085, -1770062, -74471147, -5.32)),
-      dict(cur=cf(-72316933, 8356541, -1291196, -65251588, 288218253, 222966665), prior=cf(-124565340, 72359233, -2912718, -55118825, 343337078, 288218253))),
-    D("a737083d", "H1 2026 reviewed interim (label 2026|H1 correct); statement pages image-only (pdf p3-9 textless); six and three months", "2026-06-30", "2025-06-30", "H1",
-      "visual: pdf p4 BS (printed 3), p5 IS (4), p8-9 CF (7-8) rendered and read", dict(bs=4, is_=5, cf="8-9"),
-      dict(cur=bs(637240897, 292916509, 344324388, cash=151256637, ppe=5190942), prior=FY25),
-      dict(cur=isx(303818880, 3010782, -900000, 2110782, 0.07), prior=isx(303541698, -36758058, 3500000, -33258058, -1.11)),
-      dict(cur=cf(-6610713, -12079991, -1083067, -19773771, 171030408, 151256637), prior=cf(-80760337, 80101888, -683532, -1341981, 262559683, 261217702)),
-      ISQ=dict(cur=isx(157688104, 1004596, 100000, 1104596, 0.04), prior=isx(152828857, -19835328, 4500000, -15335328, -0.51)),
-      bs_prior_end="2025-12-31"),
+      restatements=["FY2022 and 1 Jan 2022 are restated for the IFRS 17 transition (notes 3 and 5); restated FY2022 values as printed here. The FY2022 as-issued values were not read in this audit, so the restatement amounts are not stated."]),
     D("78343af2", "Q1 2026 interim (label 2026|Q1 correct)", "2026-03-31", "2025-03-31", "Q1",
       "text layer: pdf p4 BS (printed 3), p5 IS (4), p8-9 CF (7-8)", dict(bs=4, is_=5, cf="8-9"),
       dict(cur=bs(647001018, 303792452, 343208566, cash=170608923), prior=FY25),
@@ -55,11 +43,6 @@ for d in docs:
                 c.pop("revenue", None)
 
 rolls = [
-    dict(name="2026 H1 net income = Q1 2026 + Q2 2026", total=["a737083d", "is", "cur", "net_income"], parts=[["78343af2", "is", "cur", "net_income"], ["a737083d", "is_q", "cur", "net_income"]]),
-    dict(name="2026 H1 insurance revenue = Q1 + Q2", total=["a737083d", "is", "cur", "revenue"], parts=[["78343af2", "is", "cur", "revenue"], ["a737083d", "is_q", "cur", "revenue"]]),
-    dict(name="2026 H1 pre-zakat result = Q1 + Q2", total=["a737083d", "is", "cur", "pbt"], parts=[["78343af2", "is", "cur", "pbt"], ["a737083d", "is_q", "cur", "pbt"]]),
-    dict(name="2025 H1 net income = Q1 2025 (Q1 2026 filing prior column) + Q2 2025", total=["a737083d", "is", "prior", "net_income"], parts=[["78343af2", "is", "prior", "net_income"], ["a737083d", "is_q", "prior", "net_income"]]),
-    dict(name="2025 H1 insurance revenue = Q1 2025 + Q2 2025", total=["a737083d", "is", "prior", "revenue"], parts=[["78343af2", "is", "prior", "revenue"], ["a737083d", "is_q", "prior", "revenue"]]),
 ]
 if __name__ == "__main__":
     write("8180", "AL SAGR COOPERATIVE INSURANCE COMPANY", "SAR", "SAR full riyals as printed", docs, rolls)
