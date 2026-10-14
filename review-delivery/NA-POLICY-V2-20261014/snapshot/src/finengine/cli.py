@@ -1,0 +1,2078 @@
+import argparse, calendar, hashlib, json, os, re, socket, sqlite3, threading, time
+from datetime import date, timedelta
+from pathlib import Path
+from types import SimpleNamespace
+from .connectors import (
+    IssuerReportsMonitor, LocalFileConnector, SecCompanyFactsConnector,
+    SecFilingsMonitor, SaudiManifestConnector, StoredDocumentConnector,
+)
+from .api import create_api_server, serve_api
+from .audit import audit_release
+from .archive import archive_manifest_sources
+from .bootstrap import rebuild_snapshot, sync_reviewed_manifests
+from .database import Database
+from .pipeline import Pipeline
+from .query import FinancialQueryService
+from .registry import CompanyRegistry
+from .report import export_readable_report
+from .models import SourceDocument
+from .jobs import DurableJobQueue, DurableScheduler, Worker
+from .domains import CompanyDomainStore
+from .monitoring import DocumentArchiver, MonitorService
+from .telegram import TelegramBot
+from . import exception_bundles as exception_bundles_mod
+
+
+def _print_utf8(text: str) -> None:
+    """print() that never crashes on a console codepage that can't
+    represent the output (e.g. Windows' default cp1252 hitting Arabic
+    text or bidi marks from a real fetched source). Falls back to
+    replacing unencodable characters rather than raising -- found while
+    testing news-search-rss against real Argaam content on Windows."""
+    import sys
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        encoding = sys.stdout.encoding or "utf-8"
+        sys.stdout.buffer.write(text.encode(encoding, errors="replace"))
+        sys.stdout.buffer.write(b"\n")
+
+
+def _sec_user_agent() -> str:
+    value = os.environ.get("SEC_USER_AGENT", "").strip()
+    if "@" not in value:
+        raise ValueError(
+            "live SEC access requires SEC_USER_AGENT='Product operator@example.com'"
+        )
+    return value
+
+
+def _browser_headless() -> bool:
+    """Allow production to run a visible Chromium inside an Xvfb display."""
+    return os.environ.get("FINENGINE_BROWSER_HEADLESS", "true").strip().lower() not in {
+        "0", "false", "no", "off",
+    }
+
+
+def _ingest_job_handler(db: Database):
+    def handle(job):
+        payload=job.payload; reg=CompanyRegistry.combined(db.conn,payload.get("registry","config/companies.json"))
+        company=reg.resolve(payload["market"],payload["symbol"])
+        if company.market.value=="US":
+            connector=SecCompanyFactsConnector(_sec_user_agent())
+        else:
+            manifest=payload.get("sa_manifest")
+            if not manifest: raise ValueError("Saudi scheduled ingestion requires sa_manifest")
+            connector=SaudiManifestConnector(manifest)
+        candidate_ids = [int(value) for value in payload.get("candidate_ids", [])]
+        try:
+            result = Pipeline(db,payload.get("raw_dir","data/raw")).run(company,connector,job.job_id)
+        except Exception:
+            for candidate_id in candidate_ids:
+                db.set_source_candidate_status(candidate_id, "error")
+            raise
+        for candidate_id in candidate_ids:
+            db.set_source_candidate_status(candidate_id, "fetched")
+        return result
+    return handle
+
+
+def _monitor_once(db: Database, queue: DurableJobQueue, payload: dict) -> dict:
+    registry_path = payload.get("registry", "config/companies.json")
+    registry = CompanyRegistry.combined(db.conn, registry_path)
+    company = registry.resolve(payload["market"], payload["symbol"])
+    common_payload = {
+        "market": payload["market"], "symbol": payload["symbol"],
+        "registry": registry_path, "raw_dir": payload.get("raw_dir", "data/raw"),
+        "sa_manifest": payload.get("sa_manifest"),
+    }
+    for key in ("backfill_run_id", "discovery_scope"):
+        if payload.get(key):
+            common_payload[key] = payload[key]
+    service = MonitorService(db, queue)
+    if company.market.value == "US":
+        monitor = SecFilingsMonitor(_sec_user_agent())
+        return service.poll(company, monitor, "ingest", common_payload)
+    source_indexes = []
+    for url in (
+        [payload.get("source_index")] +
+        # Prefer the reviewed registry endpoints. Dynamically learned database
+        # sources remain useful fallbacks, but stale generic IR landing pages
+        # must not delay a dedicated annual/quarterly filing library.
+        list(company.sources) +
+        [row["url"] for row in db.conn.execute(
+            "SELECT url FROM company_sources WHERE company_id=? AND enabled=1 "
+            "ORDER BY priority,id", (company.company_id,),
+        )]
+    ):
+        if url and url not in source_indexes:
+            source_indexes.append(url)
+    if not source_indexes:
+        raise ValueError("issuer monitoring requires source_index or a registry source URL")
+    browser = bool(payload.get("browser"))
+    errors = []
+    successful = []
+    for source_index in source_indexes:
+        if browser:
+            from .fetching import BrowserFetcher, BrowserIssuerMonitor
+            monitor = BrowserIssuerMonitor(
+                source_index,
+                fetcher=BrowserFetcher(
+                    raw_dir=payload.get("raw_dir", "data/raw"),
+                    headless=_browser_headless(),
+                ),
+                max_documents=int(payload.get("source_limit", 12)),
+            )
+        else:
+            monitor = IssuerReportsMonitor(
+                source_index, max_documents=int(payload.get("source_limit", 12)))
+        try:
+            fetch_payload = {
+                "raw_dir": common_payload["raw_dir"], "registry": registry_path,
+                "browser": browser, "llm": bool(payload.get("llm")),
+            }
+            for key in ("backfill_run_id", "discovery_scope"):
+                if common_payload.get(key):
+                    fetch_payload[key] = common_payload[key]
+            result = service.poll(
+                company, monitor, "fetch_document", fetch_payload, True,
+                job_priority=5 if common_payload.get("discovery_scope") == "historical" else 100,
+                force_discovery=common_payload.get("discovery_scope") == "historical",
+                requeue_existing=common_payload.get("discovery_scope") == "historical",
+                retry_key=common_payload.get("backfill_run_id"),
+            )
+        except Exception as error:
+            errors.append({"source_index": source_index, "error": str(error)[:500]})
+            continue
+        successful.append((source_index, result))
+    if successful:
+        # Monitor every registered official endpoint. Issuer-hosted documents
+        # can be blocked while the same filing remains downloadable from the
+        # exchange; stopping at the first link would strand that fallback.
+        selected_source, selected = next(
+            ((url, result) for url, result in successful if result["discovered"]),
+            successful[-1],
+        )
+        combined = dict(selected)
+        combined["source_index"] = selected_source
+        combined["successful_sources"] = [url for url, _ in successful]
+        combined["attempted_sources"] = len(source_indexes)
+        combined["fallback_errors"] = errors
+        combined["discovered"] = sum(result["discovered"] for _, result in successful)
+        combined["new_candidates"] = sum(
+            result["new_candidates"] for _, result in successful)
+        combined["queued_jobs"] = sum(result["queued_jobs"] for _, result in successful)
+        combined["job_ids"] = [
+            job_id for _, result in successful for job_id in result["job_ids"]]
+        # A reachable official source is a successful monitoring cycle even
+        # when another endpoint was unavailable after it.
+        db.mark_monitor_success(
+            company.company_id, monitor.name, successful[-1][1]["cursor"])
+        return combined
+    details = "; ".join(
+        f"{item['source_index']}: {item['error']}" for item in errors)
+    raise RuntimeError(f"all official company sources failed: {details}")
+
+
+def _monitor_job_handler(db: Database, queue: DurableJobQueue):
+    def handle(job):
+        return _monitor_once(db, queue, job.payload)
+    return handle
+
+
+def _fetch_document_job_handler(db: Database, queue: DurableJobQueue):
+    def handle(job):
+        candidate_id = int(job.payload["candidate_id"])
+        raw_dir = job.payload.get("raw_dir", "data/raw")
+        content_fetcher = None
+        candidate_fetcher = None
+        if job.payload.get("browser"):
+            from .fetching import BrowserFetcher
+            candidate_fetcher = BrowserFetcher(
+                raw_dir, headless=_browser_headless()
+            ).download_candidate
+        try:
+            result=DocumentArchiver(
+                db, raw_dir, content_fetcher=content_fetcher,
+                candidate_fetcher=candidate_fetcher,
+            ).fetch(candidate_id)
+            if result.get("next_stage") == "extraction":
+                extraction_payload={
+                    "source_key":result["source_key"],
+                    "raw_dir":raw_dir,
+                    "registry":job.payload.get("registry","config/companies.json"),
+                    "llm":bool(job.payload.get("llm")),
+                }
+                for key in ("backfill_run_id", "discovery_scope"):
+                    if job.payload.get(key):
+                        extraction_payload[key] = job.payload[key]
+                extraction_job,created=queue.enqueue(
+                    "extract_document",extraction_payload,job.company_id,result["source_key"],
+                    idempotency_key=f"extract:{result['source_key']}",
+                    priority=1 if job.payload.get("discovery_scope") == "historical" else 20,
+                )
+                result["extraction_job_id"]=extraction_job
+                result["extraction_job_created"]=created
+            return result
+        except Exception as error:
+            db.set_source_candidate_status(candidate_id, "error")
+            # An official CDN denying the AWS/datacenter address is an external
+            # access constraint.  Preserve it in the review queue without
+            # poisoning operational health or retrying the same denied request
+            # forever.  An alternate-network fetcher can later retry this exact
+            # candidate with all provenance intact.
+            from .fetching import SourceAccessBlocked
+            if isinstance(error, SourceAccessBlocked):
+                candidate = db.get_source_candidate(candidate_id)
+                source_key = f"candidate:{candidate_id}"
+                existing = db.conn.execute(
+                    """SELECT 1 FROM exceptions WHERE source_key=? AND code=?
+                    AND status='open' LIMIT 1""",
+                    (source_key, "source_access_blocked"),
+                ).fetchone()
+                if not existing:
+                    db.exception(
+                        job.company_id, source_key, "fetch",
+                        "source_access_blocked", str(error),
+                        {
+                            "candidate_id": candidate_id,
+                            "source_url": candidate["source_url"],
+                            "connector": candidate["connector"],
+                            "resolution": "retry_from_alternate_network",
+                        },
+                        severity="warning",
+                    )
+                return {
+                    "status": "source_access_blocked",
+                    "candidate_id": candidate_id,
+                    "source_url": candidate["source_url"],
+                    "exception_code": "source_access_blocked",
+                    "retry_strategy": "alternate_network",
+                }
+            raise
+    return handle
+
+
+def _company_profile(company) -> str:
+    """Which statement-layout map the reader should use for this issuer."""
+    industry = (getattr(company, "industry", "") or "").lower()
+    if "bank" in industry:
+        return "bank"
+    if "insurance" in industry:
+        return "insurance"
+    return "corporate"
+
+
+def _published_language_equivalent(db: Database, row: dict) -> str | None:
+    """Return the published English twin of an official Arabic filing.
+
+    Issuers commonly publish byte-distinct Arabic and English renderings of
+    the same signed financial statements. Both files remain archived, but the
+    numeric pipeline must publish one language only or it creates duplicate
+    facts and duplicate review failures.
+    """
+    url = str(row["source_url"] or "")
+    alternatives = {
+        # Language tokens occur before the extension, between underscores,
+        # and inside URL-encoded parentheses (``%28Ar%29``). Letter
+        # boundaries cover all three without rewriting letters inside words.
+        re.sub(r"(?<![a-z])arabic(?![a-z])", "english", url, flags=re.I),
+        re.sub(r"(?<![a-z])ar(?![a-z])", "en", url, flags=re.I),
+    }
+    alternatives.discard(url)
+    for alternative in alternatives:
+        record = db.conn.execute(
+            """SELECT source_key FROM source_documents
+               WHERE company_id=? AND lower(source_url)=lower(?) AND status='published'
+               LIMIT 1""",
+            (row["company_id"], alternative),
+        ).fetchone()
+        if record:
+            return record["source_key"]
+    return None
+
+
+def _source_period(row: dict, company) -> tuple[str, int] | None:
+    """Derive a period only from explicit source metadata or URL tokens."""
+    from .document_cover_period import cover_period_decision
+    try:
+        has_explicit_cover, cover_period = cover_period_decision(row["local_path"])
+    except (KeyError, IndexError, TypeError):
+        has_explicit_cover, cover_period = False, None
+    if has_explicit_cover:
+        return cover_period
+    # Collector titles can accidentally use the upload year (e.g. 2026 for
+    # FY2025). The explicit annual reporting date on the immutable PDF cover
+    # is stronger evidence; never treat a publication date as a fiscal date.
+    from .document_period import annual_cover_period
+    try:
+        cover_period = annual_cover_period(row["local_path"])
+    except (KeyError, IndexError):
+        cover_period = None
+    if cover_period:
+        return cover_period
+    try:
+        metadata = json.loads(row["metadata_json"] or "{}")
+    except (KeyError, TypeError, json.JSONDecodeError):
+        metadata = {}
+    title = str(metadata.get("title") or "")
+    try:
+        source_url = str(row["source_url"] or "")
+    except (KeyError, TypeError, IndexError):
+        source_url = ""
+    iso = re.search(r"\b(20\d{2})-(\d{1,2})-(\d{1,2})\b", title)
+    if iso:
+        year, month, day = (int(value) for value in iso.groups())
+        try:
+            return date(year, month, day).isoformat(), year
+        except ValueError:
+            return None
+    explicit = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})", title)
+    if explicit:
+        day, month, year = (int(value) for value in explicit.groups())
+        try:
+            return date(year, month, day).isoformat(), year
+        except ValueError:
+            return None
+    named = re.search(
+        r"\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|"
+        r"September|October|November|December)\s+(20\d{2})\b", title, re.I,
+    )
+    if named:
+        day, month_name, year = named.groups()
+        month = {name.lower(): index for index, name in enumerate(
+            ("January", "February", "March", "April", "May", "June", "July",
+             "August", "September", "October", "November", "December"), 1
+        )}[month_name.lower()]
+        try:
+            return date(int(year), month, int(day)).isoformat(), int(year)
+        except ValueError:
+            return None
+    # Official issuer filenames and directory paths are durable source
+    # metadata too.  Many report indexes label a document merely "Q1 interim
+    # report" while the URL carries the otherwise missing year.
+    from urllib.parse import unquote_plus
+
+    # Issuer CMS links use both percent escapes and HTML-form ``+`` spaces;
+    # banks also retain typographic en/em dashes in filenames.  Decode all of
+    # those before applying the conservative period tokens below.
+    period_text = f"{title} {unquote_plus(source_url)}"
+    compact_cumulative = re.search(
+        r"(?<![A-Za-z0-9])(?:(H1|1H)|(9M))[-_ ]?(\d{2}|20\d{2})(?!\d)",
+        period_text, re.I,
+    )
+    if compact_cumulative:
+        fiscal_year = int(compact_cumulative.group(3))
+        if fiscal_year < 100:
+            fiscal_year += 2000
+        month, day = ((6, 30) if compact_cumulative.group(1) else (9, 30))
+        return date(fiscal_year, month, day).isoformat(), fiscal_year
+    quarter = re.search(
+        r"(?<![A-Za-z0-9])Q([1-4])(?![A-Za-z0-9])|"
+        r"(?<![A-Za-z0-9])([1-4])Q(?![A-Za-z0-9])",
+        period_text, re.I,
+    )
+    named_quarter = re.search(
+        r"\b(first|second|third|fourth)\s+quarter\b", period_text, re.I,
+    )
+    if not quarter and named_quarter:
+        quarter_number = {
+            "first": 1, "second": 2, "third": 3, "fourth": 4,
+        }[named_quarter.group(1).lower()]
+    elif quarter:
+        quarter_number = int(quarter.group(1) or quarter.group(2))
+    else:
+        quarter_number = None
+    try:
+        document_type = str(row["filing_type"] or "").lower()
+    except (KeyError, TypeError, IndexError):
+        document_type = ""
+    if quarter_number is None and document_type in {"interim-report", "regulatory-disclosure"}:
+        # Interim statements and regulatory disclosures are often named by
+        # their quarter-end month alone ("...-march-2026", "Dec-2025",
+        # "Dec_20", "30 June 2025"). Annual reports are excluded: their titles
+        # can carry a publication month rather than the reporting period.
+        day_named = re.search(
+            r"(?<![A-Za-z0-9])(\d{1,2})\s+(March|June|September|December)\s+(20\d{2})(?!\d)",
+            period_text, re.I,
+        )
+        month_named = re.search(
+            r"(?<![A-Za-z])(Mar|Jun|Sep|Dec)[a-z]*"
+            r"[\s_+\-–—’'‘]+(20\d{2}|\d{2})(?![0-9A-Za-z])",
+            period_text, re.I,
+        )
+        if day_named or month_named:
+            month_text = day_named.group(2) if day_named else month_named.group(1)
+            year_text = day_named.group(3) if day_named else month_named.group(2)
+            month = {"mar": 3, "jun": 6, "sep": 9, "dec": 12}[month_text[:3].lower()]
+            year = int(year_text) + (2000 if len(year_text) == 2 else 0)
+            last_day = calendar.monthrange(year, month)[1]
+            if not day_named or int(day_named.group(1)) == last_day:
+                return date(year, month, last_day).isoformat(), year
+    year_match = re.search(r"(?<!\d)(20\d{2})(?!\d)", period_text)
+    if not year_match:
+        compact = re.search(
+            r"(?:Q[1-4]|[1-4]Q)[-_ ]?(\d{2})(?!\d)", period_text, re.I,
+        )
+        if compact:
+            year_match = compact
+    if quarter_number is None and year_match:
+        cumulative = re.search(
+            r"(?<![A-Za-z0-9])(H1|9M|FY)(?![A-Za-z0-9])", period_text, re.I,
+        )
+        if cumulative:
+            fiscal_year = int(year_match.group(1))
+            if fiscal_year < 100:
+                fiscal_year += 2000
+            month_day = {"H1": (6, 30), "9M": (9, 30), "FY": (12, 31)}[
+                cumulative.group(1).upper()
+            ]
+            return date(fiscal_year, *month_day).isoformat(), fiscal_year
+        try:
+            filing_type = str(row["filing_type"] or "").lower()
+        except (KeyError, TypeError, IndexError):
+            filing_type = ""
+        if filing_type and filing_type != "interim-report":
+            fiscal_year = int(year_match.group(1))
+            if fiscal_year < 100:
+                fiscal_year += 2000
+            try:
+                fiscal_end_month, fiscal_end_day = (
+                    int(value) for value in company.fiscal_year_end.split("-")
+                )
+                return (
+                    date(fiscal_year, fiscal_end_month, fiscal_end_day).isoformat(),
+                    fiscal_year,
+                )
+            except (AttributeError, TypeError, ValueError):
+                return date(fiscal_year, 12, 31).isoformat(), fiscal_year
+    if quarter_number is None or not year_match:
+        # Some issuer indexes expose only a generic "interim report" label.
+        # The official filing timestamp still bounds the period deterministically:
+        # Saudi interim statements are filed after the most recent fiscal
+        # quarter end.  Accept this fallback only within 75 days and only for
+        # documents explicitly classified as interim, never annual reports.
+        if document_type == "interim-report" and year_match is None:
+            try:
+                filed = date.fromisoformat(str(row["filed_at"] or "")[:10])
+                fiscal_end_month, fiscal_end_day = (
+                    int(value) for value in company.fiscal_year_end.split("-")
+                )
+            except (KeyError, TypeError, IndexError, AttributeError, ValueError):
+                return None
+            candidates = []
+            for fiscal_year in range(filed.year - 1, filed.year + 2):
+                for fiscal_quarter in range(1, 5):
+                    month_index = (
+                        fiscal_year * 12 + fiscal_end_month - 1
+                        - (4 - fiscal_quarter) * 3
+                    )
+                    year, month = divmod(month_index, 12)
+                    month += 1
+                    day = min(fiscal_end_day, calendar.monthrange(year, month)[1])
+                    quarter_end = date(year, month, day)
+                    age = (filed - quarter_end).days
+                    if 1 <= age <= 75:
+                        candidates.append((quarter_end, fiscal_year))
+            if not candidates:
+                return None
+            quarter_end, fiscal_year = max(candidates)
+            return quarter_end.isoformat(), fiscal_year
+        return None
+    fiscal_year, fiscal_quarter = int(year_match.group(1)), quarter_number
+    if fiscal_year < 100:
+        fiscal_year += 2000
+    try:
+        fiscal_end_month, fiscal_end_day = (
+            int(value) for value in company.fiscal_year_end.split("-")
+        )
+    except (AttributeError, TypeError, ValueError):
+        fiscal_end_month, fiscal_end_day = 12, 31
+    month_index = (fiscal_year * 12 + fiscal_end_month - 1) - (4 - fiscal_quarter) * 3
+    year, month = divmod(month_index, 12)
+    month += 1
+    day = min(fiscal_end_day, calendar.monthrange(year, month)[1])
+    return date(year, month, day).isoformat(), fiscal_year
+
+
+def _is_annual_pdf(row: dict) -> bool:
+    """Conservatively recognize annual reports eligible for profile extraction."""
+    if row["content_type"] != "application/pdf":
+        return False
+    text = f"{row['filing_type']} {row['source_url']}".lower()
+    if "interim" in text or re.search(r"(?:^|[-_/])q[1-4](?:[-_/]|$)", text):
+        return False
+    return any(token in text for token in (
+        "annual", "integrated-report", "integrated_report", "/fy/", "-fy-",
+    )) or bool(re.search(r"(?:^|[-_/])ara[-_/]?20\d{2}(?:[-_/]|\.)", text))
+
+
+def _presentation_text(text: str) -> bool:
+    """Conservatively distinguish an IR presentation from signed statements."""
+    lowered = " ".join(text.lower().split())
+    # An earnings deck can contain pages titled "Income Statement Summary" or
+    # even append a high-level balance-sheet table.  Those phrases alone do not
+    # make it a signed filing.  Conversely, some exchange attachments start as
+    # an earnings deck and append the reviewed statements later in the same
+    # PDF; the explicit review/audit wording is authoritative and keeps the
+    # combined document on the statement-reader path.
+    signed_filing = (
+        "independent auditor's report", "independent auditor’s report",
+        "independent review report", "report on review of interim financial",
+        "condensed consolidated interim statement of financial position",
+        "condensed interim statement of financial position",
+        "تقرير المراجع المستقل", "فحص القوائم المالية الأولية",
+    )
+    if any(token in lowered for token in signed_filing):
+        return False
+    strong = re.search(
+        r"\b(?:earnings|financial results?)\s+(?:release|presentation|call)\b|"
+        r"\banalyst call\b|\binvestor presentation\b",
+        lowered,
+    )
+    if strong:
+        return True
+    primary = (
+        "statement of financial position", "statement of profit or loss",
+        "statement of cash flows", "قائمة المركز المالي", "قائمة التدفقات النقدية",
+    )
+    if any(token in lowered for token in primary):
+        return False
+    evidence = (
+        "financial highlight", "financial highlights", "investor presentation",
+        "earnings presentation", "ir contacts", "forward-looking statements",
+        "this presentation has been prepared", "for informational purposes only",
+        "عرض المستثمرين",
+        "أبرز النتائج المالية", "إخالء المسؤولية",
+    )
+    return sum(token in lowered for token in evidence) >= 2
+
+
+def _is_financial_presentation(path: Path) -> bool:
+    try:
+        import pymupdf
+        document = pymupdf.open(path)
+        try:
+            text = "\n".join(page.get_text() or "" for page in document)
+        finally:
+            document.close()
+    except Exception:
+        return False
+    return _presentation_text(text)
+
+
+_VERIFIER_IDENTITY_METRICS = {
+    "income_statement: revenue + other income": {
+        "revenue_and_other_income_related_to_sales", "revenue",
+        "other_income_related_to_sales",
+    },
+    "income_statement: pre-tax income - tax = net income": {
+        "net_income", "income_before_income_taxes_and_zakat",
+        "income_taxes_and_zakat",
+    },
+    "income_statement: net income = continuing + discontinued operations": {
+        "net_income", "continuing_operations_income",
+        "discontinued_operations_income",
+    },
+    "income_statement: net income = owners + non-controlling": {
+        "net_income", "net_income_parent", "net_income_noncontrolling",
+    },
+    "balance_sheet: assets = liabilities + equity": {
+        "total_assets", "total_liabilities", "total_equity",
+    },
+    "balance_sheet: assets = current + non-current": {
+        "total_assets", "current_assets", "noncurrent_assets",
+    },
+    "balance_sheet: liabilities = current + non-current": {
+        "total_liabilities", "current_liabilities", "noncurrent_liabilities",
+    },
+    "balance_sheet: equity = owners + non-controlling": {
+        "total_equity", "equity_parent", "noncontrolling_interests",
+    },
+    "balance_sheet: liabilities + equity total": {
+        "total_liabilities_equity", "total_liabilities", "total_equity",
+    },
+}
+
+
+def _quarantine_failed_identity_facts(manifest: dict, report: dict, verify):
+    """Keep sound statement facts when one accounting identity is corrupt.
+
+    A malformed PDF text layer can attach a number to the wrong subtotal.  It
+    is safer to quarantine every member of that failed identity than to block
+    unrelated income-statement and cash-flow facts from the same signed filing.
+    The reduced manifest is accepted only if it independently passes verify.
+    """
+    failures = [item for item in report.get("detail", [])
+                if item.get("status") == "fail"]
+    if not failures:
+        return manifest, report
+    targets: set[tuple[str, str, str]] = set()
+    for failure in failures:
+        metrics = _VERIFIER_IDENTITY_METRICS.get(failure.get("check"))
+        period = str(failure.get("period") or "")
+        if not metrics or " " not in period:
+            return manifest, report
+        period_end, period_kind = period.rsplit(" ", 1)
+        targets.update((metric, period_end, period_kind) for metric in metrics)
+    kept, excluded = [], []
+    for fact in manifest.get("facts", []):
+        identity = (fact.get("metric"), fact.get("period_end"), fact.get("period_kind"))
+        if identity not in targets:
+            kept.append(fact)
+            continue
+        rejected = dict(fact)
+        rejected["exclusion_reason"] = "failed_accounting_identity"
+        excluded.append(rejected)
+    if not excluded or not kept:
+        return manifest, report
+    candidate = dict(manifest)
+    candidate["facts"] = kept
+    candidate["excluded_facts"] = [*manifest.get("excluded_facts", []), *excluded]
+    candidate_report = verify(candidate)
+    return ((candidate, candidate_report) if candidate_report.get("ok")
+            else (manifest, report))
+
+
+def _read_pdf_manifest(pdf_path: Path, company, row: dict, use_llm: bool) -> tuple[dict, dict, str]:
+    """Read deterministically; use the LLM only when explicitly enabled."""
+    import tempfile
+    from .reading import StatementReader
+    from .verification import ManifestVerifier
+
+    def verify(manifest: dict) -> dict:
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            return ManifestVerifier(directory).verify()
+
+    kwargs = {
+        "market": company.market.value,
+        "symbol": company.symbol,
+        "currency": company.currency,
+        "source_url": row["source_url"],
+        "filed_at": row["filed_at"],
+        # A few issuer indexes group FY statements under "quarterly reports".
+        # The explicit /fy/ path is stronger than that navigation label and
+        # prevents annual flows from being mis-stored as YTD.
+        "filing_type": (
+            "annual-report"
+            if re.search(r"(?:/|-)fy(?:/|-20\d{2})", str(row["source_url"]), re.I)
+            else row["filing_type"]
+        ),
+        "profile": _company_profile(company),
+        "fiscal_year_end": company.fiscal_year_end,
+    }
+    source_period = _source_period(row, company)
+    if source_period:
+        kwargs["period_end"], kwargs["fiscal_year"] = source_period
+    # Eight OCR pages were insufficient for scanned interim filings with a
+    # cover, review report and notes before the three primary statements.  A
+    # bounded 24-page budget still prevents unbounded work while covering a
+    # complete ordinary interim filing.
+    reader = StatementReader(pdf_path, ocr_page_limit=24)
+    manifest = reader.read(**kwargs)
+    report = verify(manifest)
+    if not report["ok"]:
+        manifest, report = _quarantine_failed_identity_facts(manifest, report, verify)
+    reader_source = "deterministic+ocr" if reader.used_ocr else "deterministic"
+    if not report["ok"] and use_llm and os.environ.get("ANTHROPIC_API_KEY"):
+        from .reading_llm import llm_read
+        manifest = llm_read(pdf_path, **kwargs)
+        report = verify(manifest)
+        reader_source = "llm"
+    return manifest, report, reader_source
+
+
+def _read_xlsx_manifest(xlsx_path: Path, company, row: dict,
+                        mapping_path: Path) -> tuple[dict, dict]:
+    """Read a reviewed issuer supplement map and verify before publication."""
+    import tempfile
+    from .reading_xlsx import SupplementReader
+    from .verification import ManifestVerifier
+
+    manifest = SupplementReader(xlsx_path, mapping_path).read(
+        market=company.market.value,
+        symbol=company.symbol,
+        currency=company.currency,
+        filed_at=row["filed_at"],
+        filing_type=row["filing_type"],
+        period_kinds=("fy", "quarter", "ytd"),
+    )
+    # The immutable archived URL, not a URL embedded in configuration, is the
+    # authoritative provenance for this particular workbook version.
+    manifest["source_url"] = row["source_url"]
+    with tempfile.TemporaryDirectory() as directory:
+        Path(directory, "manifest.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        report = ManifestVerifier(directory).verify()
+    return manifest, report
+
+
+def _read_pillar3_manifest(pdf_path: Path, company, row: dict) -> tuple[dict, dict, str]:
+    """Read a Basel III Pillar 3 KM1 table and verify before publication."""
+    import tempfile
+    from .reading_pillar3 import Pillar3KeyMetricsReader
+    from .verification import ManifestVerifier
+
+    manifest = Pillar3KeyMetricsReader(pdf_path).read(
+        market=company.market.value, symbol=company.symbol, currency=company.currency,
+        source_url=row["source_url"], filed_at=row["filed_at"],
+    )
+    with tempfile.TemporaryDirectory() as directory:
+        Path(directory, "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        report = ManifestVerifier(directory).verify()
+    return manifest, report, "pillar3-km1"
+
+
+def _queue_profile_extraction(db: Database, queue: DurableJobQueue, job, row: dict) -> dict:
+    if not job.payload.get("llm") or not _is_annual_pdf(row):
+        return {"profile_job_created": False}
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        key = f"profile-agent:{row['source_key']}"
+        db.upsert_backlog_item(
+            key, "agent_configuration", "company_profile",
+            f"Enable grounded profile extraction for {row['company_id']}",
+            description=("The archived annual report is ready, but the dual-pass qualitative "
+                         "reader requires ANTHROPIC_API_KEY. No profile fact was inferred."),
+            company_id=row["company_id"], source_url=row["source_url"], priority=30,
+            payload={"source_key": row["source_key"], "required_secret": "ANTHROPIC_API_KEY",
+                     "origin": "profile_agent"},
+        )
+        with db.conn:
+            db.conn.execute(
+                "UPDATE backlog_items SET status='blocked',updated_at=CURRENT_TIMESTAMP "
+                "WHERE idempotency_key=?", (key,),
+            )
+        return {"profile_job_created": False, "profile_blocked": "ANTHROPIC_API_KEY_required"}
+    payload = {
+        "source_key": row["source_key"],
+        "registry": job.payload.get("registry", "config/companies.json"),
+        "raw_dir": job.payload.get("raw_dir", "data/raw"),
+        "model": job.payload.get("profile_model", "claude-opus-5"),
+        "max_pages": int(job.payload.get("profile_max_pages", 40)),
+    }
+    profile_job, created = queue.enqueue(
+        "extract_profile", payload, row["company_id"], row["source_key"],
+        idempotency_key=f"profile:{row['source_key']}:{payload['model']}", priority=25,
+        max_attempts=3,
+    )
+    return {"profile_job_id": profile_job, "profile_job_created": created}
+
+
+def _profile_document_job_handler(db: Database):
+    def handle(job):
+        from .bootstrap import _publish_manifest_domains
+        from .populate_profile import build_profile_manifest
+
+        row = db.stored_source(job.payload["source_key"])
+        if not _is_annual_pdf(row):
+            raise ValueError("profile extraction requires an archived annual-report PDF")
+        registry = CompanyRegistry.combined(
+            db.conn, job.payload.get("registry", "config/companies.json"))
+        company = registry.get(row["company_id"])
+        path = Path(row["local_path"] or "")
+        if not path.is_file():
+            raise FileNotFoundError(f"archived source is missing: {path}")
+        source_period = _source_period(row, company)
+        result = build_profile_manifest(
+            path, market=company.market.value, symbol=company.symbol,
+            company_id=company.company_id, source_url=row["source_url"],
+            filed_at=row["filed_at"],
+            period_end=source_period[0] if source_period else None,
+            max_pages=int(job.payload.get("max_pages", 40)),
+            model=job.payload.get("model", "claude-opus-5"),
+        )
+        output_dir = Path(job.payload.get("raw_dir", "data/raw")) / company.market.value / company.symbol / "profiles"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = output_dir / f"{path.stem}.profile.json"
+        review_output = output_dir / f"{path.stem}.profile.review.json"
+        output.write_text(json.dumps(result["manifest"], ensure_ascii=False, indent=2), encoding="utf-8")
+        review_output.write_text(json.dumps(result["review_queue"], ensure_ascii=False, indent=2), encoding="utf-8")
+        domains = _publish_manifest_domains(db, company, result["manifest"], row["source_key"])
+        backlog_key = f"profile-review:{row['source_key']}"
+        if result["review_queue"]:
+            db.upsert_backlog_item(
+                backlog_key, "qualitative_review", "company_profile",
+                f"Review qualitative findings for {company.name}",
+                description="Only findings that failed dual-pass grounding are queued; none were published.",
+                company_id=company.company_id, source_url=row["source_url"], priority=35,
+                payload={"source_key": row["source_key"], "review_path": str(review_output),
+                         "items": len(result["review_queue"]), "origin": "profile_agent"},
+            )
+            with db.conn:
+                db.conn.execute(
+                    "UPDATE backlog_items SET status='ready',updated_at=CURRENT_TIMESTAMP "
+                    "WHERE idempotency_key=?", (backlog_key,),
+                )
+        else:
+            db.complete_backlog_item(backlog_key)
+        CompanyDomainStore(db).refresh_catalog_completeness(company.company_id)
+        from .understanding import refresh_company_understanding
+        readiness = refresh_company_understanding(db.conn, company.company_id)
+        return {
+            "status": "published", "source_key": row["source_key"], "domains": domains,
+            "accepted": len(result["manifest"]["company_attributes"]) + len(result["manifest"]["disclosures"]),
+            "review_queue": len(result["review_queue"]), "manifest_path": str(output),
+            "review_path": str(review_output), "model_usage": result["model_usage"],
+            "understanding_score": readiness["total_score"],
+        }
+    return handle
+
+
+def _profile_scan_job_handler(db: Database, queue: DurableJobQueue):
+    """Queue the newest archived annual report per company for grounded reading."""
+    def handle(job):
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            return {"status": "blocked", "reason": "ANTHROPIC_API_KEY_required", "queued": 0}
+        limit = min(max(int(job.payload.get("limit", 10)), 1), 100)
+        rows = db.conn.execute(
+            """WITH annual AS (
+                SELECT s.*,ROW_NUMBER() OVER (
+                    PARTITION BY s.company_id ORDER BY s.filed_at DESC,s.created_at DESC
+                ) AS latest_rank
+                FROM source_documents s JOIN companies c USING(company_id)
+                WHERE c.enabled=1 AND s.status IN ('published','context_only')
+                  AND s.content_type='application/pdf' AND s.local_path IS NOT NULL
+                  AND (lower(s.filing_type) LIKE '%annual%'
+                       OR lower(s.source_url) LIKE '%annual%'
+                       OR lower(s.source_url) LIKE '%/fy/%'
+                       OR lower(s.source_url) LIKE '%-fy-%'
+                       OR lower(s.source_url) GLOB '*ara-20[0-9][0-9]*')
+                  AND lower(s.filing_type) NOT LIKE '%interim%'
+            ) SELECT * FROM annual a WHERE latest_rank=1
+              AND NOT EXISTS (
+                  SELECT 1 FROM jobs j WHERE j.idempotency_key LIKE 'profile:' || a.source_key || ':%'
+              ) ORDER BY filed_at DESC,company_id LIMIT ?""", (limit,),
+        ).fetchall()
+        queued = []
+        for row in rows:
+            payload = {
+                "source_key": row["source_key"],
+                "registry": job.payload.get("registry", "config/companies.json"),
+                "raw_dir": job.payload.get("raw_dir", "data/raw"),
+                "model": job.payload.get("model", "claude-opus-5"),
+                "max_pages": int(job.payload.get("max_pages", 40)),
+            }
+            job_id, created = queue.enqueue(
+                "extract_profile", payload, row["company_id"], row["source_key"],
+                idempotency_key=f"profile:{row['source_key']}:{payload['model']}",
+                priority=25, max_attempts=3,
+            )
+            if created:
+                queued.append(job_id)
+        return {"status": "ready", "candidates": len(rows), "queued": len(queued),
+                "job_ids": queued}
+    return handle
+
+
+def _understanding_refresh_job_handler(db: Database):
+    """Re-score every enabled company and materialize sourced 95% gap work."""
+    def handle(job):
+        from .understanding import refresh_company_understanding
+
+        market = job.payload.get("market")
+        where = "WHERE enabled=1"
+        args = ()
+        requested_company_id = getattr(job, "company_id", None)
+        if requested_company_id:
+            where += " AND company_id=?"
+            args = (requested_company_id,)
+        elif market:
+            where += " AND market=?"
+            args = (market.upper(),)
+        company_ids = [row[0] for row in db.conn.execute(
+            f"SELECT company_id FROM companies {where} ORDER BY market,symbol", args
+        )]
+        domains = CompanyDomainStore(db)
+        states: dict[str, int] = {}
+        financial_calculations = {
+            "input_facts": 0, "calculated_facts": 0, "inserted": 0,
+            "restated": 0, "duplicates": 0, "suppressed": 0,
+        }
+        valuations = {"published": 0, "skipped": 0}
+        market_statistics = {"published": 0, "skipped": 0}
+        for current_company_id in company_ids:
+            calculation_result = domains.refresh_financial_calculations(current_company_id)
+            for key in financial_calculations:
+                financial_calculations[key] += int(calculation_result.get(key, 0))
+            statistics_result = domains.refresh_market_statistics(current_company_id)
+            market_statistics[statistics_result["status"]] = (
+                market_statistics.get(statistics_result["status"], 0) + 1
+            )
+            valuation = domains.refresh_market_valuations(current_company_id)
+            valuations[valuation["status"]] = valuations.get(valuation["status"], 0) + 1
+            domains.refresh_company_backlog(current_company_id)
+            assessed = refresh_company_understanding(db.conn, current_company_id)
+            state = assessed["readiness_state"]
+            states[state] = states.get(state, 0) + 1
+        result = {
+            "companies": len(company_ids), "states": states,
+            "market": market.upper() if market else None,
+            "company_id": requested_company_id,
+            "target_categories": job.payload.get("target_categories", []),
+            "wave_key": job.payload.get("wave_key"),
+            "financial_calculation_refresh": financial_calculations,
+            "valuation_refresh": valuations,
+            "market_statistics_refresh": market_statistics,
+        }
+        gaps = db.conn.execute(
+            """SELECT domain,count(*) AS count FROM backlog_items
+            WHERE item_type='understanding_gap' AND status IN ('open','ready','in_progress','blocked')
+            GROUP BY domain ORDER BY count DESC,domain"""
+        ).fetchall()
+        result["open_category_gaps"] = {row["domain"]: row["count"] for row in gaps}
+        result["target_score"] = "95"
+        result["source_map_version"] = "18-categories-v1"
+        return result
+    return handle
+
+
+def _market_history_job_handler(db: Database):
+    """Archive and publish one official Saudi Exchange price-history snapshot."""
+    def handle(job):
+        from .saudi_market import SAUDI_HISTORICAL_REPORTS_URL, fetch_saudi_market_history
+        from .understanding import refresh_company_understanding
+
+        payload = job.payload
+        registry = CompanyRegistry.combined(
+            db.conn, payload.get("registry", "config/companies.json"))
+        company = registry.resolve("SA", payload["symbol"])
+        state_dir = os.environ.get("FINENGINE_STATE_DIR")
+        runtime_raw = str(Path(state_dir) / "raw") if state_dir else "data/raw"
+        raw_dir = Path(payload.get("raw_dir") or
+                       os.environ.get("FINENGINE_RAW_DIR", runtime_raw))
+        end_date = date.fromisoformat(payload.get("end_date") or date.today().isoformat())
+        existing = db.conn.execute(
+            """SELECT min(p.observed_at),max(p.observed_at),count(*) FROM market_prices p
+            JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'""",
+            (company.company_id,),
+        ).fetchone()
+        if payload.get("start_date"):
+            start_date = date.fromisoformat(payload["start_date"])
+        elif existing[2] >= 1200:
+            start_date = end_date - timedelta(days=10)
+        else:
+            start_date = end_date - timedelta(days=365 * 6 + 2)
+        failure_key = f"market-history-source:{company.company_id}"
+        failure_source_key = f"market-history:{company.company_id}"
+        stage = "fetch"
+        try:
+            content = fetch_saudi_market_history(
+                company.symbol, start_date.isoformat(), end_date.isoformat(),
+                sector=payload.get("sector") or company.sector,
+                market_segment=payload.get("market_segment") or company.exchange or "Main Market",
+                headless=_browser_headless(),
+                archived_csv_dir=raw_dir / "SA" / company.symbol / "market",
+            )
+            stage = "archive"
+            digest = hashlib.sha256(content).hexdigest()
+            source_key = f"sa-market:{digest}"
+            target = raw_dir / "SA" / company.symbol / "market" / f"{digest}.json"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.exists():
+                temporary = target.with_suffix(".json.part")
+                temporary.write_bytes(content)
+                temporary.replace(target)
+            document = SourceDocument(
+                company.company_id, company.market, SAUDI_HISTORICAL_REPORTS_URL,
+                source_key, "Saudi Exchange historical price snapshot",
+                end_date.isoformat(), content, "application/json",
+                {"requested_start": start_date.isoformat(), "requested_end": end_date.isoformat()},
+            )
+            db.save_source(document, digest, str(target))
+            db.save_source_artifact(
+                f"artifact:{company.company_id}:{digest}", company.company_id,
+                SAUDI_HISTORICAL_REPORTS_URL, digest, str(target), "application/json",
+                len(content), {
+                    "source_key": source_key,
+                    "market_history_archive": True,
+                    "immutable": True,
+                },
+            )
+            stage = "publish"
+            store = CompanyDomainStore(db)
+            prices = json.loads(content).get("market_prices", [])
+            states = [store.publish_market_price(
+                company.company_id, source_key=source_key, **item) for item in prices]
+            db.set_source_status(source_key, "published")
+            db.publication_batch(source_key, company.company_id, "published", 0, len(states))
+            stage = "refresh"
+            statistics_result = store.refresh_market_statistics(company.company_id)
+            valuation_result = store.refresh_market_valuations(company.company_id)
+            store.refresh_catalog_completeness(company.company_id)
+            understanding = refresh_company_understanding(db.conn, company.company_id)
+        except Exception as error:
+            message = str(error)[:4000]
+            lowered = message.lower()
+            access_failure = stage == "fetch" and (
+                error.__class__.__name__.lower().endswith("timeouterror") or
+                any(marker in lowered for marker in (
+                    "timeout", "timed out", "http 403", "http 429", "access denied",
+                    "forbidden", "net::err", "browser extra",
+                ))
+            )
+            code = (
+                "source_access_blocked" if access_failure else
+                f"market_history_{stage}_failed"
+            )
+            attempts = int(getattr(job, "attempts", 0) or 0)
+            max_attempts = int(getattr(job, "max_attempts", 0) or 0)
+            will_retry = bool(attempts and attempts < max_attempts)
+            failure_payload = {
+                "symbol": company.symbol,
+                "source_url": SAUDI_HISTORICAL_REPORTS_URL,
+                "requested_start": start_date.isoformat(),
+                "requested_end": end_date.isoformat(),
+                "stage": stage,
+                "attempt": attempts or None,
+                "max_attempts": max_attempts or None,
+                "will_retry": will_retry,
+                "retry_strategy": (
+                    "automatic_then_authorized_network_or_licensed_feed"
+                    if access_failure else "automatic_then_operator_review"
+                ),
+                "last_error": message,
+            }
+            existing_failure = db.conn.execute(
+                """SELECT id FROM exceptions WHERE company_id=? AND source_key=?
+                AND code=? AND status='open' LIMIT 1""",
+                (company.company_id, failure_source_key, code),
+            ).fetchone()
+            if existing_failure:
+                with db.conn:
+                    db.conn.execute(
+                        """UPDATE exceptions SET message=?,payload_json=?,severity=?,
+                        retry_count=retry_count+1,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                        (message, json.dumps(failure_payload, sort_keys=True),
+                         "warning" if access_failure else "error", existing_failure["id"]),
+                    )
+            else:
+                db.exception(
+                    company.company_id, failure_source_key, stage, code, message,
+                    failure_payload, severity="warning" if access_failure else "error",
+                )
+                with db.conn:
+                    db.conn.execute(
+                        """UPDATE exceptions SET retry_count=1
+                        WHERE company_id=? AND source_key=? AND code=? AND status='open'""",
+                        (company.company_id, failure_source_key, code),
+                    )
+            db.upsert_backlog_item(
+                failure_key, "market_history_ingestion", "market_data",
+                f"Restore official Saudi price history for {company.symbol}",
+                company_id=company.company_id,
+                description=(
+                    "The scheduled Saudi Exchange history connector failed. Automatic retries "
+                    "remain enabled; if access stays blocked, run it from an authorized network "
+                    "or configure a licensed market-history feed."
+                ),
+                source_url=SAUDI_HISTORICAL_REPORTS_URL, priority=10,
+                payload=failure_payload,
+            )
+            with db.conn:
+                db.conn.execute(
+                    """UPDATE backlog_items SET status=?,updated_at=CURRENT_TIMESTAMP
+                    WHERE idempotency_key=?""",
+                    ("ready" if will_retry else "blocked", failure_key),
+                )
+            raise
+        with db.conn:
+            resolved = db.conn.execute(
+                """UPDATE exceptions SET status='resolved',
+                resolution='A later scheduled run archived and published official market history',
+                assigned_to=COALESCE(assigned_to,'pipeline'),updated_at=CURRENT_TIMESTAMP
+                WHERE company_id=? AND source_key=? AND status='open'
+                AND code IN ('source_access_blocked','market_history_fetch_failed',
+                             'market_history_archive_failed','market_history_publish_failed',
+                             'market_history_refresh_failed')""",
+                (company.company_id, failure_source_key),
+            ).rowcount
+        backlog_completed = db.complete_backlog_item(failure_key)
+        return {
+            "status": "published", "company_id": company.company_id,
+            "source_key": source_key, "observations": len(prices),
+            "inserted": states.count("inserted"), "restated": states.count("restated"),
+            "duplicates": states.count("duplicate"),
+            "market_statistics": statistics_result, "valuation": valuation_result,
+            "understanding_score": understanding["total_score"],
+            "resolved_failures": resolved,
+            "completed_failure_backlog": backlog_completed,
+        }
+    return handle
+
+
+def _extract_document_job_handler(db: Database, queue: DurableJobQueue | None = None):
+    def handle(job):
+        source_key=job.payload["source_key"]; row=db.stored_source(source_key)
+        registry=CompanyRegistry.combined(db.conn,job.payload.get("registry","config/companies.json"))
+        company=registry.get(row["company_id"]); path=Path(row["local_path"] or "")
+        if not path.is_file(): raise FileNotFoundError(f"archived source is missing: {path}")
+        document=SourceDocument(
+            row["company_id"],company.market,row["source_url"],row["source_key"],row["filing_type"],
+            row["filed_at"],path.read_bytes(),row["content_type"],json.loads(row["metadata_json"]),
+        )
+        raw_dir=job.payload.get("raw_dir","data/raw")
+        if row["content_type"] == "application/json":
+            return Pipeline(db,raw_dir).run(
+                company,StoredDocumentConnector(document),job.job_id,
+            )
+        if row["content_type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            mapping_path = Path("config") / "supplements" / f"{company.symbol}.json"
+            if not mapping_path.is_file():
+                manifest=None; report=None; reader_source="xlsx-supplement"
+                read_error=f"reviewed issuer mapping is missing: {mapping_path}"
+                code="xlsx_mapping_required"
+            else:
+                try:
+                    manifest,report=_read_xlsx_manifest(path,company,row,mapping_path)
+                except Exception as error:
+                    manifest=None; report=None; read_error=str(error)
+                    reader_source="xlsx-supplement"
+                    code="xlsx_extraction_failed"
+                else:
+                    reader_source="xlsx-supplement"; read_error=None
+                    code="xlsx_extraction_failed"
+        elif row["content_type"] == "application/pdf":
+            equivalent_source = _published_language_equivalent(db, row)
+            if equivalent_source:
+                db.set_source_status(source_key, "context_only")
+                db.resolve_source_exceptions(
+                    source_key,
+                    f"Archived as the Arabic-language twin of published source {equivalent_source}; numeric facts use the verified English rendering.",
+                    "pipeline",
+                )
+                db.complete_backlog_item(f"extraction:{source_key}")
+                return {
+                    "status": "context_only", "source_key": source_key,
+                    "equivalent_source_key": equivalent_source, "published": 0,
+                    "reader": "language-equivalence",
+                }
+            pdf_supplement = row["filing_type"] == "data-supplement"
+            regulatory_disclosure = row["filing_type"] == "regulatory-disclosure"
+            interim_period_missing = (
+                row["filing_type"] == "interim-report" and
+                _source_period(row, company) is None
+            )
+            if pdf_supplement:
+                # Data supplements are wide KPI workbooks rendered as PDF,
+                # not primary financial statements. Sending them through the
+                # statement reader creates a misleading pdf_extraction_failed
+                # bundle even when the PDF is perfectly readable. They need a
+                # reviewed, issuer-specific table map just like XLSX
+                # supplements; classify that missing adapter precisely.
+                manifest=None; report=None; reader_source="pdf-supplement"
+                read_error=(
+                    "PDF data supplement requires a reviewed issuer-specific "
+                    "table mapping adapter"
+                )
+                code="pdf_supplement_mapping_required"
+            elif regulatory_disclosure:
+                # Pillar 3 KM1 tables carry their own period headers, which the
+                # reader proves as a quarterly sequence before any fact is kept.
+                try:
+                    manifest,report,reader_source=_read_pillar3_manifest(path,company,row)
+                except Exception as error:
+                    manifest=None; report=None; reader_source="pillar3-km1"; read_error=str(error)
+                else:
+                    read_error=None
+            elif interim_period_missing:
+                manifest=None; report=None; reader_source=None
+                read_error=(
+                    "automatic interim extraction is held for review because one PDF can "
+                    "contain quarter and YTD columns for the same date"
+                )
+            else:
+                try:
+                    manifest,report,reader_source=_read_pdf_manifest(
+                        path,company,row,bool(job.payload.get("llm")),
+                    )
+                except Exception as error:
+                    manifest=None; report=None; reader_source=None; read_error=str(error)
+                else:
+                    read_error=None
+        else:
+            manifest=None; report=None; reader_source=None; read_error=None
+            code="binary_extractor_required"
+        if row["content_type"] in {
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }:
+            if manifest is not None and report["ok"]:
+                manifest_dir=Path(raw_dir)/company.market.value/company.symbol/"manifests"
+                manifest_dir.mkdir(parents=True,exist_ok=True)
+                manifest_path=manifest_dir/f"{path.stem}.json"
+                manifest_path.write_text(
+                    json.dumps(manifest,ensure_ascii=False,indent=2),encoding="utf-8",
+                )
+                # A successful end-to-end reprocess supersedes every exception
+                # that belonged to the previous attempt, including validation
+                # failures. Capture their ids before the new pipeline run so
+                # any fresh warning created by this run remains open.
+                prior_source_exceptions = [
+                    record["id"] for record in db.conn.execute(
+                        """SELECT id FROM exceptions
+                           WHERE source_key=? AND status='open'""",
+                        (source_key,),
+                    )
+                ]
+                if db.source_status(source_key) == "review_required":
+                    # A newly installed/updated reader is itself the reviewed
+                    # resolution. Reopen staging while retaining the old
+                    # exception until publication actually succeeds.
+                    db.reset_unfinished_source(source_key)
+                result=Pipeline(db,raw_dir).run(
+                    company,LocalFileConnector(
+                        manifest_path,row["source_url"],source_key=source_key
+                    ),job.job_id,
+                )
+                if result["status"] in {"published", "duplicate"}:
+                    for exception_id in prior_source_exceptions:
+                        db.resolve_exception(
+                            exception_id,
+                            "Document reprocessed through extraction, validation, and publication successfully.",
+                            "pipeline",
+                        )
+                    db.complete_backlog_item(f"extraction:{source_key}")
+                result["reader"]=reader_source
+                result["manifest_path"]=str(manifest_path)
+                if queue:
+                    result.update(_queue_profile_extraction(db, queue, job, row))
+                return result
+            if (row["content_type"] == "application/pdf" and manifest is not None
+                    and not manifest.get("facts") and _is_financial_presentation(path)):
+                db.set_source_status(source_key, "context_only")
+                db.resolve_source_exceptions(
+                    source_key,
+                    "Archived as an investor/earnings presentation; it contains no signed primary financial statements.",
+                    "document-classifier",
+                )
+                db.complete_backlog_item(f"extraction:{source_key}")
+                return {
+                    "status": "context_only", "stage": "classification",
+                    "source_key": source_key, "published": 0,
+                    "reader": "presentation-classifier",
+                }
+            if row["content_type"] == "application/pdf":
+                if row["filing_type"] == "data-supplement":
+                    code="pdf_supplement_mapping_required"
+                elif interim_period_missing:
+                    code="interim_period_semantics_required"
+                elif read_error and "optional OCR dependencies" in read_error:
+                    code="pdf_ocr_required"
+                else:
+                    code="pdf_extraction_failed"
+            db.exception(
+                company.company_id,source_key,"extraction",code,
+                "The reader agent could not produce a manifest that passes verify.",
+                {"content_type":row["content_type"],"local_path":row["local_path"],
+                 "reader":reader_source,"read_error":read_error,
+                 "verify_failures":report["failures"] if report else None,
+                 # Keep the actual failed rules.  Recording only the count made
+                 # thousands of distinct reader outcomes look like the same
+                 # generic PDF failure and prevented deterministic repair.
+                 "verify_detail":[
+                     detail for detail in (report.get("detail",[]) if report else [])
+                     if detail.get("status") in {"fail","warn"}
+                 ][:25],
+                 "unmapped_labels":(report.get("unmapped_labels",[])[:25]
+                                    if report else [])},
+            )
+        else:
+            db.exception(company.company_id,source_key,"extraction",code,
+                         "A reviewed PDF/XLSX extraction adapter must produce source-faithful facts.",
+                         {"content_type":row["content_type"],"local_path":row["local_path"]})
+        db.set_source_status(source_key,"review_required")
+        db.publication_batch(source_key,company.company_id,"blocked",0,0)
+        key=f"extraction:{source_key}"
+        db.upsert_backlog_item(
+            key,"document_extraction","financial",f"Extract {row['filing_type']}: {company.name}",
+            company_id=company.company_id,source_url=row["source_url"],priority=10,
+            payload={"source_key":source_key,"content_type":row["content_type"],
+                     "local_path":row["local_path"],"origin":"extraction_queue"},
+        )
+        with db.conn:
+            db.conn.execute("UPDATE backlog_items SET status='ready',updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?",(key,))
+        return {"status":"review_required","stage":"extraction","source_key":source_key,
+                "code":code,"published":0}
+    return handle
+
+
+def _retry_source(db: Database, source_key: str, registry_path: str,
+                  raw_dir: str) -> dict:
+    """Retry a stored source through the extractor appropriate to its type.
+
+    ``retry-source`` historically sent every source directly to ``Pipeline``.
+    That is correct for a reviewed JSON manifest, but a PDF/XLSX is not JSON
+    and therefore could never be repaired by the command intended to retry it.
+    """
+    row = db.stored_source(source_key)
+    registry = CompanyRegistry.combined(db.conn, registry_path)
+    company = registry.get(row["company_id"])
+    path = Path(row["local_path"] or "")
+    if not path.is_file():
+        raise FileNotFoundError(f"archived source is missing: {path}")
+    if row["content_type"] != "application/json":
+        # The document handler deliberately keeps the previous exceptions open
+        # until a new manifest passes verification and publication, then
+        # resolves exactly those prior ids.  Do not pre-resolve evidence merely
+        # to make a retry possible.
+        retry_job = SimpleNamespace(
+            payload={
+                "source_key": source_key, "registry": registry_path,
+                "raw_dir": raw_dir,
+            },
+            job_id=f"retry:{source_key}",
+        )
+        return _extract_document_job_handler(db)(retry_job)
+    db.reopen_source_for_retry(source_key)
+    document = SourceDocument(
+        row["company_id"], company.market, row["source_url"], row["source_key"],
+        row["filing_type"], row["filed_at"], path.read_bytes(), row["content_type"],
+        json.loads(row["metadata_json"]),
+    )
+    return Pipeline(db, raw_dir).run(company, StoredDocumentConnector(document))
+
+def main():
+    p=argparse.ArgumentParser(prog="finengine"); p.add_argument("--db",default="data/financial.sqlite3"); sub=p.add_subparsers(dest="cmd",required=True)
+    init=sub.add_parser("init"); init.add_argument("--registry",default="config/companies.json")
+    bootstrap=sub.add_parser("bootstrap"); bootstrap.add_argument("--imports",default="data/imports"); bootstrap.add_argument("--registry",default="config/companies.json"); bootstrap.add_argument("--raw-dir",default="data/raw"); bootstrap.add_argument("--replace",action="store_true"); bootstrap.add_argument("--html",default="data/financial-report.html"); bootstrap.add_argument("--csv",default="data/financial-data.csv"); bootstrap.add_argument("--schedule-every",type=int); bootstrap.add_argument("--field-availability-dir",default="config/factory/field-availability")
+    sync_manifests=sub.add_parser("sync-manifests"); sync_manifests.add_argument("--imports",default="data/imports"); sync_manifests.add_argument("--manifest",action="append",default=[],help="one reviewed JSON manifest (repeatable); omit to sync the complete imports directory"); sync_manifests.add_argument("--registry",default="config/companies.json"); sync_manifests.add_argument("--raw-dir",default="data/raw"); sync_manifests.add_argument("--archive-index",default="data/raw/archive-index.json"); sync_manifests.add_argument("--project-root",default="."); sync_manifests.add_argument("--backup-dir"); sync_manifests.add_argument("--backup-keep",type=int,default=3)
+    backup=sub.add_parser("backup"); backup.add_argument("--output-dir",default="backups"); backup.add_argument("--keep",type=int,default=14)
+    bundle=sub.add_parser("backup-bundle"); bundle.add_argument("--output-dir",default="backups/bundles"); bundle.add_argument("--project-root",default="."); bundle.add_argument("--keep",type=int,default=7)
+    production=sub.add_parser("configure-production"); production.add_argument("--registry",default="config/companies.json"); production.add_argument("--every",type=int,default=21600); production.add_argument("--source-limit",type=int,default=50); production.add_argument("--raw-dir",default="data/raw"); production.add_argument("--llm",action="store_true",help="opt in to scheduled LLM profile review; disabled by default"); production.add_argument("--no-llm",action="store_true",help=argparse.SUPPRESS)
+    factory_plan=sub.add_parser("factory-plan"); factory_plan.add_argument("--market",choices=["SA","US"]); factory_plan.add_argument("--symbols",help="comma-separated symbols"); factory_plan.add_argument("--target",default="95")
+    factory_run=sub.add_parser("factory-run"); factory_run.add_argument("run_id"); factory_run.add_argument("--dispatch-limit",type=int,default=50); factory_run.add_argument("--registry",default="config/companies.json"); factory_run.add_argument("--raw-dir",default="data/raw")
+    factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+    factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+    factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
+    factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+    field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
+    field_availability_list=sub.add_parser("field-availability-list"); field_availability_list.add_argument("market"); field_availability_list.add_argument("symbol"); field_availability_list.add_argument("--status",choices=["unavailable","not_applicable"])
+    universe_sync=sub.add_parser("universe-sync"); universe_sync.add_argument("market",choices=["SA","US"]); universe_sync.add_argument("--input"); universe_sync.add_argument("--source-url"); universe_sync.add_argument("--raw-dir",default="data/raw/universe"); universe_sync.add_argument("--show",action="store_true",help="show browser during live Saudi directory sync")
+    universe_activate=sub.add_parser("universe-activate"); universe_activate.add_argument("market",choices=["SA","US"]); universe_activate.add_argument("--limit",type=int,default=50); universe_activate.add_argument("--exchange",action="append",default=[]); universe_activate.add_argument("--symbols"); universe_activate.add_argument("--enable",action="store_true"); universe_activate.add_argument("--schedule-every",type=int); universe_activate.add_argument("--registry",default="config/companies.json"); universe_activate.add_argument("--include-funds",action="store_true")
+    universe_enrich=sub.add_parser("universe-enrich"); universe_enrich.add_argument("--batch"); universe_enrich.add_argument("--limit",type=int,default=25); universe_enrich.add_argument("--raw-dir",default="data/raw/universe")
+    universe_promote=sub.add_parser("universe-promote"); universe_promote.add_argument("batch"); universe_promote.add_argument("--limit",type=int,default=10); universe_promote.add_argument("--schedule-every",type=int,default=21600); universe_promote.add_argument("--registry",default="config/companies.json"); universe_promote.add_argument("--raw-dir",default="data/raw")
+    universe_onboard=sub.add_parser("universe-onboard"); universe_onboard.add_argument("--raw-dir",default="data/raw/universe"); universe_onboard.add_argument("--us-limit",type=int,default=25); universe_onboard.add_argument("--sa-limit",type=int,default=10); universe_onboard.add_argument("--schedule-every",type=int,default=86400)
+    universe_reconcile=sub.add_parser("universe-reconcile-runtime"); universe_reconcile.add_argument("--raw-dir",default="data/raw"); universe_reconcile.add_argument("--recover-running",action="store_true")
+    historical=sub.add_parser("sa-historical-backfill"); historical.add_argument("--limit",type=int,default=500); historical.add_argument("--source-limit",type=int,default=500); historical.add_argument("--registry",default="config/companies.json"); historical.add_argument("--raw-dir",default="data/raw"); historical.add_argument("--keep-recurring",action="store_true"); historical.add_argument("--force-new-run",action="store_true",help="start another complete crawl even if a prior historical run succeeded")
+    historical_status=sub.add_parser("sa-historical-status"); historical_status.add_argument("--run-id")
+    sub.add_parser("universe-status")
+    archive=sub.add_parser("archive-sources"); archive.add_argument("--imports",default="data/imports"); archive.add_argument("--registry",default="config/companies.json"); archive.add_argument("--raw-dir",default="data/raw"); archive.add_argument("--index"); archive.add_argument("--project-root",default="."); archive.add_argument("--market"); archive.add_argument("--symbol")
+    audit=sub.add_parser("audit"); audit.add_argument("--project-root",default="."); audit.add_argument("--strict-warnings",action="store_true")
+    verify=sub.add_parser("verify"); verify.add_argument("prefix",nargs="?"); verify.add_argument("--imports",default="data/imports"); verify.add_argument("--strict-warnings",action="store_true")
+    read=sub.add_parser("read"); read.add_argument("pdf"); read.add_argument("market",choices=["SA","US"]); read.add_argument("symbol"); read.add_argument("--registry",default="config/companies.json"); read.add_argument("--period-end"); read.add_argument("--fiscal-year",type=int); read.add_argument("--source-url",required=True); read.add_argument("--filed-at",required=True); read.add_argument("--filing-type",default="financial-statements"); read.add_argument("--out"); read.add_argument("--llm",action="store_true"); read.add_argument("--llm-only",action="store_true"); read.add_argument("--model",default="claude-opus-5"); read.add_argument("--profile",choices=["corporate","bank","insurance"])
+    relay_enqueue=sub.add_parser("relay-enqueue"); relay_enqueue.add_argument("file"); relay_enqueue.add_argument("market",choices=["SA","US"]); relay_enqueue.add_argument("symbol"); relay_enqueue.add_argument("--registry",default="config/companies.json"); relay_enqueue.add_argument("--raw-dir",default="/app/state/raw"); relay_enqueue.add_argument("--source-url",required=True); relay_enqueue.add_argument("--filed-at",required=True); relay_enqueue.add_argument("--filing-type",default="financial-statements"); relay_enqueue.add_argument("--title",default="")
+    readprofile=sub.add_parser("read-profile"); readprofile.add_argument("pdf"); readprofile.add_argument("market",choices=["SA","US"]); readprofile.add_argument("symbol"); readprofile.add_argument("--source-url",required=True); readprofile.add_argument("--filed-at",required=True); readprofile.add_argument("--pages",help="comma-separated page numbers to read, e.g. 10,11,25,224,225; omit to read the whole document"); readprofile.add_argument("--model",default="claude-opus-5"); readprofile.add_argument("--out")
+    popprofile=sub.add_parser("populate-profile"); popprofile.add_argument("pdf"); popprofile.add_argument("market",choices=["SA","US"]); popprofile.add_argument("symbol"); popprofile.add_argument("--source-url",required=True); popprofile.add_argument("--filed-at",required=True); popprofile.add_argument("--period-end"); popprofile.add_argument("--company-id"); popprofile.add_argument("--max-pages",type=int,default=40); popprofile.add_argument("--model",default="claude-opus-5"); popprofile.add_argument("--out",required=True,help="writes <out>.json (manifest) and <out>.review-queue.json")
+    newssearch=sub.add_parser("news-search"); newssearch.add_argument("company_name"); newssearch.add_argument("market",choices=["SA","US"]); newssearch.add_argument("symbol"); newssearch.add_argument("--model",default="claude-haiku-4-5-20251001"); newssearch.add_argument("--out")
+    newsrss=sub.add_parser("news-search-rss"); newsrss.add_argument("company_names",help="one or more names/aliases to match, comma-separated (English and/or Arabic), e.g. 'Qassim Cement,Arabic name variant'"); newsrss.add_argument("market",choices=["SA","US"]); newsrss.add_argument("symbol"); newsrss.add_argument("--out")
+    newsalerts=sub.add_parser("news-search-email-alerts"); newsalerts.add_argument("market",choices=["SA","US"]); newsalerts.add_argument("symbol"); newsalerts.add_argument("--since-days",type=int,default=2); newsalerts.add_argument("--mailbox",default="INBOX"); newsalerts.add_argument("--out")
+    readx=sub.add_parser("read-xlsx"); readx.add_argument("xlsx"); readx.add_argument("market",choices=["SA","US"]); readx.add_argument("symbol"); readx.add_argument("--registry",default="config/companies.json"); readx.add_argument("--mapping"); readx.add_argument("--filed-at",required=True); readx.add_argument("--filing-type",default="data-supplement"); readx.add_argument("--period-kinds",default="fy"); readx.add_argument("--out")
+    fetch=sub.add_parser("fetch"); fetch.add_argument("market",choices=["SA","US"]); fetch.add_argument("symbol"); fetch.add_argument("url"); fetch.add_argument("--discover",action="store_true"); fetch.add_argument("--raw-dir",default="data/raw"); fetch.add_argument("--show",action="store_true")
+    ingest=sub.add_parser("ingest"); ingest.add_argument("market",choices=["SA","US"]); ingest.add_argument("symbol"); ingest.add_argument("--registry",default="config/companies.json"); ingest.add_argument("--sa-manifest"); ingest.add_argument("--file"); ingest.add_argument("--source-url"); ingest.add_argument("--raw-dir",default="data/raw")
+    query=sub.add_parser("query"); query.add_argument("market"); query.add_argument("symbol"); query.add_argument("metric"); query.add_argument("--limit",type=int,default=20)
+    dossier=sub.add_parser("dossier"); dossier.add_argument("market"); dossier.add_argument("symbol"); dossier.add_argument("--output")
+    page=sub.add_parser("page"); page.add_argument("market"); page.add_argument("symbol"); page.add_argument("--output")
+    report=sub.add_parser("report"); report.add_argument("--html",default="data/financial-report.html"); report.add_argument("--csv",default="data/financial-data.csv")
+    backfill=sub.add_parser("backfill-staging"); backfill.add_argument("--registry",default="config/companies.json"); backfill.add_argument("--raw-dir",default="data/raw")
+    facts=sub.add_parser("facts"); facts.add_argument("market"); facts.add_argument("symbol"); facts.add_argument("--category"); facts.add_argument("--period-kind"); facts.add_argument("--limit",type=int,default=500)
+    sub.add_parser("status")
+    monitor=sub.add_parser("monitor"); monitor.add_argument("market",choices=["SA","US"]); monitor.add_argument("symbol"); monitor.add_argument("--registry",default="config/companies.json"); monitor.add_argument("--raw-dir",default="data/raw"); monitor.add_argument("--source-index"); monitor.add_argument("--source-limit",type=int,default=12); monitor.add_argument("--sa-manifest"); monitor.add_argument("--browser",action="store_true"); monitor.add_argument("--llm",action="store_true")
+    sources=sub.add_parser("sources"); sources.add_argument("market"); sources.add_argument("symbol"); sources.add_argument("--status"); sources.add_argument("--limit",type=int,default=100)
+    schedule=sub.add_parser("schedule"); schedule.add_argument("market",choices=["SA","US"]); schedule.add_argument("symbol"); schedule.add_argument("--every",type=int,required=True); schedule.add_argument("--mode",choices=["monitor","ingest"],default="monitor"); schedule.add_argument("--registry",default="config/companies.json"); schedule.add_argument("--raw-dir",default="data/raw"); schedule.add_argument("--sa-manifest"); schedule.add_argument("--source-index"); schedule.add_argument("--source-limit",type=int,default=12); schedule.add_argument("--browser",action="store_true"); schedule.add_argument("--llm",action="store_true")
+    worker=sub.add_parser("worker"); worker.add_argument("--once",action="store_true"); worker.add_argument("--poll",type=int,default=10); worker.add_argument("--worker-id")
+    coverage=sub.add_parser("coverage"); coverage.add_argument("market"); coverage.add_argument("symbol"); coverage.add_argument("--refresh",action="store_true")
+    backlog=sub.add_parser("backlog"); backlog.add_argument("market",nargs="?"); backlog.add_argument("symbol",nargs="?"); backlog.add_argument("--refresh",action="store_true"); backlog.add_argument("--status",default="active",choices=["active","open","ready","in_progress","blocked","completed","cancelled","all"]); backlog.add_argument("--limit",type=int,default=500)
+    prices=sub.add_parser("prices"); prices.add_argument("market"); prices.add_argument("symbol"); prices.add_argument("--interval",default="1d"); prices.add_argument("--limit",type=int,default=100)
+    market_history=sub.add_parser("market-history"); market_history.add_argument("symbol"); market_history.add_argument("--start"); market_history.add_argument("--end"); market_history.add_argument("--sector"); market_history.add_argument("--market-segment"); market_history.add_argument("--registry",default="config/companies.json"); market_history.add_argument("--raw-dir"); market_history.add_argument("--show",action="store_true")
+    actions=sub.add_parser("actions"); actions.add_argument("market"); actions.add_argument("symbol"); actions.add_argument("--type"); actions.add_argument("--limit",type=int,default=100)
+    ownership=sub.add_parser("ownership"); ownership.add_argument("market"); ownership.add_argument("symbol"); ownership.add_argument("--as-of"); ownership.add_argument("--limit",type=int,default=100)
+    catalog=sub.add_parser("catalog"); catalog.add_argument("--category"); catalog.add_argument("--domain"); catalog.add_argument("--limit",type=int,default=1000)
+    completeness=sub.add_parser("completeness"); completeness.add_argument("market"); completeness.add_argument("symbol"); completeness.add_argument("--refresh",action="store_true")
+    understanding=sub.add_parser("understanding"); understanding.add_argument("market",nargs="?"); understanding.add_argument("symbol",nargs="?"); understanding.add_argument("--refresh",action="store_true"); understanding.add_argument("--all",action="store_true")
+    sub.add_parser("source-governance")
+    exceptions=sub.add_parser("exceptions"); exceptions.add_argument("market",nargs="?"); exceptions.add_argument("symbol",nargs="?"); exceptions.add_argument("--status",default="open",choices=["open","resolved","all"]); exceptions.add_argument("--limit",type=int,default=100)
+    exception_bundles=sub.add_parser(
+        "exception-bundles",
+        description=(
+            "Group all open exceptions by shared root cause (reader/parser, source domain, "
+            "document type, metric/raw label, failure code — layout fingerprint is emitted as "
+            "null; see LIMITATIONS in exception_bundles.py, the schema has no such column) so "
+            "one compact bundle can be reviewed instead of every exception individually. Each "
+            "bundle carries at most 3 short representative samples, never full documents. "
+            "Priority formula (see exception_bundles.priority_score): "
+            "criticality x affected_companies_count x estimated_exceptions_closed x source_authority, where "
+            "criticality is 3/2/1 for a data_catalog_fields.requirement of required/recommended/optional "
+            "(1 if the metric has no catalog entry), and source_authority is 4/3/2/1 for this project's "
+            "documented P/C/S/O source tiers (docs/SOURCE_MAP.md), defaulting to S=2 for an unrecognized domain."
+        ),
+    )
+    exception_bundles.add_argument("--limit",type=int,default=0,help="max open exceptions to read; 0 reads all open exceptions (default)")
+    exception_bundles.add_argument("--output",help="write JSON Lines (one bundle per line) to this path instead of stdout")
+    exception_bundles.add_argument("--classification",choices=list(exception_bundles_mod.CLASSIFICATIONS),help="only emit bundles of this classification")
+    exception_bundles.add_argument("--sort-by-priority",dest="sort_by_priority",action=argparse.BooleanOptionalAction,default=True,help="order bundles by priority_score descending (default: on)")
+    resolve=sub.add_parser("resolve-exception"); resolve.add_argument("exception_id",type=int); resolve.add_argument("--resolution",required=True); resolve.add_argument("--assigned-to")
+    resolve_source=sub.add_parser("resolve-source-exceptions"); resolve_source.add_argument("source_key"); resolve_source.add_argument("--resolution",required=True); resolve_source.add_argument("--assigned-to")
+    retry=sub.add_parser("retry-source"); retry.add_argument("source_key"); retry.add_argument("--registry",default="config/companies.json"); retry.add_argument("--raw-dir",default="data/raw")
+    serve=sub.add_parser("serve"); serve.add_argument("--host",default="127.0.0.1"); serve.add_argument("--port",type=int,default=8000); serve.add_argument("--api-key-env",default="FINENGINE_API_KEY")
+    run=sub.add_parser("run"); run.add_argument("--host",default="127.0.0.1"); run.add_argument("--port",type=int,default=8000); run.add_argument("--api-key-env",default="FINENGINE_API_KEY"); run.add_argument("--poll",type=int,default=10); run.add_argument("--worker-id"); run.add_argument("--factory-market",choices=["SA","US"],default="SA"); run.add_argument("--factory-dispatch-limit",type=int,default=50); run.add_argument("--no-factory",action="store_true")
+    telegram=sub.add_parser("telegram"); telegram.add_argument("--token-env",default="TELEGRAM_BOT_TOKEN"); telegram.add_argument("--poll",type=int,default=2)
+    export=sub.add_parser("export-supabase")
+    export.add_argument("market",nargs="?",choices=["SA","US"]); export.add_argument("symbol",nargs="?")
+    export.add_argument("--all",action="store_true"); export.add_argument("--registry",default="config/companies.json")
+    export.add_argument("--url-env",default="SUPABASE_URL"); export.add_argument("--key-env",default="SUPABASE_SERVICE_KEY")
+    export.add_argument("--batch",type=int,default=500); export.add_argument("--prune",action="store_true")
+    export.add_argument("--sql-out"); export.add_argument("--dry-run",action="store_true")
+    a=p.parse_args()
+    if a.cmd in {'serve','run'}:
+        from .api_auth import validate_api_auth
+        validate_api_auth(a.db,a.host,os.environ.get(a.api_key_env) or None)
+    Path(a.db).parent.mkdir(parents=True,exist_ok=True)
+    if a.cmd=="init":
+        db=Database(a.db); reg=CompanyRegistry.from_json(a.registry)
+        for c in reg.all(): db.register_company(c)
+        db.close(); print(f"initialized {a.db} with {len(reg.all())} companies"); return
+    if a.cmd=="bootstrap":
+        result=rebuild_snapshot(a.db,a.imports,a.registry,a.raw_dir,a.replace,a.html,a.csv,a.schedule_every,a.field_availability_dir)
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="sync-manifests":
+        result=sync_reviewed_manifests(
+            a.db,a.imports,a.registry,a.raw_dir,a.manifest or None,
+            a.archive_index,a.project_root,a.backup_dir,a.backup_keep,
+        )
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="backup":
+        from .operations import backup_database
+        print(json.dumps(backup_database(a.db,a.output_dir,a.keep),indent=2)); return
+    if a.cmd=="backup-bundle":
+        from .operations import create_portable_bundle
+        print(json.dumps(create_portable_bundle(
+            a.db,a.output_dir,a.project_root,a.keep),indent=2)); return
+    if a.cmd=="configure-production":
+        from .operations import configure_production_schedules
+        result=configure_production_schedules(
+            a.db,a.registry,a.every,a.source_limit,a.llm and not a.no_llm,a.raw_dir
+        )
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-plan":
+        from decimal import Decimal
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try:
+            symbols=[item.strip() for item in (a.symbols or "").split(",") if item.strip()]
+            result=FactoryOrchestrator(db).plan(
+                market=a.market,symbols=symbols or None,target_score=Decimal(a.target))
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-run":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try:
+            controller=FactoryOrchestrator(db)
+            dispatched=controller.dispatch(a.run_id,limit=a.dispatch_limit,
+                                           registry=a.registry,raw_dir=a.raw_dir)
+            result={"dispatch":dispatched,"progress":controller.reconcile(a.run_id)}
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-status":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try: result=FactoryOrchestrator(db).reconcile(a.run_id)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-cancel":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try: result=FactoryOrchestrator(db).cancel(a.run_id)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-throughput":
+        from .factory import FactoryOrchestrator
+        db=Database(a.db)
+        try: result=FactoryOrchestrator(db).throughput(a.run_id,window_hours=a.window_hours)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="factory-contract-readiness":
+        from .factory_contract import evaluate_factory_contract
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="field-availability-set":
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            db.upsert_field_availability(
+                company.company_id,a.field_key,a.status,reason_code=a.reason_code,
+                reason=a.reason,assessed_by=a.assessed_by,
+                evidence_source_key=a.source_key,evidence_url=a.evidence_url,
+                evidence_note=a.evidence_note,rule_reference=a.rule_reference,
+                expires_at=a.expires_at,
+            )
+            result={"company_id":company.company_id,"field_key":a.field_key,
+                    "status":a.status,"saved":True}
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="field-availability-list":
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            where=" AND status=?" if a.status else ""
+            params=(company.company_id,a.status) if a.status else (company.company_id,)
+            rows=[dict(row) for row in db.conn.execute(
+                "SELECT * FROM company_field_availability WHERE company_id=?"+where+
+                " ORDER BY field_key",params
+            ).fetchall()]
+        finally: db.close()
+        print(json.dumps(rows,indent=2)); return
+    if a.cmd=="universe-sync":
+        from .universe import sync_universe
+        db=Database(a.db)
+        try:
+            user_agent=_sec_user_agent() if a.market=="US" and not a.input else None
+            result=sync_universe(db,a.market,a.raw_dir,user_agent,a.input,a.source_url,
+                                 headless=not a.show)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-activate":
+        from .universe import activate_universe
+        symbols=tuple(value.strip() for value in (a.symbols or "").split(",") if value.strip())
+        db=Database(a.db)
+        try:
+            result=activate_universe(db,a.market,a.limit,tuple(a.exchange),symbols,
+                                     a.enable,a.schedule_every,a.registry,a.include_funds)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-enrich":
+        from .universe import enrich_activation_batch
+        db=Database(a.db)
+        try: result=enrich_activation_batch(db,a.raw_dir,_sec_user_agent(),a.batch,a.limit)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-promote":
+        from .universe import promote_activation_batch
+        db=Database(a.db)
+        try: result=promote_activation_batch(db,a.batch,a.limit,a.schedule_every,a.registry,a.raw_dir)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-reconcile-runtime":
+        from .universe import reconcile_onboarding_runtime_paths
+        db=Database(a.db)
+        try: result=reconcile_onboarding_runtime_paths(db,a.raw_dir,a.recover_running)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="sa-historical-backfill":
+        from .universe import enqueue_saudi_historical_backfill
+        db=Database(a.db)
+        try:
+            result=enqueue_saudi_historical_backfill(
+                db,a.limit,a.source_limit,a.registry,a.raw_dir,not a.keep_recurring,
+                a.force_new_run)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="sa-historical-status":
+        from .universe import saudi_historical_backfill_status
+        db=Database(a.db)
+        try: result=saudi_historical_backfill_status(db,a.run_id)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-onboard":
+        from .universe import onboard_universe
+        db=Database(a.db)
+        try: result=onboard_universe(db,a.raw_dir,_sec_user_agent(),a.us_limit,
+                                    a.sa_limit,a.schedule_every)
+        finally: db.close()
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="universe-status":
+        q=FinancialQueryService(a.db); print(json.dumps(q.universe_status(),ensure_ascii=False,indent=2)); q.close(); return
+    if a.cmd=="archive-sources":
+        result=archive_manifest_sources(a.db,a.imports,a.registry,a.raw_dir,a.index,
+                                        a.project_root,a.market,a.symbol)
+        print(json.dumps(result,ensure_ascii=False,indent=2)); return
+    if a.cmd=="audit":
+        result=audit_release(a.db,a.project_root); print(json.dumps(result,indent=2))
+        if result["failures"] or (a.strict_warnings and result["warnings"]): raise SystemExit(1)
+        return
+    if a.cmd=="verify":
+        from .verification import ManifestVerifier
+        result=ManifestVerifier(a.imports).verify(a.prefix)
+        print(json.dumps(result,indent=2,ensure_ascii=False))
+        if result["failures"] or result["unmapped_labels"] or (a.strict_warnings and result["warnings"]):
+            raise SystemExit(1)
+        return
+    if a.cmd=="read-xlsx":
+        import tempfile
+        from .verification import ManifestVerifier
+        from .reading_xlsx import SupplementReader
+        company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
+        mapping=a.mapping or f"config/supplements/{a.symbol}.json"
+        manifest=SupplementReader(a.xlsx,mapping).read(
+            market=a.market,symbol=a.symbol,currency=company.currency,filed_at=a.filed_at,
+            filing_type=a.filing_type,period_kinds=tuple(a.period_kinds.split(",")))
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory,"m.json").write_text(json.dumps(manifest),encoding="utf-8")
+            verification=ManifestVerifier(directory).verify()
+        manifest["verify"]={"ok":verification["ok"],"passed":verification["passed"],
+                            "failures":verification["failures"],"source":"xlsx-supplement"}
+        output=json.dumps(manifest,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+            print(f"wrote {len(manifest['facts'])} facts to {a.out}; verify ok={verification['ok']} ({verification['passed']} checks, {verification['failures']} fail)")
+        else:
+            _print_utf8(output)
+        if not verification["ok"]: raise SystemExit(1)
+        return
+    if a.cmd=="read":
+        import tempfile
+        from .verification import ManifestVerifier
+        company=CompanyRegistry.from_json(a.registry).resolve(a.market,a.symbol)
+        kwargs={"market":a.market,"symbol":a.symbol,"currency":company.currency,
+                "source_url":a.source_url,"filed_at":a.filed_at,"period_end":a.period_end,
+                "fiscal_year":a.fiscal_year,"filing_type":a.filing_type,
+                "profile":a.profile or _company_profile(company)}
+        def verify_manifest(manifest):
+            with tempfile.TemporaryDirectory() as directory:
+                Path(directory,"manifest.json").write_text(json.dumps(manifest),encoding="utf-8")
+                return ManifestVerifier(directory).verify()
+        manifest=None; source="deterministic"
+        if not a.llm_only:
+            from .reading import StatementReader
+            manifest=StatementReader(a.pdf).read(**kwargs)
+            verification=verify_manifest(manifest)
+            if not verification["ok"] and a.llm:
+                manifest=None
+        if manifest is None:
+            from .reading_llm import llm_read
+            manifest=llm_read(a.pdf,model=a.model,**kwargs); source=f"llm:{a.model}"
+        verification=verify_manifest(manifest)
+        manifest["verify"]={"ok":verification["ok"],"passed":verification["passed"],
+                            "failures":verification["failures"],"source":source}
+        output=json.dumps(manifest,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+            print(f"wrote {len(manifest['facts'])} facts ({source}) to {a.out}; verify ok={verification['ok']}")
+        else:
+            _print_utf8(output)
+        if not verification["ok"]: raise SystemExit(1)
+        return
+    if a.cmd=="relay-enqueue":
+        # Deployment owns schema migration and catalog backfills.  The relay is
+        # a hot-path writer that may run alongside several extraction workers;
+        # reopening it in initialization mode needlessly competes for SQLite's
+        # schema/write lock for every downloaded document.
+        db=Database(a.db,initialize=False); reg=CompanyRegistry.combined(db.conn,a.registry)
+        company=reg.resolve(a.market,a.symbol); db.register_company(company)
+        path=Path(a.file); content=path.read_bytes(); digest=hashlib.sha256(content).hexdigest()
+        content_type=("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      if path.suffix.lower()==".xlsx" else "application/pdf")
+        existing=db.conn.execute(
+            """SELECT source_key,status FROM source_documents
+               WHERE company_id=? AND content_hash=? ORDER BY created_at LIMIT 1""",
+            (company.company_id,digest),
+        ).fetchone()
+        source_key=(existing["source_key"] if existing else
+                    f"document:{company.company_id}:{digest}")
+        document=SourceDocument(
+            company.company_id,company.market,a.source_url,source_key,a.filing_type,
+            a.filed_at,content,content_type,
+            {"title":a.title,"connector":"windows_tadawul_relay",
+             "source_role":"official_document","authority_tier":"configured_official_source",
+             "numeric_authority":True},
+        )
+        db.save_source(document,digest,str(path))
+        db.save_source_artifact(
+            f"artifact:{digest}",company.company_id,a.source_url,digest,str(path),
+            content_type,len(content),document.metadata,
+        )
+        if existing and existing["status"]=="published":
+            result={"status":"duplicate","source_key":source_key,"queued":False}
+        else:
+            db.set_source_status(source_key,"awaiting_extraction")
+            job_id,created=DurableJobQueue(db).enqueue(
+                "extract_document",
+                {"source_key":source_key,"raw_dir":a.raw_dir,"registry":a.registry,
+                 "llm":False,"discovery_scope":"historical"},
+                company.company_id,source_key,
+                idempotency_key=f"extract:{source_key}",priority=1,max_attempts=4,
+            )
+            result={"status":"queued" if created else "duplicate_job",
+                    "source_key":source_key,"job_id":job_id,"queued":created}
+        db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="read-profile":
+        from .reading_qualitative import qualitative_read
+        pages=[int(p) for p in a.pages.split(",")] if a.pages else None
+        result=qualitative_read(a.pdf,market=a.market,symbol=a.symbol,source_url=a.source_url,
+                                filed_at=a.filed_at,pages=pages,model=a.model)
+        output=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+        else:
+            _print_utf8(output)
+        print(f"accepted={len(result['accepted'])} review_queue={len(result['review_queue'])} "
+              f"(never auto-published -- route review_queue items to the exceptions table)")
+        return
+    if a.cmd=="populate-profile":
+        from .populate_profile import build_profile_manifest
+        result=build_profile_manifest(a.pdf,market=a.market,symbol=a.symbol,source_url=a.source_url,
+                                      filed_at=a.filed_at,period_end=a.period_end,company_id=a.company_id,
+                                      max_pages=a.max_pages,model=a.model)
+        Path(f"{a.out}.json").write_text(json.dumps(result["manifest"],indent=2,ensure_ascii=False),encoding="utf-8")
+        Path(f"{a.out}.review-queue.json").write_text(json.dumps(result["review_queue"],indent=2,ensure_ascii=False),encoding="utf-8")
+        sel=result["page_selection"]
+        print(f"pages: {len(sel['selected_pages'])}/{sel['total_pages']} selected -- "
+              f"attributes={len(result['manifest']['company_attributes'])} "
+              f"disclosures={len(result['manifest']['disclosures'])} "
+              f"review_queue={len(result['review_queue'])} "
+              f"(wrote {a.out}.json, {a.out}.review-queue.json)")
+        return
+    if a.cmd=="news-search":
+        from .news_connector import find_news
+        result=find_news(a.company_name,market=a.market,symbol=a.symbol,model=a.model)
+        output=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+        else:
+            _print_utf8(output)
+        print(f"official={len(result['official'])} press={len(result['press'])} "
+              f"rejected_offlist={len(result['rejected_offlist'])}")
+        return
+    if a.cmd=="news-search-rss":
+        from .rss_news_connector import find_news_rss
+        names=[n.strip() for n in a.company_names.split(",") if n.strip()]
+        result=find_news_rss(names,market=a.market,symbol=a.symbol)
+        output=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+        else:
+            _print_utf8(output)
+        print(f"official={len(result['official'])} press={len(result['press'])} "
+              f"feed_errors={len(result['feed_errors'])} cost={result['cost']}")
+        return
+    if a.cmd=="news-search-email-alerts":
+        from .email_alerts_connector import find_news_from_email_alerts
+        address=os.environ.get("GOOGLE_ALERTS_EMAIL","").strip()
+        app_password=os.environ.get("GOOGLE_ALERTS_APP_PASSWORD","").strip()
+        if not address or not app_password:
+            print("set GOOGLE_ALERTS_EMAIL and GOOGLE_ALERTS_APP_PASSWORD in the environment (.env) first",
+                  file=__import__("sys").stderr)
+            raise SystemExit(2)
+        result=find_news_from_email_alerts(market=a.market,symbol=a.symbol,email_address=address,
+                                           app_password=app_password,since_days=a.since_days,mailbox=a.mailbox)
+        output=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(output,encoding="utf-8")
+        else:
+            _print_utf8(output)
+        print(f"official={len(result['official'])} press={len(result['press'])} "
+              f"rejected_offlist={len(result['rejected_offlist'])} cost={result['cost']}")
+        return
+    if a.cmd=="fetch":
+        from .fetching import BrowserFetcher
+        fetcher=BrowserFetcher(raw_dir=a.raw_dir,headless=not a.show)
+        result=fetcher.discover(a.url) if a.discover else fetcher.fetch(a.url,a.market,a.symbol)
+        print(json.dumps(result,indent=2,ensure_ascii=False)); return
+    if a.cmd=="ingest":
+        db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); c=reg.resolve(a.market,a.symbol)
+        if a.file: connector=LocalFileConnector(a.file,a.source_url)
+        elif a.market=="US": connector=SecCompanyFactsConnector(_sec_user_agent())
+        else:
+            if not a.sa_manifest: p.error("--sa-manifest is required for SA")
+            connector=SaudiManifestConnector(a.sa_manifest)
+        print(json.dumps(Pipeline(db,a.raw_dir).run(c,connector),indent=2)); db.close(); return
+    if a.cmd=="backfill-staging":
+        db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); pipeline=Pipeline(db,a.raw_dir); results=[]
+        rows=db.conn.execute("SELECT source_key,company_id,source_url,filing_type,filed_at,local_path,metadata_json FROM source_documents ORDER BY created_at").fetchall()
+        companies={c.company_id:c for c in reg.all()}
+        for row in rows:
+            company=companies.get(row["company_id"]); path=Path(row["local_path"] or "")
+            if not company or not path.is_file():
+                results.append({"status":"missing_raw","source_key":row["source_key"]}); continue
+            doc=SourceDocument(row["company_id"],company.market,row["source_url"],row["source_key"],row["filing_type"],row["filed_at"],path.read_bytes(),metadata=json.loads(row["metadata_json"]))
+            results.append(pipeline.backfill_staging(company,doc))
+        db.close(); print(json.dumps(results,indent=2)); return
+    if a.cmd=="report":
+        export_readable_report(a.db,a.html,a.csv); print(f"created {a.html} and {a.csv}"); return
+    if a.cmd=="status":
+        db=Database(a.db); result=db.health(); result["jobs_by_status"]={row["status"]:row["n"] for row in db.conn.execute("SELECT status,count(*) n FROM jobs GROUP BY status")}; db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="monitor":
+        db=Database(a.db); queue=DurableJobQueue(db)
+        payload={"market":a.market,"symbol":a.symbol,"registry":a.registry,"raw_dir":a.raw_dir,
+                 "source_index":a.source_index,"source_limit":a.source_limit,"sa_manifest":a.sa_manifest,
+                 "browser":a.browser,"llm":a.llm}
+        result=_monitor_once(db,queue,payload); db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="schedule":
+        if a.mode=="ingest" and a.market=="SA" and not a.sa_manifest:
+            p.error("--sa-manifest is required for scheduled Saudi ingestion")
+        db=Database(a.db); reg=CompanyRegistry.from_json(a.registry); company=reg.resolve(a.market,a.symbol); db.register_company(company)
+        payload={"market":a.market,"symbol":a.symbol,"registry":a.registry,"raw_dir":a.raw_dir,
+                 "sa_manifest":a.sa_manifest,"source_index":a.source_index,"source_limit":a.source_limit,
+                 "browser":a.browser,"llm":a.llm}
+        DurableScheduler(db).upsert(f"{a.mode}:{a.market}:{a.symbol}",f"{a.mode.title()} {a.market}:{a.symbol}",a.mode,a.every,payload,company.company_id)
+        db.close(); print(f"scheduled {a.mode} for {a.market}:{a.symbol} every {a.every} seconds"); return
+    if a.cmd=="worker":
+        # Production startup performs migrations, catalog seeds and backfills
+        # once. Extra workers must only open the already-initialized WAL DB;
+        # otherwise every replica becomes a heavyweight startup writer.
+        db=Database(a.db,initialize=False); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
+        worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
+        handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
+                  "fetch_document":_fetch_document_job_handler(db,queue),
+                  "extract_document":_extract_document_job_handler(db,queue),
+                  "extract_profile":_profile_document_job_handler(db),
+                  "profile_scan":_profile_scan_job_handler(db,queue),
+                  "market_history":_market_history_job_handler(db),
+                  "understanding_refresh":_understanding_refresh_job_handler(db)}
+        runner=Worker(queue,worker_id,handlers)
+        if a.once:
+            created=scheduler.tick(); worked=runner.run_once(); print(json.dumps({"scheduled_jobs":len(created),"worked":worked,"worker_id":worker_id})); db.close(); return
+        try:
+            while True:
+                scheduler.tick()
+                if not runner.run_once(): time.sleep(max(1,min(a.poll,30)))
+        except KeyboardInterrupt:
+            db.close(); return
+    if a.cmd=="serve":
+        api_key=os.environ.get(a.api_key_env) or None
+        print(f"read-only API listening on http://{a.host}:{a.port}")
+        try: serve_api(a.db,a.host,a.port,api_key)
+        except KeyboardInterrupt: return
+    if a.cmd=="run":
+        db=Database(a.db); queue=DurableJobQueue(db); scheduler=DurableScheduler(db,queue)
+        worker_id=a.worker_id or f"{socket.gethostname()}-{os.getpid()}"
+        handlers={"ingest":_ingest_job_handler(db),"monitor":_monitor_job_handler(db,queue),
+                  "fetch_document":_fetch_document_job_handler(db,queue),
+                  "extract_document":_extract_document_job_handler(db,queue),
+                  "extract_profile":_profile_document_job_handler(db),
+                  "profile_scan":_profile_scan_job_handler(db,queue),
+                  "market_history":_market_history_job_handler(db),
+                  "understanding_refresh":_understanding_refresh_job_handler(db)}
+        runner=Worker(queue,worker_id,handlers)
+        server=create_api_server(a.db,a.host,a.port,os.environ.get(a.api_key_env) or None)
+        api_thread=threading.Thread(target=server.serve_forever,name="finengine-api",daemon=True); api_thread.start()
+        factory = None; factory_run_id = None; factory_checked_at = 0.0
+        if not a.no_factory:
+            from .factory import FactoryOrchestrator
+            factory = FactoryOrchestrator(db)
+            active = factory.latest_active_run("factory_18_category_contract")
+            if active:
+                factory_run_id = active
+            else:
+                factory_run_id = factory.plan(market=a.factory_market)["run_id"]
+            factory.dispatch(factory_run_id,limit=a.factory_dispatch_limit)
+        print(f"engine worker, data factory and read-only API running on http://{a.host}:{a.port}")
+        try:
+            while True:
+                scheduler.tick()
+                now = time.monotonic()
+                if factory and now - factory_checked_at >= 60:
+                    factory.reconcile(factory_run_id)
+                    factory.dispatch(factory_run_id,limit=a.factory_dispatch_limit)
+                    factory_checked_at = now
+                if not runner.run_once(): time.sleep(max(1,min(a.poll,30)))
+        except KeyboardInterrupt: pass
+        finally:
+            server.shutdown(); server.server_close(); api_thread.join(timeout=5); db.close()
+        return
+    if a.cmd=="telegram":
+        token=os.environ.get(a.token_env,"").strip()
+        if not token: p.error(f"{a.token_env} is required")
+        try: TelegramBot(a.db,token).serve(a.poll)
+        except KeyboardInterrupt: return
+    if a.cmd=="export-supabase":
+        from . import __version__
+        from .export_supabase import SupabaseExporter, current_fact_company_ids, facts_to_sql
+        # Production universe companies are persisted in SQLite and can greatly
+        # outnumber the small reviewed seed registry.  Exporting only the JSON
+        # registry silently leaves newly onboarded issuers out of Supabase.
+        registry_db=sqlite3.connect(a.db)
+        registry_db.row_factory=sqlite3.Row
+        try:
+            registry=CompanyRegistry.combined(registry_db,a.registry)
+        finally:
+            registry_db.close()
+        if a.all:
+            exportable=current_fact_company_ids(a.db)
+            targets=[
+                (c.market.value,c.symbol) for c in registry.all()
+                if c.enabled and c.company_id in exportable
+            ]
+        elif a.market and a.symbol:
+            targets=[(a.market,a.symbol)]
+        else:
+            p.error("give MARKET SYMBOL, or --all")
+        if a.sql_out or a.dry_run:
+            from datetime import datetime, timezone
+            from .export_supabase import flatten_fact
+            service=FinancialQueryService(a.db); rows=[]
+            stamp=datetime.now(timezone.utc).isoformat()
+            try:
+                for market,symbol in targets:
+                    company=registry.resolve(market,symbol); offset=0
+                    while True:
+                        page=service.facts(market,symbol,limit=2000,offset=offset)
+                        rows.extend(flatten_fact(company,f,engine_version=__version__,synced_at=stamp) for f in page)
+                        if len(page)<2000: break
+                        offset+=2000
+            finally:
+                service.close()
+            if a.sql_out:
+                Path(a.sql_out).write_text(facts_to_sql(rows),encoding="utf-8")
+                print(json.dumps({"sql_out":a.sql_out,"facts":len(rows),"companies":len(targets)},indent=2))
+            else:
+                print(json.dumps({"dry_run":True,"facts":len(rows),"companies":len(targets),"sample":rows[:3]},ensure_ascii=False,indent=2,default=str))
+            return
+        url=os.environ.get(a.url_env,"").strip(); key=os.environ.get(a.key_env,"").strip()
+        if not key and a.key_env == "SUPABASE_SERVICE_KEY":
+            key=os.environ.get("SUPABASE_SECRET_KEY","").strip()
+        if not url: p.error(f"{a.url_env} is required (or use --sql-out)")
+        if not key: p.error(f"SUPABASE_SECRET_KEY or {a.key_env} is required (or use --sql-out)")
+        exporter=SupabaseExporter(a.db,url,key,engine_version=__version__)
+        results=[exporter.export(m,s,registry,prune=a.prune,batch=a.batch) for m,s in targets]
+        print(json.dumps({"exported":results,"total_facts":sum(r["facts"] for r in results)},indent=2)); return
+    if a.cmd=="exceptions":
+        if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
+        q=FinancialQueryService(a.db); print(json.dumps(q.exceptions(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
+    if a.cmd=="exception-bundles":
+        q=FinancialQueryService(a.db)
+        rows=[]
+        while True:
+            remaining=a.limit-len(rows) if a.limit else 1000
+            if a.limit and remaining <= 0: break
+            page_size=min(1000,remaining)
+            batch=q.exceptions(None,None,"open",page_size,len(rows))
+            rows.extend(batch)
+            if len(batch) < page_size: break
+        source_keys={r["source_key"] for r in rows if r.get("source_key")}
+        source_lookup={}
+        if source_keys:
+            placeholders=",".join("?"*len(source_keys))
+            for srow in q.conn.execute(
+                f"""SELECT s.source_key,s.source_url,s.filing_type,
+                COALESCE((SELECT a.content_type FROM source_artifact_links l JOIN source_artifacts a USING(artifact_key)
+                          WHERE l.source_key=s.source_key ORDER BY a.archived_at DESC LIMIT 1),s.content_type) AS content_type,
+                COALESCE((SELECT a.local_path FROM source_artifact_links l JOIN source_artifacts a USING(artifact_key)
+                          WHERE l.source_key=s.source_key ORDER BY a.archived_at DESC LIMIT 1),s.local_path) AS local_path,
+                COALESCE((SELECT a.content_hash FROM source_artifact_links l JOIN source_artifacts a USING(artifact_key)
+                          WHERE l.source_key=s.source_key ORDER BY a.archived_at DESC LIMIT 1),s.content_hash) AS content_hash
+                FROM source_documents s WHERE s.source_key IN ({placeholders})""",
+                tuple(source_keys),
+            ).fetchall():
+                source_lookup[srow["source_key"]]=dict(srow)
+        catalog_requirement={r["field_key"]:r["requirement"] for r in q.conn.execute(
+            "SELECT field_key,requirement FROM data_catalog_fields WHERE enabled=1"
+        ).fetchall()}
+        known_metric_keys={r["metric_key"] for r in q.conn.execute(
+            "SELECT metric_key FROM metric_definitions WHERE enabled=1"
+        ).fetchall()}
+        q.close()
+        bundles=exception_bundles_mod.build_bundles(rows,source_lookup,catalog_requirement,known_metric_keys)
+        if a.classification: bundles=[b for b in bundles if b["classification"]==a.classification]
+        if a.sort_by_priority:
+            bundles=sorted(bundles,key=lambda b:(-b["priority_score"],b["group_key"]["reader"],b["group_key"]["source_domain"],b["group_key"]["document_type"],b["group_key"]["code"],b["group_key"]["metric"] or ""))
+        lines=[json.dumps(b,ensure_ascii=False,sort_keys=True) for b in bundles]
+        payload="\n".join(lines)
+        if a.output:
+            target=Path(a.output); target.parent.mkdir(parents=True,exist_ok=True); target.write_text(payload+("\n" if payload else ""),encoding="utf-8")
+            print(json.dumps({"output":a.output,"bundles":len(bundles),"open_exceptions_read":len(rows)},indent=2))
+        else:
+            print(payload)
+        return
+    if a.cmd=="resolve-exception":
+        db=Database(a.db); result=db.resolve_exception(a.exception_id,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="resolve-source-exceptions":
+        db=Database(a.db); result=db.resolve_source_exceptions(a.source_key,a.resolution,a.assigned_to); db.close(); print(json.dumps(result,indent=2)); return
+    if a.cmd=="retry-source":
+        db=Database(a.db)
+        try: result=_retry_source(db,a.source_key,a.registry,a.raw_dir)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="facts":
+        q=FinancialQueryService(a.db); print(json.dumps(q.facts(a.market,a.symbol,a.category,a.period_kind,a.limit),indent=2)); q.close(); return
+    if a.cmd=="dossier":
+        q=FinancialQueryService(a.db); payload=json.dumps(q.company_dossier(a.market,a.symbol),ensure_ascii=False,indent=2); q.close()
+        if a.output:
+            target=Path(a.output); target.parent.mkdir(parents=True,exist_ok=True); target.write_text(payload+"\n",encoding="utf-8")
+            print(f"created {target}")
+        else: print(payload)
+        return
+    if a.cmd=="page":
+        q=FinancialQueryService(a.db); payload=json.dumps(q.company_page(a.market,a.symbol),ensure_ascii=False,indent=2); q.close()
+        if a.output:
+            target=Path(a.output); target.parent.mkdir(parents=True,exist_ok=True); target.write_text(payload+"\n",encoding="utf-8")
+            print(f"created {target}")
+        else: print(payload)
+        return
+    if a.cmd=="coverage":
+        if a.refresh:
+            db=Database(a.db); row=db.conn.execute("SELECT company_id FROM companies WHERE market=? AND symbol=?",(a.market.upper(),a.symbol.upper())).fetchone()
+            if not row: raise KeyError(f"unknown company {a.market}:{a.symbol}")
+            CompanyDomainStore(db).refresh_company_coverage(row["company_id"]); db.close()
+        q=FinancialQueryService(a.db); print(json.dumps(q.coverage(a.market,a.symbol),indent=2)); q.close(); return
+    if a.cmd=="completeness":
+        if a.refresh:
+            db=Database(a.db); row=db.conn.execute("SELECT company_id FROM companies WHERE market=? AND symbol=?",(a.market.upper(),a.symbol.upper())).fetchone()
+            if not row: db.close(); raise KeyError(f"unknown company {a.market}:{a.symbol}")
+            CompanyDomainStore(db).refresh_catalog_completeness(row["company_id"]); db.close()
+        q=FinancialQueryService(a.db); print(json.dumps(q.completeness(a.market,a.symbol),indent=2)); q.close(); return
+    if a.cmd=="understanding":
+        if a.all:
+            if a.symbol: p.error("symbol cannot be combined with --all")
+            from .understanding import refresh_all_understanding
+            db=Database(a.db); result=refresh_all_understanding(db.conn,a.market); db.close()
+            print(json.dumps(result,indent=2)); return
+        if not a.market or not a.symbol: p.error("market and symbol are required unless --all is used")
+        if a.refresh:
+            from .understanding import refresh_company_understanding
+            db=Database(a.db); row=db.conn.execute(
+                "SELECT company_id FROM companies WHERE market=? AND symbol=?",
+                (a.market.upper(),a.symbol.upper())).fetchone()
+            if not row: db.close(); raise KeyError(f"unknown company {a.market}:{a.symbol}")
+            refresh_company_understanding(db.conn,row["company_id"]); db.close()
+        q=FinancialQueryService(a.db); print(json.dumps(q.understanding(a.market,a.symbol),indent=2)); q.close(); return
+    if a.cmd=="source-governance":
+        q=FinancialQueryService(a.db); print(json.dumps(q.source_governance(),indent=2)); q.close(); return
+    if a.cmd=="backlog":
+        if bool(a.market) != bool(a.symbol): p.error("market and symbol must be supplied together")
+        if a.refresh:
+            db=Database(a.db); store=CompanyDomainStore(db)
+            if a.market:
+                row=db.conn.execute("SELECT company_id FROM companies WHERE market=? AND symbol=?",(a.market.upper(),a.symbol.upper())).fetchone()
+                if not row: raise KeyError(f"unknown company {a.market}:{a.symbol}")
+                store.refresh_company_backlog(row["company_id"])
+            else: store.refresh_all_backlog()
+            db.close()
+        q=FinancialQueryService(a.db); print(json.dumps(q.backlog(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
+    if a.cmd=="prices":
+        q=FinancialQueryService(a.db); print(json.dumps(q.market_prices(a.market,a.symbol,a.interval,a.limit),indent=2)); q.close(); return
+    if a.cmd=="market-history":
+        db=Database(a.db)
+        payload={"symbol":a.symbol,"start_date":a.start,"end_date":a.end,
+                 "sector":a.sector,"market_segment":a.market_segment,
+                 "registry":a.registry,"raw_dir":a.raw_dir or
+                 os.environ.get("FINENGINE_RAW_DIR","data/raw")}
+        previous=os.environ.get("FINENGINE_BROWSER_HEADLESS")
+        if a.show: os.environ["FINENGINE_BROWSER_HEADLESS"]="false"
+        try:
+            job=type("MarketHistoryJob",(),{"payload":payload})()
+            print(json.dumps(_market_history_job_handler(db)(job),indent=2))
+        finally:
+            if a.show:
+                if previous is None: os.environ.pop("FINENGINE_BROWSER_HEADLESS",None)
+                else: os.environ["FINENGINE_BROWSER_HEADLESS"]=previous
+            db.close()
+        return
+    if a.cmd=="actions":
+        q=FinancialQueryService(a.db); print(json.dumps(q.corporate_actions(a.market,a.symbol,a.type,a.limit),indent=2)); q.close(); return
+    if a.cmd=="ownership":
+        q=FinancialQueryService(a.db); print(json.dumps(q.ownership(a.market,a.symbol,a.as_of,a.limit),indent=2)); q.close(); return
+    if a.cmd=="catalog":
+        q=FinancialQueryService(a.db); print(json.dumps(q.data_catalog(a.category,a.domain,a.limit),indent=2)); q.close(); return
+    if a.cmd=="sources":
+        q=FinancialQueryService(a.db); print(json.dumps(q.source_candidates(a.market,a.symbol,a.status,a.limit),indent=2)); q.close(); return
+    q=FinancialQueryService(a.db); print(json.dumps(q.metric_history(a.market,a.symbol,a.metric,a.limit),indent=2)); q.close()
+
+if __name__=="__main__": main()

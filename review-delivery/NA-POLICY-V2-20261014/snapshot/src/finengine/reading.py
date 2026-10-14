@@ -1,0 +1,1527 @@
+from __future__ import annotations
+import unicodedata
+
+"""Reader agent: turn a filed PDF into a source-faithful manifest.
+
+Deterministic first - it reconstructs the three primary statement tables from
+the PDF's own text-with-coordinates and maps only lines it can name with
+confidence. It never invents a number and never writes to production; its
+output is a staging manifest that must still pass `finengine verify` and the
+publication pipeline. A probabilistic/LLM pass belongs behind this, only for
+pages this cannot read (scans, Arabic-only bidi tables), and only writing the
+same manifest shape.
+
+Requires the optional `pymupdf` extra.
+"""
+
+import json
+import re
+from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+
+ANCHORS = {
+    "income_statement": (
+        "statement of profit or loss", "statement of income", "income statement",
+        "profit & loss statement", "profit and loss statement",
+        "statement of comprehensive income", "قائمة الربح أو الخسارة", "قائمة الدخل",
+        "قائمة الأرباح والخسائر",
+    ),
+    "balance_sheet": (
+        "statement of financial position", "balance sheet", "قائمة المركز المالي",
+    ),
+    "cash_flow": (
+        # Both spellings are listed: ANB titles the page "Consolidated statement
+        # of cash flow" (singular), while most issuers use the plural. The
+        # plural must stay in its own right - heading matching is per line, so
+        # the singular does not stand in for it.
+        "statement of cash flows", "statement of cash flow", "cash flow statement",
+        "قائمة التدفقات النقدية",
+    ),
+}
+
+# Normalised label substring -> (canonical metric, period_kind). Longest match wins.
+# Order within a statement does not matter; specificity (length) breaks ties.
+LINE_MAP = {
+    # income statement
+    "revenue": ("revenue", "fy"),
+    "revenues": ("revenue", "fy"),
+    "sales revenue": ("revenue", "fy"),
+    "revenue and other income related to sales": ("revenue_and_other_income_related_to_sales", "fy"),
+    "other income related to sales": ("other_income_related_to_sales", "fy"),
+    "cost of sales": ("cost_of_revenue", "fy"),
+    "cost of revenue": ("cost_of_revenue", "fy"),
+    "gross profit": ("gross_profit", "fy"),
+    "ebitda": ("ebitda", "fy"),
+    "income from operations": ("operating_income", "fy"),
+    "operating profit": ("operating_income", "fy"),
+    "operating income": ("operating_income", "fy"),
+    "profit from operations": ("operating_income", "fy"),
+    "results from operating activities": ("operating_income", "fy"),
+    "other operating income": ("other_income", "fy"),
+    "other operating expenses": ("other_expense", "fy"),
+    "general and administrative expenses": ("general_and_administrative_expense", "fy"),
+    "research and development expenses": ("research_and_development_expense", "fy"),
+    "selling and distribution expenses": ("selling_and_distribution_expense", "fy"),
+    "finance income": ("finance_income", "fy"),
+    "finance costs": ("finance_costs", "fy"),
+    "income before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "profit before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "profit before tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income before income taxes and zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income from continuing operations": ("continuing_operations_income", "fy"),
+    "net loss from discontinued operation": ("discontinued_operations_income", "fy"),
+    "net income from discontinued operation": ("discontinued_operations_income", "fy"),
+    "profit for the year": ("net_income", "fy"),
+    "profit for the period": ("net_income", "fy"),
+    "net income": ("net_income", "fy"),
+    "net profit": ("net_income", "fy"),
+    "profit for the year attributable to": ("net_income_parent", "fy"),
+    "attributable to shareholders of the company": ("net_income_parent", "fy"),
+    "attributable to equity holders": ("net_income_parent", "fy"),
+    "attributable to owners": ("net_income_parent", "fy"),
+    "equity holders of the parent": ("net_income_parent", "fy"),
+    "diluted earnings per share": ("eps_diluted", "fy"),
+    "basic and diluted earnings per share": ("eps_diluted", "fy"),
+    # balance sheet
+    "total assets": ("total_assets", "instant"),
+    "non-current assets": ("noncurrent_assets", "instant"),
+    "total non-current assets": ("noncurrent_assets", "instant"),
+    "current assets": ("current_assets", "instant"),
+    "total current assets": ("current_assets", "instant"),
+    "total equity": ("total_equity", "instant"),
+    "total shareholders equity": ("equity_parent", "instant"),
+    "total liabilities": ("total_liabilities", "instant"),
+    "non-current liabilities": ("noncurrent_liabilities", "instant"),
+    "total non-current liabilities": ("noncurrent_liabilities", "instant"),
+    "current liabilities": ("current_liabilities", "instant"),
+    "total current liabilities": ("current_liabilities", "instant"),
+    "total equity and liabilities": ("total_liabilities_equity", "instant"),
+    "total liabilities and equity": ("total_liabilities_equity", "instant"),
+    "cash and cash equivalents": ("cash", "instant"),
+    "cash & equivalents": ("cash", "instant"),
+    "working capital": ("working_capital", "instant"),
+    "total debt": ("total_debt", "instant"),
+    "net-debt": ("net_debt", "instant"),
+    "property, plant and equipment": ("property_plant_equipment", "instant"),
+    "right-of-use assets": ("right_of_use_assets", "instant"),
+    "intangible assets": ("intangible_assets", "instant"),
+    "investments in associates and joint ventures": ("investments_associates", "instant"),
+    "deferred tax assets": ("deferred_tax_assets", "instant"),
+    "trade receivables": ("accounts_receivable", "instant"),
+    "short-term investments": ("short_term_investments", "instant"),
+    "assets held for sale": ("assets_held_for_sale", "instant"),
+    "assets classified as held for sale": ("assets_held_for_sale", "instant"),
+    "inventories": ("inventory", "instant"),
+    "share capital": ("share_capital", "instant"),
+    "retained earnings": ("retained_earnings", "instant"),
+    "other reserves": ("other_reserves", "instant"),
+    "equity attributable to": ("equity_parent", "instant"),
+    "equity attributable to equity holders": ("equity_parent", "instant"),
+    "non-controlling interest": ("noncontrolling_interests", "instant"),
+    "deferred tax liabilities": ("deferred_tax_liabilities", "instant"),
+    "trade payables": ("accounts_payable", "instant"),
+    "liabilities directly associated with assets held for sale": ("liabilities_held_for_sale", "instant"),
+    "liabilities relating to assets classified as held for sale": ("liabilities_held_for_sale", "instant"),
+    # cash flow
+    "operating income before changes in operating assets and liabilities":
+        ("operating_profit_before_working_capital_changes", "fy"),
+    "operating profit before changes in operating assets and liabilities":
+        ("operating_profit_before_working_capital_changes", "fy"),
+    "operating profit before changes in operating assets and":
+        ("operating_profit_before_working_capital_changes", "fy"),
+    "net cash from operating activities": ("operating_cash_flow", "fy"),
+    "net cash generated from operating activities": ("operating_cash_flow", "fy"),
+    "net cash (used in) / generated from operating activities": ("operating_cash_flow", "fy"),
+    "net cash provided by operating activities": ("operating_cash_flow", "fy"),
+    "cash flows from operating activities": ("operating_cash_flow", "fy"),
+    "cash and cash equivalents at beginning of the year": ("cash_beginning", "fy"),
+    "cash and cash equivalents at end of the year": ("cash_end", "fy"),
+    "net cash used in investing activities": ("investing_cash_flow", "fy"),
+    "net cash from investing activities": ("investing_cash_flow", "fy"),
+    "net cash from financing activities": ("financing_cash_flow", "fy"),
+    "net cash generated from financing activities": ("financing_cash_flow", "fy"),
+    "net cash (used in) / generated from financing activities": ("financing_cash_flow", "fy"),
+    "net cash flows generated from / (used in) financing activities":
+        ("financing_cash_flow", "fy"),
+    "net cash used in financing activities": ("financing_cash_flow", "fy"),
+    "net cash from/(used in) financing activities": ("financing_cash_flow", "fy"),
+    "purchase of property, plant and equipment": ("capex", "fy"),
+    "capital expenditures": ("capex", "fy"),
+    "proceeds from sale of property, plant and equipment": ("proceeds_asset_sales", "fy"),
+    "proceeds from debt": ("debt_issued", "fy"),
+    "repayment of debt": ("debt_repaid", "fy"),
+    "lease payments": ("lease_payments", "fy"),
+    "dividends paid to shareholders": ("dividends_paid", "fy"),
+    "dividends paid to non-controlling interests": ("dividends_noncontrolling", "fy"),
+    "interest received": ("interest_received", "fy"),
+    "interest paid": ("interest_paid", "fy"),
+    "zakat and income tax paid": ("taxes_paid", "fy"),
+    "net change in cash and cash equivalents": ("cash_change", "fy"),
+    "net increase in cash and cash equivalents": ("cash_change", "fy"),
+    "net decrease in cash and cash equivalents": ("cash_change", "fy"),
+    "decrease in cash and cash equivalents": ("cash_change", "fy"),
+    "cash and cash equivalents at 1 january": ("cash_beginning", "fy"),
+    "cash and cash equivalents at the beginning": ("cash_beginning", "fy"),
+    "cash and cash equivalents, beginning of the year": ("cash_beginning", "fy"),
+    "cash and cash equivalents at 31 december": ("cash_end", "fy"),
+    "cash and cash equivalents at the end": ("cash_end", "fy"),
+    "cash and cash equivalents, end of the year": ("cash_end", "fy"),
+    "effect of movements in exchange rates on cash": ("foreign_exchange_effect", "fy"),
+    "effect of exchange rate changes on cash": ("foreign_exchange_effect", "fy"),
+    "net foreign exchange gain (loss) on cash and cash equivalents": ("foreign_exchange_effect", "fy"),
+    "net foreign exchange difference": ("foreign_exchange_effect", "fy"),
+
+    # Arabic primary-statement captions.  These are exact accounting labels,
+    # not translated guesses; accepting them lets the deterministic reader use
+    # the issuer's Arabic filing when no English twin is available.
+    "الإيرادات": ("revenue", "fy"),
+    "المبيعات": ("revenue", "fy"),
+    "تكلفة الإيرادات": ("cost_of_revenue", "fy"),
+    "تكلفة المبيعات": ("cost_of_revenue", "fy"),
+    "إجمالي الربح": ("gross_profit", "fy"),
+    "الربح التشغيلي": ("operating_income", "fy"),
+    "الربح من العمليات": ("operating_income", "fy"),
+    "الربح قبل الزكاة وضريبة الدخل": ("income_before_income_taxes_and_zakat", "fy"),
+    "صافي الربح": ("net_income", "fy"),
+    "ربح السنة": ("net_income", "fy"),
+    "ربح الفترة": ("net_income", "fy"),
+    "ربحية السهم المخفضة": ("eps_diluted", "fy"),
+    "إجمالي الأصول": ("total_assets", "instant"),
+    "إجمالي الموجودات": ("total_assets", "instant"),
+    "الأصول المتداولة": ("current_assets", "instant"),
+    "الموجودات المتداولة": ("current_assets", "instant"),
+    "الأصول غير المتداولة": ("noncurrent_assets", "instant"),
+    "الموجودات غير المتداولة": ("noncurrent_assets", "instant"),
+    "إجمالي الالتزامات": ("total_liabilities", "instant"),
+    "إجمالي المطلوبات": ("total_liabilities", "instant"),
+    "الالتزامات المتداولة": ("current_liabilities", "instant"),
+    "المطلوبات المتداولة": ("current_liabilities", "instant"),
+    "الالتزامات غير المتداولة": ("noncurrent_liabilities", "instant"),
+    "المطلوبات غير المتداولة": ("noncurrent_liabilities", "instant"),
+    "إجمالي حقوق الملكية": ("total_equity", "instant"),
+    "النقد وما في حكمه": ("cash", "instant"),
+    "رأس المال": ("share_capital", "instant"),
+    "الأرباح المبقاة": ("retained_earnings", "instant"),
+    "صافي النقد من الأنشطة التشغيلية": ("operating_cash_flow", "fy"),
+    "صافي النقد المستخدم في الأنشطة الاستثمارية": ("investing_cash_flow", "fy"),
+    "صافي النقد من الأنشطة التمويلية": ("financing_cash_flow", "fy"),
+    "صافي التغير في النقد وما في حكمه": ("cash_change", "fy"),
+}
+
+# Banks often present expense lines as unsigned positive magnitudes and rely on
+# the statement layout/subtotals to communicate subtraction.  Canonical facts
+# use the natural accounting sign so deterministic identities and downstream
+# calculations behave consistently across issuers that do or do not print
+# parentheses around these rows.
+#
+# These lines can never be income, so a positive printed value is always an
+# unsigned expense.
+_BANK_NATURAL_NEGATIVE_METRICS = {
+    "financing_expense",
+    "fee_expense",
+    "operating_expense_banking",
+    "total_operating_expenses",
+    "salaries_and_employee_expenses",
+    "general_and_administrative_expense",
+    "depreciation_amortization",
+}
+# The credit-impairment line is reversible: a net release is income. Its sign
+# follows the statement's own convention, proven by the never-income rows on
+# the same page. On an unsigned-expense statement a parenthesised impairment
+# amount is a reversal, so the printed sign is inverted rather than forced.
+_BANK_REVERSIBLE_EXPENSE_METRICS = {"provision_expense"}
+
+# Banking sector map. Saudi banks report "special commission income" (interest),
+# fee and commission income, and a balance sheet with no current/non-current
+# split. Shared lines (net income, total assets/liabilities/equity, share
+# capital, statutory reserve, retained earnings, cash-flow subtotals) fall back
+# to LINE_MAP, so this only holds the labels that differ.
+BANK_LINE_MAP = {
+    # income statement
+    "special commission income, net": ("net_financing_income", "fy"),
+    "special commission income": ("financing_income", "fy"),
+    "income from investments and financing": ("financing_income", "fy"),
+    "income from investments and financing, net": ("net_financing_income", "fy"),
+    "return on time investments": ("financing_expense", "fy"),
+    "gross financing and investment income": ("financing_income", "fy"),
+    "special commission expense": ("financing_expense", "fy"),
+    "return on deposits and financial liabilities": ("financing_expense", "fy"),
+    "net special commission income": ("net_financing_income", "fy"),
+    "net financing and investment income": ("net_financing_income", "fy"),
+    "net income from investing and financing assets": ("net_financing_income", "fy"),
+    "fee and commission income": ("fee_income", "fy"),
+    "fees and commission income": ("fee_income", "fy"),
+    "fee from banking services, income": ("fee_income", "fy"),
+    "fee and commission expense": ("fee_expense", "fy"),
+    "fees and commission expense": ("fee_expense", "fy"),
+    "fee from banking services, expenses": ("fee_expense", "fy"),
+    "fee income from banking services": ("fee_income", "fy"),
+    "fee expense from banking services": ("fee_expense", "fy"),
+    # The net subtotal sits directly below the gross lines with the same words;
+    # the longer phrase keeps it from overwriting gross fee income.
+    "fee income from banking services, net": ("net_fee_income", "fy"),
+    "net fee and commission income": ("net_fee_income", "fy"),
+    # ANB prints the net subtotal directly under the gross lines with the same
+    # words and a trailing ", net"; without this entry the subtotal falls back
+    # to the gross caption and overwrites fee income.
+    "fee and commission income, net": ("net_fee_income", "fy"),
+    "fees and commission income, net": ("net_fee_income", "fy"),
+    "exchange income": ("exchange_income", "fy"),
+    "foreign exchange income": ("exchange_income", "fy"),
+    "income from fx": ("exchange_income", "fy"),
+    "trading income": ("trading_income", "fy"),
+    "net trading income": ("trading_income", "fy"),
+    "dividend income": ("dividend_income", "fy"),
+    # Bank statements print one net line for other operating items; it keeps
+    # the same canonical metric whether captioned as income or as expenses.
+    "other operating expenses, net": ("other_income", "fy"),
+    "other operating income (expenses), net": ("other_income", "fy"),
+    "other operating income/(expenses), net": ("other_income", "fy"),
+    "net other operating income / (expenses)": ("other_income", "fy"),
+    "total operating income": ("total_operating_income", "fy"),
+    "impairment charge for expected credit losses": ("provision_expense", "fy"),
+    "impairment charge/(reversal) for expected credit losses": ("provision_expense", "fy"),
+    "impairment charge for credit losses": ("provision_expense", "fy"),
+    "provision for credit losses": ("provision_expense", "fy"),
+    "provision for expected credit losses": ("provision_expense", "fy"),
+    "net impairment charge for expected credit losses": ("provision_expense", "fy"),
+    "salaries and employee-related expenses": ("salaries_and_employee_expenses", "fy"),
+    "salaries and employee related expenses": ("salaries_and_employee_expenses", "fy"),
+    "salaries and employee related benefits": ("salaries_and_employee_expenses", "fy"),
+    "depreciation and amortization": ("depreciation_amortization", "fy"),
+    # Issuers that split amortisation of acquired intangibles onto its own line
+    # report property/equipment/right-of-use depreciation here; the separate
+    # intangible line is not folded in.
+    "depreciation/amortisation of property, equipment, software, and right of use assets":
+        ("depreciation_amortization", "fy"),
+    "total operating expenses before credit impairment charge": ("operating_expense_banking", "fy"),
+    "total operating expenses before expected credit losses": ("operating_expense_banking", "fy"),
+    "total operating expenses": ("total_operating_expenses", "fy"),
+    "net income for the year": ("net_income", "fy"),
+    "net income for the period": ("net_income", "fy"),
+    "profit for the year": ("net_income", "fy"),
+    "income before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income before zakat and tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income for the period before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    "income for the year before zakat and income tax": ("income_before_income_taxes_and_zakat", "fy"),
+    # The indirect cash-flow statement opens on the pre-zakat figure and Bank
+    # Albilad words it four ways. Without these the caption falls back to the
+    # shorter "net income for the period" and a pre-zakat amount is published
+    # as net income - which the period roll-forward check then rejects.
+    "net income for the period before zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income before zakat for the period": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income for the year before zakat": ("income_before_income_taxes_and_zakat", "fy"),
+    "net income before zakat for the year": ("income_before_income_taxes_and_zakat", "fy"),
+    "zakat and income tax": ("income_taxes_and_zakat", "fy"),
+    "zakat and income tax charge for the year": ("income_taxes_and_zakat", "fy"),
+    "net income attributable to equity holders of the bank": ("net_income_parent", "fy"),
+    "attributable to equity holders of the bank": ("net_income_parent", "fy"),
+    "attributable to equity holders": ("net_income_parent", "fy"),
+    # Row printed beneath a "Net income for the period attributable to:" caption.
+    "equity holders of the bank": ("net_income_parent", "fy"),
+    # balance sheet
+    "cash and balances with sama": ("cash_and_balances_with_central_bank", "instant"),
+    "cash and balances with central banks": ("cash_and_balances_with_central_bank", "instant"),
+    "cash and balances with saudi central bank": ("cash_and_balances_with_central_bank", "instant"),
+    "due from banks and other financial institutions": ("due_from_banks", "instant"),
+    "due from banks": ("due_from_banks", "instant"),
+    "investments, net": ("bank_investments", "instant"),
+    "investments held at amortised cost": ("bank_investments", "instant"),
+    "investment securities": ("bank_investments", "instant"),
+    "loans and advances, net": ("net_loans", "instant"),
+    "loans and advances to customers, net": ("net_loans", "instant"),
+    "financing, net": ("net_loans", "instant"),
+    "financing and advances, net": ("net_loans", "instant"),
+    "net financing and investments": ("net_loans", "instant"),
+    "total assets": ("total_assets", "instant"),
+    "due to banks and other financial institutions": ("due_to_banks", "instant"),
+    "due to banks": ("due_to_banks", "instant"),
+    "customers' deposits": ("customer_deposits", "instant"),
+    "customer deposits": ("customer_deposits", "instant"),
+    "customers deposits": ("customer_deposits", "instant"),
+    "debt securities in issue": ("debt_securities_issued", "instant"),
+    "debt securities issued": ("debt_securities_issued", "instant"),
+    "sukuk issued": ("debt_securities_issued", "instant"),
+    "total liabilities": ("total_liabilities", "instant"),
+    "share capital": ("share_capital", "instant"),
+    "statutory reserve": ("statutory_reserve", "instant"),
+    "retained earnings": ("retained_earnings", "instant"),
+    "other reserves": ("other_reserves", "instant"),
+    "total shareholders' equity": ("total_equity", "instant"),
+    "total shareholders equity": ("total_equity", "instant"),
+    "total equity": ("total_equity", "instant"),
+    "total equity attributable to equity holders": ("equity_parent", "instant"),
+    "non-controlling interests": ("noncontrolling_interests", "instant"),
+    "total liabilities and equity": ("total_liabilities_equity", "instant"),
+    "total liabilities and shareholders' equity": ("total_liabilities_equity", "instant"),
+    # Arabic bank statements.  PDF engines return Arabic words in visual
+    # right-to-left order; ``_statement_facts`` restores their logical order
+    # before these exact captions are matched.
+    "دخل العمولات الخاصة": ("financing_income", "fy"),
+    "مصاريف العمولات الخاصة": ("financing_expense", "fy"),
+    "صافي دخل العمولات الخاصة": ("net_financing_income", "fy"),
+    "دخل أتعاب وعمولات صافي": ("net_fee_income", "fy"),
+    "إجمالي دخل العمليات": ("total_operating_income", "fy"),
+    "اجمالي دخل العمليات": ("total_operating_income", "fy"),
+    "إجمالي مصاريف العمليات": ("total_operating_expenses", "fy"),
+    "اجمالي مصاريف العمليات": ("total_operating_expenses", "fy"),
+    "مخصص خسائر الائتمان المتوقعة صافي": ("provision_expense", "fy"),
+    "صافي الدخل بعد الزكاة وضريبة الدخل": ("net_income", "fy"),
+    "صافي الخسارة بعد الزكاة وضريبة الدخل": ("net_income", "fy"),
+    "نقدية وأرصدة لدى مؤسسة النقد العربي السعودي":
+        ("cash_and_balances_with_central_bank", "instant"),
+    "أرصدة لدى البنوك والمؤسسات المالية الأخرى": ("due_from_banks", "instant"),
+    "استثمارات صافي": ("bank_investments", "instant"),
+    "قروض وسلف صافي": ("net_loans", "instant"),
+    "ودائع العملاء": ("customer_deposits", "instant"),
+    "أرصدة للبنوك والمؤسسات المالية الأخرى": ("due_to_banks", "instant"),
+    "سندات دين مصدرة": ("debt_securities_issued", "instant"),
+    # cash flow lines are the same wording as LINE_MAP; it is used as the fallback
+}
+
+INSURANCE_LINE_MAP = {
+    "insurance revenue": ("insurance_revenue", "fy"),
+    "insurance service expenses": ("insurance_service_expense", "fy"),
+    "insurance service result before reinsurance contracts held":
+        ("insurance_service_result", "fy"),
+    "insurance service result - net": ("insurance_service_result", "fy"),
+    "allocation of reinsurance premiums": ("reinsurance_premiums", "fy"),
+    "amounts recoverable from reinsurers for incurred claims":
+        ("reinsurance_recoveries", "fy"),
+    "net expense from reinsurance contracts held": ("reinsurance_result", "fy"),
+    "net investment income": ("insurance_investment_income", "fy"),
+    "revenue from non-insurance services": ("other_operating_revenue", "fy"),
+    "net profit for the year after zakat": ("net_income", "fy"),
+    "insurance contract assets": ("insurance_contract_assets", "instant"),
+    "reinsurance contract assets": ("reinsurance_contract_assets", "instant"),
+    "insurance contract liabilities": ("insurance_contract_liabilities", "instant"),
+    "reinsurance contract liabilities": ("reinsurance_contract_liabilities", "instant"),
+    "property, equipment, and right-of-use assets":
+        ("property_plant_equipment", "instant"),
+}
+
+_PROFILE_MAPS = {
+    "corporate": LINE_MAP,
+    "bank": {**LINE_MAP, **BANK_LINE_MAP},
+    "insurance": {**LINE_MAP, **INSURANCE_LINE_MAP},
+}
+
+# non-controlling interest inside the income statement means a different metric
+_PL_OVERRIDES = {"noncontrolling_interests": "net_income_noncontrolling"}
+
+_SCALE_PATTERNS = (
+    # A bare "000" is often just part of a reported amount (for example
+    # 210,000) and is not a scale declaration. Require an apostrophe or an
+    # explicit word so a millions statement cannot be silently divided by 1000.
+    (re.compile(r"\bthousands\b|['‘’]\s*000(?!\d)['‘’]?|\b000s\b|بآ?لاف\s+الريالات|بالآلاف", re.I), Decimal(1000)),
+    (re.compile(r"\bmillions?\b|بالملايين|مليون", re.I), Decimal(1_000_000)),
+    (re.compile(r"\bbillions?\b|بالمليارات", re.I), Decimal(1_000_000_000)),
+)
+_SCALE_DECLARATION = re.compile(
+    r"\b(?:all\s+)?amounts?\s+(?:are\s+)?(?:presented\s+)?in\b|"
+    r"['‘’]\s*000(?!\d)['‘’]?|بالآلاف|بآلاف\s+الريالات|بالملايين|بالمليارات|"
+    r"مليون\s+(?:ريال|لاير)|(?:ألف|الف)\s+(?:ريال|لاير)",
+    re.I,
+)
+_NON_PRIMARY_STATEMENT = re.compile(
+    r"\bstatements?\s+of\s+changes?\s+in\s+(?:shareholders['’]?\s+)?equity\b",
+    re.I,
+)
+_NUMBER = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?\)?$")
+_PERCENT = re.compile(r"^\(?-?[\d,]+(?:\.\d+)?%\)?$")
+_YEAR = re.compile(r"\b(19|20)\d{2}\b")
+_PERIOD_COLUMN = re.compile(
+    r"(?:19|20)\d{2}|"
+    r"Q[1-4][-_]?(?:FY)?\d{2,4}|"
+    r"(?:H1|9M|FY)[-_]?\d{2,4}|"
+    r"\d{1,2}[-_/](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-_/]\d{2,4}",
+    re.I,
+)
+_RULE = re.compile(r"^[\u2500-\u257f_=\-–—]{3,}$")
+_NOTE_REFERENCE = re.compile(r"^(?:\d{1,3},?|\([a-z]\))$")
+
+
+def _is_rule_token(token: str) -> bool:
+    """A rule line drawn with box-drawing, dash, underscore or equals glyphs."""
+    return bool(_RULE.match(token))
+
+
+def _parse_number(token: str) -> Decimal | None:
+    token = token.strip().replace("–", "-").replace("—", "-")
+    if token in {"", "-", "–", "—", "�", "n/a"}:
+        return None
+    negative = token.startswith("(") and token.endswith(")")
+    token = token.strip("()")
+    # Broken PDF font maps and OCR occasionally change one thousands comma to
+    # a full stop (for example ``99,227.318`` for ``99,227,318``).  A primary
+    # statement amount with grouped digits on both sides is an integer, not a
+    # three-decimal value: treating the final group as decimals understates it
+    # by 1,000 and makes otherwise source-faithful balance sheets fail verify.
+    # Keep ordinary decimals (including 1.234 and 1,234.56) unchanged.
+    if re.fullmatch(r"\d{1,3}(?:,\d{3})+\.\d{3}", token):
+        token = token.replace(",", "").replace(".", "")
+    else:
+        token = token.replace(",", "")
+    try:
+        value = Decimal(token)
+    except InvalidOperation:
+        return None
+    return -value if negative else value
+
+
+def _rows(words, y_tol: float = 3.0):
+    ordered = sorted(words, key=lambda w: (w[1], w[0]))
+    rows, current, anchor = [], [], None
+    for w in ordered:
+        if anchor is None or abs(w[1] - anchor) <= y_tol:
+            current.append(w)
+            anchor = w[1] if anchor is None else anchor
+        else:
+            rows.append(sorted(current, key=lambda x: x[0]))
+            current, anchor = [w], w[1]
+    if current:
+        rows.append(sorted(current, key=lambda x: x[0]))
+    return rows
+
+
+def _header_limit(words, columns, default: float = 155.0) -> float:
+    """Locate displaced period headers above the first monetary value row."""
+    tops = [w[1] for w in words
+            if re.fullmatch(r"\(?-?(?:\d{1,3}(?:,\d{3})+|\d+\.\d+)\)?", w[4])
+            and any(abs((w[0] + w[2]) / 2 - c) < 45 for c in columns)]
+    return max(default, min(tops) - 1.0) if tops else default
+
+
+def _contains_phrase(text: str, phrase: str) -> bool:
+    """``phrase`` occurs in ``text`` starting at a word boundary.
+
+    A match inside a longer word or hyphenated compound is a different line:
+    "other non-operating income" is not "operating income".
+    """
+    start = text.find(phrase)
+    while start != -1:
+        if start == 0 or not (text[start - 1].isalnum() or text[start - 1] == "-"):
+            return True
+        start = text.find(phrase, start + 1)
+    return False
+
+
+def _is_nonreported_statement_header(page_text: str) -> bool:
+    """Veto explicit adjusted/pro-forma headings, not incidental footnotes."""
+    lines = [line.strip() for line in page_text.splitlines() if line.strip()][:8]
+    for line in lines:
+        normalized = unicodedata.normalize('NFKC', line).lower().translate(
+            str.maketrans({'آ': 'ا', 'أ': 'ا', 'إ': 'ا'}))
+        normalized = re.sub(r'^\d+\s+', '', normalized)
+        if re.match(r'^(?:النتائج (?:الافتراضية|االفتراضية)|قائمة الدخل (?:الافتراضية|االفتراضية)|pro[- ]forma(?: results| financial| statement)?|adjusted results|underlying results)(?:\b|\s|\()', normalized):
+            return True
+    return False
+
+
+def _resolve_line(label: str, statement: str, line_map: dict | None = None) -> str | None:
+    # A stock line ("property, plant and equipment") also appears inside a
+    # cash-flow note ("purchase of property, plant and equipment") or an
+    # equity roll-forward; only accept a match on the statement its LINE_MAP
+    # kind actually belongs to, or a balance-sheet line reads as a bogus
+    # extra fact wherever else that phrase happens to occur.
+    wants_instant = statement == "balance_sheet"
+    # Typographic apostrophes ("Customers’ deposits") are the same caption.
+    norm = " ".join(label.lower().replace("’", "'").replace("‘", "'").split())
+    if wants_instant and re.match(r"^(?:changes (?:of|in)\s*:|purchase(?:s)? of\b|acquisition(?:s)? of\b)", norm):
+        # Stock aliases inside a working-capital/acquisition flow are not stocks.
+        # Never allocate a combined acquisition caption to one asset component.
+        return None
+    # Preserve explicit combined amounts as evidence until canonical scope is defined.
+    if wants_instant and norm == "intangible assets and goodwill":
+        return None
+    arabic_caption = unicodedata.normalize("NFKC", norm).translate(
+        str.maketrans({'آ': 'ا', 'أ': 'ا', 'إ': 'ا'}))
+    compact_caption = ''.join(c for c in arabic_caption
+                              if not c.isspace() and unicodedata.category(c)[0] != 'C')
+    if 'تكلفةالمبيعات' in compact_caption or 'تكلفةالايرادات' in compact_caption:
+        return 'cost_of_revenue' if statement == 'income_statement' else None
+    # Resolve the combined statement total before shorter liabilities/equity
+    # aliases.  This is not a liabilities-only balance.
+    if ("اجمالي" in arabic_caption and "المطلوبات" in arabic_caption
+            and "حقوق" in arabic_caption and "الملكية" in arabic_caption):
+        return "total_liabilities_equity" if wants_instant else None
+    if wants_instant and re.search(r"\bcash and cash equivalents at (?:beginning|end) of the year\b", norm):
+        return None  # Cash-flow reconciliation, not a balance-sheet cash caption.
+    # Exact singular primary P&L caption; no substring or cash-flow alias.
+    if statement == "income_statement" and norm == "finance cost":
+        return "finance_costs"
+    # Margins, spreads and yields repeat the underlying income caption but are
+    # ratios, not monetary statement lines.  Keeping them would publish 2.7 as
+    # SAR merely because the words "net special commission income" occur in
+    # "net special commission income spread".
+    if re.search(r"\b(?:margin|spread|yield)\b|هامش|فارق|عائد", norm):
+        return None
+    # OCR engines occasionally confuse the initial lower-case ``l`` in
+    # "liabilities" with ``i``. Correct the complete token only: this is a
+    # deterministic typography repair, not fuzzy matching of arbitrary labels.
+    norm = re.sub(r"\biabilities\b", "liabilities", norm)
+    # The same OCR failure can lose one or both leading characters and can
+    # retain a spurious hyphen. Resolve only the unmistakable statement total
+    # before substring matching would misclassify it as ``total_equity``.
+    if re.search(r"\btotal equity and\s*-?\s*(?:li)?abilities\b", norm):
+        return "total_liabilities_equity" if wants_instant else None
+    # Notes sometimes use "... interests of the Group" as a table caption.
+    # It is not the primary-statement NCI balance and must not fill that fact
+    # when the statement's own row was unreadable.
+    if wants_instant and re.search(r"\bnon[- ]controlling interests of the group\b", norm):
+        return None
+    best = None
+    for phrase, (metric, kind) in (line_map or LINE_MAP).items():
+        compatible = (kind == "instant") == wants_instant
+        if not compatible and statement == "income_statement" and metric in _PL_OVERRIDES:
+            compatible = True  # e.g. "non-controlling interest" reread as a P&L split
+        if not compatible:
+            continue
+        if (best is None or len(phrase) > len(best[0])) and _contains_phrase(norm, phrase):
+            best = (phrase, metric)
+    if best is None:
+        return None
+    metric = best[1]
+    # Cash commission settlements are not accrual income-statement expenses.
+    # A longer cash-flow caption must not overwrite the primary P&L fact.
+    if statement == "cash_flow" and metric in {"financing_expense", "financing_income"}:
+        return None
+    # A cash-flow add-back is not the income-statement expense: retaining
+    # separate identities preserves both their source signs and provenance.
+    if statement == "cash_flow" and metric == "depreciation_amortization":
+        return "depreciation_amortization_cash_flow"
+    if statement == "income_statement" and metric in _PL_OVERRIDES:
+        return _PL_OVERRIDES[metric]
+    return metric
+
+
+class StatementReader:
+    def __init__(self, pdf_path: str | Path, enable_ocr: bool = True,
+                 ocr_page_limit: int = 8, ocr_zoom: float = 1.5):
+        try:
+            import pymupdf  # noqa: F401
+        except ImportError as error:  # pragma: no cover - environment dependent
+            raise RuntimeError("the reader agent needs the optional 'pymupdf' package") from error
+        self.pdf_path = Path(pdf_path)
+        self.enable_ocr = enable_ocr
+        self.ocr_page_limit = max(0, ocr_page_limit)
+        self.ocr_zoom = ocr_zoom
+        self._ocr_engine = None
+        self._hybrid_pages_remaining = 0
+        self._hybrid_section_seen = False
+        self._ocr_cache: dict[int, tuple[list[tuple], str]] = {}
+        self._ocr_cache_path = self.pdf_path.with_suffix(self.pdf_path.suffix + ".ocr.json")
+        if self._ocr_cache_path.is_file():
+            try:
+                cached = json.loads(self._ocr_cache_path.read_text(encoding="utf-8"))
+                if cached.get("reader") != "rapidocr/4":
+                    raise ValueError("OCR cache reader version differs")
+                if float(cached.get("zoom", 0)) != float(self.ocr_zoom):
+                    raise ValueError("OCR cache zoom differs from reader configuration")
+                self._ocr_cache = {
+                    int(index): ([tuple(word) for word in value["words"]], value["text"])
+                    for index, value in cached.get("pages", {}).items()
+                }
+            except (OSError, ValueError, KeyError, TypeError):
+                self._ocr_cache = {}
+        self.used_ocr = False
+        self.ocr_unavailable = False
+
+    def _save_ocr_cache(self) -> None:
+        payload = {
+            "reader": "rapidocr/4", "zoom": self.ocr_zoom,
+            "pages": {str(index): {"words": words, "text": text}
+                      for index, (words, text) in self._ocr_cache.items()},
+        }
+        temporary = self._ocr_cache_path.with_suffix(self._ocr_cache_path.suffix + ".part")
+        try:
+            temporary.write_text(json.dumps(payload), encoding="utf-8")
+            temporary.replace(self._ocr_cache_path)
+        except OSError:
+            # Caching is an optimization; a read-only archive must not prevent
+            # source-faithful extraction in memory.
+            pass
+
+    @staticmethod
+    def _split_ocr_line(box, text: str, zoom: float, line_index: int) -> list[tuple]:
+        """Turn one OCR line into PyMuPDF-like words while retaining geometry."""
+        tokens = list(re.finditer(r"\S+", text))
+        if not tokens:
+            return []
+        xs = [point[0] for point in box]
+        ys = [point[1] for point in box]
+        left, right = float(min(xs)) / zoom, float(max(xs)) / zoom
+        top, bottom = float(min(ys)) / zoom, float(max(ys)) / zoom
+        width = max(right - left, 1)
+        length = max(len(text), 1)
+        return [
+            (left + width * match.start() / length, top,
+             left + width * match.end() / length, bottom,
+             match.group(), 0, line_index, token_index)
+            for token_index, match in enumerate(tokens)
+        ]
+
+    def _page_content(self, page, page_index: int,
+                      ocr_budget: list[int]) -> tuple[list[tuple], str]:
+        text = page.get_text()
+        words = page.get_text("words")
+        if (not self._hybrid_section_seen and
+                re.match(r"\s*\d{1,2}\s+financial statements\b", text, re.I)):
+            # Some integrated reports embed the audited section as image-based
+            # two-page spreads while leaving only navigation text selectable.
+            self._hybrid_section_seen = True
+            self._hybrid_pages_remaining = self.ocr_page_limit
+            ocr_budget[0] = max(ocr_budget[0], self.ocr_page_limit)
+        if (self._hybrid_section_seen and
+                "notes to the consolidated financial statements" in text[:400].lower()):
+            self._hybrid_pages_remaining = 0
+        hybrid_page = bool(
+            self._hybrid_pages_remaining and len(text.strip()) >= 1000
+            and page.get_images(full=True)
+        )
+        if (text.strip() or words) and not hybrid_page:
+            return words, text
+        if (not self.enable_ocr or ocr_budget[0] <= 0):
+            return [], ""
+        cached = self._ocr_cache.get(page_index)
+        if cached is not None:
+            self.used_ocr = True
+            ocr_budget[0] -= 1
+            if hybrid_page:
+                self._hybrid_pages_remaining -= 1
+            return cached
+        try:
+            from rapidocr import RapidOCR
+        except ImportError:
+            # Keep looking: a digital statement may follow an image-only cover.
+            # If no facts are ultimately found, `read` reports the precise OCR
+            # requirement instead of masking usable native-text pages.
+            self.ocr_unavailable = True
+            ocr_budget[0] -= 1
+            return [], ""
+        if self._ocr_engine is None:
+            self._ocr_engine = RapidOCR()
+        import pymupdf
+        # Cap very wide two-page spreads near 1,200 rendered pixels. This keeps
+        # scheduled OCR bounded without reducing normal portrait statements.
+        actual_zoom = min(self.ocr_zoom, 1800 / max(float(page.rect.width), 1))
+        pixmap = page.get_pixmap(
+            matrix=pymupdf.Matrix(actual_zoom, actual_zoom), alpha=False,
+        )
+        output = self._ocr_engine(pixmap.tobytes("png"))
+        raw_texts = getattr(output, "txts", None)
+        raw_boxes = getattr(output, "boxes", None)
+        raw_scores = getattr(output, "scores", None)
+        texts = tuple(raw_texts) if raw_texts is not None else ()
+        boxes = tuple(raw_boxes) if raw_boxes is not None else ()
+        scores = tuple(raw_scores) if raw_scores is not None else ()
+        ocr_words: list[tuple] = []
+        accepted_text: list[str] = []
+        for line_index, (box, line) in enumerate(zip(boxes, texts)):
+            if scores and scores[line_index] < 0.65:
+                continue
+            accepted_text.append(line)
+            ocr_words.extend(self._split_ocr_line(
+                box, str(line), actual_zoom, line_index
+            ))
+        result = (ocr_words, " ".join(accepted_text))
+        self._ocr_cache[page_index] = result
+        self._save_ocr_cache()
+        self.used_ocr = True
+        ocr_budget[0] -= 1
+        if hybrid_page:
+            self._hybrid_pages_remaining -= 1
+        return result
+
+    def _verified_header_words(self, page, native_text: str, ocr_words: list[tuple]) -> list[tuple]:
+        """Recover only an exact heading; OCR must never replace native amounts.
+
+        Mixed PDFs can rasterize the title while keeping the financial table
+        selectable. Require both a primary heading and its native signature.
+        This helper is deliberately not an automatic OCR trigger.
+        """
+        accepted = []
+        for row in _rows([word for word in ocr_words if word[3] <= page.rect.height * .18]):
+            text = ' '.join(word[4] for word in row).lower().strip()
+            if not self._HEADING_PREFIX.match(text) or any(term in text for term in self._NEGATIVE):
+                continue
+            for name, anchors in ANCHORS.items():
+                if (any(anchor in text for anchor in anchors)
+                        and all(any(term in native_text.lower() for term in group)
+                                for group in self._SIGNATURE[name])):
+                    accepted.extend(row)
+                    break
+        return accepted
+
+    def infer_fiscal_year(self) -> int | None:
+        """The reporting year printed on the statements themselves - the
+        left (current-period) column of whichever confirmed statement pages
+        exist. Used so an unattended job never has to be told the period."""
+        import pymupdf
+
+        doc = pymupdf.open(self.pdf_path)
+        try:
+            votes: dict[int, int] = {}
+            ocr_budget = [self.ocr_page_limit]
+            for page_index in range(doc.page_count):
+                page = doc[page_index]
+                words, page_text = self._page_content(page, page_index, ocr_budget)
+                if not self._heading_statement(page, words, page_text):
+                    continue
+                columns = self._year_columns(page, words)
+                if not columns:
+                    continue
+                top = (page.rect.height or 1000) * 0.45
+                years = [int(w[4]) for w in words
+                         if _YEAR.fullmatch(w[4]) and w[1] < top and 2000 <= int(w[4]) <= 2035
+                         and abs((w[0] + w[2]) / 2 - columns[0]) < 20]
+                if years:
+                    year = max(years)  # the current period is the newest year in its column
+                    votes[year] = votes.get(year, 0) + 1
+            return max(votes, key=votes.get) if votes else None
+        finally:
+            doc.close()
+
+    def read(self, market: str, symbol: str, currency: str,
+             source_url: str, filed_at: str, period_end: str | None = None,
+             fiscal_year: int | None = None, filing_type: str = "financial-statements",
+             profile: str = "corporate", fiscal_year_end: str = "12-31") -> dict:
+        import pymupdf
+
+        line_map = _PROFILE_MAPS.get(profile, LINE_MAP)
+
+        if fiscal_year is None:
+            fiscal_year = self.infer_fiscal_year()
+            if fiscal_year is None:
+                if self.ocr_unavailable:
+                    raise RuntimeError(
+                        "image-only PDF requires the optional OCR dependencies: "
+                        "pip install -e \".[ocr]\""
+                    )
+                raise ValueError(
+                    f"could not infer the reporting year from {self.pdf_path.name}; "
+                    "pass fiscal_year explicitly")
+        if period_end is None:
+            period_end = f"{fiscal_year}-12-31"
+
+        doc = pymupdf.open(self.pdf_path)
+        # Image-only statement pages may lose their small unit heading during
+        # OCR even though a later text-backed note page repeats it.  Derive a
+        # document fallback only from an explicit "Amounts in ..." declaration;
+        # narrative phrases such as "amounting to SAR 45.3 million" are not a
+        # unit declaration and must never rescale the statements.
+        document_scale = self._document_scale(
+            doc[index].get_text() for index in range(doc.page_count)
+        )
+        facts: list[dict] = []
+        excluded_rows: list[dict] = []
+        seen: set[tuple[str, str]] = set()
+        fact_positions: dict[tuple[str, str], int] = {}
+        annual_prefer_later = "annual" in filing_type.lower()
+        carry: str | None = None
+        carry_page = -99
+        notes_section = False
+        ocr_budget = [self.ocr_page_limit]
+        for page_index in range(doc.page_count):
+            page = doc[page_index]
+            words, page_text = self._page_content(page, page_index, ocr_budget)
+            if _is_nonreported_statement_header(page_text):
+                carry = None
+                continue
+            if facts and re.search(
+                    r"\bnotes to (?:the )?(?:interim condensed )?consolidated financial statements\b|"
+                    r"^\s*(?:1\s*[-.]\s*)?status and nature of activities\b",
+                    page_text[:700], re.I):
+                notes_section = True
+            # Once the filing enters its notes, later KPI/segment tables must
+            # not be rediscovered as abbreviated primary statements. Their
+            # captions can contain the same labels but different scopes.
+            if notes_section:
+                carry = None
+                continue
+            blocks = self._column_blocks(page, words)
+            arabic_characters = sum("\u0600" <= char <= "\u06ff" for char in page_text)
+            latin_characters = sum("a" <= char.lower() <= "z" for char in page_text)
+            if arabic_characters > latin_characters:
+                # Arabic statements print the current period at the visual
+                # right.  Geometry is still left-to-right, so reverse only the
+                # period order inside each panel (panel boundaries are kept).
+                blocks = [list(reversed(block)) for block in blocks]
+            columns = blocks[0] if blocks else []
+            panels: list[tuple[str, list[tuple], list[list[float]]]] = []
+            if len(blocks) > 1:
+                boundary = self._block_boundary(words, blocks)
+                segments = (
+                    [word for word in words if boundary is None or word[0] < boundary],
+                    [word for word in words if boundary is not None and word[0] >= boundary],
+                )
+                segment_anchors = []
+                for segment, block in zip(segments, blocks):
+                    panel_heading = self._heading_statement(page, segment, page_text)
+                    # What the panel *names*, even when that heading carries too
+                    # little to be read on its own: a panel headed "statement of
+                    # financial position" is not part of the income statement
+                    # beside it, however incomplete its own signature is.
+                    segment_anchors.append(self._heading_anchor(page, segment, page_text))
+                    if panel_heading:
+                        panels.append((panel_heading, segment, [block]))
+                if len(panels) == 1 and all(
+                        name in (None, panels[0][0]) for name in segment_anchors):
+                    # One heading printed across both panels of a single
+                    # statement: a landscape balance sheet does this with
+                    # assets and equity, and SABIC's income statement does it
+                    # with the profit-attribution rows in the right-hand panel.
+                    # Pool them only when the other panel claims no statement
+                    # of its own, so an unrelated side table is never absorbed.
+                    panels = [(panels[0][0], segment, [block])
+                              for segment, block in zip(segments, blocks)]
+            heading = None if panels else self._heading_statement(page, words, page_text)
+            if heading is None and not panels:
+                heading = self._continued_statement(doc, page, words, page_text, page_index)
+            summary_heading = None
+            if (heading is None and not panels
+                    and self._heading_anchor(page, words, page_text) is None
+                    and "annual" not in filing_type.lower()):
+                # An annual report normally prints its audited primary
+                # statements later in the same document.  Five-year analysis
+                # and ratio pages near the front reuse the same captions but
+                # may add percentage/change columns; accepting those first
+                # makes ``seen`` suppress the authoritative statement rows.
+                # Compact summary recognition remains available for earnings
+                # releases and interim result PDFs that have no later audited
+                # statement section.
+                summary_heading = self._summary_statement(
+                    words, columns, page_text, line_map
+                )
+                heading = summary_heading
+            continuation = bool(
+                not panels and carry and page_index - carry_page == 1 and columns
+                and self._heading_anchor(page, words, page_text) in (None, carry)
+                and self._looks_tabular(words, columns)
+                and not _NON_PRIMARY_STATEMENT.search(page_text))
+            if panels:
+                carry = None
+            elif heading and summary_heading is None:
+                panels = [(heading, words, blocks)]
+            elif summary_heading:
+                panels = [(summary_heading, words, blocks)]
+                carry = None
+            elif continuation:
+                panels = [(carry, words, blocks)]  # page after a statement heading
+            else:
+                carry = None
+                continue
+            if not blocks:
+                carry = None
+                continue
+            if len(panels) == 1:
+                carry, carry_page = panels[0][0], page_index
+            scale = self._declared_scale(page_text) or document_scale
+            # A statement can present a continuing-operations subtotal and then
+            # the consolidated total using the same short attribution labels.
+            # Within one page the later row is the final reported total.  Keep
+            # one value per canonical identity so the staging manifest cannot
+            # contain contradictory duplicates merely because the PDF repeats
+            # a label in consecutive subtables.
+            page_facts: dict[tuple[str, str], dict] = {}
+            default_flow_kind = "ytd" if "interim" in filing_type.lower() else "fy"
+            for statement, panel_words, panel_blocks in panels:
+                resolved = []
+                for label, kind, value in self._statement_facts(
+                        page, panel_words, statement, panel_blocks, default_flow_kind):
+                    if (statement == "balance_sheet" and
+                            " ".join(label.lower().split()) == "intangible assets and goodwill"):
+                        excluded_rows.append({
+                            "source_label": label, "value": str(value),
+                            "scale": str(scale), "currency": currency, "unit": currency,
+                            "page": page_index + 1, "period_end": period_end,
+                            "period_kind": kind, "fiscal_year": fiscal_year,
+                            "reason": "combined_intangible_goodwill_canonical_scope_unresolved",
+                            "value_validity": "printed amount retained; not a wrong-number claim",
+                            "mapping_policy": "requires explicit catalog scope and source-note decomposition; no invented split",
+                        })
+                    metric = _resolve_line(label, statement, line_map)
+                    if metric is None:
+                        continue
+                    if self._is_comprehensive_attribution(page_text, label, metric):
+                        continue
+                    resolved.append((label, kind, value, metric))
+                bank_income = profile == "bank" and statement == "income_statement"
+                unsigned_expenses = bank_income and any(
+                    metric in _BANK_NATURAL_NEGATIVE_METRICS and value > 0
+                    for _, _, value, metric in resolved
+                )
+                for label, kind, value, metric in resolved:
+                    if bank_income and metric in _BANK_NATURAL_NEGATIVE_METRICS and value > 0:
+                        value = -value
+                    elif unsigned_expenses and metric in _BANK_REVERSIBLE_EXPENSE_METRICS:
+                        value = -value
+                    monetary = metric != "eps_diluted"
+                    key = (metric, kind)
+                    if key in seen and not annual_prefer_later:
+                        continue
+                    fact = {
+                        "metric": metric, "source_label": label.strip(), "value": str(value),
+                        "period_end": period_end, "period_kind": kind,
+                        "fiscal_year": fiscal_year, "page": page_index + 1,
+                    }
+                    if kind in {"fy", "ytd", "quarter"}:
+                        fact["period_start"] = self._period_start(
+                            period_end, fiscal_year, kind, fiscal_year_end
+                        )
+                    if kind in {"quarter", "ytd"}:
+                        fact["fiscal_quarter"] = self._fiscal_quarter(
+                            period_end, fiscal_year_end
+                        )
+                    if monetary:
+                        fact.update(scale=str(scale), currency=currency, unit=currency)
+                    else:
+                        fact.update(scale="1", currency=currency, unit=f"{currency}/share")
+                    page_facts[key] = fact
+            # The page is already a confirmed statement (leading-heading regex or a
+            # continuation of one); a single new mapped line is enough to keep it,
+            # and keeps `carry` alive for the rest of a multi-page statement.
+            for key, fact in page_facts.items():
+                if key in seen and annual_prefer_later:
+                    facts[fact_positions[key]] = fact
+                    continue
+                seen.add(key)
+                fact_positions[key] = len(facts)
+                facts.append(fact)
+        doc.close()
+        if not facts and self.ocr_unavailable:
+            raise RuntimeError(
+                "image-only PDF requires the optional OCR dependencies: "
+                "pip install -e \".[ocr]\""
+            )
+        return {
+            "company_id": f"{market.lower()}:{symbol}",
+            "market": market,
+            "symbol": symbol,
+            "filing_type": filing_type, "filed_at": filed_at, "period_end": period_end,
+            "source_url": source_url, "reader": "finengine.reading/1", "profile": profile,
+            "facts": sorted(facts, key=lambda f: (f["page"], f["metric"])),
+            "excluded_rows": excluded_rows,
+        }
+
+    @staticmethod
+    def _fiscal_quarter(period_end: str, fiscal_year_end: str) -> int:
+        end = date.fromisoformat(period_end)
+        try:
+            fiscal_end_month = int(fiscal_year_end.split("-", 1)[0])
+        except (AttributeError, TypeError, ValueError):
+            fiscal_end_month = 12
+        fiscal_start_month = fiscal_end_month % 12 + 1
+        fiscal_month = (end.month - fiscal_start_month) % 12 + 1
+        return min(4, (fiscal_month - 1) // 3 + 1)
+
+    @staticmethod
+    def _period_start(period_end: str, fiscal_year: int, kind: str,
+                      fiscal_year_end: str) -> str:
+        end = date.fromisoformat(period_end)
+        if kind == "quarter":
+            month_index = end.year * 12 + end.month - 1 - 2
+            return date(month_index // 12, month_index % 12 + 1, 1).isoformat()
+        try:
+            month, day = (int(value) for value in fiscal_year_end.split("-"))
+            return (date(fiscal_year - 1, month, day) + timedelta(days=1)).isoformat()
+        except (AttributeError, TypeError, ValueError):
+            return f"{fiscal_year}-01-01"
+
+    @staticmethod
+    def _scale(page_text: str) -> Decimal:
+        arabic = unicodedata.normalize('NFKC', page_text).translate(str.maketrans({'آ': 'ا', 'أ': 'ا', 'إ': 'ا'}))
+        if re.search(r"بالالاف|(?:بالاف|باالف)\s+(?:الريالات|الرياالت)", arabic):
+            return Decimal(1000)
+        for pattern, value in _SCALE_PATTERNS:
+            if pattern.search(page_text):
+                return value
+        return Decimal(1)
+
+    @classmethod
+    def _declared_scale(cls, page_text: str) -> Decimal | None:
+        lines = page_text.splitlines()
+        for line in lines:
+            explicit_amounts = re.match(r'\s*\(?\s*(?:all\s+)?amounts?\s+(?:are\s+)?(?:(?:stated|presented)\s+)?in\s+(?:(?:thousands|millions|billions)\s+of\s+)?(?:Saudi\s+Riyals?|SAR|SR|USD)\b', line, re.I)
+            if explicit_amounts:
+                return cls._scale(line.lower())
+            expressed = re.match(r'\s*\(?\s*expressed\s+in\s+(?:(?:thousands|millions|billions)\s+of\s+)?(?:Saudi\s+Riyals?|SAR|SR|USD)\b', line, re.I)
+            if expressed:
+                return cls._scale(line.lower())
+            arabic = unicodedata.normalize('NFKC', line).translate(str.maketrans({'آ': 'ا', 'أ': 'ا', 'إ': 'ا'}))
+            if re.search(r"بالالاف|(?:بالاف|باالف)\s+(?:الريالات|الرياالت)", arabic):
+                return Decimal(1000)
+            if _SCALE_DECLARATION.search(line):
+                scale = cls._scale(line.lower())
+                if scale != 1:
+                    return scale
+        # An audited statement can label each period column with a standalone
+        # currency token instead of saying "amounts in SAR".  This explicitly
+        # means unit-at-ones and overrides a thousands declaration found on an
+        # earlier highlights page in the same annual report.
+        if sum(bool(re.fullmatch(r"\s*(?:SR|SAR|USD|\(?ريال\s+سعودي\)?)\s*", line, re.I))
+               for line in lines) >= 2:
+            return Decimal(1)
+        return None
+
+    @classmethod
+    def _document_scale(cls, page_texts) -> Decimal:
+        for page_text in page_texts:
+            scale = cls._declared_scale(page_text)
+            if scale is not None:
+                return scale
+        return Decimal(1)
+
+    @staticmethod
+    def _is_comprehensive_attribution(
+            page_text: str, label: str, metric: str) -> bool:
+        """Keep comprehensive-income attribution out of net-income identities.
+
+        Some banks use the same short ``Attributable to ...`` captions below
+        both net income and total comprehensive income.  On the comprehensive
+        statement that caption is not net income attributable to the parent or
+        NCI.  A label that explicitly says net income/profit remains eligible.
+        """
+        return (
+            ("statement of comprehensive income" in page_text.lower()
+             or re.search(r"\bcomprehensive (?:income|loss).*attributable\b", label, re.I))
+            and metric in {"net_income_parent", "net_income_noncontrolling"}
+            and not re.search(r"\b(?:net\s+income|net\s+profit|profit\s+for)\b", label, re.I)
+        )
+
+    _NEGATIVE = ("highlights", "at a glance", "key figures", "financial review",
+                 "five year", "5-year", "five-year", "summary", "summarised",
+                 "summarized", "snapshot", "performance review",
+                 "review", "commentary")
+
+    # A real primary statement carries these signature line labels; a summary
+    # table titled the same way usually does not carry all of them.
+    _SIGNATURE = {
+        "income_statement": (("revenue", "sales", "turnover", "financing income",
+                              "total operating income", "الإيرادات", "المبيعات",
+                              "إجمالي دخل العمليات", "اجمالي دخل العمليات"),
+                             ("profit for the", "net income", "net profit", "loss for the",
+                              "صافي الربح", "ربح السنة", "ربح الفترة",
+                              "الزكاة وضريبة الدخل")),
+        # Interim position statements are commonly split across two pages:
+        # assets on the first, equity/liabilities on the next. The exact
+        # statement heading plus either side's total is sufficient evidence.
+        "balance_sheet": (("total assets", "total equity", "total liabilities",
+                           "equity and liabilities", "إجمالي الأصول", "إجمالي الموجودات",
+                           "إجمالي الالتزامات", "إجمالي المطلوبات", "إجمالي حقوق الملكية"),),
+        "cash_flow": (("operating activities", "الأنشطة التشغيلية"),
+                      ("financing activities", "الأنشطة التمويلية")),
+    }
+
+    _HEADING_PREFIX = re.compile(
+        r"^(consolidated |interim |unaudited |condensed )*"
+        r"(statement of |statements of |income statement|balance sheet|"
+        r"profit (?:&|and) loss statement|"
+        r"قائمة )", re.I)
+
+    def _heading_statement(self, page, words, page_text: str | None = None) -> str | None:
+        top = (page.rect.height or 1000) * 0.42
+        page_text = (page.get_text() if page_text is None else page_text).lower()
+        # PyMuPDF commonly exposes Arabic words in visual order, so rebuilding
+        # a heading from x-sorted words reverses it.  The native page text keeps
+        # the logical phrase; require the same statement signature before
+        # accepting it to avoid matching a table of contents.
+        for name, anchors in ANCHORS.items():
+            signature = self._SIGNATURE[name]
+            if (any(any("\u0600" <= char <= "\u06ff" for char in anchor)
+                    and anchor in page_text for anchor in anchors)
+                    and all(any(term in page_text for term in group)
+                            for group in signature)):
+                return name
+        for row in _rows([w for w in words if w[1] < top]):
+            text = " ".join(w[4] for w in row).lower().strip()
+            # Investor releases often print a small section number immediately
+            # before the otherwise exact statement heading ("1 Statement of …").
+            text = re.sub(r"^\d+\s+", "", text)
+            # A persistent side-nav ("At a glance", "Financial review", ...)
+            # sits in this same zone on every page of a glossy annual report
+            # and must not veto pages it happens to share the top-42% band
+            # with - only distrust a row that itself looks like a heading.
+            # Long IFRS headings such as "Condensed consolidated interim
+            # statement of profit or loss and other comprehensive income" are
+            # routinely longer than 75 characters.  They remain safe because
+            # the exact anchor and the statement's independent line-signature
+            # are both required below.
+            compact = re.sub(r"\s+", "", text)
+            compact_heading = any(compact.startswith(prefix) for prefix in (
+                "consolidatedstatement", "statementof", "condensedconsolidated",
+                "interimcondensedconsolidated", "condensedinterimconsolidated"))
+            if len(text) > 140 or not (self._HEADING_PREFIX.match(text) or compact_heading):
+                continue
+            if any(bad in text for bad in self._NEGATIVE):
+                return None
+            for name, anchors in ANCHORS.items():
+                signature = self._SIGNATURE[name]
+                if (any(a in text or re.sub(r"\s+", "", a) in compact for a in anchors) and
+                        all(any(term in page_text for term in group)
+                            for group in signature)):
+                    return name
+        return None
+
+    def _heading_anchor(self, page, words, page_text: str) -> str | None:
+        """The statement a page's heading row names, ignoring its signature."""
+        top = (page.rect.height or 1000) * 0.42
+        lowered = page_text.lower()
+        for name, anchors in ANCHORS.items():
+            if any(any("\u0600" <= char <= "\u06ff" for char in anchor)
+                   and anchor in lowered for anchor in anchors):
+                return name
+        for row in _rows([word for word in words if word[1] < top]):
+            text = " ".join(word[4] for word in row).lower().strip()
+            text = re.sub(r"^\d+\s+", "", text)
+            compact = re.sub(r"\s+", "", text)
+            compact_heading = any(compact.startswith(prefix) for prefix in (
+                "consolidatedstatement", "statementof", "condensedconsolidated",
+                "interimcondensedconsolidated", "condensedinterimconsolidated"))
+            if len(text) > 140 or not (self._HEADING_PREFIX.match(text) or compact_heading):
+                continue
+            if any(bad in text for bad in self._NEGATIVE):
+                return None
+            for name, anchors in ANCHORS.items():
+                if any(anchor in text or re.sub(r"\s+", "", anchor) in compact for anchor in anchors):
+                    return name
+        return None
+
+    @staticmethod
+    def _summary_statement(words, columns, page_text: str,
+                           line_map: dict) -> str | None:
+        """Recognise compact, explicitly scaled financial-result tables."""
+        # Investor releases often print one currency heading above both period
+        # columns instead of repeating ``SAR`` per column or spelling out
+        # ``amounts in SAR``.  Treat that as an explicit unit declaration only
+        # when two real period headers are present; a narrative mention of SAR
+        # remains ineligible.
+        period_headers = sum(
+            bool(_PERIOD_COLUMN.fullmatch(word[4])) for word in words
+        )
+        release_unit = (
+            period_headers >= 2
+            and any(re.fullmatch(r"\s*(?:SR|SAR|USD)\s*", line, re.I)
+                    for line in page_text.splitlines())
+        )
+        if (len(columns) < 2
+                or not (_SCALE_DECLARATION.search(page_text) or release_unit)):
+            return None
+        body = re.sub(r"\s+", " ", page_text).lower()
+        activity_groups = sum(bool(re.search(r"\b" + name + r"\s+activities\b", body))
+                              for name in ("operating", "investing", "financing"))
+        cash_reconciliation = ("cash" in body and "beginning" in body and "end" in body)
+        if activity_groups == 3 and cash_reconciliation:
+            # Damaged OCR title: require all three flow sections plus opening/
+            # closing cash, not a single narrative mention or generic alias vote.
+            return "cash_flow"
+        scores = {name: 0 for name in ANCHORS}
+        for row in _rows([word for word in words if not _is_rule_token(word[4])], y_tol=6.0):
+            aligned = any(
+                _NUMBER.match(word[4]) and
+                any(abs((word[0] + word[2]) / 2 - column) < 45 for column in columns)
+                for word in row
+            )
+            if not aligned:
+                continue
+            label = " ".join(
+                word[4] for word in row
+                if (word[0] + word[2]) / 2 < min(columns) - 25
+                and not _NUMBER.match(word[4])
+            )
+            metric = _resolve_line(label, "income_statement", line_map)
+            if not metric:
+                metric = _resolve_line(label, "balance_sheet", line_map)
+            if not metric:
+                continue
+            if metric in {value[0] for value in line_map.values() if value[1] == "instant"}:
+                scores["balance_sheet"] += 1
+            elif metric in {
+                "operating_cash_flow", "investing_cash_flow", "financing_cash_flow",
+                "capex", "proceeds_asset_sales", "debt_issued", "debt_repaid",
+                "lease_payments", "dividends_paid", "dividends_noncontrolling",
+                "interest_received", "interest_paid", "taxes_paid", "cash_change",
+                "cash_beginning", "cash_end", "foreign_exchange_effect",
+            }:
+                scores["cash_flow"] += 1
+            else:
+                scores["income_statement"] += 1
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        return ranked[0][0] if ranked[0][1] >= 2 and ranked[0][1] - ranked[1][1] >= 2 else None
+
+    def _continued_statement(self, doc, page, words, page_text: str,
+                             page_index: int) -> str | None:
+        """A primary statement whose signature lines are split over two pages.
+
+        SABIC prints its consolidated statement of cash flows with operating
+        activities on one page and investing and financing on the next, headed
+        "... (continued)". Neither page carries the whole signature, so neither
+        is recognised alone. The two are pooled only when the issuer itself
+        repeats the same statement heading on the next page, so a page is never
+        joined to an unrelated table.
+        """
+        name = self._heading_anchor(page, words, page_text)
+        if name is None or page_index + 1 >= doc.page_count:
+            return None
+        neighbour = doc[page_index + 1]
+        neighbour_words = [tuple(word[:5]) for word in neighbour.get_text("words")]
+        neighbour_text = neighbour.get_text() or ""
+        neighbour_anchor = self._heading_anchor(
+            neighbour, neighbour_words, neighbour_text
+        )
+        if neighbour_anchor != name:
+            # Some compact releases print the statement title only on page one
+            # and repeat just the period columns on page two.  Accept that
+            # continuation only when it is a substantial adjacent table and it
+            # does not announce notes or another statement.  This is stricter
+            # than carrying an arbitrary preceding statement into the page.
+            neighbour_columns = self._column_blocks(neighbour, neighbour_words)
+            if (neighbour_anchor is not None
+                    or re.search(r"\bnotes? to (?:the )?financial statements\b",
+                                 neighbour_text, re.I)
+                    or _NON_PRIMARY_STATEMENT.search(neighbour_text)
+                    or not neighbour_columns
+                    or not self._looks_tabular(
+                        neighbour_words, neighbour_columns[0]
+                    )):
+                return None
+        pooled = f"{page_text}\n{neighbour_text}".lower()
+        if all(any(term in pooled for term in group) for group in self._SIGNATURE[name]):
+            return name
+        return None
+
+    @staticmethod
+    def _column_blocks(page, words) -> list[list[float]]:
+        """Up to two side-by-side statement panels on one page (e.g. assets on
+        the left, equity and liabilities on the right of a landscape balance
+        sheet) - each with its own period columns, current period first
+        (leftmost) within its panel. A gap over 150pt between consecutive
+        year hits marks a new panel."""
+        # The floor is 2000, not 2010: a bank's own archive goes back further
+        # (ANB publishes quarterly statements from 2003), and a column headed
+        # "2006" is as real as one headed "2016". Note-reference columns are
+        # still discarded below, and the page must already be a statement.
+        top = (page.rect.height or 1000) * 0.45
+        hits = sorted({round((w[0] + w[2]) / 2, 1) for w in words
+                       if _PERIOD_COLUMN.fullmatch(w[4].rstrip('*†‡')) and w[1] < top
+                       and (not _YEAR.fullmatch(w[4].rstrip('*†‡'))
+                            or 2000 <= int(w[4].rstrip('*†‡')) <= 2035)})
+        note_centres = [(w[0] + w[2]) / 2 for w in words
+                        if w[1] < top and w[4].lower().strip(".: ") in ("note", "notes")]
+        hits = [x for x in hits if not any(abs(x - n) < 20 for n in note_centres)]
+        if not hits:
+            return []
+        blocks: list[list[float]] = [[hits[0]]]
+        for x in hits[1:]:
+            (blocks.append([x]) if x - blocks[-1][-1] > 150 else blocks[-1].append(x))
+        result = []
+        for block in blocks:
+            columns: list[float] = []
+            for x in block:
+                if not columns or x - columns[-1] > 25:
+                    columns.append(x)
+            # Some OCR'd bank statements repeat the comparison years in a
+            # caption immediately before the real statement header.  A nearby
+            # note-reference column can then make those caption years look
+            # tabular, even though only the later columns contain reported
+            # amounts.  When at least two amount-bearing columns are clear,
+            # discard year centres that align only with small note numbers.
+            substantial = []
+            for column in columns:
+                hits = 0
+                for word in words:
+                    token = word[4]
+                    if _PERIOD_COLUMN.fullmatch(token.rstrip('*†‡')) or not _NUMBER.match(token):
+                        continue
+                    value = _parse_number(token)
+                    center = (word[0] + word[2]) / 2
+                    if (value is not None and abs(value) >= 1000 and
+                            abs(center - column) < 30):
+                        hits += 1
+                if hits >= 3:
+                    substantial.append(column)
+            if len(substantial) >= 2:
+                columns = substantial
+            # Keep enough columns for dual-currency interim statements:
+            # quarter/current-prior + YTD/current-prior in both SAR and USD.
+            result.append(columns[:8])
+        # Glossy two-page spreads often repeat the report year in navigation
+        # and heading text. Keep the two year clusters that actually align
+        # with the most label/value rows, then restore visual left-to-right order.
+        scored = sorted(
+            ((StatementReader._aligned_rows(words, block), block) for block in result),
+            key=lambda item: item[0], reverse=True,
+        )
+        # A page header often prints the report year far to the left of the
+        # actual four-column statement (SAR current/prior + USD current/prior).
+        # It forms a geometrical "block" but aligns with almost no financial
+        # rows.  Keep only tabular blocks when at least one is available;
+        # genuine two-panel balance sheets retain both sides.
+        credible = [block for score, block in scored if score >= 6]
+        ranked = (credible or [block for _, block in scored])[:2]
+        return sorted(ranked, key=lambda block: block[0])
+
+    @staticmethod
+    def _year_columns(page, words) -> list[float]:
+        """x-centres of the first panel's period columns, current period first."""
+        blocks = StatementReader._column_blocks(page, words)
+        return blocks[0] if blocks else []
+
+    @staticmethod
+    def _block_boundary(words, blocks: list[list[float]]) -> float | None:
+        """The x that separates a two-panel page's left and right blocks.
+        The right panel's own labels ("Share capital", "Total equity", ...)
+        sit well before its value columns, so the boundary is not the gap
+        around the value columns themselves - it is just before whichever
+        label text is the first thing found strictly between the two
+        panels' own column geometry (left panel's rightmost column and
+        right panel's leftmost column)."""
+        if len(blocks) < 2:
+            return None
+        left_edge, right_edge = max(blocks[0]), min(blocks[1])
+        if right_edge <= left_edge:
+            return None
+        labels_between = [w[0] for w in words
+                          if left_edge < w[0] < right_edge and not _NUMBER.match(w[4])]
+        return (min(labels_between) - 5) if labels_between else (left_edge + right_edge) / 2
+
+    @staticmethod
+    def _aligned_rows(words, columns) -> int:
+        count = 0
+        # Some investor-release tables place the label baseline a few points
+        # below the value baseline. Six points joins that visual row without
+        # joining the next line (normal statement rows are much farther apart).
+        for row in _rows([w for w in words if not _is_rule_token(w[4])], y_tol=6.0):
+            has_label = any(not _NUMBER.match(w[4]) and len(w[4]) > 2 for w in row)
+            has_value = any(
+                _NUMBER.match(w[4]) and any(abs((w[0] + w[2]) / 2 - c) < 45 for c in columns)
+                for w in row)
+            count += bool(has_label and has_value)
+        return count
+
+    def _looks_tabular(self, words, columns) -> bool:
+        return self._aligned_rows(words, columns) >= 6
+
+    @staticmethod
+    def _period_column_groups(words, statement: str,
+                              columns: list[float],
+                              default_flow_kind: str = "fy") -> list[tuple[list[float], str]]:
+        if statement == "balance_sheet":
+            return [(columns[:2], "instant")]
+        pairs = [columns[index:index + 2] for index in range(0, len(columns), 2)]
+        header_limit = _header_limit(words, columns)
+        groups: list[tuple[list[float], str]] = []
+        for pair_index, pair in enumerate(pairs):
+            if not pair:
+                continue
+            start = pair_index * 2
+            left = ((columns[start - 1] + columns[start]) / 2
+                    if start else min(pair) - 45)
+            right = ((columns[start + 1] + columns[start + 2]) / 2
+                     if start + 2 < len(columns) else max(pair) + 45)
+            header = " ".join(
+                word[4].lower() for word in words
+                if left <= (word[0] + word[2]) / 2 <= right and word[1] < header_limit
+            ).replace("–", "-").replace("—", "-")
+            if re.search(
+                r"three[ -]months?|(?:1st|2nd|3rd|4th|first|second|third|fourth)"
+                r"[ -]quarters?",
+                header,
+            ):
+                kind = "quarter"
+            elif re.search(r"(six|nine)[ -]months?", header):
+                kind = "ytd"
+            elif "year ended" in header or "annual" in header:
+                kind = "fy"
+            else:
+                kind = default_flow_kind
+            groups.append((pair, kind))
+        # Four columns without distinct period headings are comparative history,
+        # not proof of two period semantics. Publish only the first current/prior pair.
+        if len(groups) > 1 and len({kind for _, kind in groups}) == 1:
+            return [groups[0]]
+        return groups[:2] or [(columns[:2], default_flow_kind)]
+
+    def _statement_facts(self, page, words, statement: str,
+                         blocks: list[list[float]], default_flow_kind: str = "fy"):
+        # Rule lines drawn as text ("────────") sit a few points above each
+        # subtotal. Left in, they become the row anchor that captures the
+        # subtotal's figures while its caption falls into the next row.
+        words = [word for word in words if not _is_rule_token(word[4])]
+        # Explicit header geometry excludes note references without filtering
+        # legitimate small monetary amounts by their magnitude.
+        explicit_note_centres = [(word[0] + word[2]) / 2 for word in words
+                                 if word[1] < (page.rect.height or 1000) * 0.45
+                                 and word[4].lower().strip(".: ") in ("note", "notes")]
+        boundary = self._block_boundary(words, blocks) if len(blocks) > 1 else None
+        magnitudes = []
+        parsed_rows = []
+        pending_caption = None
+        for row in _rows(words, y_tol=6.0):
+            if boundary is None:
+                panels = [(row, blocks[0])]
+            else:
+                left = [w for w in row if w[0] < boundary]
+                right = [w for w in row if w[0] >= boundary]
+                panels = [seg for seg in ((left, blocks[0]), (right, blocks[1])) if seg[0]]
+            for panel_words, columns in panels:
+                note_zone = (min(columns) - 90, min(columns) - 25)  # lone note refs sit just left of the values
+                text_tokens, number_tokens = [], []
+                for w in panel_words:
+                    token = w[4]
+                    center = (w[0] + w[2]) / 2
+                    if ((_NOTE_REFERENCE.fullmatch(token) or _NUMBER.fullmatch(token)
+                             or re.fullmatch(r"\d{1,3}(?:[-,/–]\d{1,3})+", token))
+                            and any(abs(center - n) < 20
+                                    and abs(center - n) < min(abs(center - c) for c in columns)
+                                    for n in explicit_note_centres)):
+                        continue  # reference, not an amount or caption token
+                    elif _NUMBER.match(token) and any(abs(center - c) < 45 for c in columns):
+                        value = _parse_number(token)
+                        if value is not None:
+                            number_tokens.append((center, value))
+                    elif _PERCENT.match(token) and center > max(columns) + 25:
+                        continue  # comparison/change column, not part of the row label
+                    elif _NOTE_REFERENCE.match(token) and note_zone[0] < center < note_zone[1]:
+                        continue  # a note reference ("6", "10,", "(a)"), not part of the label
+                    else:
+                        text_tokens.append(token)
+                if text_tokens and not number_tokens:
+                    pending_caption = (id(columns), row[0][1], list(text_tokens))
+                    continue
+                if not text_tokens or not number_tokens:
+                    continue
+                if (pending_caption and pending_caption[0] == id(columns)
+                        and 0 < row[0][1] - pending_caption[1] < 18
+                        and pending_caption[2][-1].endswith(',')
+                        and text_tokens[0][:1].islower()):
+                    text_tokens = pending_caption[2] + text_tokens
+                pending_caption = None
+                # In wide note tables, values outside the two detected primary
+                # columns can otherwise leak into the label and make a note row
+                # overwrite the source-faithful primary-statement fact.
+                if any(_NUMBER.match(token) for token in text_tokens):
+                    continue
+                if sum(any("\u0600" <= char <= "\u06ff" for char in token)
+                       for token in text_tokens) > len(text_tokens) / 2:
+                    text_tokens.reverse()
+                label = " ".join(text_tokens).strip(" :.-")
+                words_in_label = label.split()
+                if not 1 <= len(words_in_label) <= 13 or "%" in label or _YEAR.search(label):
+                    continue
+                for group, kind in self._period_column_groups(
+                        words, statement, columns, default_flow_kind):
+                    current = group[0]
+                    center, value = min(number_tokens, key=lambda t: abs(t[0] - current))
+                    if abs(center - current) >= 45:
+                        continue  # this period's cell is blank; never borrow a neighbour's figure
+                    magnitudes.append(abs(value))
+                    parsed_rows.append((label, kind, value))
+        if not magnitudes:
+            return
+        floor = sorted(magnitudes)[len(magnitudes) // 2] / Decimal(1000)  # 0.1% of median
+        for label, kind, value in parsed_rows:
+            if abs(value) < floor and "per share" not in label.lower():
+                continue  # a stray percentage or ratio among monetary rows
+            yield label, kind, value

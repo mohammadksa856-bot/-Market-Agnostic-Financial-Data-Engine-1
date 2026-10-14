@@ -1,0 +1,45 @@
+{
+  "pack_version": "1.0.0",
+  "extends_contract_version": "1.0.0",
+  "sector_key": "banking",
+  "sector_display_name": "Banks",
+  "canonical_industry_values": [
+    "Banks"
+  ],
+  "canonical_industry_source": "Must equal one of the canonical `industry` strings already governed in src/finengine/catalog.py's GROUPS industry scope_value and documented in docs/MASTER_SCHEMA.md (e.g. 'Banks', 'Telecommunications'), so a company's existing reviewed industry classification is what selects this pack — no new classification taxonomy is introduced.",
+  "activates": {
+    "operational_kpis_field_groups": [],
+    "sector_specific_fields_field_groups": [
+      "banking"
+    ]
+  },
+  "category_overrides": {
+    "not_applicable_categories": [
+      "operational_kpis"
+    ]
+  },
+  "additional_required_fields": [
+    "gross_loans",
+    "net_loans",
+    "customer_deposits",
+    "nonperforming_loans",
+    "credit_loss_allowance",
+    "risk_weighted_assets",
+    "regulatory_capital",
+    "cet1_capital",
+    "tier1_capital",
+    "net_interest_margin",
+    "nonperforming_loans_ratio",
+    "capital_adequacy_ratio",
+    "loans_to_deposits_ratio",
+    "cost_to_income_ratio"
+  ],
+  "additional_official_sources": [
+    "sector_regulator"
+  ],
+  "notes": [
+    "operational_kpis is not_applicable for banking in this pack under the current master contract, because src/finengine/catalog.py has no dedicated banking operational-KPI field_group (branches, ATMs, POS terminals, digital active users, Saudization, NPS) the way it has 'telecommunications' or 'retail'. docs/SOURCE_MAP.md already records this gap directly: for Al Rajhi, 'operational KPIs (511 branches, 4,327 ATMs, 20.6M customers) exist in a reviewed manifest, while the consumer database's operational_kpis field is empty' -- i.e. the data exists but the catalog field_group to hold it does not yet exist. This pack marks the category not_applicable rather than silently mapping bank branch/ATM counts onto an unrelated field_group, and flags the gap for a future catalog.py change (out of scope for this contract, which must not edit catalog.py).",
+    "gross_loans is the field this project's own docs/DATA_MODEL_18_CATEGORIES.md flags as a defect ('NPL ratio is computed against net loans because gross_loans is not stored at all'). catalog.py's 'banking' GROUPS entry does define gross_loans, so this pack requires it explicitly to close that documented defect going forward -- this pack does not itself fix the defect (no scoring/engine code is touched here), it only makes the required field explicit in the contract.",
+    "IFRS 9/Basel III stage-based fields (stage_1_loans, stage_2_loans, stage_3_loans) are part of the activated banking sector_specific_fields group but are treated as requires_review at extraction, per the master contract, because staging classification judgment varies by issuer disclosure format."
+  ]
+}

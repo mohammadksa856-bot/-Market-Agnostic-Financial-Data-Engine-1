@@ -1,0 +1,185 @@
+from __future__ import annotations
+
+import json
+import hmac
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+
+from . import __version__
+from .api_contract import API_CONTRACT_VERSION
+from .query import FinancialQueryService
+from .viewer import company_viewer_html
+from .api_auth import validate_api_auth
+
+# Internal filesystem locations are operator data, not part of the public contract.
+_PRIVATE_KEYS = frozenset({"manifest_path", "archived_path", "local_path"})
+
+
+def _public(payload):
+    if isinstance(payload, dict):
+        return {key: _public(value) for key, value in payload.items() if key not in _PRIVATE_KEYS}
+    if isinstance(payload, list):
+        return [_public(value) for value in payload]
+    return payload
+
+
+def create_api_server(db_path: str, host: str = "127.0.0.1", port: int = 8000,
+                      api_key: str | None = None, *, auth_mode: str | None = None) -> ThreadingHTTPServer:
+    api_key,auth_mode=validate_api_auth(db_path,host,api_key,auth_mode)
+    class Handler(BaseHTTPRequestHandler):
+        server_version = f"FinEngineAPI/{__version__}"
+
+        def _send(self, status: int, payload: dict | list):
+            body=json.dumps(_public(payload),ensure_ascii=False,default=str).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type","application/json; charset=utf-8")
+            self.send_header("X-Marefa-API-Contract", API_CONTRACT_VERSION)
+            self.send_header("Content-Length",str(len(body)))
+            self.send_header("Cache-Control","no-store")
+            self.send_header("X-Content-Type-Options","nosniff")
+            self.end_headers(); self.wfile.write(body)
+
+        def _send_html(self, status: int, markup: str):
+            body=markup.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type","text/html; charset=utf-8")
+            self.send_header("Content-Length",str(len(body)))
+            self.send_header("Cache-Control","public, max-age=60")
+            self.send_header("X-Content-Type-Options","nosniff")
+            self.send_header("Content-Security-Policy","default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'")
+            self.end_headers(); self.wfile.write(body)
+
+        def _authorized(self) -> bool:
+            if auth_mode=='development-open':
+                return True
+            bearer=self.headers.get("Authorization","")
+            supplied=self.headers.get("X-API-Key","")
+            return (hmac.compare_digest(supplied.encode(),api_key.encode()) or
+                    hmac.compare_digest(bearer.encode(),f"Bearer {api_key}".encode()))
+
+        @staticmethod
+        def _int(params, name, default):
+            try: return int(params.get(name,[default])[0])
+            except (TypeError,ValueError): raise ValueError(f"{name} must be an integer")
+
+        def do_GET(self):
+            parsed=urlparse(self.path); parts=[part for part in parsed.path.split("/") if part]
+            if len(parts) == 3 and parts[0] == "view":
+                query=FinancialQueryService(db_path)
+                try:
+                    market,symbol=parts[1],parts[2]
+                    payload={
+                        "company":query.company_overview(market,symbol),
+                        "sections":{
+                            "profile":query.attributes(market,symbol),
+                            "financials":{"annual":query.period_snapshot(market,symbol,"fy")},
+                            "market":{"latest":next(iter(query.market_prices(market,symbol,limit=1)),None)},
+                        },
+                    }
+                    self._send_html(200,company_viewer_html(payload))
+                except KeyError:
+                    self._send_html(404,"<h1 dir='rtl'>الشركة غير موجودة</h1>")
+                except Exception:
+                    self._send_html(500,"<h1 dir='rtl'>تعذر تحميل الصفحة</h1>")
+                finally:
+                    query.close()
+                return
+            if not self._authorized():
+                self._send(401,{"error":"unauthorized"}); return
+            params=parse_qs(parsed.query)
+            query=FinancialQueryService(db_path)
+            try:
+                if parts == ["health"]:
+                    result=query.health()
+                elif len(parts)>=4 and parts[:2]==["v1","companies"]:
+                    market,symbol=parts[2],parts[3]
+                    tail=parts[4:]
+                    if not tail: result=query.company_overview(market,symbol)
+                    elif tail==["dossier"]: result=query.company_dossier(market,symbol)
+                    elif tail==["page"]: result=query.company_page(market,symbol)
+                    elif tail==["history"]:
+                        metrics=tuple(value.strip() for value in
+                                      params.get("metrics",[""])[0].split(",") if value.strip())
+                        result=query.period_history(
+                            market,symbol,params.get("period_kind",["fy"])[0],metrics,
+                            self._int(params,"periods",5))
+                    elif tail==["facts"]:
+                        result=query.facts(market,symbol,params.get("category",[None])[0],
+                            params.get("period_kind",[None])[0],self._int(params,"limit",500),
+                            self._int(params,"offset",0))
+                    elif tail==["snapshot"]:
+                        result=query.snapshot(market,symbol,params.get("period_end",[None])[0])
+                    elif len(tail)==2 and tail[0]=="metrics":
+                        result=query.metric_history(market,symbol,tail[1],self._int(params,"limit",20))
+                    elif tail==["coverage"]: result=query.coverage(market,symbol,self._int(params,"limit",100))
+                    elif tail==["completeness"]: result=query.completeness(market,symbol)
+                    elif tail==["understanding"]: result=query.understanding(market,symbol)
+                    elif tail==["factory-readiness"]: result=query.factory_readiness(market,symbol)
+                    elif tail==["field-availability"]: result=query.field_availability(market,symbol)
+                    elif tail==["backlog"]: result=query.backlog(market,symbol,params.get("status",["active"])[0],self._int(params,"limit",500))
+                    elif tail==["disclosures"]: result=query.disclosures(market,symbol,params.get("type",[None])[0],self._int(params,"limit",50))
+                    elif tail==["attributes"]: result=query.attributes(market,symbol)
+                    elif tail==["sources"]: result=query.source_candidates(market,symbol,params.get("status",[None])[0],self._int(params,"limit",100))
+                    elif tail==["prices"]: result=query.market_prices(market,symbol,params.get("interval",["1d"])[0],self._int(params,"limit",100))
+                    elif tail==["ownership"]: result=query.ownership(market,symbol,params.get("as_of",[None])[0],self._int(params,"limit",100))
+                    elif tail==["estimates"]: result=query.consensus_estimates(market,symbol,params.get("metric",[None])[0],params.get("period_end",[None])[0],self._int(params,"limit",100))
+                    elif tail==["peers"]:
+                        metrics=tuple(value.strip() for value in
+                                      params.get("metrics",[""])[0].split(",") if value.strip())
+                        result=query.peer_comparison(market,symbol,metrics,self._int(params,"limit",10))
+                    elif tail==["actions"]: result=query.corporate_actions(market,symbol,params.get("type",[None])[0],self._int(params,"limit",100))
+                    else: raise KeyError("unknown endpoint")
+                elif parts == ["v1","exceptions"]:
+                    result=query.exceptions(status=params.get("status",["open"])[0],limit=self._int(params,"limit",100),offset=self._int(params,"offset",0))
+                elif parts == ["v1","catalog"]:
+                    result=query.data_catalog(params.get("category",[None])[0],params.get("domain",[None])[0],self._int(params,"limit",1000))
+                elif len(parts) == 4 and parts[:3] == ["v1","catalog","history"]:
+                    result=query.catalog_history(parts[3])
+                elif parts == ["v1","dimensions"]:
+                    result=query.dimensions()
+                elif parts == ["v1","source-governance"]:
+                    result=query.source_governance()
+                elif parts == ["v1","universe"]:
+                    result=query.universe(params.get("market",[None])[0],
+                                          self._int(params,"limit",100),
+                                          self._int(params,"offset",0))
+                elif parts == ["v1","universe","status"]:
+                    result=query.universe_status()
+                elif parts == ["v1","universe","inventory"]:
+                    result=query.universe_rollout(params.get("market",[None])[0],
+                                                   self._int(params,"limit",100),
+                                                   self._int(params,"offset",0))
+                elif parts == ["v1","factory","runs"]:
+                    result=query.factory_runs(params.get("status",[None])[0],
+                                              self._int(params,"limit",20))
+                elif len(parts) == 4 and parts[:3] == ["v1","factory","runs"]:
+                    result=query.factory_status(parts[3])
+                else:
+                    raise KeyError("unknown endpoint")
+                self._send(200,result)
+            except KeyError as error:
+                self._send(404,{"error":str(error)})
+            except ValueError as error:
+                self._send(400,{"error":str(error)})
+            except Exception:
+                self._send(500,{"error":"internal_error"})
+            finally:
+                query.close()
+
+        def do_HEAD(self):
+            self.send_response(200); self.end_headers()
+
+        def do_POST(self):
+            self._send(405,{"error":"read_only_service"})
+
+        def log_message(self, format, *args):
+            return
+
+    return ThreadingHTTPServer((host,port),Handler)
+
+
+def serve_api(db_path: str, host: str = "127.0.0.1", port: int = 8000,
+              api_key: str | None = None, *, auth_mode: str | None = None) -> None:
+    server=create_api_server(db_path,host,port,api_key,auth_mode=auth_mode)
+    try: server.serve_forever()
+    finally: server.server_close()

@@ -1,0 +1,1310 @@
+from __future__ import annotations
+
+import json
+import math
+import statistics
+from decimal import Decimal
+from datetime import date, datetime, timedelta, timezone
+
+from .calculations import Calculator
+from .database import Database, _json
+from .models import Fact, PeriodKind
+from .market_input_lineage import MarketExpressionBuilder, expression as expr, const
+
+
+GAP_RESOLUTION_PLAYBOOK = {
+    "pending_official_source_extraction": {
+        "reason": "An applicable field has no reviewed extraction from the archived official documents yet.",
+        "resolution": "Run the statement, note, or sector-table extractor; retain page/table/label lineage and pass validation before publishing.",
+        "solution_code": "extract_archived_official_source",
+    },
+    "calculation_requires_missing_dependencies": {
+        "reason": "The deterministic formula cannot run because one or more source inputs or comparison periods are missing.",
+        "resolution": "Load the missing official inputs and historical periods, then rerun the deterministic calculation engine.",
+        "solution_code": "backfill_dependencies_then_calculate",
+    },
+    "calculation_requires_sufficient_market_history": {
+        "reason": "The metric requires a longer official daily price/volume window than is currently archived.",
+        "resolution": "Archive Saudi Exchange daily history until the required 20/50/200-day or multi-year window is complete, then recalculate.",
+        "solution_code": "archive_market_history_then_calculate",
+    },
+    "authoritative_registry_source_required": {
+        "reason": "The company-profile field is absent from the reviewed registry evidence.",
+        "resolution": "Source it from the issuer profile, annual report, articles of association, or Saudi Exchange issuer profile and version the value.",
+        "solution_code": "enrich_from_authoritative_registry_source",
+    },
+    "event_driven_no_event_observed": {
+        "reason": "This field represents an event; no matching event has been observed in the archived period.",
+        "resolution": "Keep it explicitly unavailable rather than storing zero, and monitor issuer and Saudi Exchange announcements for a future event.",
+        "solution_code": "monitor_event_stream",
+    },
+    "not_disclosed_in_archived_filings": {
+        "reason": "The archived official filings do not disclose a quantitative value for this field.",
+        "resolution": "Retain the negative-evidence status, inspect quarterly presentations and official databooks, and publish only if a quantitative disclosure appears.",
+        "solution_code": "seek_alternate_official_disclosure",
+    },
+    "not_disclosed_in_archived_annual_report": {
+        "reason": "The metric is not quantitatively disclosed in the archived annual report.",
+        "resolution": "Check official operating databooks and interim presentations; otherwise preserve the field as not disclosed.",
+        "solution_code": "seek_official_operating_databook",
+    },
+    "qualitative_disclosure_only": {
+        "reason": "The issuer discusses the topic but does not provide a defensible numeric value.",
+        "resolution": "Retain the qualitative disclosure and monitor later filings; never coerce narrative text into a number.",
+        "solution_code": "retain_qualitative_evidence",
+    },
+    "licensed_source_required": {
+        "reason": "Point-in-time analyst consensus is not an issuer-reported fact and requires a licensed provider.",
+        "resolution": "Connect a licensed consensus feed with as-of timestamps and analyst counts; do not substitute current web estimates.",
+        "solution_code": "connect_licensed_consensus_provider",
+    },
+    "not_applicable_market_identifier": {
+        "reason": "The identifier is specific to another market and does not apply to this issuer.",
+        "resolution": "Close the field as not applicable and use the market-appropriate identifier instead.",
+        "solution_code": "close_not_applicable",
+    },
+    "not_applicable_company_business_model": {
+        "reason": "This field does not apply to the issuer's current business model or reported segment structure.",
+        "resolution": "Exclude it from actionable company coverage while retaining it in the market-agnostic master catalog for issuers where it applies.",
+        "solution_code": "exclude_from_company_applicability",
+    },
+    "not_meaningful_for_current_financial_state": {
+        "reason": "The formula is not economically meaningful for the company's current financial state.",
+        "resolution": "Keep the metric unavailable with its reason and recalculate when the required positive denominator or growth rate becomes meaningful.",
+        "solution_code": "recalculate_when_economically_meaningful",
+    },
+}
+
+
+class CompanyDomainStore:
+    """Structured stores for market, ownership, actions, formulas and coverage."""
+
+    def __init__(self, db: Database):
+        self.db = db
+
+    def refresh_financial_calculations(self, company_id: str) -> dict:
+        """Rebuild deterministic financial outputs from current reported facts.
+
+        Pipeline ingestion calculates new periods incrementally.  Factory waves
+        also need a complete, idempotent rebuild after a historical backfill or
+        a formula release; otherwise old periods never receive newer formulas.
+        Only reported inputs seed the rebuild, so an old calculated value cannot
+        become circular input to its own replacement.
+        """
+        calculator = Calculator()
+        history = self.db.calculation_history(company_id, calculator.HISTORY_METRICS)
+        inputs = [fact for fact in history if not fact.is_calculated]
+        calculated = calculator.calculate(inputs)
+        states = self.db.publish_batch(calculated) if calculated else []
+        return {
+            "company_id": company_id,
+            "input_facts": len(inputs),
+            "calculated_facts": len(calculated),
+            "inserted": states.count("inserted"),
+            "restated": states.count("restated"),
+            "duplicates": states.count("duplicate"),
+            "suppressed": states.count("suppressed"),
+            "metrics": sorted({fact.metric for fact in calculated}),
+        }
+
+    def primary_listing_id(self, company_id: str) -> str:
+        row = self.db.conn.execute(
+            """SELECT l.listing_id FROM listings l JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND l.active=1 ORDER BY l.is_primary DESC,l.created_at LIMIT 1""",
+            (company_id,)).fetchone()
+        if not row:
+            raise KeyError(f"company has no active listing: {company_id}")
+        return row["listing_id"]
+
+    def publish_market_price(
+        self, company_id: str, observed_at: str, close, currency: str, source_key: str,
+        interval: str = "1d", open=None, high=None, low=None, adjusted_close=None,
+        volume=None, turnover=None, listing_id: str | None = None,
+    ) -> str:
+        listing_id = listing_id or self.primary_listing_id(company_id)
+        numbers = {name: Decimal(str(value)) for name, value in {
+            "open": open, "high": high, "low": low, "close": close,
+            "adjusted_close": adjusted_close, "volume": volume, "turnover": turnover,
+        }.items() if value is not None}
+        if numbers.get("volume", Decimal(0)) < 0 or numbers.get("turnover", Decimal(0)) < 0:
+            raise ValueError("volume and turnover cannot be negative")
+        comparable = [numbers[name] for name in ("open", "close", "low") if name in numbers]
+        if "high" in numbers and comparable and numbers["high"] < max(comparable):
+            raise ValueError("high price is below another OHLC value")
+        comparable = [numbers[name] for name in ("open", "close", "high") if name in numbers]
+        if "low" in numbers and comparable and numbers["low"] > min(comparable):
+            raise ValueError("low price is above another OHLC value")
+        fields = tuple(str(numbers[name]) if name in numbers else None for name in
+                       ("open", "high", "low", "close", "adjusted_close", "volume", "turnover"))
+        old = self.db.conn.execute(
+            "SELECT * FROM market_prices WHERE listing_id=? AND observed_at=? AND interval=? AND is_current=1",
+            (listing_id, observed_at, interval)).fetchone()
+        current = (*fields, currency, source_key)
+        if old and tuple(old[name] for name in ("open", "high", "low", "close", "adjusted_close", "volume", "turnover", "currency", "source_key")) == current:
+            return "duplicate"
+        version = old["version"] + 1 if old else 1
+        with self.db.conn:
+            if old:
+                self.db.conn.execute("UPDATE market_prices SET is_current=0 WHERE id=?", (old["id"],))
+            self.db.conn.execute(
+                """INSERT INTO market_prices(listing_id,observed_at,interval,open,high,low,close,
+                adjusted_close,volume,turnover,currency,source_key,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (listing_id, observed_at, interval, *fields, currency, source_key, version))
+        return "restated" if old else "inserted"
+
+    def refresh_market_valuations(self, company_id: str) -> dict:
+        """Publish point-in-time valuation facts from archived prices and filings.
+
+        Financial inputs must have been filed no later than the price date. This
+        prevents look-ahead bias and makes an offline rebuild deterministic.
+        """
+        price = self.db.conn.execute(
+            """SELECT p.*,d.source_url,d.filed_at,c.currency company_currency
+            FROM market_prices p JOIN listings l USING(listing_id)
+            JOIN securities s USING(security_id) JOIN companies c ON c.company_id=s.company_id
+            JOIN source_documents d ON d.source_key=p.source_key
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
+            AND p.currency=c.currency AND l.is_primary=1 AND l.active=1
+            ORDER BY p.observed_at DESC LIMIT 1""", (company_id,)).fetchone()
+        if not price:
+            return {"company_id": company_id, "status": "skipped", "reason": "no_market_price", "published": 0}
+        rows = self.db.conn.execute(
+            """SELECT * FROM data_points WHERE company_id=? AND is_current=1
+            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
+            AND (currency='' OR currency=?)
+            AND period_end<=? AND period_kind IN ('fy','instant')
+            ORDER BY period_end DESC,version DESC""",
+            (company_id, price["observed_at"], price["company_currency"], price["observed_at"]),
+        ).fetchall()
+        values = {}
+        selected_rows = {}
+        for row in rows:
+            if row['value_decimal'] is not None:
+                values.setdefault(row["metric_key"], Decimal(row["value_decimal"]))
+                selected_rows.setdefault(row['metric_key'], row)
+
+        lineage = MarketExpressionBuilder(self.db.conn)
+        def fundamental(key):
+            return lineage.ref(selected_rows[key], 'data_points', 'value_decimal') if key in selected_rows else const(0)
+        price_close = lineage.ref(price,'market_prices','close')
+        share_key = 'shares_outstanding' if values.get('shares_outstanding') else 'weighted_average_shares_diluted'
+        market_cap_expression = expr('multiply', price_close, fundamental(share_key))
+        net_debt_expression = fundamental('net_debt') if 'net_debt' in values else expr('subtract',
+            expr('add', fundamental('current_debt'), fundamental('long_term_debt')), fundamental('cash'))
+        enterprise_expression = expr('add',market_cap_expression,net_debt_expression)
+
+        close = Decimal(price["close"])
+        shares = values.get("shares_outstanding") or values.get("weighted_average_shares_diluted")
+        if not close or not shares:
+            return {
+                "company_id": company_id,
+                "status": "skipped",
+                "reason": "no_fundamentals_available_as_of_price_date",
+                "solution": (
+                    "Archive a daily price on or after the filing date for a point-in-time valuation; "
+                    "period-aligned historical multiples are calculated separately from reported year-end market cap."
+                ),
+                "published": 0,
+            }
+        market_cap = close * shares
+        debt = values.get("current_debt", Decimal(0)) + values.get("long_term_debt", Decimal(0))
+        net_debt = values.get("net_debt", debt - values.get("cash", Decimal(0)))
+        enterprise_value = market_cap + net_debt
+        calculations: dict[str, tuple[Decimal, str, str, str]] = {
+            "market_cap": (market_cap, "price_close * shares_outstanding", price["company_currency"], price["company_currency"]),
+            "enterprise_value": (enterprise_value, "market_cap + net_debt", price["company_currency"], price["company_currency"]),
+        }
+        if price["turnover"] is not None and price["volume"] is not None and Decimal(price["volume"]):
+            calculations["vwap"] = (
+                Decimal(price["turnover"]) / Decimal(price["volume"]),
+                "latest_archived_daily_turnover / latest_archived_daily_volume",
+                price["company_currency"], f"{price['company_currency']}/share",
+            )
+
+        def ratio(metric: str, numerator: Decimal, denominator_key: str, formula: str) -> None:
+            denominator = values.get(denominator_key)
+            if denominator:
+                calculations[metric] = (numerator / denominator, formula, "", "ratio")
+
+        ratio("price_to_earnings", market_cap, "net_income", "market_cap / latest_filed_fy(net_income)")
+        ratio("price_to_sales", market_cap, "revenue", "market_cap / latest_filed_fy(revenue)")
+        ratio("price_to_book", market_cap, "total_equity", "market_cap / latest_filed(total_equity)")
+        ratio("price_to_tangible_book", market_cap, "tangible_book_value", "market_cap / latest_filed(tangible_book_value)")
+        ratio("price_to_cash_flow", market_cap, "operating_cash_flow", "market_cap / latest_filed_fy(operating_cash_flow)")
+        ratio("price_to_free_cash_flow", market_cap, "free_cash_flow", "market_cap / latest_filed_fy(free_cash_flow)")
+        ratio("enterprise_value_to_revenue", enterprise_value, "revenue", "enterprise_value / latest_filed_fy(revenue)")
+        ratio("enterprise_value_to_ebit", enterprise_value, "ebit", "enterprise_value / latest_filed_fy(ebit)")
+        ratio("enterprise_value_to_ebitda", enterprise_value, "ebitda", "enterprise_value / latest_filed_fy(ebitda)")
+        ratio("enterprise_value_to_fcf", enterprise_value, "free_cash_flow",
+              "enterprise_value / latest_filed_fy(free_cash_flow)")
+        ratio("enterprise_value_to_invested_capital", enterprise_value, "invested_capital",
+              "enterprise_value / latest_filed(invested_capital)")
+        ratio("market_cap_to_equity", market_cap, "total_equity",
+              "market_cap / latest_filed(total_equity)")
+        ratio("market_cap_to_net_income", market_cap, "net_income",
+              "market_cap / latest_filed_fy(net_income)")
+        for metric, key, formula in (
+            ("earnings_yield", "net_income", "latest_filed_fy(net_income) / market_cap"),
+            ("fcf_yield", "free_cash_flow", "latest_filed_fy(free_cash_flow) / market_cap"),
+            ("cfo_yield", "operating_cash_flow", "latest_filed_fy(operating_cash_flow) / market_cap"),
+            ("dividend_yield", "dividends_paid", "abs(latest_filed_fy(dividends_paid)) / market_cap"),
+        ):
+            if key in values and market_cap:
+                numerator = abs(values[key]) if metric == "dividend_yield" else values[key]
+                calculations[metric] = (numerator / market_cap, formula, "", "ratio")
+        dividends = abs(values.get("dividends_paid", Decimal(0)))
+        buybacks = abs(values.get("shares_repurchased", Decimal(0)))
+        issuance = abs(values.get("shares_issued", Decimal(0)))
+        if market_cap and (dividends or buybacks or issuance):
+            calculations["shareholder_yield"] = (
+                (dividends + buybacks - issuance) / market_cap,
+                "(abs(dividends_paid) + abs(shares_repurchased) - abs(shares_issued)) / market_cap",
+                "", "ratio",
+            )
+
+        # Historical multiple percentiles are derived entirely from archived
+        # prices and facts that were filed by each price date.  This avoids
+        # look-ahead bias and produces a reproducible valuation context.
+        history_prices = self.db.conn.execute(
+            """SELECT p.* FROM market_prices p
+            JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
+              AND p.observed_at<=? AND p.currency=? AND p.listing_id=? ORDER BY p.observed_at""",
+            (company_id, price["observed_at"], price["company_currency"], price['listing_id']),
+        ).fetchall()
+        fundamental_rows = self.db.conn.execute(
+            """SELECT * FROM data_points
+            WHERE company_id=? AND is_current=1 AND scope='consolidated'
+              AND dimensions_json='{}' AND value_type='decimal'
+              AND value_decimal IS NOT NULL AND (currency='' OR currency=?)
+              AND ((metric_key IN ('shares_outstanding','weighted_average_shares_diluted',
+                                   'total_equity') AND period_kind='instant')
+                   OR (metric_key='net_income' AND period_kind='fy'))
+            ORDER BY filed_at,period_end""",
+            (company_id, price["company_currency"]),
+        ).fetchall()
+
+        def latest_available_row(metric: str, as_of: str):
+            candidates = [row for row in fundamental_rows
+                          if row["metric_key"] == metric and row["filed_at"] <= as_of
+                          and row["period_end"] <= as_of]
+            if not candidates:
+                return None
+            row = max(candidates, key=lambda item: (item["period_end"], item["filed_at"]))
+            return row
+
+        def latest_available(metric: str, as_of: str) -> Decimal | None:
+            row=latest_available_row(metric,as_of)
+            return Decimal(row['value_decimal']) if row else None
+
+        pe_history: list[Decimal] = []
+        pb_history: list[Decimal] = []
+        pe_expressions=[]; pb_expressions=[]
+        for observation in history_prices:
+            historical_shares = (
+                latest_available("shares_outstanding", observation["observed_at"])
+                or latest_available("weighted_average_shares_diluted", observation["observed_at"])
+            )
+            if not historical_shares:
+                continue
+            historical_cap = Decimal(observation["close"]) * historical_shares
+            earnings = latest_available("net_income", observation["observed_at"])
+            equity = latest_available("total_equity", observation["observed_at"])
+            if earnings and earnings > 0:
+                pe_history.append(historical_cap / earnings)
+                share_row=latest_available_row('shares_outstanding',observation['observed_at'])
+                if share_row is None or not Decimal(share_row['value_decimal']):
+                    share_row=latest_available_row('weighted_average_shares_diluted',observation['observed_at'])
+                pe_expressions.append(expr('divide',expr('multiply',lineage.ref(observation,'market_prices','close'),
+                    lineage.ref(share_row,'data_points','value_decimal')),
+                    lineage.ref(latest_available_row('net_income',observation['observed_at']),'data_points','value_decimal')))
+            if equity and equity > 0:
+                pb_history.append(historical_cap / equity)
+                share_row=latest_available_row('shares_outstanding',observation['observed_at'])
+                if share_row is None or not Decimal(share_row['value_decimal']):
+                    share_row=latest_available_row('weighted_average_shares_diluted',observation['observed_at'])
+                pb_expressions.append(expr('divide',expr('multiply',lineage.ref(observation,'market_prices','close'),
+                    lineage.ref(share_row,'data_points','value_decimal')),
+                    lineage.ref(latest_available_row('total_equity',observation['observed_at']),'data_points','value_decimal')))
+
+        def add_percentile(metric: str, current_metric: str, history: list[Decimal]) -> None:
+            current = calculations.get(current_metric)
+            # Sixty archived trading observations is the minimum defensible
+            # sample; the exact sample and point-in-time methodology remain in
+            # formula lineage.  Coverage grows naturally as daily history grows.
+            if current and len(history) >= 60:
+                percentile = Decimal(sum(value <= current[0] for value in history)) / Decimal(len(history))
+                calculations[metric] = (
+                    percentile,
+                    f"empirical percentile of point-in-time {current_metric} over archived daily history",
+                    "", "ratio",
+                )
+
+        add_percentile("historical_pe_percentile", "price_to_earnings", pe_history)
+        add_percentile("historical_pb_percentile", "price_to_book", pb_history)
+        eps = values.get("eps_diluted") or values.get("basic_eps")
+        bvps = values.get("book_value_per_share")
+        if eps and bvps and eps > 0 and bvps > 0:
+            calculations["graham_number"] = (
+                (Decimal("22.5") * eps * bvps).sqrt(),
+                "sqrt(22.5 * latest_filed_fy(eps) * latest_filed(book_value_per_share))",
+                price["company_currency"], f"{price['company_currency']}/share",
+            )
+
+        fiscal_year = int(price["observed_at"][:4])
+        facts = [Fact(
+            company_id, metric, value, currency, unit, None, price["observed_at"], PeriodKind.AS_OF,
+            fiscal_year, None, price["source_key"], price["source_url"], price["filed_at"],
+            is_calculated=True, calculation=formula,
+        ) for metric, (value, formula, currency, unit) in calculations.items()]
+        denominator_keys={
+            'price_to_earnings':'net_income','price_to_sales':'revenue','price_to_book':'total_equity',
+            'price_to_tangible_book':'tangible_book_value','price_to_cash_flow':'operating_cash_flow',
+            'price_to_free_cash_flow':'free_cash_flow','enterprise_value_to_revenue':'revenue',
+            'enterprise_value_to_ebit':'ebit','enterprise_value_to_ebitda':'ebitda',
+            'enterprise_value_to_fcf':'free_cash_flow','enterprise_value_to_invested_capital':'invested_capital',
+            'market_cap_to_equity':'total_equity','market_cap_to_net_income':'net_income'}
+        expressions={'market_cap':market_cap_expression,'enterprise_value':enterprise_expression,
+            'vwap':expr('divide',lineage.ref(price,'market_prices','turnover'),lineage.ref(price,'market_prices','volume'))
+                if 'vwap' in calculations else const(0)}
+        for metric,key in denominator_keys.items():
+            if metric in calculations:
+                expressions[metric]=expr('divide',enterprise_expression if metric.startswith('enterprise_value') else market_cap_expression,fundamental(key))
+        for metric,key in [('earnings_yield','net_income'),('fcf_yield','free_cash_flow'),('cfo_yield','operating_cash_flow'),('dividend_yield','dividends_paid')]:
+            if metric in calculations:
+                numerator=fundamental(key)
+                expressions[metric]=expr('divide',expr('abs',numerator) if metric=='dividend_yield' else numerator,market_cap_expression)
+        expressions['shareholder_yield']=expr('divide',expr('subtract',expr('add',expr('abs',fundamental('dividends_paid')),expr('abs',fundamental('shares_repurchased'))),expr('abs',fundamental('shares_issued'))),market_cap_expression)
+        expressions['historical_pe_percentile']=expr('percentile',expr('divide',market_cap_expression,fundamental('net_income')),*pe_expressions)
+        expressions['historical_pb_percentile']=expr('percentile',expr('divide',market_cap_expression,fundamental('total_equity')),*pb_expressions)
+        eps_key='eps_diluted' if values.get('eps_diluted') else 'basic_eps'
+        expressions['graham_number']=expr('sqrt',expr('multiply',expr('multiply',const('22.5'),fundamental(eps_key)),fundamental('book_value_per_share')))
+        facts=[lineage.trace(fact,expressions[fact.metric]) for fact in facts]
+        states = self.db.publish_batch(facts)
+        return {"company_id": company_id, "status": "published", "published": len(states),
+                "inserted": states.count("inserted"), "restated": states.count("restated"),
+                "duplicates": states.count("duplicate")}
+
+    def refresh_market_statistics(self, company_id: str) -> dict:
+        """Publish reproducible price statistics from archived daily observations.
+
+        Calendar returns are emitted only when the archive reaches the requested
+        lookback date.  This prevents a short partial window from being labelled
+        as a one-, three-, or five-year return.
+        """
+        rows = self.db.conn.execute(
+            """SELECT p.*,d.source_url,d.filed_at,c.currency company_currency
+            FROM market_prices p JOIN listings l USING(listing_id)
+            JOIN securities s USING(security_id) JOIN companies c ON c.company_id=s.company_id
+            JOIN source_documents d ON d.source_key=p.source_key
+            WHERE s.company_id=? AND p.is_current=1 AND p.interval='1d'
+            AND p.currency=c.currency AND l.is_primary=1 AND l.active=1
+            ORDER BY p.observed_at""", (company_id,),
+        ).fetchall()
+        if len(rows) < 2:
+            return {"company_id": company_id, "status": "skipped",
+                    "reason": "insufficient_market_history", "published": 0}
+
+        latest = rows[-1]
+        latest_date = date.fromisoformat(latest["observed_at"][:10])
+        latest_close = Decimal(latest["close"])
+        currency = latest["company_currency"]
+        calculations: dict[str, tuple[Decimal, str, str, str]] = {
+            "previous_close": (
+                Decimal(rows[-2]["close"]), "previous_archived_trading_session_close",
+                currency, f"{currency}/share",
+            ),
+        }
+
+        for sessions in (20, 50, 200):
+            if len(rows) < sessions:
+                continue
+            average = sum(
+                (Decimal(row["close"]) for row in rows[-sessions:]), Decimal(0)
+            ) / Decimal(sessions)
+            calculations[f"simple_moving_average_{sessions}d"] = (
+                average, f"average(latest_{sessions}_archived_daily_closes)",
+                currency, f"{currency}/share",
+            )
+            calculations[f"price_to_sma_{sessions}d"] = (
+                latest_close / average,
+                f"latest_archived_close / simple_moving_average_{sessions}d",
+                "", "ratio",
+            )
+
+        volumes = [Decimal(row["volume"]) for row in rows[-30:]
+                   if row["volume"] is not None]
+        if len(rows) >= 30 and len(volumes) == 30:
+            calculations["average_volume_30d"] = (
+                sum(volumes, Decimal(0)) / Decimal(30),
+                "average(latest_30_archived_daily_volumes)", "", "shares",
+            )
+
+        if len(rows) >= 31:
+            closes = [float(Decimal(row["close"])) for row in rows[-31:]]
+            log_returns = [math.log(closes[index] / closes[index - 1])
+                           for index in range(1, len(closes))
+                           if closes[index] > 0 and closes[index - 1] > 0]
+            if len(log_returns) == 30:
+                calculations["volatility_30d"] = (
+                    Decimal(str(statistics.stdev(log_returns) * math.sqrt(252))),
+                    "sample_stddev(latest_30_daily_log_returns) * sqrt(252)",
+                    "", "ratio",
+                )
+
+        one_year_start = latest_date - timedelta(days=365)
+        year_rows = [row for row in rows
+                     if date.fromisoformat(row["observed_at"][:10]) >= one_year_start]
+        if date.fromisoformat(rows[0]["observed_at"][:10]) <= one_year_start and year_rows:
+            year_high = max(Decimal(row["high"] or row["close"]) for row in year_rows)
+            year_low = min(Decimal(row["low"] or row["close"]) for row in year_rows)
+            calculations.update({
+                "fifty_two_week_high": (
+                    year_high, "max(archived_daily_highs_in_latest_365_calendar_days)",
+                    currency, f"{currency}/share",
+                ),
+                "fifty_two_week_low": (
+                    year_low, "min(archived_daily_lows_in_latest_365_calendar_days)",
+                    currency, f"{currency}/share",
+                ),
+                "percent_from_52w_high": (
+                    latest_close / year_high - Decimal(1),
+                    "latest_archived_close / fifty_two_week_high - 1", "", "ratio",
+                ),
+                "percent_from_52w_low": (
+                    latest_close / year_low - Decimal(1),
+                    "latest_archived_close / fifty_two_week_low - 1", "", "ratio",
+                ),
+            })
+
+        dated_rows = [(date.fromisoformat(row["observed_at"][:10]), row) for row in rows]
+
+        def calendar_return(metric: str, target: date, formula: str) -> None:
+            if dated_rows[0][0] > target:
+                return
+            baseline = next((row for observed, row in reversed(dated_rows)
+                             if observed <= target), None)
+            if baseline is not None and Decimal(baseline["close"]):
+                calculations[metric] = (
+                    latest_close / Decimal(baseline["close"]) - Decimal(1),
+                    formula, "", "ratio",
+                )
+
+        for metric, days in (("market_return_1m", 30), ("market_return_3m", 91),
+                             ("market_return_6m", 182), ("market_return_1y", 365),
+                             ("market_return_3y", 1095), ("market_return_5y", 1826)):
+            calendar_return(
+                metric, latest_date - timedelta(days=days),
+                f"latest_archived_close / last_archived_close_on_or_before_{days}_calendar_days_ago - 1",
+            )
+        calendar_return(
+            "market_return_ytd", date(latest_date.year, 1, 1) - timedelta(days=1),
+            "latest_archived_close / last_archived_close_on_or_before_prior_year_end - 1",
+        )
+
+        fiscal_year = latest_date.year
+        facts = [Fact(
+            company_id, metric, value, fact_currency, unit, None,
+            latest_date.isoformat(), PeriodKind.AS_OF, fiscal_year, None,
+            latest["source_key"], latest["source_url"], latest["filed_at"],
+            is_calculated=True, calculation=formula,
+        ) for metric, (value, formula, fact_currency, unit) in calculations.items()]
+        lineage=MarketExpressionBuilder(self.db.conn)
+        def market(row,field='close'):
+            return lineage.ref(row,'market_prices',field)
+        latest_expression=market(latest)
+        expressions={'previous_close':market(rows[-2])}
+        for sessions in (20,50,200):
+            average=expr('mean',*(market(row) for row in rows[-sessions:]))
+            expressions[f'simple_moving_average_{sessions}d']=average
+            expressions[f'price_to_sma_{sessions}d']=expr('divide',latest_expression,average)
+        expressions['average_volume_30d']=expr('mean',*(market(row,'volume') for row in rows[-30:])) if 'average_volume_30d' in calculations else const(0)
+        expressions['volatility_30d']=expr('volatility',*(market(row) for row in rows[-31:]))
+        if 'fifty_two_week_high' in calculations:
+            high=expr('max',*(market(row,'high' if row['high'] else 'close') for row in year_rows))
+            low=expr('min',*(market(row,'low' if row['low'] else 'close') for row in year_rows))
+            expressions.update({'fifty_two_week_high':high,'fifty_two_week_low':low,
+                'percent_from_52w_high':expr('subtract',expr('divide',latest_expression,high),const(1)),
+                'percent_from_52w_low':expr('subtract',expr('divide',latest_expression,low),const(1))})
+        targets={'market_return_1m':latest_date-timedelta(days=30),'market_return_3m':latest_date-timedelta(days=91),
+            'market_return_6m':latest_date-timedelta(days=182),'market_return_1y':latest_date-timedelta(days=365),
+            'market_return_3y':latest_date-timedelta(days=1095),'market_return_5y':latest_date-timedelta(days=1826),
+            'market_return_ytd':date(latest_date.year,1,1)-timedelta(days=1)}
+        for metric,target in targets.items():
+            if metric in calculations:
+                baseline=next(row for observed,row in reversed(dated_rows) if observed<=target)
+                expressions[metric]=expr('subtract',expr('divide',latest_expression,market(baseline)),const(1))
+        facts=[lineage.trace(fact,expressions[fact.metric]) for fact in facts]
+        states = self.db.publish_batch(facts)
+        return {"company_id": company_id, "status": "published", "published": len(states),
+                "inserted": states.count("inserted"), "restated": states.count("restated"),
+                "duplicates": states.count("duplicate")}
+
+    def publish_ownership_position(
+        self, company_id: str, holder_key: str, holder_name: str, ownership_type: str,
+        as_of_date: str, source_key: str, shares=None, ownership_pct=None,
+        holder_type: str | None = None, country: str | None = None, metadata: dict | None = None,
+    ) -> str:
+        share_value = str(Decimal(str(shares))) if shares is not None else None
+        pct_value = Decimal(str(ownership_pct)) if ownership_pct is not None else None
+        if pct_value is not None and not Decimal(0) <= pct_value <= Decimal(1):
+            raise ValueError("ownership_pct must be between 0 and 1")
+        encoded = _json(metadata or {})
+        old = self.db.conn.execute(
+            """SELECT * FROM ownership_positions WHERE company_id=? AND holder_key=?
+            AND ownership_type=? AND as_of_date=? AND is_current=1""",
+            (company_id, holder_key, ownership_type, as_of_date)).fetchone()
+        current = (holder_name, holder_type, share_value, str(pct_value) if pct_value is not None else None,
+                   country, source_key, encoded)
+        if old and tuple(old[name] for name in ("holder_name", "holder_type", "shares", "ownership_pct", "country", "source_key", "metadata_json")) == current:
+            return "duplicate"
+        version = old["version"] + 1 if old else 1
+        with self.db.conn:
+            if old:
+                self.db.conn.execute("UPDATE ownership_positions SET is_current=0 WHERE id=?", (old["id"],))
+            self.db.conn.execute(
+                """INSERT INTO ownership_positions(company_id,holder_key,holder_name,holder_type,
+                ownership_type,as_of_date,shares,ownership_pct,country,source_key,metadata_json,version)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (company_id, holder_key, holder_name, holder_type, ownership_type, as_of_date,
+                 share_value, str(pct_value) if pct_value is not None else None, country, source_key, encoded, version))
+        return "restated" if old else "inserted"
+
+    def publish_consensus_estimate(
+        self, company_id: str, metric_key: str, target_period_end: str, period_kind: str,
+        estimate_type: str, value, estimate_as_of: str, source_key: str,
+        currency: str = "", unit: str = "pure", analyst_count: int | None = None,
+        metadata: dict | None = None,
+    ) -> str:
+        """Publish a point-in-time analyst estimate without overwriting its history."""
+        if period_kind not in {"quarter", "fy"}:
+            raise ValueError("consensus period_kind must be quarter or fy")
+        if estimate_type not in {"low", "high", "mean", "median"}:
+            raise ValueError("unsupported consensus estimate_type")
+        if analyst_count is not None and (not isinstance(analyst_count, int) or analyst_count < 0):
+            raise ValueError("analyst_count must be a non-negative integer")
+        datetime.fromisoformat(target_period_end.replace("Z", "+00:00"))
+        datetime.fromisoformat(estimate_as_of.replace("Z", "+00:00"))
+        metric = self.db.conn.execute(
+            "SELECT category FROM metric_definitions WHERE metric_key=? AND enabled=1", (metric_key,),
+        ).fetchone()
+        if not metric or metric["category"] != "consensus":
+            raise ValueError(f"metric is not a registered consensus field: {metric_key}")
+        decimal_value = str(Decimal(str(value)))
+        encoded = _json(metadata or {})
+        old = self.db.conn.execute(
+            """SELECT * FROM consensus_estimates WHERE company_id=? AND metric_key=?
+            AND target_period_end=? AND period_kind=? AND estimate_type=? AND estimate_as_of=?
+            AND is_current=1""",
+            (company_id, metric_key, target_period_end, period_kind, estimate_type, estimate_as_of),
+        ).fetchone()
+        fields = (decimal_value, currency, unit, analyst_count, source_key, encoded)
+        names = ("value_decimal", "currency", "unit", "analyst_count", "source_key", "metadata_json")
+        if old and tuple(old[name] for name in names) == fields:
+            return "duplicate"
+        version = old["version"] + 1 if old else 1
+        with self.db.conn:
+            if old:
+                self.db.conn.execute("UPDATE consensus_estimates SET is_current=0 WHERE id=?", (old["id"],))
+            self.db.conn.execute(
+                """INSERT INTO consensus_estimates(company_id,metric_key,target_period_end,period_kind,
+                estimate_type,value_decimal,currency,unit,analyst_count,estimate_as_of,source_key,
+                metadata_json,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (company_id, metric_key, target_period_end, period_kind, estimate_type,
+                 decimal_value, currency, unit, analyst_count, estimate_as_of, source_key,
+                 encoded, version),
+            )
+        return "restated" if old else "inserted"
+
+    def publish_corporate_action(
+        self, action_key: str, company_id: str, action_type: str, title: str,
+        announcement_date: str, source_key: str, listing_id: str | None = None,
+        ex_date: str | None = None, record_date: str | None = None,
+        eligibility_date: str | None = None, payment_date: str | None = None,
+        effective_date: str | None = None, cash_amount=None, currency: str | None = None,
+        ratio_numerator=None, ratio_denominator=None, status: str = "announced",
+        details: dict | None = None,
+    ) -> str:
+        listing_id = listing_id or self.primary_listing_id(company_id)
+        cash = str(Decimal(str(cash_amount))) if cash_amount is not None else None
+        numerator = str(Decimal(str(ratio_numerator))) if ratio_numerator is not None else None
+        denominator = str(Decimal(str(ratio_denominator))) if ratio_denominator is not None else None
+        encoded = _json(details or {})
+        old = self.db.conn.execute(
+            "SELECT * FROM corporate_actions WHERE action_key=? AND is_current=1", (action_key,)).fetchone()
+        fields = (company_id, listing_id, action_type, title, announcement_date, ex_date, record_date,
+                  eligibility_date, payment_date, effective_date, cash, currency, numerator, denominator,
+                  status, source_key, encoded)
+        names = ("company_id", "listing_id", "action_type", "title", "announcement_date", "ex_date",
+                 "record_date", "eligibility_date", "payment_date", "effective_date", "cash_amount",
+                 "currency", "ratio_numerator", "ratio_denominator", "status", "source_key", "details_json")
+        if old and tuple(old[name] for name in names) == fields:
+            return "duplicate"
+        version = old["version"] + 1 if old else 1
+        with self.db.conn:
+            if old:
+                self.db.conn.execute("UPDATE corporate_actions SET is_current=0 WHERE id=?", (old["id"],))
+            self.db.conn.execute(
+                """INSERT INTO corporate_actions(action_key,company_id,listing_id,action_type,title,
+                announcement_date,ex_date,record_date,eligibility_date,payment_date,effective_date,
+                cash_amount,currency,ratio_numerator,ratio_denominator,status,source_key,details_json,version)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (action_key, *fields, version))
+        return "restated" if old else "inserted"
+
+    def register_calculation(
+        self, metric_key: str, expression: str, dependencies: list[str], formula_version: int,
+        output_unit: str | None = None, period_rule: str = "same_period",
+        description: str | None = None,
+    ) -> None:
+        self.db.register_metric(metric_key, category="calculated", commit=False)
+        for dependency in dependencies:
+            self.db.register_metric(dependency, commit=False)
+        with self.db.conn:
+            self.db.conn.execute(
+                "UPDATE calculation_definitions SET is_current=0 WHERE metric_key=?", (metric_key,))
+            self.db.conn.execute(
+                """INSERT INTO calculation_definitions(metric_key,formula_version,expression,output_unit,
+                period_rule,description,is_current) VALUES(?,?,?,?,?,?,1)
+                ON CONFLICT(metric_key,formula_version) DO UPDATE SET expression=excluded.expression,
+                output_unit=excluded.output_unit,period_rule=excluded.period_rule,
+                description=excluded.description,enabled=1,is_current=1""",
+                (metric_key, formula_version, expression, output_unit, period_rule, description))
+            self.db.conn.execute(
+                "DELETE FROM calculation_dependencies WHERE metric_key=? AND formula_version=?",
+                (metric_key, formula_version))
+            self.db.conn.executemany(
+                """INSERT INTO calculation_dependencies(metric_key,formula_version,dependency_metric)
+                VALUES(?,?,?)""", [(metric_key, formula_version, dependency) for dependency in dependencies])
+
+    def set_metric_applicability(
+        self, metric_key: str, scope_type: str, scope_value: str = "*", period_kind: str = "*",
+        requirement: str = "optional",
+    ) -> None:
+        self.db.register_metric(metric_key, commit=False)
+        with self.db.conn:
+            self.db.conn.execute(
+                """INSERT INTO metric_applicability(metric_key,scope_type,scope_value,period_kind,requirement)
+                VALUES(?,?,?,?,?) ON CONFLICT(metric_key,scope_type,scope_value,period_kind)
+                DO UPDATE SET requirement=excluded.requirement,enabled=1""",
+                (metric_key, scope_type, scope_value, period_kind, requirement))
+
+    def apply_metric_pack(self, scope_type: str, scope_value: str, metrics: list[dict]) -> None:
+        """Install a reviewed market/sector/company metric pack without code changes."""
+        for item in metrics:
+            self.db.register_metric(
+                item["metric_key"], item.get("display_name"), item.get("category", "operational"),
+                item.get("statement"), item.get("value_type"), item.get("default_unit"),
+                item.get("aggregation"), item.get("description"), commit=False)
+            self.set_metric_applicability(
+                item["metric_key"], scope_type, scope_value, item.get("period_kind", "*"),
+                item.get("requirement", "optional"))
+
+    def set_freshness_policy(self, scope_type: str, scope_value: str, domain: str,
+                             max_age_seconds: int) -> None:
+        if max_age_seconds <= 0:
+            raise ValueError("max_age_seconds must be positive")
+        with self.db.conn:
+            self.db.conn.execute(
+                """INSERT INTO freshness_policies(scope_type,scope_value,domain,max_age_seconds)
+                VALUES(?,?,?,?) ON CONFLICT(scope_type,scope_value,domain)
+                DO UPDATE SET max_age_seconds=excluded.max_age_seconds,enabled=1""",
+                (scope_type, scope_value, domain, max_age_seconds))
+
+    def measure_catalog_period_coverage(
+        self, company_id: str, period_targets: list[dict] | None = None,
+        eligible_fact_ids: set[int] | None = None,
+    ) -> dict:
+        """Read-only field/period measurement; callers supply policy and eligibility.
+
+        Presence is not accuracy: an explicit eligibility set must come from the
+        independent lineage/contract evaluator. No history window, entity scope,
+        or structural N/A is inferred from the facts that happen to be present.
+        """
+        company = self.db.conn.execute(
+            "SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
+        if company is None:
+            raise KeyError(company_id)
+        result = {"coverage_basis": "explicit_field_period_targets",
+                  "completion_scope": "declared_target_cells_only",
+                  "required_periods_not_evaluated": not bool(period_targets),
+                  "eligibility_not_evaluated": eligible_fact_ids is None,
+                  "expected": 0, "present": 0, "eligible": 0,
+                  "score": None, "status": "not_evaluated", "cells": []}
+        if not period_targets:
+            return result
+        applicable = {row["field_key"]: row for row in self.db.conn.execute(
+            """SELECT * FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed'
+            AND (scope_type='all' OR (scope_type='market' AND scope_value=?) OR
+                 (scope_type='sector' AND scope_value=?) OR (scope_type='industry' AND scope_value=?)
+                 OR (scope_type='company' AND scope_value=?))""",
+            (company["market"], company["sector"] or "", company["industry"] or "", company_id))}
+        seen = set()
+        for target in period_targets:
+            required = {"period_start", "period_end", "period_kind", "fiscal_year", "fiscal_quarter",
+                        "scope", "dimensions", "field_keys"}
+            if not required.issubset(target) or not target["field_keys"]:
+                raise ValueError("period targets require explicit period, scope, dimensions and nonempty field_keys")
+            date.fromisoformat(target["period_end"])
+            if target["period_start"] is not None:
+                date.fromisoformat(target["period_start"])
+                if target["period_start"] > target["period_end"]:
+                    raise ValueError("period_start exceeds period_end")
+            if not isinstance(target["dimensions"], dict) or not target["scope"]:
+                raise ValueError("explicit dimensions object and scope required")
+            dimensions = _json(target["dimensions"])
+            for field in target["field_keys"]:
+                definition = applicable.get(field)
+                if definition is None or definition["storage_domain"] != "data_points":
+                    raise ValueError(f"field not an applicable reviewed data_points field: {field}")
+                contract = self.db.conn.execute(
+                    "SELECT allowed_period_kinds_json FROM metric_contracts WHERE metric_key=? AND enabled=1",
+                    (field,)).fetchone()
+                if contract is None or target["period_kind"] not in json.loads(contract[0]):
+                    raise ValueError(f"period kind not governed for field: {field}")
+                self.db._validate_fact_contract(field, target["period_kind"],
+                                                target["scope"], target["dimensions"])
+                key = (field, target["period_start"], target["period_end"], target["period_kind"],
+                       target["fiscal_year"], target["fiscal_quarter"] or 0,
+                       target["scope"], dimensions)
+                if key in seen:
+                    raise ValueError("duplicate field/period target")
+                seen.add(key)
+                rows = self.db.conn.execute(
+                    """SELECT id,dimensions_json FROM data_points WHERE company_id=? AND metric_key=?
+                    AND period_start IS ? AND period_end=? AND period_kind=? AND fiscal_year IS ?
+                    AND fiscal_quarter IS ? AND scope=? AND is_current=1""",
+                    (company_id, field, target["period_start"], target["period_end"],
+                     target["period_kind"], target["fiscal_year"], target["fiscal_quarter"] or 0,
+                     target["scope"])).fetchall()
+                ids = [row["id"] for row in rows
+                       if json.loads(row["dimensions_json"] or "{}") == target["dimensions"]]
+                eligible = [fact_id for fact_id in ids
+                            if eligible_fact_ids is not None and fact_id in eligible_fact_ids]
+                cell = {"field_key": field, "category": definition["category"],
+                        "period_start": target["period_start"], "period_end": target["period_end"],
+                        "period_kind": target["period_kind"], "scope": target["scope"],
+                        "fiscal_year": target["fiscal_year"], "fiscal_quarter": target["fiscal_quarter"],
+                        "dimensions": dict(target["dimensions"]), "fact_ids": ids,
+                        "eligible_fact_ids": eligible,
+                        "status": "gap" if not ids else ("eligible" if eligible else "eligibility_unknown"
+                                   if eligible_fact_ids is None else "ineligible")}
+                result["cells"].append(cell)
+        result["expected"] = len(seen)
+        result["present"] = sum(bool(cell["fact_ids"]) for cell in result["cells"])
+        result["eligible"] = sum(bool(cell["eligible_fact_ids"]) for cell in result["cells"])
+        if eligible_fact_ids is not None:
+            result["score"] = str(Decimal(result["eligible"]) / Decimal(result["expected"]))
+            result["status"] = "complete" if result["eligible"] == result["expected"] else "gap"
+        return result
+
+    def refresh_catalog_completeness(self, company_id: str, period_targets: list[dict] | None = None,
+                                     eligible_fact_ids: set[int] | None = None) -> dict:
+        """Publish canonical projections and persist the legacy presence measurement."""
+        # Persistent databases can contain the exact dimensional source facts
+        # for projection rules introduced after those facts were ingested.
+        # Completeness refresh is already a write operation; bring those
+        # deterministic canonical aliases forward idempotently before counting.
+        from .canonicalization import refresh_canonical_projections
+        refresh_canonical_projections(self.db, company_id)
+        result = self.measure_catalog_completeness(company_id, period_targets, eligible_fact_ids)
+        for row in result["categories"]:
+            with self.db.conn:
+                self.db.conn.execute(
+                    """INSERT INTO company_completeness(company_id,category,expected_fields,populated_fields,
+                    required_fields,populated_required_fields,completeness_score,status,missing_fields_json,
+                    required_missing_json) VALUES(?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(company_id,category) DO UPDATE SET expected_fields=excluded.expected_fields,
+                    populated_fields=excluded.populated_fields,completeness_score=excluded.completeness_score,
+                    required_fields=excluded.required_fields,populated_required_fields=excluded.populated_required_fields,
+                    status=excluded.status,missing_fields_json=excluded.missing_fields_json,
+                    required_missing_json=excluded.required_missing_json,checked_at=CURRENT_TIMESTAMP""",
+                    (company_id, row["category"], row["expected"], row["populated"],
+                     row["required"], row["populated_required"], row["score"], row["status"],
+                     _json(row["missing"]), _json(row["required_missing"])))
+        return result
+
+    def measure_catalog_completeness(self, company_id: str, period_targets: list[dict] | None = None,
+                                     eligible_fact_ids: set[int] | None = None) -> dict:
+        """Read the existing catalog and facts without publishing aliases or scores.
+
+        Legacy presence counts are historical, not evidence of period coverage.
+        Explicit period/eligibility diagnostics stay separate in period_coverage.
+        """
+        company = self.db.conn.execute("SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
+        if not company:
+            raise KeyError(company_id)
+        expected_rows = self.db.conn.execute(
+            """SELECT * FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed' AND
+            (scope_type='all' OR (scope_type='market' AND scope_value=?) OR
+             (scope_type='sector' AND scope_value=?) OR (scope_type='industry' AND scope_value=?) OR
+             (scope_type='company' AND scope_value=?))""",
+            (company["market"], company["sector"] or "", company["industry"] or "", company_id),
+        ).fetchall()
+        available = {
+            "data_points": {row["metric_key"] for row in self.db.conn.execute(
+                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},
+            "company_profile": {row["attribute_key"] for row in self.db.conn.execute(
+                "SELECT DISTINCT attribute_key FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))},
+            "market_prices": set(), "ownership_positions": set(), "consensus_estimates": set(),
+            "corporate_actions": set(), "disclosures": set(),
+        }
+        profile_map = {
+            "company_name": "name", "symbol": "symbol", "isin": "isin", "cik": "cik", "exchange": "exchange",
+            "market": "market", "country": "country", "currency": "currency", "fiscal_year_end": "fiscal_year_end",
+            "sector": "sector", "industry": "industry", "timezone": "timezone",
+        }
+        available["company_profile"].update(key for key, column in profile_map.items() if company[column])
+        price = self.db.conn.execute(
+            """SELECT max(p.open) open,max(p.high) high,max(p.low) low,max(p.close) close,
+            max(p.adjusted_close) adjusted_close,max(p.volume) volume,max(p.turnover) turnover,
+            max(CASE WHEN p.interval='1y' THEN p.high END) high_52w,
+            max(CASE WHEN p.interval='1y' THEN p.low END) low_52w
+            FROM market_prices p JOIN listings l USING(listing_id) JOIN securities s USING(security_id)
+            WHERE s.company_id=? AND p.is_current=1""", (company_id,)).fetchone()
+        price_map = {"price_open":"open","price_high":"high","price_low":"low","price_close":"close",
+                     "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover",
+                     "fifty_two_week_high":"high_52w","fifty_two_week_low":"low_52w"}
+        available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
+        available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
+            """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
+            AND metric_key IN ('vwap')""", (company_id,)
+        ))
+        ownership_rows = self.db.conn.execute(
+            "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+        if ownership_rows:
+            ownership_map = {"holder_name":"holder_name","holder_type":"holder_type","shares_held":"shares",
+                             "ownership_percentage":"ownership_pct"}
+            available["ownership_positions"].update(
+                key for key, column in ownership_map.items()
+                if any(row[column] is not None for row in ownership_rows))
+            if any(row["holder_type"] == "government" and row["ownership_pct"] is not None
+                   for row in ownership_rows):
+                available["ownership_positions"].add("government_ownership")
+            if any(row["ownership_type"] == "free_float" and row["ownership_pct"] is not None
+                   for row in ownership_rows):
+                available["ownership_positions"].add("free_float")
+            if any(row["holder_type"] == "foreign" and row["ownership_pct"] is not None
+                   for row in ownership_rows):
+                available["ownership_positions"].add("foreign_ownership")
+            if any(row["holder_type"] in {"corporate_strategic", "strategic"}
+                   and row["ownership_pct"] is not None for row in ownership_rows):
+                available["ownership_positions"].add("strategic_ownership")
+        action_rows = self.db.conn.execute(
+            "SELECT * FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+        available["corporate_actions"].update(row["action_type"] for row in action_rows)
+        cash_dividends = [row for row in action_rows if row["action_type"] == "cash_dividend"]
+        if cash_dividends:
+            available["corporate_actions"].add("dividend_announcement")
+        if any(row["record_date"] for row in cash_dividends):
+            available["corporate_actions"].add("dividend_eligibility")
+        if any(row["payment_date"] for row in cash_dividends):
+            available["corporate_actions"].add("dividend_payment")
+        available["disclosures"].update(row["disclosure_type"] for row in self.db.conn.execute(
+            "SELECT DISTINCT disclosure_type FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)))
+        available["consensus_estimates"].update(row["metric_key"] for row in self.db.conn.execute(
+            "SELECT DISTINCT metric_key FROM consensus_estimates WHERE company_id=? AND is_current=1", (company_id,)))
+        by_category = {}
+        for row in expected_rows:
+            by_category.setdefault(row["category"], []).append(row)
+        results=[]
+        for category, rows in sorted(by_category.items()):
+            expected={row["field_key"] for row in rows}
+            # Categories may intentionally combine facts and event-backed fields
+            # (for example dividends). Resolve each field against its own
+            # storage domain instead of assuming one domain for the category.
+            present={row["field_key"] for row in rows
+                     if row["field_key"] in available[row["storage_domain"]]}
+            required={row["field_key"] for row in rows if row["requirement"] == "required"}
+            present_required=required & present
+            missing_required=sorted(required-present)
+            missing=sorted(expected-present); score=Decimal(len(present))/Decimal(len(expected)) if expected else Decimal(1)
+            status="complete" if not missing else ("partial" if present else "missing")
+            results.append({"category":category,"expected":len(expected),"populated":len(present),
+                            "required":len(required),"populated_required":len(present_required),
+                            "required_missing":missing_required,"score":str(score),"status":status,"missing":missing})
+        total_expected=sum(row["expected"] for row in results); total_populated=sum(row["populated"] for row in results)
+        return {"company_id":company_id,"expected":total_expected,"populated":total_populated,
+                "score":str(Decimal(total_populated)/Decimal(total_expected) if total_expected else Decimal(1)),
+                "categories":results, "coverage_basis": "historical_distinct_presence",
+                "period_coverage": self.measure_catalog_period_coverage(
+                    company_id, period_targets, eligible_fact_ids)}
+
+    def refresh_coverage(self, company_id: str, period_end: str, period_kind: str,
+                         domain: str = "all", now: datetime | None = None) -> dict:
+        company = self.db.conn.execute(
+            "SELECT market,sector,industry FROM companies WHERE company_id=?", (company_id,)).fetchone()
+        if not company:
+            raise KeyError(company_id)
+        rows = self.db.conn.execute(
+            """SELECT a.metric_key,a.scope_type,a.scope_value,a.requirement,m.category
+            FROM metric_applicability a JOIN metric_definitions m USING(metric_key)
+            WHERE a.enabled=1 AND a.period_kind IN ('*',?)""", (period_kind,)).fetchall()
+        rank = {"optional": 0, "recommended": 1, "required": 2}
+        applicable: dict[str, str] = {}
+        for row in rows:
+            matches = (
+                row["scope_type"] == "all" or
+                (row["scope_type"] == "market" and row["scope_value"] == company["market"]) or
+                (row["scope_type"] == "sector" and row["scope_value"] == (company["sector"] or "")) or
+                (row["scope_type"] == "industry" and row["scope_value"] == (company["industry"] or "")) or
+                (row["scope_type"] == "company" and row["scope_value"] == company_id)
+            )
+            if matches and (domain == "all" or row["category"] == domain):
+                previous = applicable.get(row["metric_key"])
+                if previous is None or rank[row["requirement"]] > rank[previous]:
+                    applicable[row["metric_key"]] = row["requirement"]
+        expected = {metric for metric, requirement in applicable.items() if requirement != "optional"}
+        required = {metric for metric, requirement in applicable.items() if requirement == "required"}
+        available_rows = self.db.conn.execute(
+            """SELECT DISTINCT d.metric_key,d.filed_at,m.category FROM data_points d
+            JOIN metric_definitions m USING(metric_key) WHERE d.company_id=? AND d.period_end=?
+            AND d.period_kind=? AND d.is_current=1""", (company_id, period_end, period_kind)).fetchall()
+        available = {row["metric_key"] for row in available_rows
+                     if domain == "all" or row["category"] == domain}
+        # Parent-attributable earnings are the only audited five-year profit
+        # series some issuers publish in their summary tables. Treat that
+        # narrower, source-labelled series as satisfying the generic earnings
+        # coverage requirement without duplicating it as a different fact.
+        if "net_income_parent" in available:
+            available.add("net_income")
+        available_expected = expected & available
+        missing_required = sorted(required - available)
+        if not expected:
+            status = "not_applicable"
+        elif not available_expected:
+            status = "missing"
+        elif missing_required or len(available_expected) < len(expected):
+            status = "partial"
+        else:
+            status = "complete"
+        score = Decimal(1) if not expected else Decimal(len(available_expected)) / Decimal(len(expected))
+        latest = max((row["filed_at"] for row in available_rows), default=None)
+        scope_rank = {"all": 0, "market": 1, "sector": 2, "industry": 3, "company": 4}
+        policy_rows = self.db.conn.execute(
+            "SELECT * FROM freshness_policies WHERE enabled=1 AND domain IN ('all',?)", (domain,)).fetchall()
+        matching_policies = []
+        for policy in policy_rows:
+            matches = (
+                policy["scope_type"] == "all" or
+                (policy["scope_type"] == "market" and policy["scope_value"] == company["market"]) or
+                (policy["scope_type"] == "sector" and policy["scope_value"] == (company["sector"] or "")) or
+                (policy["scope_type"] == "industry" and policy["scope_value"] == (company["industry"] or "")) or
+                (policy["scope_type"] == "company" and policy["scope_value"] == company_id)
+            )
+            if matches:
+                matching_policies.append((scope_rank[policy["scope_type"]], int(policy["domain"] == domain), policy))
+        freshness_status = "unknown"; age_seconds = None
+        if latest and matching_policies:
+            policy = max(matching_policies, key=lambda item: (item[0], item[1]))[2]
+            source_time = datetime.fromisoformat(latest.replace("Z", "+00:00"))
+            if source_time.tzinfo is None:
+                source_time = source_time.replace(tzinfo=timezone.utc)
+            checked = now or datetime.now(timezone.utc)
+            if checked.tzinfo is None:
+                checked = checked.replace(tzinfo=timezone.utc)
+            age_seconds = max(0, int((checked - source_time).total_seconds()))
+            freshness_status = "fresh" if age_seconds <= policy["max_age_seconds"] else "stale"
+        result = {
+            "company_id": company_id, "period_end": period_end, "period_kind": period_kind,
+            "domain": domain, "expected_count": len(expected), "available_count": len(available_expected),
+            "required_missing": missing_required, "status": status, "quality_score": str(score),
+            "latest_source_at": latest, "freshness_status": freshness_status, "age_seconds": age_seconds,
+        }
+        with self.db.conn:
+            self.db.conn.execute(
+                """INSERT INTO coverage_status(company_id,period_end,period_kind,domain,expected_count,
+                available_count,required_missing_json,status,quality_score,latest_source_at,freshness_status,age_seconds)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(company_id,period_end,period_kind,domain)
+                DO UPDATE SET expected_count=excluded.expected_count,available_count=excluded.available_count,
+                required_missing_json=excluded.required_missing_json,status=excluded.status,
+                quality_score=excluded.quality_score,latest_source_at=excluded.latest_source_at,
+                freshness_status=excluded.freshness_status,age_seconds=excluded.age_seconds,
+                checked_at=CURRENT_TIMESTAMP""",
+                (company_id, period_end, period_kind, domain, len(expected), len(available_expected),
+                 _json(missing_required), status, str(score), latest, freshness_status, age_seconds))
+        missing_expected = {metric: applicable[metric] for metric in sorted(expected - available)}
+        result["backlog"] = self.db.sync_coverage_backlog(
+            company_id, period_end, period_kind, domain, missing_expected,
+        )
+        return result
+
+    def refresh_company_coverage(self, company_id: str) -> list[dict]:
+        periods = self.db.conn.execute(
+            """SELECT DISTINCT period_end,period_kind FROM data_points
+            WHERE company_id=? AND is_current=1 ORDER BY period_end,period_kind""", (company_id,)).fetchall()
+        return [self.refresh_coverage(company_id, row["period_end"], row["period_kind"])
+                for row in periods]
+
+    def refresh_company_backlog(self, company_id: str) -> dict:
+        """Create backlog work for coverage gaps and still-empty company data domains."""
+        company = self.db.conn.execute(
+            "SELECT name,market FROM companies WHERE company_id=?", (company_id,)).fetchone()
+        if not company:
+            raise KeyError(company_id)
+        coverage = self.refresh_company_coverage(company_id)
+        source = self.db.conn.execute(
+            "SELECT url FROM company_sources WHERE company_id=? AND enabled=1 ORDER BY priority LIMIT 1",
+            (company_id,),
+        ).fetchone()
+        source_url = source["url"] if source else None
+        counts = {
+            "historical_financials": self.db.conn.execute(
+                "SELECT count(*) FROM data_points WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "company_profile": self.db.conn.execute(
+                "SELECT count(*) FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "disclosures": self.db.conn.execute(
+                "SELECT count(*) FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "ownership": self.db.conn.execute(
+                "SELECT count(*) FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "corporate_actions": self.db.conn.execute(
+                "SELECT count(*) FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)).fetchone()[0],
+            "market_prices": self.db.conn.execute(
+                """SELECT count(*) FROM market_prices p JOIN listings l USING(listing_id)
+                JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1""",
+                (company_id,),
+            ).fetchone()[0],
+            "consensus_estimates": self.db.conn.execute(
+                "SELECT count(*) FROM consensus_estimates WHERE company_id=? AND is_current=1",
+                (company_id,),
+            ).fetchone()[0],
+        }
+        tasks = {
+            "historical_financials": ("financial", "Ingest historical financial statements", 10),
+            "corporate_actions": ("corporate_actions", "Collect dividends, splits and corporate actions", 30),
+            "market_prices": ("market", "Load historical market prices", 30),
+            "disclosures": ("disclosures", "Archive and classify company disclosures", 40),
+            "ownership": ("ownership", "Load ownership and major-holder history", 40),
+            "company_profile": ("general", "Complete versioned company profile", 50),
+            "consensus_estimates": ("consensus", "Load point-in-time analyst estimates", 60),
+        }
+        created = 0
+        completed = 0
+        for key, (domain, title, priority) in tasks.items():
+            idempotency_key = f"domain:{company_id}:{key}"
+            if counts[key] == 0:
+                state = self.db.upsert_backlog_item(
+                    idempotency_key, "domain_backfill", domain,
+                    f"{title}: {company['name']}", company_id=company_id,
+                    description="This domain is empty and must remain outside production until validated.",
+                    source_url=source_url, priority=priority,
+                    payload={"origin": "domain_audit", "domain_key": key},
+                )
+                created += int(state in {"inserted", "reopened"})
+            else:
+                completed += int(self.db.complete_backlog_item(idempotency_key))
+        catalog = self.refresh_catalog_completeness(company_id)
+        verified_unavailable_total = 0
+        actionable_missing_total = 0
+        for row in catalog["categories"]:
+            key=f"catalog:{company_id}:{row['category']}"
+            if row["status"] != "complete":
+                qualitative_evidence = []
+                if row["category"] in {"commercial_pipeline", "financial_notes"}:
+                    disclosure_types = (
+                        ("commercial_contract", "purchase_commitment")
+                        if row["category"] == "commercial_pipeline"
+                        else ("contingency", "customer_concentration")
+                    )
+                    placeholders = ",".join("?" for _ in disclosure_types)
+                    for evidence in self.db.conn.execute(
+                        f"""SELECT d.title,d.metadata_json,d.source_key,s.source_url
+                        FROM disclosures d LEFT JOIN source_documents s USING(source_key)
+                        WHERE d.company_id=? AND d.is_current=1
+                        AND d.disclosure_type IN ({placeholders})
+                        ORDER BY d.published_at DESC""", (company_id, *disclosure_types),
+                    ).fetchall():
+                        qualitative_evidence.append({
+                            "title": evidence["title"], "source_key": evidence["source_key"],
+                            "source_url": evidence["source_url"], "metadata": json.loads(evidence["metadata_json"]),
+                        })
+                qualitative_fields = {
+                    field
+                    for evidence in qualitative_evidence
+                    for field in evidence["metadata"].get("related_metric_keys", [])
+                }
+                field_assessments = []
+                oil_gas_not_disclosed = {
+                    "average_realized_gas_price", "average_realized_refined_product_price",
+                    "chemicals_production", "chemicals_sales", "condensate_production",
+                    "crude_oil_production", "finding_development_cost_per_boe", "lifting_volume",
+                    "natural_gas_liquids_production", "natural_gas_sales", "production_entitlement",
+                    "refinery_throughput", "refinery_utilization", "reserve_replacement_ratio",
+                    "spare_capacity",
+                }
+                # Reviewed negative evidence from Saudi Aramco's FY2025 annual
+                # report/data book.  These keys remain in the market-agnostic
+                # catalog, but the issuer either uses a combined/by-nature
+                # presentation or does not disclose the requested split.  A
+                # missing value is therefore not converted to zero or invented.
+                aramco_not_separately_disclosed = {
+                    "adjusted_ebitda", "continuing_operations_income",
+                    "cost_of_revenue", "discontinued_operations_income",
+                    "general_and_administrative_expense", "gross_profit",
+                    "interest_expense", "other_expense", "other_income",
+                    "other_nonoperating_expense", "other_nonoperating_income",
+                    "selling_and_distribution_expense",
+                    "accumulated_other_comprehensive_income", "cash_equivalents",
+                    "cash_restricted", "current_portion_long_term_debt",
+                    "current_tax_assets", "employee_benefits_current",
+                    "investments_joint_ventures", "marketable_securities",
+                    "other_receivables", "prepayments", "zakat_payable",
+                    "capital_increase_proceeds", "foreign_exchange_effect",
+                    "intangible_asset_purchases", "joint_venture_investments",
+                    "loans_to_affiliates",
+                    "net_income_cash_flow", "other_financing_cash_flow",
+                    "ppe_purchases", "proceeds_investments", "purchases_investments",
+                    "securities_purchases", "securities_sales", "zakat_paid",
+                    "benefit_obligation_by_geography", "borrowings_by_currency",
+                    "contract_assets", "contract_liabilities",
+                    "remaining_performance_obligations", "revenue_by_customer_type",
+                    "unsecured_borrowings", "variable_lease_expense",
+                    "weighted_average_borrowing_rate",
+                    "chemicals_revenue", "downstream_operating_income", "lng_revenue",
+                    "refined_products_revenue", "segment_assets",
+                    "segment_investments_associates", "segment_liabilities",
+                    "upstream_operating_income",
+                }
+                sabic_not_disclosed = {
+                    "average_selling_price", "capacity_utilization", "circular_feedstock_volume",
+                    "domestic_sales_volume", "ethylene_production", "export_sales_volume",
+                    "feedstock_cost_per_tonne", "fertilizer_production", "lost_time_injury_rate",
+                    "methanol_production", "plant_reliability", "polyethylene_production",
+                    "polypropylene_production", "production_capacity", "recycled_product_sales",
+                    "scope_1_emissions_chemicals", "scope_2_emissions_chemicals",
+                    "water_consumption_chemicals", "water_withdrawal_chemicals",
+                    "institutional_ownership", "retail_ownership", "insider_ownership",
+                    "top_five_shareholders", "top_ten_shareholders", "ownership_changes",
+                    "remaining_performance_obligations", "cancellable_commitments",
+                    "borrowings_by_currency", "weighted_average_borrowing_rate",
+                }
+                sabic_not_applicable = {
+                    "oil_gas_properties", "exploration_expense", "producing_expense",
+                    "royalties_and_other_taxes", "exploration_evaluation_written_off",
+                    "royalties_change", "metals_sales_volume", "steel_production",
+                    "metals_revenue", "metals_ebit", "metals_ebitda", "metals_assets",
+                    "metals_capex", "specialties_sales_volume", "specialties_revenue",
+                    "specialties_ebit", "specialties_ebitda", "specialties_assets",
+                    "specialties_capex",
+                }
+                eps_growth_row = self.db.conn.execute(
+                    """SELECT value_decimal FROM data_points WHERE company_id=?
+                    AND metric_key='eps_growth' AND is_current=1 AND value_decimal IS NOT NULL
+                    ORDER BY period_end DESC,version DESC LIMIT 1""", (company_id,),
+                ).fetchone()
+                eps_growth_positive = bool(
+                    eps_growth_row and Decimal(eps_growth_row["value_decimal"]) > 0
+                )
+                for field in row["missing"]:
+                    if row["category"] == "consensus":
+                        availability = "licensed_source_required"
+                    elif row["category"] in {"corporate_actions", "disclosures"}:
+                        availability = "event_driven_no_event_observed"
+                    elif row["category"] == "commercial_pipeline":
+                        availability = (
+                            "qualitative_disclosure_only" if field in qualitative_fields
+                            else "not_disclosed_in_archived_filings"
+                        )
+                    elif row["category"] == "financial_notes" and field in qualitative_fields:
+                        availability = "qualitative_disclosure_only"
+                    elif row["category"] == "company_model" and field == "cik" and company["market"] != "US":
+                        availability = "not_applicable_market_identifier"
+                    elif row["category"] == "company_model":
+                        availability = "authoritative_registry_source_required"
+                    elif row["category"] in {"market_data", "investor_analytics"}:
+                        availability = "calculation_requires_sufficient_market_history"
+                    elif (company_id == "sa:2222" and row["category"] == "valuation"
+                          and field == "peg_ratio" and not eps_growth_positive):
+                        availability = "not_meaningful_for_current_financial_state"
+                    elif row["category"] in {"growth", "profitability", "efficiency", "liquidity_solvency", "valuation"}:
+                        availability = "calculation_requires_missing_dependencies"
+                    elif (company_id == "sa:2222" and
+                          row["category"] in {"operational", "oil_gas_operations"} and
+                          field in oil_gas_not_disclosed):
+                        availability = "not_disclosed_in_archived_annual_report"
+                    elif company_id == "sa:2222" and field in aramco_not_separately_disclosed:
+                        availability = "not_disclosed_in_archived_annual_report"
+                    elif company_id == "sa:2010" and field in sabic_not_applicable:
+                        availability = "not_applicable_company_business_model"
+                    elif company_id == "sa:2010" and field in sabic_not_disclosed:
+                        availability = "not_disclosed_in_archived_annual_report"
+                    else:
+                        availability = "pending_official_source_extraction"
+                    playbook = GAP_RESOLUTION_PLAYBOOK[availability]
+                    field_assessments.append({
+                        "field_key": field,
+                        "availability": availability,
+                        "reason": playbook["reason"],
+                        "resolution": playbook["resolution"],
+                        "solution_code": playbook["solution_code"],
+                    })
+                non_actionable_states = {
+                    "event_driven_no_event_observed", "not_applicable_market_identifier",
+                    "not_applicable_company_business_model",
+                    "not_disclosed_in_archived_annual_report", "not_disclosed_in_archived_filings",
+                    "qualitative_disclosure_only",
+                    "not_meaningful_for_current_financial_state",
+                }
+                verified_unavailable = [
+                    item for item in field_assessments
+                    if item["availability"] in non_actionable_states
+                ]
+                actionable_missing = [
+                    item for item in field_assessments
+                    if item["availability"] not in non_actionable_states
+                ]
+                verified_unavailable_total += len(verified_unavailable)
+                actionable_missing_total += len(actionable_missing)
+                actionable_expected = row["expected"] - len(verified_unavailable)
+                actionable_score = (
+                    Decimal(row["populated"]) / Decimal(actionable_expected)
+                    if actionable_expected else Decimal(1)
+                )
+                self.db.upsert_backlog_item(
+                    key,"catalog_backfill",row["category"],
+                    f"Complete {row['category']} coverage: {company['name']}",company_id=company_id,
+                    description=f"{row['populated']} of {row['expected']} reviewed catalog fields are populated.",
+                    source_url=source_url,priority=20,
+                    payload={
+                        "origin":"data_catalog_v4","missing_fields":row["missing"],
+                        "source_policy": (
+                            "official_filing_or_exchange_disclosure" if row["category"] != "consensus"
+                            else "licensed_point_in_time_consensus_provider_required"
+                        ),
+                        "no_inference": True,
+                        "qualitative_evidence": qualitative_evidence,
+                        "field_assessments": field_assessments,
+                        "coverage_interpretation": {
+                            "raw_expected": row["expected"],
+                            "raw_populated": row["populated"],
+                            "verified_unavailable": len(verified_unavailable),
+                            "actionable_expected": actionable_expected,
+                            "actionable_populated": row["populated"],
+                            "actionable_missing": len(actionable_missing),
+                            "actionable_score": str(actionable_score),
+                        },
+                    },
+                )
+            else:
+                self.db.complete_backlog_item(key)
+        open_count = self.db.conn.execute(
+            """SELECT count(*) FROM backlog_items WHERE company_id=?
+            AND status IN ('open','ready','in_progress','blocked')""", (company_id,)).fetchone()[0]
+        return {
+            "company_id": company_id, "coverage_periods": len(coverage), "domain_counts": counts,
+            "created": created, "completed": completed, "open": open_count,
+            "catalog_expected": catalog["expected"], "catalog_populated": catalog["populated"],
+            "catalog_score": catalog["score"],
+            "catalog_verified_unavailable": verified_unavailable_total,
+            "catalog_actionable_missing": actionable_missing_total,
+            "catalog_actionable_expected": catalog["expected"] - verified_unavailable_total,
+            "catalog_actionable_score": str(
+                Decimal(catalog["populated"]) /
+                Decimal(catalog["expected"] - verified_unavailable_total)
+                if catalog["expected"] > verified_unavailable_total else Decimal(1)
+            ),
+        }
+
+    def refresh_all_backlog(self) -> list[dict]:
+        companies = self.db.conn.execute(
+            "SELECT company_id FROM companies WHERE enabled=1 ORDER BY company_id").fetchall()
+        return [self.refresh_company_backlog(row["company_id"]) for row in companies]

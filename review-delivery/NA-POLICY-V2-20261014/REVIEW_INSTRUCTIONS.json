@@ -1,0 +1,21 @@
+{
+  "scope": "Local independent policy review only; no imports, production deployment or adoption",
+  "source_policy_commit": "ede4d1365f5a6b3984484b70cfcea290ce8f2d02",
+  "original_review_commit": "f819a13a9871ee829e1cdcdf3c112906f6743681",
+  "history_notice": "This code-only export is NOT publication of the original Git commit or its inherited document archive. Source file fingerprints are in MANIFEST.json.",
+  "run_directory": "review-delivery/NA-POLICY-V2-20261014/snapshot",
+  "environment": "Python >=3.11; PYTHONPATH=src; writable private temporary directory",
+  "tests": [
+    "python -m unittest discover -s tests -p test_factory_policy_review.py -v",
+    "python -m unittest discover -s tests -p test_web_na_independent_review.py -v",
+    "python -m unittest discover -s tests -p test_factory_contract_runtime.py -v"
+  ],
+  "review_decisions_needed": [
+    "Approve candidate policy after independent review, not for production",
+    "Resolve banking operational-KPI catalog definition before final grading",
+    "Provide evidence-bound legitimate telecom structural exclusion",
+    "Rights/privacy review before publishing exact original inherited Git history"
+  ],
+  "design_acceptance": "WEB-01/02 accepted by user only as frozen design Preview; no live or production acceptance",
+  "financial_notice": "Comparisons use synthetic empty local database cases; they are not actual company scores or independent financial verification."
+}
