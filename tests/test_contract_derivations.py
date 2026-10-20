@@ -43,7 +43,7 @@ def replaced(facts, metric, end, value, **kw):
                  currency=kw.get("currency", original.currency), start=original.period_start)]
 
 
-FY_METRICS = ("nopat", "return_on_invested_capital", "return_on_capital", "return_on_capital_employed",
+FY_METRICS = ("nopat", "return_on_invested_capital", "return_on_capital_employed",
               "fixed_asset_turnover", "working_capital_turnover", "incremental_roic", "margin_expansion",
               "inventory_to_revenue", "return_on_tangible_assets", "cfo_interest_coverage",
               "debt_service_coverage_proxy", "revenue_per_share_growth", "free_cash_flow_per_share_growth")
@@ -86,7 +86,6 @@ class ContractDerivationTests(unittest.TestCase):
         self.assertEqual(out["nopat", "2025-12-31"].value, nopat)
         # invested capital: opening 2024-12-31 = 800 + 200 - 100 = 900; closing = 900 + 300 - 100 = 1100
         self.assertEqual(out["return_on_invested_capital", "2025-12-31"].value, nopat / Decimal(1000))
-        self.assertEqual(out["return_on_capital", "2025-12-31"].value, Decimal(300) / Decimal(1100))
         self.assertEqual(out["return_on_capital_employed", "2025-12-31"].value, Decimal(300) / Decimal(1300))
         self.assertEqual(out["fixed_asset_turnover", "2025-12-31"].value, Decimal(1200) / Decimal(1000))
         self.assertEqual(out["working_capital_turnover", "2025-12-31"].value, Decimal(1200) / Decimal(250))
@@ -114,7 +113,7 @@ class ContractDerivationTests(unittest.TestCase):
         # Without the opening year-end balance the interim one is not used as a substitute.
         opening_removed = [item for item in [*self.facts, *interim] if item.period_end != "2024-12-31"
                            or item.period_kind != PeriodKind.INSTANT]
-        self.assertNone(self.calculate(opening_removed), "return_on_invested_capital", "return_on_capital",
+        self.assertNone(self.calculate(opening_removed), "return_on_invested_capital",
                         "return_on_capital_employed", "fixed_asset_turnover", "working_capital_turnover")
 
     # ── 2. currencies, units and scopes are never mixed
@@ -122,7 +121,7 @@ class ContractDerivationTests(unittest.TestCase):
     def test_a_balance_in_another_currency_blocks_the_average(self):
         facts = replaced(self.facts, "total_equity", "2024-12-31", "800", unit="USD", currency="USD")
         out = self.calculate(facts)
-        self.assertNone(out, "return_on_invested_capital", "return_on_capital", "incremental_roic")
+        self.assertNone(out, "return_on_invested_capital", "incremental_roic")
         self.assertIn(("return_on_capital_employed", "2025-12-31"), out)
         facts = replaced(self.facts, "revenue", "2024-12-31", "1000", unit="SAR thousands")
         self.assertNone(self.calculate(facts), "margin_expansion", "revenue_per_share_growth")
@@ -131,9 +130,10 @@ class ContractDerivationTests(unittest.TestCase):
 
     def test_missing_debt_component_is_not_zero(self):
         out = self.calculate(without(self.facts, "long_term_debt", "2024-12-31"))
-        self.assertNone(out, "return_on_invested_capital", "return_on_capital", "incremental_roic")
+        self.assertNone(out, "return_on_invested_capital", "incremental_roic")
         out = self.calculate(replaced(self.facts, "long_term_debt", "2024-12-31", "0"))
-        self.assertEqual(out["return_on_capital", "2025-12-31"].value, Decimal(300) / ((Decimal(850) + 1200) / 2))
+        nopat = Decimal(300) * (1 - Decimal(120) / Decimal(300))
+        self.assertEqual(out["return_on_invested_capital", "2025-12-31"].value, nopat / ((Decimal(750) + 1100) / 2))
 
     # ── 4. tax keeps its sign; loss years and implausible rates withhold after-tax metrics
 

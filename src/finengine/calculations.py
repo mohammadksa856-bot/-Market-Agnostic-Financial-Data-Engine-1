@@ -58,6 +58,7 @@ class Calculator:
     # Contract keys whose definition needs an accounting decision; never emitted until it is made.
     DEFINITION_PENDING = {
         "fixed_charge_coverage": "fixed charges under IFRS 16 (which lease costs count) are not defined",
+        "return_on_capital": "capital base not defined: debt + equity, or net working capital + net fixed assets",
     }
 
     def calculate(self, facts: list[Fact], history: list[Fact] | None = None,
@@ -533,10 +534,6 @@ class Calculator:
             assets, current = money(rows, "total_assets", currency), money(rows, "current_liabilities", currency)
             return None if None in (assets, current) else assets - current
 
-        def debt_plus_equity(rows, currency):
-            total_debt, equity = debt(rows, currency), money(rows, "total_equity", currency)
-            return None if None in (total_debt, equity) else total_debt + equity
-
         def working_capital(rows, currency):
             assets, current = money(rows, "current_assets", currency), money(rows, "current_liabilities", currency)
             return None if None in (assets, current) else assets - current
@@ -574,8 +571,6 @@ class Calculator:
 
         average_return("return_on_invested_capital", nopat, invested_capital,
                        "nopat / average(opening, closing)(total_equity + current_debt + long_term_debt - cash)")
-        average_return("return_on_capital", ebit, debt_plus_equity,
-                       "ebit / average(opening, closing)(current_debt + long_term_debt + total_equity)")
         average_return("return_on_capital_employed", ebit, capital_employed,
                        "ebit / average(opening, closing)(total_assets - current_liabilities)")
         average_return("fixed_asset_turnover", revenue, lambda rows, cur: money(rows, "property_plant_equipment", cur),

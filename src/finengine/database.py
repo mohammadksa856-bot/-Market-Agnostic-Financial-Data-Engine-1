@@ -1085,8 +1085,6 @@ class Database:
             "return_on_invested_capital": ("nopat / average(opening, closing)(total_equity + current_debt + long_term_debt - cash)",
                                            "opening_closing_balance",
                                            ("nopat", "total_equity", "current_debt", "long_term_debt", "cash")),
-            "return_on_capital": ("ebit / average(opening, closing)(current_debt + long_term_debt + total_equity)",
-                                  "opening_closing_balance", ("ebit", "current_debt", "long_term_debt", "total_equity")),
             "return_on_capital_employed": ("ebit / average(opening, closing)(total_assets - current_liabilities)",
                                            "opening_closing_balance", ("ebit", "total_assets", "current_liabilities")),
             "fixed_asset_turnover": ("revenue / average(opening, closing)(property_plant_equipment)", "opening_closing_balance",
