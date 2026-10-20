@@ -539,8 +539,9 @@ class Calculator:
             return rows["current_assets"].value - rows["current_liabilities"].value
 
         def tax_rate(rows):
+            # A loss year has no meaningful tax rate: NOPAT and its returns are not emitted.
             taxes, pretax = val(rows, "income_taxes_and_zakat"), val(rows, "income_before_income_taxes_and_zakat")
-            return abs(taxes) / pretax if taxes is not None and pretax else None
+            return abs(taxes) / pretax if taxes is not None and pretax is not None and pretax > 0 else None
 
         ebit, revenue, net_income = val(lookup, "ebit"), val(lookup, "revenue"), val(lookup, "net_income")
         rate = tax_rate(lookup)

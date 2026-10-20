@@ -82,6 +82,15 @@ class ContractDerivationTests(unittest.TestCase):
         for metric in ("return_on_capital", "return_on_capital_employed", "fixed_asset_turnover", "margin_expansion"):
             self.assertNotIn((metric, "2025-12-31"), out)
 
+    def test_loss_year_emits_no_nopat_or_after_tax_returns(self):
+        facts = [item for item in self.facts if not (item.metric == "income_before_income_taxes_and_zakat"
+                                                     and item.period_end == "2025-12-31")]
+        facts.append(fact("income_before_income_taxes_and_zakat", "-50", PeriodKind.FY, "2025-12-31", 2025))
+        out = self.calculate(facts)
+        for metric in ("nopat", "return_on_invested_capital", "incremental_roic"):
+            self.assertNotIn((metric, "2025-12-31"), out)
+        self.assertIn(("return_on_capital_employed", "2025-12-31"), out)  # pre-tax returns are still defined
+
     def test_quarter_on_quarter_uses_the_previous_fiscal_quarter(self):
         quarters = [
             fact("revenue", "100", PeriodKind.QUARTER, "2026-03-31", 2026, 1),
