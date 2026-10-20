@@ -1079,41 +1079,40 @@ class Database:
             for output, source in growth_sources.items()
         })
         definitions.update({
-            "nopat": ("ebit * (1 - abs(income_taxes_and_zakat) / income_before_income_taxes_and_zakat)", "same_period",
+            "nopat": ("ebit * (1 - (-income_taxes_and_zakat) / income_before_income_taxes_and_zakat); "
+                      "tax expense <= 0, pretax > 0, rate in [0, 1)", "same_period",
                       ("ebit", "income_taxes_and_zakat", "income_before_income_taxes_and_zakat")),
-            "return_on_invested_capital": ("nopat / average(total_equity + current_debt + long_term_debt - cash)",
-                                           "annual_average_balance",
+            "return_on_invested_capital": ("nopat / average(opening, closing)(total_equity + current_debt + long_term_debt - cash)",
+                                           "opening_closing_balance",
                                            ("nopat", "total_equity", "current_debt", "long_term_debt", "cash")),
-            "return_on_capital": ("ebit / average(current_debt + long_term_debt + total_equity)", "annual_average_balance",
-                                  ("ebit", "current_debt", "long_term_debt", "total_equity")),
-            "return_on_capital_employed": ("ebit / average(total_assets - current_liabilities)", "annual_average_balance",
-                                           ("ebit", "total_assets", "current_liabilities")),
-            "fixed_asset_turnover": ("revenue / average(property_plant_equipment)", "annual_average_balance",
+            "return_on_capital": ("ebit / average(opening, closing)(current_debt + long_term_debt + total_equity)",
+                                  "opening_closing_balance", ("ebit", "current_debt", "long_term_debt", "total_equity")),
+            "return_on_capital_employed": ("ebit / average(opening, closing)(total_assets - current_liabilities)",
+                                           "opening_closing_balance", ("ebit", "total_assets", "current_liabilities")),
+            "fixed_asset_turnover": ("revenue / average(opening, closing)(property_plant_equipment)", "opening_closing_balance",
                                      ("revenue", "property_plant_equipment")),
-            "working_capital_turnover": ("revenue / average(current_assets - current_liabilities)", "annual_average_balance",
+            "working_capital_turnover": ("revenue / average(opening, closing)(current_assets - current_liabilities); "
+                                         "both balances > 0, average >= 5% of revenue", "opening_closing_balance",
                                          ("revenue", "current_assets", "current_liabilities")),
-            "incremental_roic": ("(nopat - prior_fy(nopat)) / (invested_capital - prior_fy(invested_capital))",
+            "incremental_roic": ("(nopat - prior_fy(nopat)) / (closing - opening)(invested_capital)",
                                  "prior_fiscal_year", ("nopat", "invested_capital")),
             "margin_expansion": ("operating_income / revenue - prior_fy(operating_income / revenue)", "prior_fiscal_year",
                                  ("operating_income", "revenue")),
-            "inventory_to_revenue": ("year_end(inventory) / revenue", "same_period", ("inventory", "revenue")),
-            "return_on_tangible_assets": ("net_income / year_end(total_assets - goodwill - intangible_assets)", "same_period",
+            "inventory_to_revenue": ("closing(inventory) / revenue", "same_period", ("inventory", "revenue")),
+            "return_on_tangible_assets": ("net_income / closing(total_assets - goodwill - intangible_assets)", "same_period",
                                           ("net_income", "total_assets", "goodwill", "intangible_assets")),
             "cfo_interest_coverage": ("operating_cash_flow / abs(interest_paid)", "same_period",
                                       ("operating_cash_flow", "interest_paid")),
-            "debt_service_coverage_proxy": ("operating_cash_flow / (abs(interest_paid) + abs(debt_repaid))", "same_period",
-                                            ("operating_cash_flow", "interest_paid", "debt_repaid")),
-            "fixed_charge_coverage": ("(ebit + lease_expense) / (abs(finance_costs) + lease_expense)", "same_period",
-                                      ("ebit", "finance_costs", "short_term_lease_expense", "low_value_lease_expense",
-                                       "variable_lease_expense")),
-            "revenue_per_share_growth": ("(revenue_per_share - prior_fy(revenue_per_share)) / abs(prior_fy(revenue_per_share))",
+            "debt_service_coverage_proxy": ("proxy, not the lender DSCR: operating_cash_flow / (abs(interest_paid) + abs(debt_repaid))",
+                                            "same_period", ("operating_cash_flow", "interest_paid", "debt_repaid")),
+            "revenue_per_share_growth": ("revenue_per_share / prior_fy(revenue_per_share) - 1 on one share basis; prior > 0",
                                          "prior_fiscal_year", ("revenue", "weighted_average_shares_diluted")),
             "free_cash_flow_per_share_growth": (
-                "(free_cash_flow_per_share - prior_fy(free_cash_flow_per_share)) / abs(prior_fy(free_cash_flow_per_share))",
+                "free_cash_flow_per_share / prior_fy(free_cash_flow_per_share) - 1 on one share basis; prior > 0",
                 "prior_fiscal_year", ("free_cash_flow", "weighted_average_shares_diluted")),
         })
         definitions.update({
-            output: (f"({source} - prior_quarter({source})) / abs(prior_quarter({source}))", "prior_fiscal_quarter",
+            output: (f"{source} / prior_quarter({source}) - 1; prior > 0", "prior_fiscal_quarter",
                      (source,))
             for source, output in Calculator.QOQ_METRICS.items()
         })

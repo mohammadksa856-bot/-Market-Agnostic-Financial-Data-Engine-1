@@ -128,7 +128,7 @@ class Pipeline:
             # queue, but it must never be labelled as a production publication.
             self.db.set_normalized_status(rejected_ids, "rejected")
         history=self.db.calculation_history(company.company_id,self.calculator.HISTORY_METRICS)
-        calculated=self.calculator.calculate(facts,history)
+        calculated=self.calculator.calculate(facts,history,industry=company.industry)
         # Canonical projections can depend on a detailed note in this batch and
         # a reported total ingested from another document. Read only the small
         # governed projection context, then publish exact aliases atomically

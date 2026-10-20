@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date, timedelta
 from decimal import Decimal
 
 from .models import Fact, PeriodKind
@@ -23,8 +24,7 @@ class Calculator:
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
         # return-on-capital and coverage inputs (_capital_returns)
-        "goodwill", "interest_paid", "debt_repaid", "short_term_lease_expense",
-        "low_value_lease_expense", "variable_lease_expense",
+        "goodwill", "interest_paid", "debt_repaid",
         "total_hydrocarbon_production", "total_hydrocarbon_reserves",
         "upstream_ebit", "downstream_ebit", "corporate_ebit",
         "upstream_depreciation_amortization", "downstream_depreciation_amortization",
@@ -53,7 +53,15 @@ class Calculator:
         "operating_cash_flow": "operating_cash_flow_qoq", "free_cash_flow": "free_cash_flow_qoq",
     }
 
-    def calculate(self, facts: list[Fact], history: list[Fact] | None = None) -> list[Fact]:
+    # Industries whose balance sheet is not an operating-capital structure (matched case-insensitively).
+    CAPITAL_RETURN_EXCLUDED_INDUSTRIES = ("bank", "insurance", "reinsurance", "takaful")
+    # Contract keys whose definition needs an accounting decision; never emitted until it is made.
+    DEFINITION_PENDING = {
+        "fixed_charge_coverage": "fixed charges under IFRS 16 (which lease costs count) are not defined",
+    }
+
+    def calculate(self, facts: list[Fact], history: list[Fact] | None = None,
+                  industry: str | None = None) -> list[Fact]:
         all_facts = [*(history or []), *facts]
         out: list[Fact] = []
         groups = defaultdict(dict)
@@ -70,20 +78,23 @@ class Calculator:
         for fact in all_facts:
             if fact.scope == "consolidated" and not fact.dimensions:
                 historical[(fact.company_id, fact.fiscal_year, fact.period_kind)][fact.metric] = fact
-        # Discrete quarters keyed by fiscal quarter: `historical` keeps one row set per
-        # fiscal year, so it cannot tell Q1 from Q2.
+        # Discrete quarters and instants keyed by their exact period end: `historical` keeps one
+        # row set per fiscal year, so it cannot tell Q1 from Q2 or a year end from an interim balance.
         quarterly = defaultdict(dict)
+        instants = defaultdict(dict)
         for fact in all_facts:
-            if fact.scope == "consolidated" and not fact.dimensions and \
-                    fact.period_kind == PeriodKind.QUARTER and fact.fiscal_quarter:
-                quarterly[(fact.company_id, fact.fiscal_year, fact.fiscal_quarter)][fact.metric] = fact
+            if fact.scope == "consolidated" and not fact.dimensions:
+                if fact.period_kind == PeriodKind.QUARTER:
+                    quarterly[(fact.company_id, fact.period_end)][fact.metric] = fact
+                elif fact.period_kind == PeriodKind.INSTANT:
+                    instants[(fact.company_id, fact.period_end)][fact.metric] = fact
 
         for (company_id, _, _, _, _), group in groups.items():
             base = next(iter(group.values()))
             lookup = combined[(company_id, base.period_end)] if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT} else group
 
             def add(metric, value, formula, reference=None, unit="ratio", currency=""):
-                if metric in group:
+                if metric in group or metric in self.DEFINITION_PENDING:
                     return
                 source = reference or base
                 calculated = Fact(
@@ -397,7 +408,7 @@ class Calculator:
                         if "long_term_debt" in instant_now:
                             add("long_term_debt_to_capital", instant_now["long_term_debt"].value / capital,
                                 "long_term_debt / (total_debt + total_equity)", instant_now["long_term_debt"])
-                self._capital_returns(company_id, base, lookup, historical, prior_instant, instant_now, add)
+                self._capital_returns(company_id, base, lookup, historical, instants, add, industry)
                 for source_metric in ("revenue", "net_income", "eps_diluted", "dividends_per_share"):
                     if source_metric not in lookup or not lookup[source_metric].value:
                         continue
@@ -417,26 +428,8 @@ class Calculator:
                     if source_metric in group and source_metric in prior and prior[source_metric].value:
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
                             f"{source_metric} / prior_fy({source_metric}) - 1", group[source_metric])
-            if base.period_kind == PeriodKind.QUARTER and base.fiscal_quarter:
-                quarter = base.fiscal_quarter
-                previous = quarterly.get(
-                    (company_id, base.fiscal_year, quarter - 1) if quarter > 1
-                    else (company_id, base.fiscal_year - 1, 4), {})
-
-                def quarter_value(rows, metric):
-                    # Free cash flow is itself derived per quarter; rebuild the prior
-                    # quarter's value from its reported inputs.
-                    if metric == "free_cash_flow" and metric not in rows and \
-                            "operating_cash_flow" in rows and "capex" in rows:
-                        return rows["operating_cash_flow"].value - abs(rows["capex"].value)
-                    return rows[metric].value if metric in rows else None
-
-                for source_metric, output_metric in self.QOQ_METRICS.items():
-                    current, prior_value = quarter_value(group, source_metric), quarter_value(previous, source_metric)
-                    if current is not None and prior_value:
-                        add(output_metric, (current - prior_value) / abs(prior_value),
-                            f"({source_metric} - prior_quarter({source_metric})) / abs(prior_quarter({source_metric}))",
-                            group.get(source_metric) or base)
+            if base.period_kind == PeriodKind.QUARTER:
+                self._quarter_changes(company_id, base, group, quarterly, add)
 
         # Composite scores run last: they read ratios (cost_to_income_ratio,
         # nonperforming_loans_ratio, ROE, ...) that the passes above computed.
@@ -496,138 +489,186 @@ class Calculator:
         target_periods = {fact.period_end for fact in facts if fact.period_kind == PeriodKind.QUARTER}
         return out + self._ttm([*all_facts, *out], target_periods)
 
-    def _capital_returns(self, company_id, base, lookup, historical, prior_instant, instant_now, add):
+    def _capital_returns(self, company_id, base, lookup, historical, instants, add, industry):
         """Fiscal-year returns on capital, turnover, coverage and per-share growth.
 
-        Every formula reads ingested lines only.  Balance-sheet denominators are
-        averaged over the opening and closing year-end balances, as ROA/ROE are;
-        a metric is emitted only when all of its inputs are present.
+        Every formula reads ingested lines only, and a metric is emitted only when:
+        - the issuer's industry is known and not excluded (banks and insurers have no
+          operating-capital structure these ratios describe);
+        - balance-sheet averages use the exact opening (day before the fiscal year starts)
+          and closing (fiscal year end) instants, never an interim balance;
+        - every monetary input is in the numerator's currency and its unit is that currency;
+        - every component is reported: a missing debt line is never read as zero;
+        - the tax expense keeps its sign (engine convention: expense <= 0) and the effective
+          rate lies in [0, 1) on a positive pre-tax income; otherwise after-tax metrics are withheld.
+        Metrics in DEFINITION_PENDING are never emitted.
         """
+        if not industry or any(term in industry.lower() for term in self.CAPITAL_RETURN_EXCLUDED_INDUSTRIES):
+            return
+        if not base.period_start:
+            return
+        closing = instants.get((company_id, base.period_end), {})
+        opening = instants.get((company_id, (date.fromisoformat(base.period_start) - timedelta(days=1)).isoformat()), {})
         prior_fy = historical.get((company_id, base.fiscal_year - 1, PeriodKind.FY), {})
+        opening_date = (date.fromisoformat(base.period_start) - timedelta(days=1)).isoformat()
+        if any(fact.period_end != opening_date for fact in prior_fy.values()):
+            prior_fy = {}
 
-        def val(rows, key):
+        def money(rows, key, currency):
             fact = rows.get(key)
-            return fact.value if fact is not None and fact.value is not None else None
-
-        def average(now, prior):
-            return (now + prior) / 2 if now is not None and prior is not None else None
-
-        def debt(rows):
-            if not any(key in rows for key in ("current_debt", "long_term_debt")):
+            if fact is None or fact.value is None or not currency:
                 return None
-            return sum((rows[key].value for key in ("current_debt", "long_term_debt") if key in rows), Decimal(0))
+            return fact.value if fact.currency == currency and fact.unit == currency else None
 
-        def invested_capital(rows):
-            # Same definition as the invested_capital instant metric above.
-            total_debt = debt(rows)
-            if total_debt is None or "total_equity" not in rows or "cash" not in rows:
-                return None
-            return rows["total_equity"].value + total_debt - rows["cash"].value
+        def debt(rows, currency):
+            parts = [money(rows, key, currency) for key in ("current_debt", "long_term_debt")]
+            return None if None in parts else sum(parts, Decimal(0))
 
-        def capital_employed(rows):
-            if "total_assets" not in rows or "current_liabilities" not in rows:
-                return None
-            return rows["total_assets"].value - rows["current_liabilities"].value
+        def invested_capital(rows, currency):
+            # Same definition as the invested_capital instant metric, with both debt lines reported.
+            total_debt, equity, cash = debt(rows, currency), money(rows, "total_equity", currency), money(rows, "cash", currency)
+            return None if None in (total_debt, equity, cash) else equity + total_debt - cash
 
-        def debt_plus_equity(rows):
-            total_debt = debt(rows)
-            return total_debt + rows["total_equity"].value if total_debt is not None and "total_equity" in rows else None
+        def capital_employed(rows, currency):
+            assets, current = money(rows, "total_assets", currency), money(rows, "current_liabilities", currency)
+            return None if None in (assets, current) else assets - current
 
-        def working_capital(rows):
-            if "current_assets" not in rows or "current_liabilities" not in rows:
-                return None
-            return rows["current_assets"].value - rows["current_liabilities"].value
+        def debt_plus_equity(rows, currency):
+            total_debt, equity = debt(rows, currency), money(rows, "total_equity", currency)
+            return None if None in (total_debt, equity) else total_debt + equity
 
-        def tax_rate(rows):
-            # A loss year has no meaningful tax rate: NOPAT and its returns are not emitted.
-            taxes, pretax = val(rows, "income_taxes_and_zakat"), val(rows, "income_before_income_taxes_and_zakat")
-            return abs(taxes) / pretax if taxes is not None and pretax is not None and pretax > 0 else None
+        def working_capital(rows, currency):
+            assets, current = money(rows, "current_assets", currency), money(rows, "current_liabilities", currency)
+            return None if None in (assets, current) else assets - current
 
-        ebit, revenue, net_income = val(lookup, "ebit"), val(lookup, "revenue"), val(lookup, "net_income")
-        rate = tax_rate(lookup)
-        nopat = ebit * (1 - rate) if ebit is not None and rate is not None else None
+        def average(measure, currency):
+            now, prior = measure(closing, currency), measure(opening, currency)
+            return None if now is None or prior is None else (now + prior) / 2
+
+        def tax_rate(rows, currency):
+            taxes = money(rows, "income_taxes_and_zakat", currency)
+            pretax = money(rows, "income_before_income_taxes_and_zakat", currency)
+            if taxes is None or pretax is None or pretax <= 0 or taxes > 0:
+                return None  # loss year, or a tax benefit / sign the engine convention cannot confirm
+            rate = -taxes / pretax
+            return rate if rate < 1 else None
+
+        def nopat_of(rows):
+            ebit_fact = rows.get("ebit")
+            currency = ebit_fact.currency if ebit_fact is not None else ""
+            ebit_value, rate = money(rows, "ebit", currency), tax_rate(rows, currency)
+            return None if ebit_value is None or rate is None else ebit_value * (1 - rate)
+
+        reference = lookup.get("ebit") or lookup.get("revenue") or base
+        currency = reference.currency
+        ebit, revenue, net_income = (money(lookup, key, currency) for key in ("ebit", "revenue", "net_income"))
+        nopat = nopat_of(lookup)
         if nopat is not None:
-            add("nopat", nopat, "ebit * (1 - abs(income_taxes_and_zakat) / income_before_income_taxes_and_zakat)",
-                lookup["ebit"], lookup["ebit"].unit, lookup["ebit"].currency)
+            add("nopat", nopat, "ebit * (1 - (-income_taxes_and_zakat) / income_before_income_taxes_and_zakat)",
+                lookup["ebit"], currency, currency)
 
-        def average_return(metric, numerator, reference, measure, formula):
-            denominator = average(measure(instant_now), measure(prior_instant))
+        def average_return(metric, numerator, measure, formula):
+            denominator = average(measure, currency)
             if numerator is not None and denominator:
                 add(metric, numerator / denominator, formula, reference)
 
-        average_return("return_on_invested_capital", nopat, lookup.get("ebit"), invested_capital,
-                       "nopat / average(total_equity + current_debt + long_term_debt - cash)")
-        average_return("return_on_capital", ebit, lookup.get("ebit"), debt_plus_equity,
-                       "ebit / average(current_debt + long_term_debt + total_equity)")
-        average_return("return_on_capital_employed", ebit, lookup.get("ebit"), capital_employed,
-                       "ebit / average(total_assets - current_liabilities)")
-        average_return("fixed_asset_turnover", revenue, lookup.get("revenue"),
-                       lambda rows: val(rows, "property_plant_equipment"), "revenue / average(property_plant_equipment)")
-        average_return("working_capital_turnover", revenue, lookup.get("revenue"), working_capital,
-                       "revenue / average(current_assets - current_liabilities)")
+        average_return("return_on_invested_capital", nopat, invested_capital,
+                       "nopat / average(opening, closing)(total_equity + current_debt + long_term_debt - cash)")
+        average_return("return_on_capital", ebit, debt_plus_equity,
+                       "ebit / average(opening, closing)(current_debt + long_term_debt + total_equity)")
+        average_return("return_on_capital_employed", ebit, capital_employed,
+                       "ebit / average(opening, closing)(total_assets - current_liabilities)")
+        average_return("fixed_asset_turnover", revenue, lambda rows, cur: money(rows, "property_plant_equipment", cur),
+                       "revenue / average(opening, closing)(property_plant_equipment)")
+        wc_open, wc_close = working_capital(opening, currency), working_capital(closing, currency)
+        # Provisional guard (near-zero threshold is DEFINITION_PENDING): both balances positive and
+        # the average at least 5% of revenue, so the turnover never exceeds 20x.
+        if revenue and wc_open is not None and wc_close is not None and wc_open > 0 and wc_close > 0 \
+                and (wc_open + wc_close) / 2 >= revenue * Decimal("0.05"):
+            add("working_capital_turnover", revenue / ((wc_open + wc_close) / 2),
+                "revenue / average(opening, closing)(current_assets - current_liabilities); "
+                "both balances > 0, average >= 5% of revenue", lookup["revenue"])
 
-        prior_ebit, prior_rate = val(prior_fy, "ebit"), tax_rate(prior_fy)
-        ic_now, ic_prior = invested_capital(instant_now), invested_capital(prior_instant)
-        if None not in (nopat, prior_ebit, prior_rate, ic_now, ic_prior) and ic_now != ic_prior:
-            add("incremental_roic", (nopat - prior_ebit * (1 - prior_rate)) / (ic_now - ic_prior),
-                "(nopat - prior_fy(nopat)) / (invested_capital - prior_fy(invested_capital))", lookup["ebit"])
+        prior_nopat = nopat_of(prior_fy) if prior_fy and prior_fy.get("ebit") and prior_fy["ebit"].currency == currency else None
+        ic_now, ic_prior = invested_capital(closing, currency), invested_capital(opening, currency)
+        if None not in (nopat, prior_nopat, ic_now, ic_prior) and ic_now != ic_prior:
+            add("incremental_roic", (nopat - prior_nopat) / (ic_now - ic_prior),
+                "(nopat - prior_fy(nopat)) / (closing - opening)(invested_capital)", reference)
 
-        operating_income, prior_operating_income = val(lookup, "operating_income"), val(prior_fy, "operating_income")
-        prior_revenue = val(prior_fy, "revenue")
+        operating_income = money(lookup, "operating_income", currency)
+        prior_operating_income, prior_revenue = (money(prior_fy, key, currency) for key in ("operating_income", "revenue"))
         if None not in (operating_income, prior_operating_income) and revenue and prior_revenue:
             add("margin_expansion", operating_income / revenue - prior_operating_income / prior_revenue,
                 "operating_income / revenue - prior_fy(operating_income / revenue)", lookup["operating_income"])
 
-        if "inventory" in instant_now and revenue:
-            add("inventory_to_revenue", instant_now["inventory"].value / revenue,
-                "year_end(inventory) / revenue", lookup["revenue"])
-        if net_income is not None and all(key in instant_now for key in ("total_assets", "goodwill", "intangible_assets")):
-            tangible_assets = (instant_now["total_assets"].value - instant_now["goodwill"].value
-                               - instant_now["intangible_assets"].value)
-            if tangible_assets:
+        inventory = money(closing, "inventory", currency)
+        if inventory is not None and revenue:
+            add("inventory_to_revenue", inventory / revenue, "closing(inventory) / revenue", lookup["revenue"])
+        tangible_parts = [money(closing, key, currency) for key in ("total_assets", "goodwill", "intangible_assets")]
+        if net_income is not None and None not in tangible_parts:
+            tangible_assets = tangible_parts[0] - tangible_parts[1] - tangible_parts[2]
+            if tangible_assets > 0:
                 add("return_on_tangible_assets", net_income / tangible_assets,
-                    "net_income / year_end(total_assets - goodwill - intangible_assets)", lookup["net_income"])
+                    "net_income / closing(total_assets - goodwill - intangible_assets)", lookup["net_income"])
 
-        cfo, interest_paid = val(lookup, "operating_cash_flow"), val(lookup, "interest_paid")
+        cfo = money(lookup, "operating_cash_flow", currency)
+        interest_paid, debt_repaid = money(lookup, "interest_paid", currency), money(lookup, "debt_repaid", currency)
         if cfo is not None and interest_paid:
             add("cfo_interest_coverage", cfo / abs(interest_paid),
                 "operating_cash_flow / abs(interest_paid)", lookup["operating_cash_flow"])
-            debt_repaid = val(lookup, "debt_repaid")
-            if debt_repaid is not None:
-                add("debt_service_coverage_proxy", cfo / (abs(interest_paid) + abs(debt_repaid)),
-                    "operating_cash_flow / (abs(interest_paid) + abs(debt_repaid))", lookup["operating_cash_flow"])
-        lease_keys = [key for key in ("short_term_lease_expense", "low_value_lease_expense", "variable_lease_expense")
-                      if key in lookup]
-        finance_costs = val(lookup, "finance_costs")
-        if ebit is not None and finance_costs is not None and lease_keys:
-            fixed_charges = sum((abs(lookup[key].value) for key in lease_keys), Decimal(0))
-            if abs(finance_costs) + fixed_charges:
-                add("fixed_charge_coverage", (ebit + fixed_charges) / (abs(finance_costs) + fixed_charges),
-                    f"(ebit + {' + '.join(lease_keys)}) / (abs(finance_costs) + {' + '.join(lease_keys)})",
-                    lookup["ebit"])
+        if cfo is not None and interest_paid is not None and debt_repaid is not None \
+                and abs(interest_paid) + abs(debt_repaid):
+            add("debt_service_coverage_proxy", cfo / (abs(interest_paid) + abs(debt_repaid)),
+                "proxy, not the lender DSCR: operating_cash_flow / (abs(interest_paid) + abs(debt_repaid))",
+                lookup["operating_cash_flow"])
 
-        # Per-share growth from its inputs: per-share values are calculated per
-        # period, while the prior year's raw lines are always in the history.
-        def shares(rows):
-            return val(rows, "weighted_average_shares_diluted") or val(rows, "weighted_average_shares_basic")
+        # Per-share growth on one share basis: diluted in both years, else basic in both years.
+        basis = next((key for key in ("weighted_average_shares_diluted", "weighted_average_shares_basic")
+                      if all(rows.get(key) is not None and rows[key].unit == "shares" and rows[key].value
+                             for rows in (lookup, prior_fy))), None)
 
         def free_cash_flow(rows):
-            if "free_cash_flow" in rows:
-                return rows["free_cash_flow"].value
-            if "operating_cash_flow" in rows and "capex" in rows:
-                return rows["operating_cash_flow"].value - abs(rows["capex"].value)
-            return None
+            flow, capex = money(rows, "operating_cash_flow", currency), money(rows, "capex", currency)
+            return None if flow is None or capex is None else flow - abs(capex)
 
-        shares_now, shares_prior = shares(lookup), shares(prior_fy)
-        if shares_now and shares_prior:
-            for metric, numerator in (("revenue_per_share_growth", lambda rows: val(rows, "revenue")),
+        if basis:
+            for metric, numerator in (("revenue_per_share_growth", lambda rows: money(rows, "revenue", currency)),
                                       ("free_cash_flow_per_share_growth", free_cash_flow)):
                 now, prior = numerator(lookup), numerator(prior_fy)
-                if now is not None and prior:
-                    prior_per_share = prior / shares_prior
-                    add(metric, (now / shares_now - prior_per_share) / abs(prior_per_share),
-                        f"({metric[:-7]} - prior_fy({metric[:-7]})) / abs(prior_fy({metric[:-7]}))",
-                        lookup.get("revenue") or base)
+                if now is not None and prior is not None and prior > 0:
+                    per_share_now = now / lookup[basis].value
+                    per_share_prior = prior / prior_fy[basis].value
+                    stem = metric[:-len("_growth")]
+                    add(metric, per_share_now / per_share_prior - 1,
+                        f"{stem} / prior_fy({stem}) - 1 on {basis}; prior > 0", reference)
+
+    def _quarter_changes(self, company_id, base, group, quarterly, add):
+        """Change against the immediately preceding discrete quarter, in the same currency and unit.
+
+        Growth on a non-positive base is DEFINITION_PENDING and is not emitted."""
+        if not base.period_start:
+            return
+        previous = quarterly.get((company_id, (date.fromisoformat(base.period_start) - timedelta(days=1)).isoformat()), {})
+
+        def quarter_value(rows, metric, currency, unit):
+            if metric == "free_cash_flow":
+                parts = [rows.get(key) for key in ("operating_cash_flow", "capex")]
+                if any(part is None or part.currency != currency or part.unit != currency for part in parts):
+                    return None
+                return parts[0].value - abs(parts[1].value)
+            fact = rows.get(metric)
+            return fact.value if fact is not None and fact.currency == currency and fact.unit == unit else None
+
+        for source_metric, output_metric in self.QOQ_METRICS.items():
+            anchor = group.get("operating_cash_flow" if source_metric == "free_cash_flow" else source_metric)
+            if anchor is None:
+                continue
+            currency, unit = anchor.currency, anchor.unit
+            current = quarter_value(group, source_metric, currency, unit)
+            prior_value = quarter_value(previous, source_metric, currency, unit)
+            if current is not None and prior_value is not None and prior_value > 0:
+                add(output_metric, current / prior_value - 1,
+                    f"{source_metric} / prior_quarter({source_metric}) - 1; prior > 0", anchor)
 
     def _composite_scores(self, company_id, base, lookup, historical, add):
         """Sector-aware composite scores, computed from ingested lines only.
