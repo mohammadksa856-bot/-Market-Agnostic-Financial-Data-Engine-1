@@ -1065,7 +1065,9 @@ def main():
     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
-    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs")
+    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs"); contract_export.add_argument("--corrections",help="engine-impact JSON whose engine_corrections are attached")
+    contract_validate=sub.add_parser("contract-validate"); contract_validate.add_argument("bundle")
+    impact=sub.add_parser("engine-impact"); impact.add_argument("before"); impact.add_argument("after"); impact.add_argument("--label",required=True); impact.add_argument("--company",action="append"); impact.add_argument("--out"); impact.add_argument("--contract",default="config/factory/18-category-contract.json"); impact.add_argument("--sector-packs",default="config/factory/sector-packs")
     contract_compare=sub.add_parser("contract-compare"); contract_compare.add_argument("bundle_a"); contract_compare.add_argument("bundle_b"); contract_compare.add_argument("--tolerance",default="0.000001")
     share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
@@ -1224,14 +1226,33 @@ def main():
         db=Database(a.db)
         try:
             company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
-            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+            corrections=json.loads(Path(a.corrections).read_text(encoding="utf-8"))["engine_corrections"] if a.corrections else None
+            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs,engine_corrections=corrections)
         finally: db.close()
         Path(a.out).write_text(json.dumps(bundle,indent=1,ensure_ascii=False),encoding="utf-8")
         print(json.dumps({"out":a.out,"engine_total_score":bundle["engine_total_score"],"records":len(bundle["records"])},indent=2)); return
     if a.cmd=="contract-compare":
         from decimal import Decimal
-        from .contract_compare import compare_bundles, load_bundle
-        print(json.dumps(compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance)),indent=2,ensure_ascii=False)); return
+        from .contract_compare import InvalidBundle, compare_bundles, load_bundle
+        try: result=compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance))
+        except InvalidBundle as error:
+            print(json.dumps({"status":"invalid_bundle","errors":error.errors},indent=2,ensure_ascii=False)); raise SystemExit(2)
+        print(json.dumps(result,indent=2,ensure_ascii=False)); return
+    if a.cmd=="contract-validate":
+        from .contract_compare import load_bundle, normalize_bundle, validate_bundle
+        try: bundle=load_bundle(a.bundle)
+        except json.JSONDecodeError as error:
+            print(json.dumps({"status":"invalid_json","errors":[str(error)]},indent=2)); raise SystemExit(2)
+        result=validate_bundle(normalize_bundle(bundle) if isinstance(bundle,dict) else bundle)
+        print(json.dumps({"status":"invalid_bundle" if result["errors"] else "valid",**result},indent=2,ensure_ascii=False))
+        if result["errors"]: raise SystemExit(2)
+        return
+    if a.cmd=="engine-impact":
+        from .contract_compare import engine_impact
+        result=engine_impact(a.before,a.after,label=a.label,companies=a.company,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+        text=json.dumps(result,indent=2,ensure_ascii=False)
+        if a.out: Path(a.out).write_text(text,encoding="utf-8")
+        print(json.dumps({"label":result["label"],"rows":result["rows"],"companies":[{k:v for k,v in c.items() if k in ("company_id","score_before","score_after","delta")} for c in result["companies"]]},indent=2)); return
     if a.cmd=="share-basis-audit":
         from .share_basis import audit_share_basis, withheld_metric_keys
         db=Database(a.db)
