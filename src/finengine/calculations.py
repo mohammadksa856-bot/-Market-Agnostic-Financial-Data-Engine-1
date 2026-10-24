@@ -9,8 +9,10 @@ class Calculator:
     """Deterministic, source-traceable calculations; AI never calculates production facts."""
 
     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
-    # Quarterly dividends whose trailing-twelve-month sum has its own catalog key.
-    TTM_NAMED = {"dividends_per_share": "dividend_per_share_ttm", "dividends_paid": "total_dividend_paid_ttm"}
+    # Quarterly dividends whose trailing-twelve-month sum has its own catalog key. Cash paid only:
+    # dividend_per_share_ttm is filed for SABIC as DPS declared for the year, so a sum of DPS paid in the
+    # window is a different basis and stays withheld until that basis is decided.
+    TTM_NAMED = {"dividends_paid": "total_dividend_paid_ttm"}
     HISTORY_METRICS = {
         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
         "income_taxes_and_zakat",

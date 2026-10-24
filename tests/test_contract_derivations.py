@@ -251,7 +251,7 @@ class TrailingTwelveMonthTests(unittest.TestCase):
         self.assertEqual(result.period_start, "2025-04-01")
         self.assertEqual(result.period_kind, PeriodKind.TTM)
 
-    def dividend_ttm(self, quarterly, annual=None, metric="dividends_per_share", unit="SAR/share"):
+    def dividend_ttm(self, quarterly, annual=None, metric="dividends_paid", unit="SAR"):
         facts = [quarter(metric, value, end, start, 2025, q, unit=unit)
                  for (start, end, _, q), value in zip(self.QUARTERS[:4], quarterly)]
         if annual is not None:
@@ -262,10 +262,9 @@ class TrailingTwelveMonthTests(unittest.TestCase):
         return {key: value for key, value in out.items() if value.period_kind == PeriodKind.TTM}
 
     def test_quarterly_dividends_produce_the_named_ttm_keys(self):
-        per_share = self.dividend_ttm(["0.3312"] * 4, annual="1.3248")
-        self.assertEqual(set(per_share), {("dividend_per_share_ttm", "2025-12-31")})
-        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].value, Decimal("1.3248"))
-        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].unit, "SAR/share")
+        # DPS paid in the window is not the filed declared-for-the-year basis: no per-share TTM is derived.
+        self.assertEqual(self.dividend_ttm(["0.3312"] * 4, annual="1.3248", metric="dividends_per_share",
+                                           unit="SAR/share"), {})
         paid = self.dividend_ttm(["80104", "80112", "80113", "80118"], annual="320447",
                                  metric="dividends_paid", unit="SAR")
         self.assertEqual(paid["total_dividend_paid_ttm", "2025-12-31"].value, Decimal("320447"))
