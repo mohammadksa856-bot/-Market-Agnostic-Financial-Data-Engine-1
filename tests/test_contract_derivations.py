@@ -233,5 +233,28 @@ class ContractDerivationTests(unittest.TestCase):
         self.assertEqual(out["revenue_qoq", "2026-03-31"].value, Decimal("0.25"))
 
 
+class TrailingTwelveMonthTests(unittest.TestCase):
+    QUARTERS = [("2025-01-01", "2025-03-31", 2025, 1), ("2025-04-01", "2025-06-30", 2025, 2),
+                ("2025-07-01", "2025-09-30", 2025, 3), ("2025-10-01", "2025-12-31", 2025, 4),
+                ("2026-01-01", "2026-03-31", 2026, 1)]
+
+    def ttm(self, quarters, batch_end):
+        facts = [quarter("revenue", "100", end, start, year, q) for start, end, year, q in quarters]
+        batch = [item for item in facts if item.period_end == batch_end]
+        history = [item for item in facts if item.period_end != batch_end]
+        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
+        return out.get(("revenue_ttm", batch_end))
+
+    def test_ttm_sums_the_last_four_contiguous_quarters(self):
+        result = self.ttm(self.QUARTERS, "2026-03-31")
+        self.assertEqual(result.value, Decimal("400"))
+        self.assertEqual(result.period_start, "2025-04-01")
+        self.assertEqual(result.period_kind, PeriodKind.TTM)
+
+    def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+        gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+        self.assertIsNone(self.ttm(gap, "2026-03-31"))
+
+
 if __name__ == "__main__":
     unittest.main()

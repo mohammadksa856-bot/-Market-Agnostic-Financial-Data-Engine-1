@@ -804,6 +804,12 @@ class Calculator:
             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
             if len(rows) >= 4 and rows[-1].period_end in target_periods:
                 last = rows[-4:]
+                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
+                if any(not current.period_start or
+                       date.fromisoformat(current.period_start) - timedelta(days=1)
+                       != date.fromisoformat(previous.period_end)
+                       for previous, current in zip(last, last[1:])):
+                    continue
                 base = last[-1]
                 out.append(Fact(
                     base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),

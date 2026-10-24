@@ -32,8 +32,8 @@ class StorageAndJobsTests(unittest.TestCase):
         return doc
 
     def fact(self, source, value, period_end="2025-12-31", kind=PeriodKind.FY,
-             quarter=None, dimensions=None):
-        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", "2025-01-01",
+             quarter=None, dimensions=None, period_start="2025-01-01"):
+        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", period_start,
                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
                     source.filed_at, dimensions=dimensions or {})
 
@@ -472,11 +472,13 @@ class StorageAndJobsTests(unittest.TestCase):
         self.assertNotIn("beneish_m_score", out)
 
     def test_ttm_uses_published_history(self):
-        for index, (end, value) in enumerate((("2025-03-31", "10"), ("2025-06-30", "20"), ("2025-09-30", "30")), 1):
+        for index, (start, end, value) in enumerate((("2025-01-01", "2025-03-31", "10"),
+                                                     ("2025-04-01", "2025-06-30", "20"),
+                                                     ("2025-07-01", "2025-09-30", "30")), 1):
             source = self.source(f"source:{index}")
-            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index))
+            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index, period_start=start))
         current_source = self.source("source:4")
-        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4)
+        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4, period_start="2025-10-01")
         history = self.db.quarter_history("sa:TST", Calculator.TTM_FLOWS)
         calculated = Calculator().calculate([current], history)
         ttm = next(f for f in calculated if f.metric == "revenue_ttm")
@@ -486,15 +488,15 @@ class StorageAndJobsTests(unittest.TestCase):
         source = self.source()
         facts = []
         periods = (
-            ("2025-03-31", 1), ("2025-06-30", 2),
-            ("2025-09-30", 3), ("2025-12-31", 4),
+            ("2025-01-01", "2025-03-31", 1), ("2025-04-01", "2025-06-30", 2),
+            ("2025-07-01", "2025-09-30", 3), ("2025-10-01", "2025-12-31", 4),
         )
-        for end, quarter in periods:
+        for start, end, quarter in periods:
             facts.extend([
                 self.fact(source, "10", end, PeriodKind.QUARTER, quarter,
-                          {"segment": "upstream"}),
+                          {"segment": "upstream"}, period_start=start),
                 self.fact(source, "100", end, PeriodKind.QUARTER, quarter,
-                          {"segment": "downstream"}),
+                          {"segment": "downstream"}, period_start=start),
             ])
         ttm = [fact for fact in Calculator().calculate(facts) if fact.metric == "revenue_ttm"]
         values = {fact.dimensions["segment"]: fact.value for fact in ttm}
