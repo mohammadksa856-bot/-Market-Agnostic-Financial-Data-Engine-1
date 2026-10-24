@@ -669,18 +669,9 @@ class CompanyDomainStore:
             available["ownership_positions"].update(
                 key for key, column in ownership_map.items()
                 if any(row[column] is not None for row in ownership_rows))
-            if any(row["holder_type"] == "government" and row["ownership_pct"] is not None
-                   for row in ownership_rows):
-                available["ownership_positions"].add("government_ownership")
-            if any(row["ownership_type"] == "free_float" and row["ownership_pct"] is not None
-                   for row in ownership_rows):
-                available["ownership_positions"].add("free_float")
-            if any(row["holder_type"] == "foreign" and row["ownership_pct"] is not None
-                   for row in ownership_rows):
-                available["ownership_positions"].add("foreign_ownership")
-            if any(row["holder_type"] in {"corporate_strategic", "strategic"}
-                   and row["ownership_pct"] is not None for row in ownership_rows):
-                available["ownership_positions"].add("strategic_ownership")
+            # Derived keys count only when the rows determine them (class totals, reconciled partitions).
+            from .ownership_metrics import ownership_metrics
+            available["ownership_positions"].update(ownership_metrics(ownership_rows))
         action_rows = self.db.conn.execute(
             "SELECT * FROM corporate_actions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
         available["corporate_actions"].update(row["action_type"] for row in action_rows)

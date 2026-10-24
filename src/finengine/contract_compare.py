@@ -355,14 +355,10 @@ PROFILE_COLUMNS = {"company_name": "name", "symbol": "symbol", "isin": "isin", "
                    "timezone": "timezone"}
 PRICE_COLUMNS = {"price_open": "open", "price_high": "high", "price_low": "low", "price_close": "close",
                  "price_adjusted_close": "adjusted_close", "trading_volume": "volume", "trading_turnover": "turnover"}
+from .ownership_metrics import DERIVED_KEYS as DERIVED_OWNERSHIP_KEYS, ownership_metrics
+
 OWNERSHIP_FIELDS = {"holder_name": "holder_name", "holder_type": "holder_type", "shares_held": "shares",
-                    "ownership_percentage": "ownership_pct", "government_ownership": "ownership_pct",
-                    "free_float": "ownership_pct", "foreign_ownership": "ownership_pct",
-                    "strategic_ownership": "ownership_pct"}
-OWNERSHIP_FILTERS = {"government_ownership": lambda row: row["holder_type"] == "government",
-                     "free_float": lambda row: row["ownership_type"] == "free_float",
-                     "foreign_ownership": lambda row: row["holder_type"] == "foreign",
-                     "strategic_ownership": lambda row: row["holder_type"] in {"corporate_strategic", "strategic"}}
+                    "ownership_percentage": "ownership_pct"}
 
 
 def _canonical(value) -> str:
@@ -412,9 +408,18 @@ def _domain_observations(db, company, key: str, domain: str, limit: int) -> list
                                       "ratio_numerator", "ratio_denominator", "status")}),
                  "unit": None, "currency": row["currency"], "source_url": _source_url(db, row["source_key"]),
                  "calculation": None} for row in rows if row["effective_date"] or row["ex_date"] or row["announcement_date"]]
+    if domain == "ownership_positions" and key in DERIVED_OWNERSHIP_KEYS:
+        rows = db.conn.execute("SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1",
+                               (company_id,)).fetchall()
+        source = {row["as_of_date"]: row["source_key"] for row in rows}
+        return [{"period_kind": "as_of", "period_start": None, "period_end": item["as_of_date"],
+                 "dimensions": item.get("holder_key"), "value": str(item["value"]), "unit": "ratio",
+                 "currency": None, "source_url": _source_url(db, source[item["as_of_date"]]),
+                 "calculation": item["basis"]}
+                for item in ownership_metrics(rows).get(key, [])[:limit]]
     if domain == "ownership_positions" and key in OWNERSHIP_FIELDS:
-        rows = [row for row in db.conn.execute("""SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1
-            ORDER BY as_of_date DESC""", (company_id,)).fetchall() if OWNERSHIP_FILTERS.get(key, lambda r: True)(row)]
+        rows = db.conn.execute("""SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1
+            ORDER BY as_of_date DESC""", (company_id,)).fetchall()
         column = OWNERSHIP_FIELDS[key]
         return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["as_of_date"])[:10],
                  "dimensions": row["holder_key"], "value": None if row[column] is None else str(row[column]),
