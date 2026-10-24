@@ -1065,6 +1065,8 @@ def main():
     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
+    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs")
+    contract_compare=sub.add_parser("contract-compare"); contract_compare.add_argument("bundle_a"); contract_compare.add_argument("bundle_b"); contract_compare.add_argument("--tolerance",default="0.000001")
     share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
     field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
@@ -1217,6 +1219,19 @@ def main():
             result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
         finally: db.close()
         print(json.dumps(result,indent=2)); return
+    if a.cmd=="contract-export":
+        from .contract_compare import export_bundle
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+        finally: db.close()
+        Path(a.out).write_text(json.dumps(bundle,indent=1,ensure_ascii=False),encoding="utf-8")
+        print(json.dumps({"out":a.out,"engine_total_score":bundle["engine_total_score"],"records":len(bundle["records"])},indent=2)); return
+    if a.cmd=="contract-compare":
+        from decimal import Decimal
+        from .contract_compare import compare_bundles, load_bundle
+        print(json.dumps(compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance)),indent=2,ensure_ascii=False)); return
     if a.cmd=="share-basis-audit":
         from .share_basis import audit_share_basis, withheld_metric_keys
         db=Database(a.db)
