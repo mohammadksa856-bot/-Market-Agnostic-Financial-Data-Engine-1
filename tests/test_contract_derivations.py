@@ -272,9 +272,25 @@ class TrailingTwelveMonthTests(unittest.TestCase):
 
     def test_ttm_contradicting_the_same_fiscal_year_is_withheld(self):
         self.assertEqual(self.dividend_ttm(["0", "0.48", "0", "0"], annual="0.96"), {})
-        # Rounding inside the tolerance still agrees; no fiscal-year value means nothing to contradict.
+        # Quarters stated to two decimals can differ from a four-decimal year by their rounding only.
         self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
+        # No fiscal-year value means nothing to contradict.
         self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
+
+    def test_ttm_agreement_bound_is_the_rounding_of_the_reported_figures(self):
+        quarters = ["80104", "80112", "80113", "80118"]  # sum 320447; five whole figures: bound 2.5
+        paid = lambda annual: self.dividend_ttm(quarters, annual=annual, metric="dividends_paid", unit="SAR")
+        self.assertTrue(paid("320449"))
+        self.assertEqual(paid("320451"), {})
+        # Figures in millions: 80104000000 carries +/-500000, so a one-million gap is still rounding.
+        scaled = [q + "000000" for q in quarters]
+        self.assertTrue(self.dividend_ttm(scaled, annual="320448000000", metric="dividends_paid", unit="SAR"))
+        self.assertEqual(self.dividend_ttm(scaled, annual="320451000000", metric="dividends_paid", unit="SAR"), {})
+        # A zero quarter takes the finest precision of the other figures, not +/-0.5.
+        self.assertEqual(Calculator._rounding_bound([Decimal("0"), Decimal("0.48"), Decimal("0.96")]), Decimal("0.015"))
+        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.30")), Decimal("0.005"))
+        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.00")), Decimal("0.005"))
+        self.assertEqual(Calculator._rounding_half_unit(Decimal("17720000000.00")), Decimal("5000000"))
 
     def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
         history = [fact("dividends_per_share", "1.3112", PeriodKind.FY, "2022-12-31", 2022, unit="SAR/share")]
