@@ -327,12 +327,14 @@ class CompanyDomainStore:
         latest_date = date.fromisoformat(latest["observed_at"][:10])
         latest_close = Decimal(latest["close"])
         currency = latest["company_currency"]
-        calculations: dict[str, tuple[Decimal, str, str, str]] = {
-            "previous_close": (
+        calculations: dict[str, tuple[Decimal, str, str, str]] = {}
+        # Longest market closure seen in the archives (Eid holidays); a wider hole is an archive gap.
+        max_session_gap = timedelta(days=10)
+        if latest_date - date.fromisoformat(rows[-2]["observed_at"][:10]) <= max_session_gap:
+            calculations["previous_close"] = (
                 Decimal(rows[-2]["close"]), "previous_archived_trading_session_close",
                 currency, f"{currency}/share",
-            ),
-        }
+            )
 
         for sessions in (20, 50, 200):
             if len(rows) < sessions:
@@ -400,9 +402,12 @@ class CompanyDomainStore:
         def calendar_return(metric: str, target: date, formula: str) -> None:
             if dated_rows[0][0] > target:
                 return
-            baseline = next((row for observed, row in reversed(dated_rows)
-                             if observed <= target), None)
-            if baseline is not None and Decimal(baseline["close"]):
+            baseline_dated = next(((observed, row) for observed, row in reversed(dated_rows)
+                                   if observed <= target), None)
+            if baseline_dated is None or target - baseline_dated[0] > max_session_gap:
+                return
+            baseline = baseline_dated[1]
+            if Decimal(baseline["close"]):
                 calculations[metric] = (
                     latest_close / Decimal(baseline["close"]) - Decimal(1),
                     formula, "", "ratio",

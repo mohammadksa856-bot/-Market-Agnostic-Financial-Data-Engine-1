@@ -136,6 +136,31 @@ class CompanyDomainTests(unittest.TestCase):
         self.assertNotIn("market_return_3y", metrics)
         self.assertNotIn("market_return_5y", metrics)
 
+    def test_market_statistics_never_bridge_an_archive_gap(self):
+        def publish(observed, close):
+            self.store.publish_market_price("sa:TST", observed.isoformat(), Decimal(close), "SAR",
+                                            self.source.source_key)
+        # Sessions until 2025-03-01, a five-month hole, then a month of sessions to 2025-09-03.
+        for offset in range(60):
+            publish(date(2025, 1, 1) + timedelta(days=offset), "20")
+        for offset in range(31):
+            publish(date(2025, 8, 3) + timedelta(days=offset), "25")
+        self.store.refresh_market_statistics("sa:TST")
+        metrics = {row[0] for row in self.db.conn.execute(
+            "SELECT metric_key FROM data_points WHERE company_id='sa:TST' AND period_kind='as_of' AND is_current=1")}
+        self.assertIn("market_return_1m", metrics)   # baseline 2025-08-04 is a real session
+        self.assertNotIn("market_return_3m", metrics)  # nearest close is months before 2025-06-04
+        self.assertIn("previous_close", metrics)
+
+    def test_previous_close_needs_the_previous_session(self):
+        for observed in (date(2025, 1, 2), date(2025, 3, 2)):
+            self.store.publish_market_price("sa:TST", observed.isoformat(), Decimal("20"), "SAR",
+                                            self.source.source_key)
+        self.store.refresh_market_statistics("sa:TST")
+        metrics = {row[0] for row in self.db.conn.execute(
+            "SELECT metric_key FROM data_points WHERE company_id='sa:TST' AND period_kind='as_of' AND is_current=1")}
+        self.assertNotIn("previous_close", metrics)
+
     def test_ownership_and_corporate_actions_are_structured(self):
         self.assertEqual(self.store.publish_ownership_position(
             "sa:TST", "holder:government", "Government", "beneficial", "2025-12-31",
