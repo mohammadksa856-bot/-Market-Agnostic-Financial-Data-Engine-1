@@ -142,7 +142,7 @@ class CompanyDomainStore:
             return {"company_id": company_id, "status": "skipped", "reason": "no_market_price", "published": 0}
         rows = self.db.conn.execute(
             """SELECT * FROM data_points WHERE company_id=? AND is_current=1
-            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
+            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=? AND value_type='decimal'
             AND (currency='' OR currency=?)
             AND period_end<=? AND period_kind IN ('fy','instant')
             ORDER BY period_end DESC,version DESC""",

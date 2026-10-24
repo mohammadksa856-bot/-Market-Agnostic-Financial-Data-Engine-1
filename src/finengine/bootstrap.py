@@ -24,8 +24,42 @@ from .report import export_readable_report
 
 MANIFEST_DOMAIN_KEYS = (
     "company_attributes", "disclosures", "ownership_positions",
-    "corporate_actions", "market_prices", "consensus_estimates",
+    "corporate_actions", "market_prices", "consensus_estimates", "typed_facts",
 )
+# Non-numeric catalog values a manifest may state directly; numbers always use the numeric pipeline.
+TYPED_MANIFEST_VALUE_TYPES = {"text": str, "boolean": bool}
+
+
+def _typed_manifest_fact(db: Database, company, payload: dict, item: dict, source_key: str):
+    """Validate one reviewed non-numeric fact against the catalog before it is published."""
+    from datetime import date
+    from .models import PeriodKind, TypedFact, ValueType
+    metric = item.get("metric", "")
+    field = db.conn.execute(
+        "SELECT value_type,storage_domain FROM data_catalog_fields WHERE field_key=? AND enabled=1", (metric,)
+    ).fetchone()
+    if field is None or field["storage_domain"] != "data_points":
+        raise ValueError(f"typed fact {metric!r} is not a data_points catalog field")
+    value_type = item.get("value_type")
+    if value_type not in TYPED_MANIFEST_VALUE_TYPES or value_type != field["value_type"]:
+        raise ValueError(f"typed fact {metric!r} must declare the catalog value type {field['value_type']!r}")
+    value = item.get("value")
+    if not isinstance(value, TYPED_MANIFEST_VALUE_TYPES[value_type]) or (isinstance(value, str) and not value.strip()):
+        raise ValueError(f"typed fact {metric!r} has no valid {value_type} value")
+    kind = PeriodKind(item["period_kind"])
+    end = date.fromisoformat(item["period_end"]).isoformat()
+    start = item.get("period_start")
+    if kind in {PeriodKind.FY, PeriodKind.QUARTER, PeriodKind.YTD, PeriodKind.TTM}:
+        if not start or date.fromisoformat(start) > date.fromisoformat(end):
+            raise ValueError(f"typed fact {metric!r} needs a period_start on or before {end}")
+    if not item.get("page") or not item.get("table"):
+        raise ValueError(f"typed fact {metric!r} must cite its page and table")
+    return TypedFact(
+        company.company_id, metric, value, ValueType(value_type), end, kind, source_key,
+        payload.get("source_url", ""), payload.get("filed_at", ""), unit=item.get("unit", value_type),
+        period_start=start, fiscal_year=int(item.get("fiscal_year") or end[:4]),
+        fiscal_quarter=item.get("fiscal_quarter"),
+    )
 
 
 def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
@@ -132,6 +166,9 @@ def _publish_manifest_domains(
         values.update(company_id=company.company_id, source_key=source_key)
         state = store.publish_market_price(**values)
         record("market_prices", state)
+    for item in payload.get("typed_facts", []):
+        state = db.publish_typed(_typed_manifest_fact(db, company, payload, item, source_key))
+        record("typed_facts", state)
     for item in payload.get("consensus_estimates", []):
         values = dict(item)
         values.update(company_id=company.company_id, source_key=source_key)
