@@ -577,7 +577,11 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(len(dossier["ownership"]),4)
         self.assertGreaterEqual(len(dossier["disclosures"]),9)
         self.assertEqual(len(dossier["corporate_actions"]),8)
-        self.assertEqual(len(dossier["market_prices"]),23)
+        # the dossier shows the latest 100 sessions; the newest is still the Saudi Exchange snapshot
+        self.assertEqual(len(dossier["market_prices"]),100)
+        latest=dossier["market_prices"][0]
+        self.assertEqual((latest["observed_at"],latest["close"]),("2026-09-03","25.96"))
+        self.assertIn("saudiexchange.sa",latest["source_url"])
         self.assertGreaterEqual(sum(
             1 for row in dossier["facts_by_category"]["financial"]
             if row["statement"] == "financial_notes"
