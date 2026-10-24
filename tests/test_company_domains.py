@@ -242,6 +242,24 @@ class CompanyDomainTests(unittest.TestCase):
         self.assertGreater(completeness["required_fields"], 0)
         self.assertTrue(any(row["required_missing"] for row in completeness["categories"]))
 
+    def test_market_statistics_published_as_data_points_count_for_market_data(self):
+        def market_data_missing():
+            result = self.store.refresh_catalog_completeness("sa:TST")
+            return {key for row in result["categories"] if row["category"] == "market_data"
+                    for key in row["missing"]}
+        before = market_data_missing()
+        self.assertIn("previous_close", before)
+        self.assertIn("market_return_1m", before)
+        stat = Fact("sa:TST", "previous_close", Decimal("27.5"), "SAR", "SAR", "2026-06-30", "2026-06-30",
+                    PeriodKind.INSTANT, 2026, None, self.source.source_key, self.source.source_url,
+                    self.source.filed_at)
+        self.db.publish(stat)
+        after = market_data_missing()
+        self.assertNotIn("previous_close", after)
+        # Only fields catalogued in the market_prices domain change; others stay missing.
+        self.assertIn("market_return_1m", after)
+        self.assertEqual(before - after, {"previous_close"})
+
     def test_sector_packs_are_explicit_and_apply_only_to_matching_industries(self):
         counts = {row["pack_key"]: row["n"] for row in self.db.conn.execute(
             "SELECT pack_key,count(*) n FROM data_catalog_fields WHERE enabled=1 GROUP BY pack_key")}
