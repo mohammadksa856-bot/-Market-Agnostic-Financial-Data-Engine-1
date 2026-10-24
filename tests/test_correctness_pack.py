@@ -75,6 +75,18 @@ class FiscalYearViewTests(unittest.TestCase):
         self.assertNotIn("net_margin", quarter_rows)   # no Q4 net income: nothing to divide
         self.assertNotIn("payout_ratio", quarter_rows)  # never Q4 dividends over annual income
 
+    def test_balance_growth_is_annual_only(self):
+        def balance(end, year, equity):
+            return fact("total_equity", equity, PeriodKind.INSTANT, end, year)
+        history = [balance("2024-12-31", 2024, "1000"), fact("revenue", "500", PeriodKind.FY, "2024-12-31", 2024),
+                   fact("revenue", "550", PeriodKind.FY, "2025-12-31", 2025)]
+        year_end = [balance("2025-12-31", 2025, "1100")]
+        out = by_metric(Calculator().calculate(year_end, history))
+        self.assertEqual(out["equity_growth", "2025-12-31", PeriodKind.INSTANT].value, Decimal("0.1"))
+        interim = [balance("2026-03-31", 2026, "1120")]
+        out = by_metric(Calculator().calculate(interim, [*history, *year_end]))
+        self.assertNotIn(("equity_growth", "2026-03-31", PeriodKind.INSTANT), out)
+
     def test_a_year_end_point_in_time_value_stays_in_the_annual_view(self):
         batch = [fact("revenue", "400", PeriodKind.FY, "2025-12-31", 2025),
                  fact("market_cap", "2000", PeriodKind.AS_OF, "2025-12-31", 2025)]

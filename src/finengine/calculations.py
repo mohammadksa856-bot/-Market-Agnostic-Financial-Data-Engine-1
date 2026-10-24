@@ -67,6 +67,13 @@ class Calculator:
         for fact in all_facts:
             if fact.scope == "consolidated" and not fact.dimensions:
                 historical[(fact.company_id, fact.fiscal_year, fact.period_kind)][fact.metric] = fact
+        # Balances keyed by their exact date; a date is a fiscal year end only if some FY flow ends on it.
+        instants = defaultdict(dict)
+        for fact in all_facts:
+            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind == PeriodKind.INSTANT:
+                instants[(fact.company_id, fact.period_end)][fact.metric] = fact
+        fiscal_year_starts = {(fact.company_id, fact.period_end): fact.period_start for fact in all_facts
+                              if fact.period_kind == PeriodKind.FY and fact.period_start}
 
         for (company_id, _, _, _, _), group in groups.items():
             base = next(iter(group.values()))
@@ -401,7 +408,14 @@ class Calculator:
                                 f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
                                 lookup[source_metric])
             if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT}:
-                prior = historical.get((company_id, base.fiscal_year - 1, base.period_kind), {})
+                if base.period_kind == PeriodKind.FY:
+                    prior = historical.get((company_id, base.fiscal_year - 1, PeriodKind.FY), {})
+                else:
+                    # Annual balance growth: a fiscal year end against the exact prior year end. An interim
+                    # balance compared with the last year end is a months-long change, not annual growth.
+                    fy_start = fiscal_year_starts.get((company_id, base.period_end))
+                    prior = instants.get((company_id, (date.fromisoformat(fy_start) - timedelta(days=1)).isoformat()),
+                                         {}) if fy_start else {}
                 for source_metric, output_metric in self.GROWTH_METRICS.items():
                     if source_metric in group and source_metric in prior and prior[source_metric].value:
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
