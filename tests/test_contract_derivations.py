@@ -307,6 +307,20 @@ class TrailingTwelveMonthTests(unittest.TestCase):
         self.assertEqual(annual_out["dividend_cagr_3y", "2025-12-31"].value,
                          (Decimal("1.3248") / Decimal("1.3112")) ** (Decimal(1) / Decimal(3)) - 1)
 
+    def test_balance_growth_is_annual_only(self):
+        history = [*balance(2024, total_equity="1000", total_assets="2000"),
+                   *annual(2024, revenue="500"), *annual(2025, revenue="550")]
+        year_end = balance(2025, total_equity="1100", total_assets="2100")
+        out = by_metric(Calculator().calculate(year_end, history, industry=INDUSTRY))
+        self.assertEqual(out["equity_growth", "2025-12-31"].value, Decimal("0.1"))
+        interim = balance(2026, end="2026-03-31", total_equity="1120", total_assets="2150")
+        out = by_metric(Calculator().calculate(interim, [*history, *year_end], industry=INDUSTRY))
+        self.assertNotIn(("equity_growth", "2026-03-31"), out)  # three months, not a year
+        self.assertNotIn(("asset_growth", "2026-03-31"), out)
+        # A year end with no fiscal-year flow ending on it cannot be told from an interim date.
+        out = by_metric(Calculator().calculate(year_end, history[:2], industry=INDUSTRY))
+        self.assertNotIn(("equity_growth", "2025-12-31"), out)
+
     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
         self.assertIsNone(self.ttm(gap, "2026-03-31"))
