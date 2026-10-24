@@ -609,11 +609,14 @@ class Calculator:
     def _rounding_half_unit(value: Decimal) -> Decimal:
         """Half the last reported unit of a figure: 0.3312 -> 0.00005, 80104000000 -> 500000.
 
-        A figure with a fractional part keeps its stated decimals; for a whole number (often a scaled
-        figure such as millions) trailing zeros are read as rounding, which can only widen the bound."""
+        A figure with a fractional part keeps its stated decimals. A whole number (often a scaled figure
+        such as millions) has ambiguous trailing zeros: they count as rounding only as far as a figure
+        showing three significant digits, so 1000 carries +/-5 rather than +/-500, and never less than 0.5."""
         exponent = value.as_tuple().exponent
         if value and value == value.to_integral_value():
-            exponent = value.normalize().as_tuple().exponent
+            trailing = value.normalize().as_tuple().exponent
+            three_significant = value.adjusted() - 2
+            exponent = max(0, min(trailing, three_significant))
         return Decimal(1).scaleb(exponent) / 2
 
     @classmethod
