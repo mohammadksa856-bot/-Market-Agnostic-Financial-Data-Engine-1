@@ -620,9 +620,12 @@ class CompanyDomainStore:
              (scope_type='company' AND scope_value=?))""",
             (company["market"], company["sector"] or "", company["industry"] or "", company_id),
         ).fetchall()
+        from .share_basis import withheld_metric_keys
         available = {
+            # A per-share comparison whose every current row straddles a share-basis event is not counted.
             "data_points": {row["metric_key"] for row in self.db.conn.execute(
-                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},
+                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))}
+            - withheld_metric_keys(self.db.conn, company_id),
             "company_profile": {row["attribute_key"] for row in self.db.conn.execute(
                 "SELECT DISTINCT attribute_key FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))},
             "market_prices": set(), "ownership_positions": set(), "consensus_estimates": set(),

@@ -1065,6 +1065,7 @@ def main():
     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
+    share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
     field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
     field_availability_list=sub.add_parser("field-availability-list"); field_availability_list.add_argument("market"); field_availability_list.add_argument("symbol"); field_availability_list.add_argument("--status",choices=["unavailable","not_applicable"])
@@ -1214,6 +1215,16 @@ def main():
         try:
             company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
             result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+        finally: db.close()
+        print(json.dumps(result,indent=2)); return
+    if a.cmd=="share-basis-audit":
+        from .share_basis import audit_share_basis, withheld_metric_keys
+        db=Database(a.db)
+        try:
+            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+            findings=[{key:value for key,value in row.items() if key!="id"} for row in audit_share_basis(db.conn,company.company_id)]
+            result={"company_id":company.company_id,"withheld_rows":findings,
+                    "withheld_keys":sorted(withheld_metric_keys(db.conn,company.company_id))}
         finally: db.close()
         print(json.dumps(result,indent=2)); return
     if a.cmd=="field-availability-set":
