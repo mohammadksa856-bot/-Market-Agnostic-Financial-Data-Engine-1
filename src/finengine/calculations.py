@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date, timedelta
 from decimal import Decimal
 
 from .models import Fact, PeriodKind
@@ -48,15 +49,20 @@ class Calculator:
         all_facts = [*(history or []), *facts]
         out: list[Fact] = []
         groups = defaultdict(dict)
+        # `combined` is the fiscal-year view of a period end: FY flows with year-end balances and
+        # point-in-time values (e.g. a reported year-end market cap). A quarter, YTD or TTM row ending
+        # on the same date is a different quantity and never stands in for them.
+        annual_view = {PeriodKind.FY, PeriodKind.INSTANT, PeriodKind.AS_OF}
         combined = defaultdict(dict)
         for fact in all_facts:
-            if fact.scope == "consolidated" and not fact.dimensions:
+            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind in annual_view:
                 combined[(fact.company_id, fact.period_end)].setdefault(fact.metric, fact)
         for fact in facts:
             if fact.scope == "consolidated" and not fact.dimensions:
                 groups[(fact.company_id, fact.period_end, fact.period_kind,
                         fact.fiscal_year, fact.fiscal_quarter)][fact.metric] = fact
-                combined[(fact.company_id, fact.period_end)][fact.metric] = fact
+                if fact.period_kind in annual_view:
+                    combined[(fact.company_id, fact.period_end)][fact.metric] = fact
         historical = defaultdict(dict)
         for fact in all_facts:
             if fact.scope == "consolidated" and not fact.dimensions:
@@ -585,22 +591,58 @@ class Calculator:
                 "sum of bank-quality signals passed [" + ", ".join(sorted(bank_evaluated)) + "]",
                 base, unit="score")
 
+    @staticmethod
+    def _rounding_half_unit(value: Decimal) -> Decimal:
+        """Half the last reported unit of a figure: 0.3312 -> 0.00005, 80104000000 -> 500000.
+
+        A figure with a fractional part keeps its stated decimals; for a whole number (often a scaled
+        figure such as millions) trailing zeros are read as rounding, which can only widen the bound."""
+        exponent = value.as_tuple().exponent
+        if value and value == value.to_integral_value():
+            exponent = value.normalize().as_tuple().exponent
+        return Decimal(1).scaleb(exponent) / 2
+
+    @classmethod
+    def _rounding_bound(cls, values: list[Decimal]) -> Decimal:
+        """Largest gap rounding alone can explain between a sum and a total; a zero has no stated
+        precision, so it takes the finest precision of the other figures."""
+        units = [cls._rounding_half_unit(value) for value in values if value]
+        finest = min(units, default=Decimal(0))
+        return sum(units, Decimal(0)) + finest * sum(1 for value in values if not value)
+
     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
         out = []
         groups = defaultdict(dict)
+        fiscal_years = {}
         for fact in facts:
+            identity = (fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
+                        tuple(sorted(fact.dimensions.items())))
+            if fact.period_kind == PeriodKind.FY:
+                fiscal_years[(*identity, fact.period_start, fact.period_end)] = fact
             if fact.metric in self.TTM_FLOWS and fact.period_kind == PeriodKind.QUARTER:
-                groups[(
-                    fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
-                    tuple(sorted(fact.dimensions.items())),
-                )][fact.period_end] = fact
+                groups[identity][fact.period_end] = fact
         for rows_by_period in groups.values():
             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
             if len(rows) >= 4 and rows[-1].period_end in target_periods:
                 last = rows[-4:]
+                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
+                if any(not current.period_start or
+                       date.fromisoformat(current.period_start) - timedelta(days=1)
+                       != date.fromisoformat(previous.period_end)
+                       for previous, current in zip(last, last[1:])):
+                    continue
                 base = last[-1]
+                total = sum((item.value for item in last), Decimal(0))
+                annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
+                                           tuple(sorted(base.dimensions.items())), last[0].period_start,
+                                           base.period_end))
+                # A window that is exactly a fiscal year must agree with that year's reported value
+                # within the rounding the five reported figures can carry; a larger gap is a conflict.
+                if annual is not None and abs(total - annual.value) > self._rounding_bound(
+                        [item.value for item in last] + [annual.value]):
+                    continue
                 out.append(Fact(
-                    base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
+                    base.company_id, base.metric + "_ttm", total,
                     base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
                     base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
                     is_calculated=True, calculation="sum(last 4 discrete quarters)",
