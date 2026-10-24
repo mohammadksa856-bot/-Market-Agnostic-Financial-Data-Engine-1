@@ -9,6 +9,10 @@ class Calculator:
     """Deterministic, source-traceable calculations; AI never calculates production facts."""
 
     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
+    # Quarterly dividends whose trailing-twelve-month sum has its own catalog key.
+    TTM_NAMED = {"dividends_per_share": "dividend_per_share_ttm", "dividends_paid": "total_dividend_paid_ttm"}
+    # A TTM window that is exactly a fiscal year must agree with that year's reported value.
+    TTM_FY_TOLERANCE = Decimal("0.005")
     HISTORY_METRICS = {
         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
         "income_taxes_and_zakat",
@@ -794,8 +798,13 @@ class Calculator:
     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
         out = []
         groups = defaultdict(dict)
+        fiscal_years = {}
         for fact in facts:
-            if fact.metric in self.TTM_FLOWS and fact.period_kind == PeriodKind.QUARTER:
+            identity = (fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
+                        tuple(sorted(fact.dimensions.items())))
+            if fact.period_kind == PeriodKind.FY:
+                fiscal_years[(*identity, fact.period_start, fact.period_end)] = fact
+            if (fact.metric in self.TTM_FLOWS or fact.metric in self.TTM_NAMED) and fact.period_kind == PeriodKind.QUARTER:
                 groups[(
                     fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
                     tuple(sorted(fact.dimensions.items())),
@@ -811,8 +820,14 @@ class Calculator:
                        for previous, current in zip(last, last[1:])):
                     continue
                 base = last[-1]
+                total = sum((item.value for item in last), Decimal(0))
+                annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
+                                           tuple(sorted(base.dimensions.items())), last[0].period_start,
+                                           base.period_end))
+                if annual is not None and abs(total - annual.value) > self.TTM_FY_TOLERANCE * abs(annual.value):
+                    continue
                 out.append(Fact(
-                    base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
+                    base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
                     base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
                     base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
                     is_calculated=True, calculation="sum(last 4 discrete quarters)",

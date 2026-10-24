@@ -251,6 +251,31 @@ class TrailingTwelveMonthTests(unittest.TestCase):
         self.assertEqual(result.period_start, "2025-04-01")
         self.assertEqual(result.period_kind, PeriodKind.TTM)
 
+    def dividend_ttm(self, quarterly, annual=None, metric="dividends_per_share", unit="SAR/share"):
+        facts = [quarter(metric, value, end, start, 2025, q, unit=unit)
+                 for (start, end, _, q), value in zip(self.QUARTERS[:4], quarterly)]
+        if annual is not None:
+            facts.append(fact(metric, annual, PeriodKind.FY, "2025-12-31", 2025, unit=unit))
+        batch = [item for item in facts if item.period_end == "2025-12-31" and item.period_kind == PeriodKind.QUARTER]
+        history = [item for item in facts if item not in batch]
+        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
+        return {key: value for key, value in out.items() if value.period_kind == PeriodKind.TTM}
+
+    def test_quarterly_dividends_produce_the_named_ttm_keys(self):
+        per_share = self.dividend_ttm(["0.3312"] * 4, annual="1.3248")
+        self.assertEqual(set(per_share), {("dividend_per_share_ttm", "2025-12-31")})
+        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].value, Decimal("1.3248"))
+        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].unit, "SAR/share")
+        paid = self.dividend_ttm(["80104", "80112", "80113", "80118"], annual="320447",
+                                 metric="dividends_paid", unit="SAR")
+        self.assertEqual(paid["total_dividend_paid_ttm", "2025-12-31"].value, Decimal("320447"))
+
+    def test_ttm_contradicting_the_same_fiscal_year_is_withheld(self):
+        self.assertEqual(self.dividend_ttm(["0", "0.48", "0", "0"], annual="0.96"), {})
+        # Rounding inside the tolerance still agrees; no fiscal-year value means nothing to contradict.
+        self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
+        self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
+
     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
         self.assertIsNone(self.ttm(gap, "2026-03-31"))
