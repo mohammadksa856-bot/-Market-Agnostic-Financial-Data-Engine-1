@@ -645,10 +645,14 @@ class CompanyDomainStore:
                      "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover",
                      "fifty_two_week_high":"high_52w","fifty_two_week_low":"low_52w"}
         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
-        available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
-            """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
-            AND metric_key IN ('vwap')""", (company_id,)
-        ))
+        # Market statistics (vwap, previous close, returns, moving averages, ...) are published as
+        # data points by refresh_market_statistics/valuations; count every market_prices field that is current.
+        market_keys = sorted({row["field_key"] for row in expected_rows if row["storage_domain"] == "market_prices"})
+        if market_keys:
+            available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
+                f"""SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
+                AND metric_key IN ({",".join("?" for _ in market_keys)})""", (company_id, *market_keys)
+            ))
         ownership_rows = self.db.conn.execute(
             "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
         if ownership_rows:
