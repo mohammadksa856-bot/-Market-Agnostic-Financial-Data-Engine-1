@@ -221,9 +221,6 @@ def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal
                 for item in record.get("observations", [])}
     a, b = index(left), index(right)
     shared = sorted(set(a) & set(b), key=lambda item: tuple(str(part) for part in item))
-    if (a or b) and not shared:
-        return [{"key": key, "type": "period_mismatch", "a_periods": sorted(f"{k[0]}:{k[1]}" for k in a),
-                 "b_periods": sorted(f"{k[0]}:{k[1]}" for k in b)}]
     conflicts = []
     for period in shared:
         x, y = a[period], b[period]
@@ -247,6 +244,23 @@ def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal
             conflicts.append({**where, "type": "period_start",
                               "a": x.get("period_start"), "b": y.get("period_start")})
     return conflicts
+
+
+def _period_difference(key: str, left: dict, right: dict) -> dict | None:
+    """Periods one pipeline holds and the other does not, within the range both exported."""
+    def periods(record):
+        return {(item.get("period_kind"), item.get("period_end"), item.get("dimensions", ""))
+                for item in record.get("observations", [])}
+    a, b = periods(left), periods(right)
+    if left.get("observations_truncated") or right.get("observations_truncated"):
+        low = max(min(end for _, end, _ in a), min(end for _, end, _ in b))
+        high = min(max(end for _, end, _ in a), max(end for _, end, _ in b))
+        a = {item for item in a if low <= item[1] <= high}
+        b = {item for item in b if low <= item[1] <= high}
+    if a == b:
+        return None
+    label = lambda items: sorted(f"{kind}:{end}" + (f":{dims}" if dims else "") for kind, end, dims in items)
+    return {"key": key, "only_in_a": label(a - b), "only_in_b": label(b - a)}
 
 
 def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001")) -> dict:
@@ -287,12 +301,22 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
         for correction in bundle.get("engine_corrections") or []:
             for key in correction["keys"]:
                 corrections.setdefault(key, []).append(f"{side}:{correction['id']}")
+    period_differences, not_comparable = [], []
     for key in sorted(closed_a & closed_b):
-        for item in _observation_conflicts(key, records_a[key], records_b[key], tolerance):
+        if not records_a[key].get("observations") or not records_b[key].get("observations"):
+            not_comparable.append(key)  # closed on both sides, but one side exported no values
+            continue
+        found = _observation_conflicts(key, records_a[key], records_b[key], tolerance)
+        difference = _period_difference(key, records_a[key], records_b[key])
+        if difference:
+            found.append(difference)
+        for item in found:
             if key in corrections:
                 # One pipeline's engine changed this key; the gap may be that correction, not a data dispute.
                 item["engine_corrections"] = sorted(corrections[key])
-            conflicts.append(item)
+        conflicts.extend(item for item in found if "type" in item)
+        if difference:
+            period_differences.append(difference)
 
     def closure(slots):
         expected = {key for _, key in slots}
@@ -312,7 +336,7 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
                  "only_in_b": sorted(keys_b - keys_a)},
         "weight_diffs": weight_diffs, "category_placement_diffs": placement,
         "definition_diffs": definition_diffs, "definition_not_provided": definition_not_provided,
-        "conflicts": conflicts,
+        "conflicts": conflicts, "period_differences": period_differences, "not_comparable": not_comparable,
         "closure": {"on_contract_a": closure(slots_a), "on_contract_b": closure(slots_b)},
         "scores": {
             "a_on_a": str(contract_score(a, closed_a)), "b_on_b": str(contract_score(b, closed_b)),
@@ -320,7 +344,7 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
         },
         "conflicted_keys": sorted({item["key"] for item in conflicts
                                    if item["type"] not in ("source_differs_same_value",)}),
-        "conflicts_touched_by_engine_corrections": sorted({item["key"] for item in conflicts
+        "conflicts_touched_by_engine_corrections": sorted({item["key"] for item in [*conflicts, *period_differences]
                                                           if item.get("engine_corrections")}),
     }
 
@@ -465,6 +489,9 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
                 } for item in db.conn.execute(
                     """SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1
                     ORDER BY period_end DESC LIMIT ?""", (company_id, key, observations_per_key))]
+                total = db.conn.execute("SELECT count(*) FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1",
+                                        (company_id, key)).fetchone()[0]
+                record["observations_truncated"] = total > len(record["observations"])
     bundle = {"bundle_version": BUNDLE_VERSION, "label": label, "engine_sha": engine_sha, "company_id": company_id,
               "engine_total_score": result["total_score"],
               "contract": {"version": result.get("contract_version"), "categories": categories},

@@ -77,9 +77,11 @@ class ContractCompareTests(unittest.TestCase):
         conflicts = {(row["key"], row["type"]) for row in self.compare()["conflicts"]}
         self.assertIn(("ebit", "value"), conflicts)
         self.assertIn(("revenue", "source_differs_same_value"), conflicts)
-        self.assertIn(("segment_revenue", "period_mismatch"), conflicts)
+        differences = {row["key"]: row for row in self.compare()["period_differences"]}
+        self.assertEqual(differences["segment_revenue"],
+                         {"key": "segment_revenue", "only_in_a": ["fy:2025-12-31"], "only_in_b": ["quarter:2025-12-31"]})
         self.assertNotIn(("capex", "value"), conflicts)  # closed only in b: nothing to compare
-        self.assertEqual(self.compare()["conflicted_keys"], ["ebit", "segment_revenue"])
+        self.assertEqual(self.compare()["conflicted_keys"], ["ebit"])
 
     def test_unit_conflict_is_not_reported_as_a_value_conflict(self):
         self.b["records"][1]["observations"] = [observation("40000", unit="SAR_thousands")]
@@ -245,6 +247,39 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(validate_bundle(bundle)["errors"], [])
         self.assertEqual(contract_score(bundle, {k for k, r in records.items() if r["status"] == "closed"}),
                          Decimal(bundle["engine_total_score"]))
+
+
+class PeriodComparisonTests(unittest.TestCase):
+    def pair(self, a_obs, b_obs, truncated=False):
+        def make(label, observations):
+            made = bundle(label, [{"key": "growth", "weight": "100", "fields": [field("equity_growth")]}],
+                          {"equity_growth": ("closed", observations)})
+            made["records"][0]["observations_truncated"] = truncated
+            return made
+        return compare_bundles(make("a", a_obs), make("b", b_obs))
+
+    def test_one_side_without_values_is_not_comparable_rather_than_a_conflict(self):
+        result = self.pair([], [observation("0.1", kind="instant")])
+        self.assertEqual((result["conflicts"], result["not_comparable"]), ([], ["equity_growth"]))
+
+    def test_periods_held_by_one_side_are_listed_separately(self):
+        a = [observation("0.1", kind="instant"), observation("0.02", kind="instant", end="2026-03-31")]
+        result = self.pair(a, [observation("0.1", kind="instant")])
+        self.assertEqual(result["conflicts"], [])
+        self.assertEqual(result["period_differences"],
+                         [{"key": "equity_growth", "only_in_a": ["instant:2026-03-31"], "only_in_b": []}])
+
+    def test_truncated_exports_compare_only_their_common_date_range(self):
+        # a exported its two newest periods only; b also holds 2023, which a may hold but did not export.
+        a = [observation("0.1", kind="instant", end="2025-12-31"), observation("0.2", kind="instant", end="2024-12-31")]
+        b = [*a, observation("0.3", kind="instant", end="2023-12-31")]
+        self.assertEqual(self.pair(a, b, truncated=True)["period_differences"], [])
+        self.assertEqual(self.pair(a, b)["period_differences"],
+                         [{"key": "equity_growth", "only_in_a": [], "only_in_b": ["instant:2023-12-31"]}])
+        # Inside the common range a missing period is a real difference.
+        gap = [b[0], b[2]]
+        self.assertEqual(self.pair(gap, b, truncated=True)["period_differences"],
+                         [{"key": "equity_growth", "only_in_a": [], "only_in_b": ["instant:2024-12-31"]}])
 
 
 if __name__ == "__main__":
