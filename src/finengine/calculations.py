@@ -70,15 +70,20 @@ class Calculator:
         all_facts = [*(history or []), *facts]
         out: list[Fact] = []
         groups = defaultdict(dict)
+        # `combined` is the fiscal-year view of a period end: FY flows with year-end balances and
+        # point-in-time values (e.g. a reported year-end market cap). A quarter, YTD or TTM row ending
+        # on the same date is a different quantity and never stands in for them.
+        annual_view = {PeriodKind.FY, PeriodKind.INSTANT, PeriodKind.AS_OF}
         combined = defaultdict(dict)
         for fact in all_facts:
-            if fact.scope == "consolidated" and not fact.dimensions:
+            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind in annual_view:
                 combined[(fact.company_id, fact.period_end)].setdefault(fact.metric, fact)
         for fact in facts:
             if fact.scope == "consolidated" and not fact.dimensions:
                 groups[(fact.company_id, fact.period_end, fact.period_kind,
                         fact.fiscal_year, fact.fiscal_quarter)][fact.metric] = fact
-                combined[(fact.company_id, fact.period_end)][fact.metric] = fact
+                if fact.period_kind in annual_view:
+                    combined[(fact.company_id, fact.period_end)][fact.metric] = fact
         historical = defaultdict(dict)
         for fact in all_facts:
             if fact.scope == "consolidated" and not fact.dimensions:

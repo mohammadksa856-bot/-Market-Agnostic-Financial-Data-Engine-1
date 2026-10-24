@@ -276,6 +276,21 @@ class TrailingTwelveMonthTests(unittest.TestCase):
         self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
         self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
 
+    def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
+        history = [fact("dividends_per_share", "1.3112", PeriodKind.FY, "2022-12-31", 2022, unit="SAR/share")]
+        batch = [*annual(2025, net_income="350210", dividends_paid="320447"),
+                 fact("dividends_per_share", "1.3248", PeriodKind.FY, "2025-12-31", 2025, unit="SAR/share"),
+                 quarter("dividends_paid", "80118", "2025-12-31", "2025-10-01", 2025, 4),
+                 quarter("dividends_per_share", "0.3312", "2025-12-31", "2025-10-01", 2025, 4, unit="SAR/share")]
+        out = Calculator().calculate(batch, history, industry=INDUSTRY)
+        mixed = [(item.metric, item.period_kind) for item in out
+                 if item.period_kind == PeriodKind.QUARTER and item.metric in ("payout_ratio", "dividend_cagr_3y")]
+        self.assertEqual(mixed, [])
+        annual_out = by_metric(item for item in out if item.period_kind == PeriodKind.FY)
+        self.assertEqual(annual_out["payout_ratio", "2025-12-31"].value, Decimal("320447") / Decimal("350210"))
+        self.assertEqual(annual_out["dividend_cagr_3y", "2025-12-31"].value,
+                         (Decimal("1.3248") / Decimal("1.3112")) ** (Decimal(1) / Decimal(3)) - 1)
+
     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
         self.assertIsNone(self.ttm(gap, "2026-03-31"))
