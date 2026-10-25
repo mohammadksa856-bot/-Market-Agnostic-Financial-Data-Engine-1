@@ -454,8 +454,10 @@ def _sync_manifests_to_database(
     store = CompanyDomainStore(db)
     company_results = []
     from .understanding import refresh_company_understanding
+    from .comparisons import reconcile_comparisons
 
     for company_id in impacted:
+        comparisons = reconcile_comparisons(db, company_id)
         changed_payloads = [
             json.loads(manifest.read_text(encoding="utf-8"))
             for manifest, row in zip(manifests, results)
@@ -475,6 +477,7 @@ def _sync_manifests_to_database(
             "understanding_score": understanding["total_score"],
             "market_statistics": market_statistics,
             "market_valuation": market_valuation,
+            "comparisons": comparisons,
         })
     integrity = db.conn.execute("PRAGMA integrity_check").fetchone()[0]
     if integrity != "ok":
@@ -637,6 +640,9 @@ def rebuild_snapshot(
         field_availability = load_field_availability_assessments(
             db, field_availability_dir
         )
+        from .comparisons import reconcile_comparisons
+        comparisons = {company.company_id: reconcile_comparisons(db, company.company_id)
+                       for company in registry.all()}
         domain_store = CompanyDomainStore(db)
         market_statistics = [domain_store.refresh_market_statistics(company.company_id)
                              for company in registry.all()]
@@ -687,5 +693,6 @@ def rebuild_snapshot(
         "archived_artifacts": archived_artifacts,
         "field_availability": field_availability,
         "market_valuations": market_valuations,
+        "comparisons": {company_id: counts for company_id, counts in comparisons.items() if any(counts.values())},
         "scheduled": scheduled_count,
     }
