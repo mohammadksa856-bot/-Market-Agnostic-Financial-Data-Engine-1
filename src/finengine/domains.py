@@ -701,8 +701,12 @@ class CompanyDomainStore:
             available["corporate_actions"].add("dividend_eligibility")
         if any(row["payment_date"] for row in cash_dividends):
             available["corporate_actions"].add("dividend_payment")
-        available["disclosures"].update(row["disclosure_type"] for row in self.db.conn.execute(
-            "SELECT DISTINCT disclosure_type FROM disclosures WHERE company_id=? AND is_current=1", (company_id,)))
+        disclosure_rows = self.db.conn.execute(
+            """SELECT d.*, s.source_url FROM disclosures d LEFT JOIN source_documents s USING(source_key)
+            WHERE d.company_id=? AND d.is_current=1""", (company_id,)).fetchall()
+        available["disclosures"].update(row["disclosure_type"] for row in disclosure_rows)
+        from .announcements import announcement_fields
+        available["disclosures"].update(announcement_fields(disclosure_rows))
         available["consensus_estimates"].update(row["metric_key"] for row in self.db.conn.execute(
             "SELECT DISTINCT metric_key FROM consensus_estimates WHERE company_id=? AND is_current=1", (company_id,)))
         by_category = {}
