@@ -425,6 +425,25 @@ class CompanyDomainStore:
             "latest_archived_close / last_archived_close_on_or_before_prior_year_end - 1",
         )
 
+        # Total return from dividend-adjusted closes. An adjusted series is rescaled at every new
+        # dividend, so both ends must come from the same archived series (source).
+        if latest["adjusted_close"] is not None and Decimal(latest["adjusted_close"]):
+            for metric, days in (("total_return_1y", 365), ("total_return_3y", 1095),
+                                 ("total_return_5y", 1826), ("total_return_10y", 3652)):
+                target = latest_date - timedelta(days=days)
+                baseline_dated = next(((observed, row) for observed, row in reversed(dated_rows)
+                                       if observed <= target), None)
+                if (baseline_dated is None or target - baseline_dated[0] > max_session_gap
+                        or baseline_dated[1]["source_key"] != latest["source_key"]
+                        or baseline_dated[1]["adjusted_close"] is None
+                        or not Decimal(baseline_dated[1]["adjusted_close"])):
+                    continue
+                calculations[metric] = (
+                    Decimal(latest["adjusted_close"]) / Decimal(baseline_dated[1]["adjusted_close"]) - Decimal(1),
+                    f"latest_adjusted_close / adjusted_close_on_or_before_{days}_calendar_days_ago - 1 "
+                    "(one archived adjusted series)", "", "ratio",
+                )
+
         fiscal_year = latest_date.year
         facts = [Fact(
             company_id, metric, value, fact_currency, unit, None,
