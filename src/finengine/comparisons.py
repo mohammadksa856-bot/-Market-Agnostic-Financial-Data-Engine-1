@@ -1,4 +1,4 @@
-"""Comparison rows recomputed from the inputs that are current once a sync has finished.
+"""Comparison and trailing-twelve-month rows recomputed from the inputs current once a sync has finished.
 
 Manifests are applied one at a time, so a growth rate, CAGR or quarter-on-quarter change is computed from the
 inputs current at that moment. When a later filing restates or re-presents one of its inputs, the row computed
@@ -14,7 +14,8 @@ from .database import Database, _dimensions
 
 def comparison_metrics() -> set[str]:
     calculator = Calculator()
-    return {*calculator.GROWTH_METRICS.values(), *calculator.QOQ_METRICS.values(),
+    return {*calculator.GROWTH_METRICS.values(), *calculator.QOQ_METRICS.values(), *calculator.TTM_GROWTH.values(),
+            *(calculator.TTM_NAMED.get(metric, f"{metric}_ttm") for metric in {*calculator.TTM_FLOWS, *calculator.TTM_NAMED}),
             *(f"{stem}_cagr_{years}y" for stem, horizons in calculator.CAGR_METRICS.values() for years in horizons)}
 
 

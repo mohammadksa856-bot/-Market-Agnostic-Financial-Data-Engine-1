@@ -8,11 +8,16 @@ from .models import Fact, PeriodKind
 class Calculator:
     """Deterministic, source-traceable calculations; AI never calculates production facts."""
 
-    TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
+    TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow", "ebitda"}
     # Quarterly dividends whose trailing-twelve-month sum has its own catalog key. Cash paid only:
     # dividend_per_share_ttm is filed for SABIC as DPS declared for the year, so a sum of DPS paid in the
     # window is a different basis and stays withheld until that basis is decided.
     TTM_NAMED = {"dividends_paid": "total_dividend_paid_ttm"}
+    # Trailing-twelve-month sums compared with the same window one year earlier.
+    TTM_GROWTH = {
+        "revenue": "revenue_ttm_growth", "net_income": "net_income_ttm_growth", "ebitda": "ebitda_ttm_growth",
+        "operating_cash_flow": "operating_cash_flow_ttm_growth", "free_cash_flow": "free_cash_flow_ttm_growth",
+    }
     HISTORY_METRICS = {
         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
         "income_taxes_and_zakat",
@@ -893,41 +898,91 @@ class Calculator:
         out = []
         groups = defaultdict(dict)
         fiscal_years = {}
+        cumulative = {}
         for fact in facts:
             identity = (fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
                         tuple(sorted(fact.dimensions.items())))
             if fact.period_kind == PeriodKind.FY:
                 fiscal_years[(*identity, fact.period_start, fact.period_end)] = fact
+            if fact.period_kind in {PeriodKind.FY, PeriodKind.YTD} and fact.period_start:
+                cumulative[(identity, fact.period_start, fact.period_end)] = fact
             if (fact.metric in self.TTM_FLOWS or fact.metric in self.TTM_NAMED) and fact.period_kind == PeriodKind.QUARTER:
                 groups[(
                     fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
                     tuple(sorted(fact.dimensions.items())),
                 )][fact.period_end] = fact
-        for rows_by_period in groups.values():
-            rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
-            if len(rows) >= 4 and rows[-1].period_end in target_periods:
-                last = rows[-4:]
-                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
-                if any(not current.period_start or
-                       date.fromisoformat(current.period_start) - timedelta(days=1)
-                       != date.fromisoformat(previous.period_end)
-                       for previous, current in zip(last, last[1:])):
+
+        def disagrees(identity, rows_by_period, quarter):
+            """Whether the quarter fails to add up with its fiscal year's published cumulative figures."""
+            previous_end = (date.fromisoformat(quarter.period_start) - timedelta(days=1)).isoformat()
+            for (key, start, end), total in cumulative.items():
+                if key != identity or end != quarter.period_end or not start < quarter.period_start:
                     continue
-                base = last[-1]
-                total = sum((item.value for item in last), Decimal(0))
-                annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
-                                           tuple(sorted(base.dimensions.items())), last[0].period_start,
-                                           base.period_end))
-                # A window that is exactly a fiscal year must agree with that year's reported value
-                # within the rounding the five reported figures can carry; a larger gap is a conflict.
-                if annual is not None and abs(total - annual.value) > self._rounding_bound(
-                        [item.value for item in last] + [annual.value]):
-                    continue
-                out.append(Fact(
-                    base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
-                    base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
-                    base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
-                    is_calculated=True, calculation="sum(last 4 discrete quarters)",
-                    scope=base.scope, dimensions=base.dimensions,
-                ))
+                previous = rows_by_period.get(previous_end)
+                before = cumulative.get((identity, start, previous_end)) or (
+                    previous if previous is not None and previous.period_start == start else None)
+                if before is not None and abs(before.value + quarter.value - total.value) > self._rounding_bound(
+                        [before.value, quarter.value, total.value]):
+                    return True
+            return False
+
+        def window(identity, rows_by_period, end):
+            """The four discrete quarters ending on `end` and their sum, or None."""
+            rows = sorted((row for period, row in rows_by_period.items() if period <= end),
+                          key=lambda item: item.period_end)
+            if len(rows) < 4 or rows[-1].period_end != end:
+                return None
+            last = rows[-4:]
+            # Four discrete quarters must be contiguous; a missing quarter is never bridged.
+            if any(not current.period_start or
+                   date.fromisoformat(current.period_start) - timedelta(days=1)
+                   != date.fromisoformat(previous.period_end)
+                   for previous, current in zip(last, last[1:])):
+                return None
+            # A quarter that disagrees with its year's cumulative figures is on another presentation basis than
+            # they are; the window then mixes bases if it also holds another quarter of that fiscal year.
+            years = [item.fiscal_year for item in last]
+            if any(years.count(item.fiscal_year) > 1 and disagrees(identity, rows_by_period, item) for item in last):
+                return None
+            total = sum((item.value for item in last), Decimal(0))
+            annual = fiscal_years.get((*identity, last[0].period_start, end))
+            # A window that is exactly a fiscal year must agree with that year's reported value
+            # within the rounding the five reported figures can carry; a larger gap is a conflict.
+            if annual is not None and abs(total - annual.value) > self._rounding_bound(
+                    [item.value for item in last] + [annual.value]):
+                return None
+            return last, total
+
+        for identity, rows_by_period, end in sorted(
+                ((identity, rows_by_period, end) for identity, rows_by_period in groups.items()
+                 for end in rows_by_period if end in target_periods), key=lambda item: item[2]):
+            current = window(identity, rows_by_period, end)
+            if current is None:
+                continue
+            last, total = current
+            base = last[-1]
+            out.append(Fact(
+                base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
+                base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
+                base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
+                is_calculated=True, calculation="sum(last 4 discrete quarters)",
+                scope=base.scope, dimensions=base.dimensions,
+            ))
+            growth_metric = self.TTM_GROWTH.get(base.metric)
+            if growth_metric is None or base.dimensions or base.scope != "consolidated":
+                continue
+            # The same trailing window one year earlier: four quarters ending on the prior-year date.
+            prior_end = (date.fromisoformat(end) - timedelta(days=365)).isoformat()
+            prior_end = next((period for period in rows_by_period
+                              if abs((date.fromisoformat(period) - date.fromisoformat(prior_end)).days) <= 3), None)
+            prior = window(identity, rows_by_period, prior_end) if prior_end else None
+            if prior is None or not prior[1] or prior[0][-1].period_end >= last[0].period_start:
+                continue
+            out.append(Fact(
+                base.company_id, growth_metric, total / prior[1] - 1, "", "ratio",
+                last[0].period_start, base.period_end, PeriodKind.TTM, base.fiscal_year, base.fiscal_quarter,
+                base.source_key, base.source_url, base.filed_at, is_calculated=True,
+                calculation=f"ttm({base.metric}) / ttm({base.metric}) one year earlier - 1",
+                scope=base.scope, dimensions=base.dimensions,
+            ))
         return out
