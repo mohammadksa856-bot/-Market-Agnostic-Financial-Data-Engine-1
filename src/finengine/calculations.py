@@ -675,6 +675,8 @@ class Calculator:
         previous = quarterly.get((company_id, previous_end), {})
 
         def same_basis(metric):
+            if metric == "eps_diluted":  # per-share figures do not add across quarters (share counts change)
+                return True
             for (cid, start, end), rows in year_to_date.items():
                 if cid != company_id or end != base.period_end or metric not in rows:
                     continue

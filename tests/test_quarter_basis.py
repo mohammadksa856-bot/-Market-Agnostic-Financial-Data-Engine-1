@@ -5,8 +5,8 @@ from finengine.calculations import Calculator
 from finengine.models import Fact, PeriodKind
 
 
-def row(metric, value, start, end, kind, quarter):
-    return Fact("sa:TST", metric, Decimal(value), "SAR", "SAR", start, end, kind, 2025, quarter,
+def row(metric, value, start, end, kind, quarter, unit="SAR"):
+    return Fact("sa:TST", metric, Decimal(value), "SAR", unit, start, end, kind, 2025, quarter,
                 "source:test", "https://example.test", "2025-08-01")
 
 
@@ -36,6 +36,12 @@ class QuarterBasisTests(unittest.TestCase):
     def test_without_a_year_to_date_figure_the_change_is_kept(self):
         out = self.qoq([row("revenue", "100", *Q1), row("revenue", "120", *Q2)])
         self.assertEqual(out[("revenue_qoq", "2025-06-30")], Decimal("0.2"))
+
+    def test_per_share_figures_are_not_held_to_additivity(self):
+        facts = [row("eps_diluted", "0.20", *Q1, "SAR/share"), row("eps_diluted", "0.25", *Q2, "SAR/share"),
+                 row("eps_diluted", "0.50", *H1, "SAR/share")]
+        out = {f.metric for f in Calculator().calculate(facts)}
+        self.assertIn("eps_qoq", out)
 
 
 if __name__ == "__main__":
