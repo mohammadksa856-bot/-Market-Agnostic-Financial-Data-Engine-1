@@ -29,7 +29,10 @@ class Calculator:
         "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
         "weighted_average_shares_basic", "weighted_average_shares_diluted",
         "adjusted_net_income", "dividends_paid", "market_cap",
-        "dividends_per_share", "discontinued_operations_income",
+        "dividends_per_share", "discontinued_operations_income", "book_value_per_share",
+        "cost_of_revenue", "accounts_payable", "general_and_administrative_expense",
+        "depreciation_amortization_cash_flow",
+        "selling_and_distribution_expense",
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
         # return-on-capital and coverage inputs (_capital_returns)
@@ -53,7 +56,7 @@ class Calculator:
         "total_equity": "equity_growth", "operating_cash_flow": "operating_cash_flow_growth",
         "free_cash_flow": "free_cash_flow_growth",
         "ebitda": "ebitda_growth", "dividends_paid": "dividend_growth",
-        "dividends_per_share": "dividend_per_share_growth",
+        "dividends_per_share": "dividend_per_share_growth", "book_value_per_share": "book_value_growth",
     }
     QOQ_METRICS = {
         "revenue": "revenue_qoq", "gross_profit": "gross_profit_qoq",
@@ -67,6 +70,11 @@ class Calculator:
         "eps_diluted": ("eps", (3, 5, 10)), "dividends_per_share": ("dividend", (3, 5, 10)),
         "operating_cash_flow": ("operating_cash_flow", (10,)), "free_cash_flow": ("free_cash_flow", (10,)),
     }
+    # Turnover on average balances; recomputed by the build-end reconciliation like the comparisons.
+    TURNOVER_METRICS = {"receivables_turnover", "days_sales_outstanding", "inventory_turnover", "days_inventory",
+                        "payables_turnover", "days_payables", "cash_conversion_cycle",
+                        "return_on_invested_capital", "return_on_capital_employed", "fixed_asset_turnover",
+                        "working_capital_turnover", "incremental_roic", "asset_turnover"}
     # IFRS 5 re-presents the income statement above net income when an operation is discontinued, so
     # these lines from an earlier filing may exclude a different set of businesses than a later one.
     RE_PRESENTED_LINES = {
@@ -178,17 +186,21 @@ class Calculator:
                       "abs(dividends_paid) / free_cash_flow", True)
                 ratio("fcf_dividend_coverage_ratio", "free_cash_flow", "dividends_paid",
                       "free_cash_flow / abs(dividends_paid)", True)
-                ratio("capex_to_depreciation", "capex", "depreciation_amortization",
-                      "abs(capex) / abs(depreciation_amortization)", True)
-                ratio("capex_to_depreciation_amortization", "capex", "depreciation_amortization",
-                      "abs(capex) / abs(depreciation_amortization)", True)
+                # D&A as the income statement reports it, else the cash-flow add-back (the statement capex is on)
+                depreciation = next((key for key in ("depreciation_amortization", "depreciation_amortization_cash_flow")
+                                     if key in lookup), "depreciation_amortization")
+                ratio("capex_to_depreciation", "capex", depreciation, f"abs(capex) / abs({depreciation})", True)
+                ratio("capex_to_depreciation_amortization", "capex", depreciation,
+                      f"abs(capex) / abs({depreciation})", True)
+                # the catalog key is selling_and_distribution_expense; selling_distribution_expense is older
+                selling = next((key for key in ("selling_and_distribution_expense", "selling_distribution_expense")
+                                if key in lookup), None)
                 if ("selling_general_administrative_expense" not in lookup and
-                        "general_and_administrative_expense" in lookup and
-                        "selling_distribution_expense" in lookup):
+                        "general_and_administrative_expense" in lookup and selling):
                     add("selling_general_administrative_expense",
                         abs(lookup["general_and_administrative_expense"].value) +
-                        abs(lookup["selling_distribution_expense"].value),
-                        "abs(general_and_administrative_expense) + abs(selling_distribution_expense)",
+                        abs(lookup[selling].value),
+                        f"abs(general_and_administrative_expense) + abs({selling})",
                         lookup["general_and_administrative_expense"],
                         lookup["general_and_administrative_expense"].unit,
                         lookup["general_and_administrative_expense"].currency)
@@ -371,12 +383,18 @@ class Calculator:
                         lookup["total_hydrocarbon_production"], unit="years", currency="",
                     )
                 prior_instant = historical.get((company_id, base.fiscal_year - 1, PeriodKind.INSTANT), {})
+                # Flows of a year with discontinued operations exclude the business that the opening balances
+                # still hold (IFRS 5 does not re-present the prior balance sheet), so turnover on an average of
+                # the two balances would mix bases and is withheld.
+                re_presented_year = any(
+                    (row := historical.get((company_id, year, PeriodKind.FY), {}).get("discontinued_operations_income"))
+                    and row.value for year in (base.fiscal_year - 1, base.fiscal_year))
                 if "total_assets" in lookup and "total_assets" in prior_instant:
                     average = (lookup["total_assets"].value + prior_instant["total_assets"].value) / 2
                     if average and "net_income" in lookup:
                         add("return_on_assets", lookup["net_income"].value / average,
                             "net_income / average(total_assets)", lookup["net_income"])
-                    if average and "revenue" in lookup:
+                    if average and "revenue" in lookup and not re_presented_year:
                         add("asset_turnover", lookup["revenue"].value / average,
                             "revenue / average(total_assets)", lookup["revenue"])
                     if average and "operating_cash_flow" in lookup:
@@ -413,13 +431,33 @@ class Calculator:
                     if average_loans:
                         add("cost_of_risk", abs(lookup["provision_expense"].value) / average_loans,
                             "abs(provision_expense) / average(net_loans)", lookup["provision_expense"])
-                if "accounts_receivable" in lookup and "accounts_receivable" in prior_instant and "revenue" in lookup:
+                if not re_presented_year and "accounts_receivable" in lookup and "accounts_receivable" in prior_instant \
+                        and "revenue" in lookup:
                     average = (lookup["accounts_receivable"].value + prior_instant["accounts_receivable"].value) / 2
                     if average:
                         add("receivables_turnover", lookup["revenue"].value / average,
                             "revenue / average(accounts_receivable)", lookup["revenue"])
                         add("days_sales_outstanding", average / lookup["revenue"].value * Decimal(365),
                             "average(accounts_receivable) / revenue * 365", lookup["revenue"])
+                # Inventory and payables turn over against cost of sales, on the average of the opening and
+                # closing balances, like receivables against revenue.
+                cost = lookup.get("cost_of_revenue")
+                for balance, turnover, days in (("inventory", "inventory_turnover", "days_inventory"),
+                                                ("accounts_payable", "payables_turnover", "days_payables")):
+                    if re_presented_year or cost is None or not cost.value or balance not in lookup \
+                            or balance not in prior_instant:
+                        continue
+                    average = (lookup[balance].value + prior_instant[balance].value) / 2
+                    if average:
+                        add(turnover, abs(cost.value) / average, f"abs(cost_of_revenue) / average({balance})", cost)
+                        add(days, average / abs(cost.value) * Decimal(365),
+                            f"average({balance}) / abs(cost_of_revenue) * 365", cost)
+                if all(key in lookup for key in ("days_sales_outstanding", "days_inventory", "days_payables")):
+                    add("cash_conversion_cycle",
+                        lookup["days_sales_outstanding"].value + lookup["days_inventory"].value
+                        - lookup["days_payables"].value,
+                        "days_sales_outstanding + days_inventory - days_payables", lookup["days_inventory"],
+                        "days")
                 instant_now = historical.get((company_id, base.fiscal_year, PeriodKind.INSTANT), {})
                 debt = sum((instant_now[key].value for key in ("current_debt", "long_term_debt") if key in instant_now), Decimal(0))
                 if debt and "ebitda" in lookup and lookup["ebitda"].value:
@@ -609,7 +647,15 @@ class Calculator:
             add("nopat", nopat, "ebit * (1 - (-income_taxes_and_zakat) / income_before_income_taxes_and_zakat)",
                 lookup["ebit"], currency, currency)
 
+        # Continuing-operations flows of a year with discontinued operations exclude a business the opening
+        # balances still hold (IFRS 5 leaves the prior balance sheet as it was): withhold flow-to-balance ratios.
+        mixed_basis = any(
+            (row := historical.get((company_id, year, PeriodKind.FY), {}).get("discontinued_operations_income"))
+            and row.value for year in (base.fiscal_year - 1, base.fiscal_year))
+
         def average_return(metric, numerator, measure, formula):
+            if mixed_basis:
+                return
             denominator = average(measure, currency)
             if numerator is not None and denominator:
                 add(metric, numerator / denominator, formula, reference)
@@ -623,7 +669,7 @@ class Calculator:
         wc_open, wc_close = working_capital(opening, currency), working_capital(closing, currency)
         # Provisional guard (near-zero threshold is DEFINITION_PENDING): both balances positive and
         # the average at least 5% of revenue, so the turnover never exceeds 20x.
-        if revenue and wc_open is not None and wc_close is not None and wc_open > 0 and wc_close > 0 \
+        if not mixed_basis and revenue and wc_open is not None and wc_close is not None and wc_open > 0 and wc_close > 0 \
                 and (wc_open + wc_close) / 2 >= revenue * Decimal("0.05"):
             add("working_capital_turnover", revenue / ((wc_open + wc_close) / 2),
                 "revenue / average(opening, closing)(current_assets - current_liabilities); "
@@ -631,7 +677,7 @@ class Calculator:
 
         prior_nopat = nopat_of(prior_fy) if prior_fy and prior_fy.get("ebit") and prior_fy["ebit"].currency == currency else None
         ic_now, ic_prior = invested_capital(closing, currency), invested_capital(opening, currency)
-        if None not in (nopat, prior_nopat, ic_now, ic_prior) and ic_now != ic_prior:
+        if not mixed_basis and None not in (nopat, prior_nopat, ic_now, ic_prior) and ic_now != ic_prior:
             add("incremental_roic", (nopat - prior_nopat) / (ic_now - ic_prior),
                 "(nopat - prior_fy(nopat)) / (closing - opening)(invested_capital)", reference)
 

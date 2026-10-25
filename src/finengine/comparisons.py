@@ -15,6 +15,7 @@ from .database import Database, _dimensions
 def comparison_metrics() -> set[str]:
     calculator = Calculator()
     return {*calculator.GROWTH_METRICS.values(), *calculator.QOQ_METRICS.values(), *calculator.TTM_GROWTH.values(),
+            *calculator.TURNOVER_METRICS,
             *(calculator.TTM_NAMED.get(metric, f"{metric}_ttm") for metric in {*calculator.TTM_FLOWS, *calculator.TTM_NAMED}),
             *(f"{stem}_cagr_{years}y" for stem, horizons in calculator.CAGR_METRICS.values() for years in horizons)}
 
