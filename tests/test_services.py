@@ -736,7 +736,8 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(chemicals["provenance"]["extraction"]["page"], 47)
         self.assertEqual(sabic["attributes"]["business_description"]["category"],
                          "business_model")
-        self.assertEqual(len(sabic["ownership"]), 3)
+        # 2025: Aramco, free float, foreign class total, insider class total; 2019: PIF and free float
+        self.assertEqual(len(sabic["ownership"]), 6)
         self.assertEqual(len(sabic["corporate_actions"]), 3)
         self.assertEqual(len(sabic_annual_prices), 5)
         by_category = {row["category"]: row for row in sabic_completeness["categories"]}
