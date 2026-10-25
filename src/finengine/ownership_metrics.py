@@ -114,14 +114,20 @@ def ownership_metrics(rows) -> dict[str, list[dict]]:
     dates = sorted(by_date, reverse=True)
     if len(dates) >= 2:
         latest, prior = dates[0], dates[1]
-        before = {(row["holder_key"], row["ownership_type"]): _pct(row) for row in by_date[prior]
-                  if row["ownership_type"] != CLASS_TOTAL_TYPE and _pct(row) is not None}
-        for row in by_date[latest]:
-            identity = (row["holder_key"], row["ownership_type"])
-            now = _pct(row)
-            if row["ownership_type"] == CLASS_TOTAL_TYPE or now is None or identity not in before:
-                continue
-            if max(now, before[identity]) >= MAJOR_HOLDER_THRESHOLD:
-                emit("major_holder_change", latest, now - before[identity],
-                     f"ownership_pct change since {prior}", row["holder_key"])
+        holdings = {date: {(row["holder_key"], row["ownership_type"]): _pct(row) for row in by_date[date]
+                           if row["ownership_type"] != CLASS_TOTAL_TYPE and _pct(row) is not None}
+                    for date in (latest, prior)}
+        # Within partitions that both add up to 100%, a holder missing at one date held nothing then
+        # (an exit or an entry); otherwise only holders reported at both dates are compared.
+        both_reconciled = all(_reconciled([row for row in by_date[date] if row["ownership_type"] != CLASS_TOTAL_TYPE])
+                              for date in (latest, prior))
+        identities = (holdings[latest].keys() | holdings[prior].keys() if both_reconciled
+                      else holdings[latest].keys() & holdings[prior].keys())
+        for identity in sorted(identities):
+            now = holdings[latest].get(identity, Decimal(0))
+            before = holdings[prior].get(identity, Decimal(0))
+            if max(now, before) >= MAJOR_HOLDER_THRESHOLD:
+                basis = (f"ownership_pct change since {prior}" if identity in holdings[latest] and identity in holdings[prior]
+                         else f"ownership_pct change since {prior}; absent from one reconciled partition (0%)")
+                emit("major_holder_change", latest, now - before, basis, identity[0])
     return dict(out)

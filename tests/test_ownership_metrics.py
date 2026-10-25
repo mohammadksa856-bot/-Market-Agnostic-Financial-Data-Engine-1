@@ -86,6 +86,13 @@ class OwnershipMetricTests(unittest.TestCase):
         self.assertEqual([(item["holder_key"], item["value"]) for item in changes], [("pif", Decimal("0.02"))])
         self.assertNotIn("major_holder_change", values(rows[:1]))
 
+    def test_controlling_stake_moving_between_holders_in_reconciled_partitions(self):
+        rows = [row("pif", "0.7", holder_type="government", date="2019-12-31"),
+                row("public", "0.3", "free_float", "public", date="2019-12-31"),
+                row("aramco", "0.7", holder_type="corporate_strategic"), row("public", "0.3", "free_float", "public")]
+        changes = {item["holder_key"]: item["value"] for item in ownership_metrics(rows)["major_holder_change"]}
+        self.assertEqual(changes, {"aramco": Decimal("0.7"), "pif": Decimal("-0.7"), "public": Decimal("0")})
+
     def test_ownership_concentration_is_never_emitted_until_defined(self):
         rows = [row("only", "1")]
         self.assertNotIn("ownership_concentration", values(rows))
