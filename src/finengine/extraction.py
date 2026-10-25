@@ -77,6 +77,12 @@ class JsonExtractor:
                     for key,value in dimensions.items()
                 ):
                     raise ValueError("dimensions must be a string-to-string object")
+                # A document that reproduces a figure from an earlier filing (a multi-year summary) names that
+                # filing, so the figure keeps the publication, and with it the presentation basis, it came from.
+                origin=r.get("published_in") or {}
+                if origin and not (isinstance(origin,dict) and set(origin)=={"source_url","filed_at"}
+                                   and all(isinstance(value,str) and value for value in origin.values())):
+                    raise ValueError("published_in must name exactly a source_url and a filed_at")
                 facts.append(ExtractedFact(
                     company_id=c.company_id, raw_label=label,
                     raw_value=Decimal(str(r["value"])),
@@ -85,7 +91,8 @@ class JsonExtractor:
                     period_start=r.get("period_start"), period_end=r["period_end"],
                     period_kind=PeriodKind(r["period_kind"]), fiscal_year=int(r["fiscal_year"]),
                     fiscal_quarter=r.get("fiscal_quarter"), source_key=d.source_key,
-                    source_url=d.source_url, filed_at=d.filed_at, accession=r.get("accession"),
+                    source_url=origin.get("source_url",d.source_url),
+                    filed_at=origin.get("filed_at",d.filed_at), accession=r.get("accession"),
                     form=d.filing_type, page=r.get("page"),
                     table_ref=r.get("table") or r.get("table_ref"),
                     location={"row":r.get("row"),"cell":r.get("cell")},
