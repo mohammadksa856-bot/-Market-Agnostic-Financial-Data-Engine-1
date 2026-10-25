@@ -289,21 +289,24 @@ class Calculator:
                             "cash + 0.75 * accounts_receivable + 0.5 * inventory - total_liabilities",
                             lookup["current_assets"], lookup["current_assets"].unit,
                             lookup["current_assets"].currency)
-                if "total_equity" in lookup:
-                    intangible = lookup.get("intangible_assets")
-                    tangible = lookup["total_equity"].value - (intangible.value if intangible else Decimal(0))
+                if "total_equity" in lookup and "intangible_assets" in lookup:
+                    # an unreported intangible line is unknown, not zero
+                    tangible = lookup["total_equity"].value - lookup["intangible_assets"].value
                     add("tangible_book_value", tangible, "total_equity - intangible_assets",
                         lookup["total_equity"], lookup["total_equity"].unit,
                         lookup["total_equity"].currency)
+                if "total_equity" in lookup:
                     shares = lookup.get("shares_outstanding")
                     if shares and shares.value:
                         add("book_value_per_share", lookup["total_equity"].value / shares.value,
                             "total_equity / shares_outstanding", lookup["total_equity"],
                             f"{lookup['total_equity'].currency}/share", lookup["total_equity"].currency)
-                        add("tangible_book_value_per_share", tangible / shares.value,
-                            "(total_equity - intangible_assets) / shares_outstanding",
-                            lookup["total_equity"], f"{lookup['total_equity'].currency}/share",
-                            lookup["total_equity"].currency)
+                        if "intangible_assets" in lookup:
+                            add("tangible_book_value_per_share",
+                                (lookup["total_equity"].value - lookup["intangible_assets"].value) / shares.value,
+                                "(total_equity - intangible_assets) / shares_outstanding",
+                                lookup["total_equity"], f"{lookup['total_equity'].currency}/share",
+                                lookup["total_equity"].currency)
                         if "retained_earnings" in lookup:
                             add("retained_earnings_per_share",
                                 lookup["retained_earnings"].value / shares.value,
