@@ -451,10 +451,13 @@ def _deterministic_gates(
             "SELECT max(as_of_date) FROM ownership_positions WHERE company_id=? AND is_current=1",
             (company_id,),
         ).fetchone()[0]
+        # Holder rows partition the issued shares; an ``aggregate`` row is an investor-class total
+        # (e.g. all foreign investors, mostly inside the free float) that overlaps them and is not added.
+        from .ownership_metrics import CLASS_TOTAL_TYPE
         total = db.conn.execute(
             """SELECT COALESCE(sum(CAST(ownership_pct AS REAL)),0) FROM ownership_positions
-            WHERE company_id=? AND is_current=1 AND as_of_date=?""",
-            (company_id, latest or ""),
+            WHERE company_id=? AND is_current=1 AND as_of_date=? AND COALESCE(ownership_type,'')<>?""",
+            (company_id, latest or "", CLASS_TOTAL_TYPE),
         ).fetchone()[0]
         passed = latest is not None and float(total) <= 1.0001
         return [{"status": "passed" if passed else "failed", "as_of_date": latest,
