@@ -92,10 +92,13 @@ class Calculator:
         # row set per fiscal year, so it cannot tell Q1 from Q2 or a year end from an interim balance.
         quarterly = defaultdict(dict)
         instants = defaultdict(dict)
+        year_to_date = defaultdict(dict)
         for fact in all_facts:
             if fact.scope == "consolidated" and not fact.dimensions:
                 if fact.period_kind == PeriodKind.QUARTER:
                     quarterly[(fact.company_id, fact.period_end)][fact.metric] = fact
+                elif fact.period_kind == PeriodKind.YTD and fact.period_start:
+                    year_to_date[(fact.company_id, fact.period_start, fact.period_end)][fact.metric] = fact
                 elif fact.period_kind == PeriodKind.INSTANT:
                     instants[(fact.company_id, fact.period_end)][fact.metric] = fact
         # A balance date is a fiscal year end only if some fiscal-year flow ends on it.
@@ -452,7 +455,7 @@ class Calculator:
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
                             f"{source_metric} / prior_fy({source_metric}) - 1", group[source_metric])
             if base.period_kind == PeriodKind.QUARTER:
-                self._quarter_changes(company_id, base, group, quarterly, add)
+                self._quarter_changes(company_id, base, group, quarterly, year_to_date, add)
 
         # Composite scores run last: they read ratios (cost_to_income_ratio,
         # nonperforming_loans_ratio, ROE, ...) that the passes above computed.
@@ -659,13 +662,32 @@ class Calculator:
                     add(metric, per_share_now / per_share_prior - 1,
                         f"{stem} / prior_fy({stem}) - 1 on {basis}; prior > 0", reference)
 
-    def _quarter_changes(self, company_id, base, group, quarterly, add):
+    def _quarter_changes(self, company_id, base, group, quarterly, year_to_date, add):
         """Change against the immediately preceding discrete quarter, in the same currency and unit.
 
-        Growth on a non-positive base is DEFINITION_PENDING and is not emitted."""
+        Growth on a non-positive base is DEFINITION_PENDING and is not emitted. When a year-to-date
+        figure ends on this quarter, the previous cumulative figure plus this quarter must add up to it:
+        a re-presentation (e.g. a business moved to discontinued operations) puts the two quarters on
+        different bases, and that comparison is withheld."""
         if not base.period_start:
             return
-        previous = quarterly.get((company_id, (date.fromisoformat(base.period_start) - timedelta(days=1)).isoformat()), {})
+        previous_end = (date.fromisoformat(base.period_start) - timedelta(days=1)).isoformat()
+        previous = quarterly.get((company_id, previous_end), {})
+
+        def same_basis(metric):
+            for (cid, start, end), rows in year_to_date.items():
+                if cid != company_id or end != base.period_end or metric not in rows:
+                    continue
+                total = rows[metric]
+                before = (year_to_date.get((company_id, start, previous_end), {}).get(metric)
+                          or (previous.get(metric) if previous.get(metric) and previous[metric].period_start == start else None))
+                current = group.get(metric)
+                if before is None or current is None or not start < base.period_start:
+                    continue
+                values = [before.value, current.value, total.value]
+                if abs(before.value + current.value - total.value) > self._rounding_bound(values):
+                    return False
+            return True
 
         def quarter_value(rows, metric, currency, unit):
             if metric == "free_cash_flow":
@@ -683,6 +705,9 @@ class Calculator:
             currency, unit = anchor.currency, anchor.unit
             current = quarter_value(group, source_metric, currency, unit)
             prior_value = quarter_value(previous, source_metric, currency, unit)
+            parts = ("operating_cash_flow", "capex") if source_metric == "free_cash_flow" else (source_metric,)
+            if not all(same_basis(part) for part in parts):
+                continue
             if current is not None and prior_value is not None and prior_value > 0:
                 add(output_metric, current / prior_value - 1,
                     f"{source_metric} / prior_quarter({source_metric}) - 1; prior > 0", anchor)
