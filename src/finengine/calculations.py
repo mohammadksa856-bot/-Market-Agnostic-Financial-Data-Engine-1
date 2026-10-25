@@ -24,7 +24,7 @@ class Calculator:
         "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
         "weighted_average_shares_basic", "weighted_average_shares_diluted",
         "adjusted_net_income", "dividends_paid", "market_cap",
-        "dividends_per_share",
+        "dividends_per_share", "discontinued_operations_income",
         "selling_general_administrative_expense", "research_and_development_expense",
         "share_based_compensation",
         # return-on-capital and coverage inputs (_capital_returns)
@@ -55,6 +55,18 @@ class Calculator:
         "operating_income": "operating_income_qoq", "net_income": "net_income_qoq",
         "eps_diluted": "eps_qoq", "ebitda": "ebitda_qoq",
         "operating_cash_flow": "operating_cash_flow_qoq", "free_cash_flow": "free_cash_flow_qoq",
+    }
+    # source metric -> (output stem, horizons in years); only the horizons the catalog defines
+    CAGR_METRICS = {
+        "revenue": ("revenue", (3, 5, 10)), "net_income": ("net_income", (3, 5, 10)),
+        "eps_diluted": ("eps", (3, 5, 10)), "dividends_per_share": ("dividend", (3, 5, 10)),
+        "operating_cash_flow": ("operating_cash_flow", (10,)), "free_cash_flow": ("free_cash_flow", (10,)),
+    }
+    # IFRS 5 re-presents the income statement above net income when an operation is discontinued, so
+    # these lines from an earlier filing may exclude a different set of businesses than a later one.
+    RE_PRESENTED_LINES = {
+        "revenue", "cost_of_revenue", "gross_profit", "operating_income", "ebit", "ebitda", "adjusted_ebitda",
+        "income_before_income_taxes_and_zakat", "income_taxes_and_zakat", "continuing_operations_income",
     }
 
     # Industries whose balance sheet is not an operating-capital structure (matched case-insensitively).
@@ -428,15 +440,15 @@ class Calculator:
                             add("long_term_debt_to_capital", instant_now["long_term_debt"].value / capital,
                                 "long_term_debt / (total_debt + total_equity)", instant_now["long_term_debt"])
                 self._capital_returns(company_id, base, lookup, historical, instants, add, industry)
-                for source_metric in ("revenue", "net_income", "eps_diluted", "dividends_per_share"):
+                for source_metric, (cagr_stem, horizons) in self.CAGR_METRICS.items():
                     if source_metric not in lookup or not lookup[source_metric].value:
                         continue
-                    for years in (3, 5):
+                    for years in horizons:
                         prior = historical.get((company_id, base.fiscal_year - years, PeriodKind.FY), {})
-                        if source_metric in prior and prior[source_metric].value > 0 and lookup[source_metric].value > 0:
-                            cagr_stem = {
-                                "eps_diluted": "eps", "dividends_per_share": "dividend"
-                            }.get(source_metric, source_metric)
+                        if source_metric in prior and prior[source_metric].value > 0 and lookup[source_metric].value > 0 \
+                                and self._same_presentation(source_metric, lookup[source_metric], prior[source_metric],
+                                                            historical, company_id, base.fiscal_year - years,
+                                                            base.fiscal_year):
                             add(f"{cagr_stem}_cagr_{years}y",
                                 (lookup[source_metric].value / prior[source_metric].value) ** (Decimal(1) / Decimal(years)) - 1,
                                 f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
@@ -451,7 +463,10 @@ class Calculator:
                     prior = instants.get((company_id, (date.fromisoformat(fy_start) - timedelta(days=1)).isoformat()),
                                          {}) if fy_start else {}
                 for source_metric, output_metric in self.GROWTH_METRICS.items():
-                    if source_metric in group and source_metric in prior and prior[source_metric].value:
+                    if source_metric in group and source_metric in prior and prior[source_metric].value \
+                            and self._same_presentation(source_metric, group[source_metric], prior[source_metric],
+                                                        historical, company_id, base.fiscal_year - 1,
+                                                        base.fiscal_year):
                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
                             f"{source_metric} / prior_fy({source_metric}) - 1", group[source_metric])
             if base.period_kind == PeriodKind.QUARTER:
@@ -661,6 +676,18 @@ class Calculator:
                     stem = metric[:-len("_growth")]
                     add(metric, per_share_now / per_share_prior - 1,
                         f"{stem} / prior_fy({stem}) - 1 on {basis}; prior > 0", reference)
+
+    def _same_presentation(self, metric, current, prior, historical, company_id, first_year, last_year):
+        """Whether two fiscal-year figures of `metric` are on one presentation basis.
+
+        Once any year in the span reports discontinued operations, a re-presented line is compared only
+        when both figures come from the same filing, which states its comparative on its own basis."""
+        if metric not in self.RE_PRESENTED_LINES:
+            return True
+        discontinued = any(
+            (row := historical.get((company_id, year, PeriodKind.FY), {}).get("discontinued_operations_income"))
+            and row.value for year in range(first_year, last_year + 1))
+        return not discontinued or bool(current.source_url) and current.source_url == prior.source_url
 
     def _quarter_changes(self, company_id, base, group, quarterly, year_to_date, add):
         """Change against the immediately preceding discrete quarter, in the same currency and unit.

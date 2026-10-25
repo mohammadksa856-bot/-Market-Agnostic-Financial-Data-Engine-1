@@ -21,6 +21,8 @@ COMPARISONS = {
     "eps_cagr_5y": ("eps_diluted", "fy", 5),
     "dividend_cagr_3y": ("dividends_per_share", "fy", 3),
     "dividend_cagr_5y": ("dividends_per_share", "fy", 5),
+    "eps_cagr_10y": ("eps_diluted", "fy", 10),
+    "dividend_cagr_10y": ("dividends_per_share", "fy", 10),
     "eps_qoq": ("eps_diluted", "quarter", 0),
     "revenue_per_share_growth": ("weighted_average_shares", "fy", 1),
     "free_cash_flow_per_share_growth": ("weighted_average_shares", "fy", 1),
