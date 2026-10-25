@@ -173,6 +173,16 @@ class CompanyDomainStore:
             "market_cap": (market_cap, "price_close * shares_outstanding", price["company_currency"], price["company_currency"]),
             "enterprise_value": (enterprise_value, "market_cap + net_debt", price["company_currency"], price["company_currency"]),
         }
+        # The free-float share reported in the latest ownership positions dated on or before the price date.
+        free_float = self.db.conn.execute(
+            """SELECT ownership_pct FROM ownership_positions WHERE company_id=? AND is_current=1
+            AND ownership_type='free_float' AND ownership_pct IS NOT NULL AND as_of_date<=?
+            ORDER BY as_of_date DESC LIMIT 1""", (company_id, price["observed_at"])).fetchone()
+        if free_float:
+            share = Decimal(str(free_float["ownership_pct"]))
+            calculations["free_float_shares"] = (shares * share, "shares_outstanding * latest(free_float)", "", "shares")
+            calculations["free_float_market_cap"] = (market_cap * share, "market_cap * latest(free_float)",
+                                                     price["company_currency"], price["company_currency"])
         if price["turnover"] is not None and price["volume"] is not None and Decimal(price["volume"]):
             calculations["vwap"] = (
                 Decimal(price["turnover"]) / Decimal(price["volume"]),

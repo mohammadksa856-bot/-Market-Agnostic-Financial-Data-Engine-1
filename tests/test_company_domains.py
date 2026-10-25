@@ -108,6 +108,21 @@ class CompanyDomainTests(unittest.TestCase):
             "market_cap_to_net_income",
         }.issubset(metrics))
 
+    def test_free_float_value_uses_the_latest_free_float_on_or_before_the_price_date(self):
+        self.db.publish_batch([Fact("sa:TST", "shares_outstanding", Decimal("10"), "SAR", "SAR", None, "2025-12-31",
+                                    PeriodKind.INSTANT, 2025, None, self.source.source_key,
+                                    self.source.source_url, self.source.filed_at)])
+        for as_of, pct in (("2025-12-31", "0.30"), ("2026-06-30", "0.40")):
+            self.store.publish_ownership_position("sa:TST", "public", "Public", "free_float", as_of,
+                                                  self.source.source_key, ownership_pct=pct)
+        self.store.publish_market_price("sa:TST", "2026-03-02", "30", "SAR", self.source.source_key,
+                                        open="29", high="31", low="28", volume="1000")
+        self.store.refresh_market_valuations("sa:TST")
+        values = {row[0]: Decimal(row[1]) for row in self.db.conn.execute(
+            """SELECT metric_key,value_decimal FROM data_points WHERE company_id='sa:TST' AND is_current=1
+            AND metric_key IN ('free_float_shares','free_float_market_cap')""")}
+        self.assertEqual(values, {"free_float_shares": Decimal("3"), "free_float_market_cap": Decimal("90")})
+
     def test_market_statistics_require_honest_windows_and_publish_derived_history(self):
         start = date(2024, 12, 25)
         for offset in range(402):
