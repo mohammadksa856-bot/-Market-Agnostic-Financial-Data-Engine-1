@@ -727,12 +727,13 @@ class ServiceTests(unittest.TestCase):
                          "103935678000")
         self.assertEqual(sabic_segments[("segment_assets", "Agri-Nutrients")]["value"],
                          "27647759000")
-        self.assertEqual(
-            sabic_segments[("production_volume", "Chemicals")]["value"], "35.7")
-        self.assertEqual(
-            sabic_segments[("production_volume", "Chemicals")]["provenance"]["extraction"]["page"],
-            47,
-        )
+        # Chemicals and Polymers are product lines of the Petrochemicals reporting segment.
+        chemicals = next(row for row in sabic["facts_by_category"]["operational"]
+                         if row["metric"] == "production_volume" and row["period_end"] == "2025-12-31"
+                         and row["dimensions"].get("product") == "Chemicals")
+        self.assertEqual(chemicals["dimensions"]["segment"], "Petrochemicals")
+        self.assertEqual(chemicals["value"], "35.7")
+        self.assertEqual(chemicals["provenance"]["extraction"]["page"], 47)
         self.assertEqual(sabic["attributes"]["business_description"]["category"],
                          "business_model")
         self.assertEqual(len(sabic["ownership"]), 3)
