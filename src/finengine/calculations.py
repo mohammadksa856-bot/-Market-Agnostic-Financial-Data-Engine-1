@@ -13,6 +13,10 @@ class Calculator:
     # dividend_per_share_ttm is filed for SABIC as DPS declared for the year, so a sum of DPS paid in the
     # window is a different basis and stays withheld until that basis is decided.
     TTM_NAMED = {"dividends_paid": "total_dividend_paid_ttm"}
+    # Interim cash-flow statements are cumulative from the start of the fiscal year, so a discrete quarter of these
+    # lines is the difference of two cumulative figures with the same start. Cash-flow totals include discontinued
+    # operations, so IFRS 5 does not re-present them between filings.
+    CUMULATIVE_QUARTER_FLOWS = ("operating_cash_flow", "capex")
     # Trailing-twelve-month sums compared with the same window one year earlier.
     TTM_GROWTH = {
         "revenue": "revenue_ttm_growth", "net_income": "net_income_ttm_growth", "ebitda": "ebitda_ttm_growth",
@@ -92,8 +96,10 @@ class Calculator:
 
     def calculate(self, facts: list[Fact], history: list[Fact] | None = None,
                   industry: str | None = None) -> list[Fact]:
+        derived_quarters = self._cumulative_quarters([*(history or []), *facts], facts)
+        facts = [*facts, *derived_quarters]
         all_facts = [*(history or []), *facts]
-        out: list[Fact] = []
+        out: list[Fact] = list(derived_quarters)
         groups = defaultdict(dict)
         # `combined` is the fiscal-year view of a period end: FY flows with year-end balances and
         # point-in-time values (e.g. a reported year-end market cap). A quarter, YTD or TTM row ending
@@ -940,6 +946,49 @@ class Calculator:
         finest = min(units, default=Decimal(0))
         return sum(units, Decimal(0)) + finest * sum(1 for value in values if not value)
 
+    def _cumulative_quarters(self, all_facts: list[Fact], current: list[Fact]) -> list[Fact]:
+        """Discrete quarters of cumulative-only cash-flow lines: cumulative(start..end) - cumulative(start..prior end).
+
+        A cumulative figure is a fiscal-year, year-to-date or first-quarter row; both figures share the start, currency
+        and unit, and the later one ends one quarter after the earlier. A reported quarter is never replaced, and a
+        quarter is emitted only when one of its two figures is in the current batch."""
+        cumulative = {}
+        reported = set()
+        for fact in all_facts:
+            # a quarter derived earlier is recomputed from the current cumulative figures, never treated as reported
+            if fact.metric not in self.CUMULATIVE_QUARTER_FLOWS or fact.scope != "consolidated" or fact.dimensions \
+                    or not fact.period_start or (fact.is_calculated and fact.period_kind == PeriodKind.QUARTER):
+                continue
+            if fact.period_kind == PeriodKind.QUARTER:
+                reported.add((fact.company_id, fact.metric, fact.period_end))
+            if fact.period_kind in {PeriodKind.FY, PeriodKind.YTD, PeriodKind.QUARTER}:
+                cumulative[(fact.company_id, fact.metric, fact.currency, fact.unit, fact.period_start,
+                            fact.period_end)] = fact
+        current_ids = {id(fact) for fact in current}
+        out = []
+        for (company_id, metric, currency, unit, start, end), total in cumulative.items():
+            if (company_id, metric, end) in reported:
+                continue
+            earlier = [fact for (cid, m, cur, u, s, e), fact in cumulative.items()
+                       if (cid, m, cur, u, s) == (company_id, metric, currency, unit, start) and e < end]
+            if not earlier:
+                continue
+            before = max(earlier, key=lambda fact: fact.period_end)
+            quarter_start = date.fromisoformat(before.period_end) + timedelta(days=1)
+            if not 80 <= (date.fromisoformat(end) - quarter_start).days <= 100:
+                continue
+            if id(total) not in current_ids and id(before) not in current_ids:
+                continue
+            quarter = round((date.fromisoformat(end) - date.fromisoformat(start)).days / Decimal("91.3"))
+            out.append(Fact(
+                company_id, metric, total.value - before.value, currency, unit, quarter_start.isoformat(), end,
+                PeriodKind.QUARTER, total.fiscal_year, int(quarter), total.source_key, total.source_url,
+                total.filed_at, is_calculated=True,
+                calculation=f"{metric}({start}..{end}) - {metric}({start}..{before.period_end}); "
+                            f"sources {total.source_url} and {before.source_url}",
+            ))
+        return out
+
     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
         out = []
         groups = defaultdict(dict)
@@ -1022,7 +1071,8 @@ class Calculator:
             prior_end = next((period for period in rows_by_period
                               if abs((date.fromisoformat(period) - date.fromisoformat(prior_end)).days) <= 3), None)
             prior = window(identity, rows_by_period, prior_end) if prior_end else None
-            if prior is None or not prior[1] or prior[0][-1].period_end >= last[0].period_start:
+            # Growth on a non-positive base is not defined (as for quarter-on-quarter changes).
+            if prior is None or prior[1] <= 0 or prior[0][-1].period_end >= last[0].period_start:
                 continue
             out.append(Fact(
                 base.company_id, growth_metric, total / prior[1] - 1, "", "ratio",
