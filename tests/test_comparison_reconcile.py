@@ -50,11 +50,59 @@ class ComparisonReconcileTests(unittest.TestCase):
         reconcile_comparisons(self.db, "sa:TST")
         self.assertNotIn("2024-12-31", self.growth())
 
+    def test_a_derived_quarter_follows_the_restated_cumulative_figure(self):
+        nine = Fact("sa:TST", "capex", Decimal("-60"), "SAR", "SAR", "2025-01-01", "2025-09-30", PeriodKind.YTD,
+                    2025, 3, "source:a", "https://example.test/source:a", "2025-11-01")
+        self.publish(self.year("capex", "-80", 2025, "source:a"), nine)
+        self.publish(self.year("capex", "-85", 2025, "source:b"))  # the year restated (e.g. intangibles added)
+        reconcile_comparisons(self.db, "sa:TST")
+        rows = self.db.conn.execute(
+            """SELECT value_decimal FROM data_points WHERE company_id='sa:TST' AND is_current=1 AND metric_key='capex'
+            AND period_kind='quarter' AND period_end='2025-12-31'""").fetchall()
+        self.assertEqual([Decimal(row[0]) for row in rows], [Decimal("-25")])
+
+    def test_calculated_free_cash_flow_follows_a_restated_capex(self):
+        self.publish(self.year("operating_cash_flow", "100", 2025, "source:a"), self.year("capex", "-80", 2025, "source:a"))
+        self.publish(self.year("capex", "-85", 2025, "source:b"))  # filed alone: the batch cannot recompute it
+        reconcile_comparisons(self.db, "sa:TST")
+        rows = self.db.conn.execute(
+            """SELECT value_decimal FROM data_points WHERE company_id='sa:TST' AND is_current=1
+            AND metric_key='free_cash_flow' AND period_kind='fy'""").fetchall()
+        self.assertEqual([Decimal(row[0]) for row in rows], [Decimal("15")])
+
+    def test_free_cash_flow_growth_survives_the_recomputation_of_free_cash_flow(self):
+        self.publish(self.year("operating_cash_flow", "100", 2024, "source:a"), self.year("capex", "-80", 2024, "source:a"),
+                     self.year("operating_cash_flow", "120", 2025, "source:a"), self.year("capex", "-90", 2025, "source:a"))
+        result = reconcile_comparisons(self.db, "sa:TST")
+        self.assertEqual(result["retired"], 0)
+        self.assertEqual(self.current("free_cash_flow_growth"), [Decimal("30") / Decimal("20") - 1])
+
+    def current(self, metric):
+        return [Decimal(row[0]) for row in self.db.conn.execute(
+            "SELECT value_decimal FROM data_points WHERE company_id='sa:TST' AND is_current=1 AND metric_key=?",
+            (metric,))]
+
+    def test_a_ratio_on_a_restated_input_is_refreshed(self):
+        self.publish(self.year("revenue", "200", 2025, "source:a"), self.year("operating_cash_flow", "100", 2025, "source:a"),
+                     self.year("capex", "-80", 2025, "source:a"))
+        self.assertEqual(self.current("fcf_margin"), [Decimal("0.1")])
+        self.publish(self.year("capex", "-85", 2025, "source:b"))
+        self.assertEqual(reconcile_comparisons(self.db, "sa:TST")["refreshed"] >= 1, True)
+        self.assertEqual(self.current("fcf_margin"), [Decimal("15") / Decimal("200")])
+
+    def test_a_margin_across_two_filings_of_re_presented_lines_is_kept(self):
+        self.publish(self.year("revenue", "200", 2025, "source:a"), self.year("gross_profit", "50", 2025, "source:a"))
+        self.publish(self.year("revenue", "180", 2025, "source:b"))  # a later filing re-presents revenue only
+        # the margin as computed within the first filing
+        self.db.conn.execute("UPDATE data_points SET value_decimal='0.25' WHERE metric_key='gross_margin' AND is_current=1")
+        reconcile_comparisons(self.db, "sa:TST")
+        self.assertEqual(self.current("gross_margin"), [Decimal("0.25")])
+
     def test_unchanged_comparisons_are_kept(self):
         self.publish(self.year("revenue", "100", 2023, "source:a"), self.year("revenue", "110", 2024, "source:a"))
         before = self.db.conn.execute("SELECT id FROM data_points WHERE metric_key='revenue_growth' "
                                       "AND is_current=1").fetchall()
-        self.assertEqual(reconcile_comparisons(self.db, "sa:TST"), {"retired": 0, "superseded": 0, "added": 0})
+        self.assertEqual(reconcile_comparisons(self.db, "sa:TST"), {"retired": 0, "superseded": 0, "added": 0, "refreshed": 0})
         after = self.db.conn.execute("SELECT id FROM data_points WHERE metric_key='revenue_growth' "
                                      "AND is_current=1").fetchall()
         self.assertEqual([tuple(r) for r in before], [tuple(r) for r in after])
