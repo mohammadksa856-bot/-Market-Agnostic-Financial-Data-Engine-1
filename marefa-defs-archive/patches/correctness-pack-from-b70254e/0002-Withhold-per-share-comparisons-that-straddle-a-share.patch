@@ -1,0 +1,282 @@
+From 62e91525284e7e96ec3766a9df5ee8d091dfdd1d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:50:14 +0000
+Subject: [PATCH 2/6] Withhold per-share comparisons that straddle a
+ share-basis event
+
+A per-share value is restated for every bonus issue, split or rights
+issue effective before its report is filed, so EPS or DPS taken from
+reports filed on either side of such an event sit on different bases.
+share_basis.audit_share_basis names the current growth, CAGR and QoQ rows
+affected without rewriting stored data; completeness no longer counts a
+per-share comparison key whose every current row is affected, and the
+share-basis-audit command reports them for acceptance review.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/cli.py         |  11 ++++
+ src/finengine/domains.py     |   5 +-
+ src/finengine/share_basis.py | 109 +++++++++++++++++++++++++++++++++++
+ tests/test_share_basis.py    |  86 +++++++++++++++++++++++++++
+ 4 files changed, 210 insertions(+), 1 deletion(-)
+ create mode 100644 src/finengine/share_basis.py
+ create mode 100644 tests/test_share_basis.py
+
+diff --git a/src/finengine/cli.py b/src/finengine/cli.py
+index b1fc8c1..4b44a75 100644
+--- a/src/finengine/cli.py
++++ b/src/finengine/cli.py
+@@ -1065,6 +1065,7 @@ def main():
+     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
++    share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
+     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+     field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
+     field_availability_list=sub.add_parser("field-availability-list"); field_availability_list.add_argument("market"); field_availability_list.add_argument("symbol"); field_availability_list.add_argument("--status",choices=["unavailable","not_applicable"])
+@@ -1216,6 +1217,16 @@ def main():
+             result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+         finally: db.close()
+         print(json.dumps(result,indent=2)); return
++    if a.cmd=="share-basis-audit":
++        from .share_basis import audit_share_basis, withheld_metric_keys
++        db=Database(a.db)
++        try:
++            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
++            findings=[{key:value for key,value in row.items() if key!="id"} for row in audit_share_basis(db.conn,company.company_id)]
++            result={"company_id":company.company_id,"withheld_rows":findings,
++                    "withheld_keys":sorted(withheld_metric_keys(db.conn,company.company_id))}
++        finally: db.close()
++        print(json.dumps(result,indent=2)); return
+     if a.cmd=="field-availability-set":
+         db=Database(a.db)
+         try:
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index d455740..94291a6 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -620,9 +620,12 @@ class CompanyDomainStore:
+              (scope_type='company' AND scope_value=?))""",
+             (company["market"], company["sector"] or "", company["industry"] or "", company_id),
+         ).fetchall()
++        from .share_basis import withheld_metric_keys
+         available = {
++            # A per-share comparison whose every current row straddles a share-basis event is not counted.
+             "data_points": {row["metric_key"] for row in self.db.conn.execute(
+-                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},
++                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))}
++            - withheld_metric_keys(self.db.conn, company_id),
+             "company_profile": {row["attribute_key"] for row in self.db.conn.execute(
+                 "SELECT DISTINCT attribute_key FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))},
+             "market_prices": set(), "ownership_positions": set(), "consensus_estimates": set(),
+diff --git a/src/finengine/share_basis.py b/src/finengine/share_basis.py
+new file mode 100644
+index 0000000..58c9573
+--- /dev/null
++++ b/src/finengine/share_basis.py
+@@ -0,0 +1,109 @@
++"""Per-share comparisons that straddle a share-basis event.
++
++A reported per-share value (or weighted share count) is restated for every bonus issue, split or
++rights issue effective before its report is filed. Two values taken from reports filed on either
++side of such an event therefore sit on different share bases, and a growth rate, CAGR or quarterly
++change between them compares unlike quantities. The audit never rewrites stored data: it names the
++affected current rows so completeness and acceptance views can withhold them.
++"""
++from __future__ import annotations
++
++import sqlite3
++from datetime import date, timedelta
++
++SHARE_BASIS_ACTIONS = ("bonus_shares", "stock_split", "reverse_split", "rights_issue")
++
++# output metric -> (per-share input metric, comparison, fiscal-year lag)
++COMPARISONS = {
++    "eps_growth": ("eps_diluted", "fy", 1),
++    "dividend_per_share_growth": ("dividends_per_share", "fy", 1),
++    "eps_cagr_3y": ("eps_diluted", "fy", 3),
++    "eps_cagr_5y": ("eps_diluted", "fy", 5),
++    "dividend_cagr_3y": ("dividends_per_share", "fy", 3),
++    "dividend_cagr_5y": ("dividends_per_share", "fy", 5),
++    "eps_qoq": ("eps_diluted", "quarter", 0),
++    "revenue_per_share_growth": ("weighted_average_shares", "fy", 1),
++    "free_cash_flow_per_share_growth": ("weighted_average_shares", "fy", 1),
++}
++SHARE_COUNT_BASES = ("weighted_average_shares_diluted", "weighted_average_shares_basic")
++
++
++def share_basis_events(conn: sqlite3.Connection, company_id: str) -> list[str]:
++    placeholders = ",".join("?" for _ in SHARE_BASIS_ACTIONS)
++    return sorted(row[0] for row in conn.execute(
++        f"""SELECT DISTINCT effective_date FROM corporate_actions WHERE company_id=? AND is_current=1
++        AND action_type IN ({placeholders}) AND effective_date IS NOT NULL AND effective_date<>''""",
++        (company_id, *SHARE_BASIS_ACTIONS)))
++
++
++def _consolidated(conn, company_id, metric, where, args):
++    return conn.execute(
++        f"""SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1
++        AND scope='consolidated' AND dimensions_json IN ('{{}}','') AND {where}
++        ORDER BY filed_at DESC LIMIT 1""", (company_id, metric, *args)).fetchone()
++
++
++def _input_metric(row, metric):
++    if metric != "weighted_average_shares":
++        return metric
++    formula = row["calculation"] or ""
++    return next((base for base in SHARE_COUNT_BASES if base in formula), SHARE_COUNT_BASES[0])
++
++
++def _inputs(conn, row, metric, kind, lag):
++    company_id = row["company_id"]
++    metric = _input_metric(row, metric)
++    if kind == "fy":
++        now = _consolidated(conn, company_id, metric, "period_kind='fy' AND fiscal_year=?", (row["fiscal_year"],))
++        prior = _consolidated(conn, company_id, metric, "period_kind='fy' AND fiscal_year=?",
++                              (row["fiscal_year"] - lag,))
++    else:
++        now = _consolidated(conn, company_id, metric, "period_kind='quarter' AND period_end=?", (row["period_end"],))
++        prior = None
++        if now is not None and now["period_start"]:
++            previous_end = (date.fromisoformat(now["period_start"]) - timedelta(days=1)).isoformat()
++            prior = _consolidated(conn, company_id, metric, "period_kind='quarter' AND period_end=?", (previous_end,))
++    return now, prior
++
++
++def audit_share_basis(conn: sqlite3.Connection, company_id: str) -> list[dict]:
++    """Current calculated per-share comparisons that cannot be shown on one share basis."""
++    if conn.row_factory is None:
++        conn.row_factory = sqlite3.Row
++    events = share_basis_events(conn, company_id)
++    if not events:
++        return []
++    placeholders = ",".join("?" for _ in COMPARISONS)
++    findings = []
++    for row in conn.execute(
++            f"""SELECT * FROM data_points WHERE company_id=? AND is_current=1 AND is_calculated=1
++            AND metric_key IN ({placeholders}) ORDER BY metric_key, period_end""",
++            (company_id, *COMPARISONS)).fetchall():
++        metric, kind, lag = COMPARISONS[row["metric_key"]]
++        now, prior = _inputs(conn, row, metric, kind, lag)
++        base = {"id": row["id"], "company_id": company_id, "metric_key": row["metric_key"],
++                "period_end": row["period_end"], "period_kind": row["period_kind"]}
++        if now is None or prior is None or not now["filed_at"] or not prior["filed_at"]:
++            findings.append({**base, "reason": "inputs_not_resolved", "events": events})
++            continue
++        low, high = sorted((now["filed_at"][:10], prior["filed_at"][:10]))
++        straddled = [event for event in events if low < event[:10] <= high]
++        if straddled:
++            findings.append({**base, "reason": "share_basis_event_between_sources", "events": straddled,
++                             "inputs": [(item["metric_key"], item["period_end"], item["filed_at"][:10])
++                                        for item in (prior, now)]})
++    return findings
++
++
++def withheld_metric_keys(conn: sqlite3.Connection, company_id: str) -> set[str]:
++    """Per-share comparison keys whose every current row is withheld by the audit."""
++    withheld_ids = {finding["id"] for finding in audit_share_basis(conn, company_id)}
++    if not withheld_ids:
++        return set()
++    current = {}
++    placeholders = ",".join("?" for _ in COMPARISONS)
++    for row_id, metric_key in conn.execute(
++            f"""SELECT id, metric_key FROM data_points WHERE company_id=? AND is_current=1
++            AND metric_key IN ({placeholders})""", (company_id, *COMPARISONS)):
++        current.setdefault(metric_key, set()).add(row_id)
++    return {metric for metric, ids in current.items() if ids <= withheld_ids}
+diff --git a/tests/test_share_basis.py b/tests/test_share_basis.py
+new file mode 100644
+index 0000000..125c2cb
+--- /dev/null
++++ b/tests/test_share_basis.py
+@@ -0,0 +1,86 @@
++import tempfile
++import unittest
++from decimal import Decimal
++from pathlib import Path
++
++from finengine.database import Database
++from finengine.domains import CompanyDomainStore
++from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
++from finengine.share_basis import audit_share_basis, withheld_metric_keys
++
++
++class ShareBasisAuditTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.db = Database(str(Path(self.temp.name) / "basis.sqlite3"))
++        self.db.register_company(Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR",
++                                         isin="SA0000000001", exchange="Saudi Exchange", country="SA",
++                                         sector="Energy", industry="Integrated Oil & Gas",
++                                         timezone="Asia/Riyadh"))
++        self.store = CompanyDomainStore(self.db)
++        self.sources = {}
++        # Annual reports: FY2021 filed 2022-03, FY2022 report filed 2023-03, FY2023 report filed 2024-03.
++        for year, filed in ((2021, "2022-03-20"), (2022, "2023-03-12"), (2023, "2024-03-10")):
++            source = SourceDocument("sa:TST", Market.SA, f"https://example.test/ar{year}", f"source:ar{year}",
++                                    "annual-report", filed, b"{}")
++            self.db.save_source(source, f"digest{year}", None)
++            self.sources[year] = source
++
++    def tearDown(self):
++        self.db.close(); self.temp.cleanup()
++
++    def fact(self, metric, value, year, report, calculated=False):
++        source = self.sources[report]
++        return Fact("sa:TST", metric, Decimal(value), "SAR", "SAR/share" if metric == "eps_diluted" else "ratio",
++                    f"{year}-01-01", f"{year}-12-31", PeriodKind.FY, year, None, source.source_key,
++                    source.source_url, source.filed_at, is_calculated=calculated,
++                    calculation="eps_diluted / prior_fy(eps_diluted) - 1" if calculated else None)
++
++    def bonus(self, effective):
++        self.store.publish_corporate_action(f"sa:TST:bonus:{effective}", "sa:TST", "bonus_shares", "bonus issue",
++                                            effective, self.sources[2023].source_key, effective_date=effective,
++                                            ratio_numerator=1, ratio_denominator=10, status="completed")
++
++    def flagged(self):
++        return {(row["metric_key"], row["period_end"]) for row in audit_share_basis(self.db.conn, "sa:TST")}
++
++    def publish_growth_2022(self):
++        # EPS 2021 as last stated in the FY2022 report; EPS 2022 restated in the FY2023 report.
++        for item in (self.fact("eps_diluted", "1.80", 2021, 2022), self.fact("eps_diluted", "2.47", 2022, 2023),
++                     self.fact("eps_growth", "0.372", 2022, 2023, calculated=True)):
++            self.db.publish(item)
++
++    def test_growth_between_reports_filed_either_side_of_a_bonus_is_withheld(self):
++        self.publish_growth_2022()
++        self.bonus("2023-05-08")
++        self.assertEqual(self.flagged(), {("eps_growth", "2022-12-31")})
++        self.assertEqual(withheld_metric_keys(self.db.conn, "sa:TST"), {"eps_growth"})
++        missing = {key for row in self.store.refresh_catalog_completeness("sa:TST")["categories"]
++                   for key in row["missing"]}
++        self.assertIn("eps_growth", missing)
++
++    def test_no_event_or_an_event_outside_the_filing_window_keeps_the_growth(self):
++        self.publish_growth_2022()
++        self.assertEqual(self.flagged(), set())
++        self.bonus("2024-06-01")  # after both reports: both values share the old basis
++        self.bonus("2022-05-12")  # before both reports: both values are restated for it
++        self.assertEqual(self.flagged(), set())
++
++    def test_a_clean_year_keeps_the_key_counted(self):
++        self.publish_growth_2022()
++        for item in (self.fact("eps_diluted", "1.87", 2023, 2023),
++                     self.fact("eps_growth", "-0.243", 2023, 2023, calculated=True)):
++            self.db.publish(item)
++        self.bonus("2023-05-08")
++        self.assertEqual(self.flagged(), {("eps_growth", "2022-12-31")})
++        self.assertEqual(withheld_metric_keys(self.db.conn, "sa:TST"), set())
++
++    def test_unresolved_inputs_are_withheld_when_the_company_has_share_basis_events(self):
++        self.db.publish(self.fact("eps_growth", "0.1", 2022, 2023, calculated=True))
++        self.bonus("2023-05-08")
++        reasons = {row["reason"] for row in audit_share_basis(self.db.conn, "sa:TST")}
++        self.assertEqual(reasons, {"inputs_not_resolved"})
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+

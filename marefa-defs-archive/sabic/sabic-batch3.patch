@@ -1,0 +1,1709 @@
+From cf134c4046ca802aa8b4d85be8ae6d1dd7a7acdb Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 23:44:40 +0000
+Subject: [PATCH 1/4] Efficiency ratios, SG&A line name, book value growth; one
+ basis for balance ratios
+
+- Inventory and payables turnover and days against cost of sales on average
+  balances, and the cash conversion cycle (DSO + DIO - DPO).
+- SG&A is derived from selling_and_distribution_expense, the catalog key (the
+  calculator only knew selling_distribution_expense, so SG&A was never derived).
+- book_value_growth: book value per share against the prior year end.
+- capex to D&A falls back to the cash-flow D&A add-back when no income-statement
+  D&A is reported.
+- In a year (or the year after one) with discontinued operations, continuing-
+  operations flows exclude a business the opening balances still hold, so
+  turnover, days, ROIC, ROCE, asset/fixed-asset/working-capital turnover and
+  incremental ROIC are withheld. These rows are refreshed by the build-end
+  reconciliation like the comparisons.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py | 74 ++++++++++++++++++++++------
+ src/finengine/comparisons.py  |  1 +
+ tests/test_efficiency.py      | 91 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 152 insertions(+), 14 deletions(-)
+ create mode 100644 tests/test_efficiency.py
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 6634503..8550de9 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -29,7 +29,10 @@ class Calculator:
+         "net_debt", "ebit", "ebitda", "depreciation_amortization", "finance_costs",
+         "weighted_average_shares_basic", "weighted_average_shares_diluted",
+         "adjusted_net_income", "dividends_paid", "market_cap",
+-        "dividends_per_share", "discontinued_operations_income",
++        "dividends_per_share", "discontinued_operations_income", "book_value_per_share",
++        "cost_of_revenue", "accounts_payable", "general_and_administrative_expense",
++        "depreciation_amortization_cash_flow",
++        "selling_and_distribution_expense",
+         "selling_general_administrative_expense", "research_and_development_expense",
+         "share_based_compensation",
+         # return-on-capital and coverage inputs (_capital_returns)
+@@ -53,7 +56,7 @@ class Calculator:
+         "total_equity": "equity_growth", "operating_cash_flow": "operating_cash_flow_growth",
+         "free_cash_flow": "free_cash_flow_growth",
+         "ebitda": "ebitda_growth", "dividends_paid": "dividend_growth",
+-        "dividends_per_share": "dividend_per_share_growth",
++        "dividends_per_share": "dividend_per_share_growth", "book_value_per_share": "book_value_growth",
+     }
+     QOQ_METRICS = {
+         "revenue": "revenue_qoq", "gross_profit": "gross_profit_qoq",
+@@ -67,6 +70,11 @@ class Calculator:
+         "eps_diluted": ("eps", (3, 5, 10)), "dividends_per_share": ("dividend", (3, 5, 10)),
+         "operating_cash_flow": ("operating_cash_flow", (10,)), "free_cash_flow": ("free_cash_flow", (10,)),
+     }
++    # Turnover on average balances; recomputed by the build-end reconciliation like the comparisons.
++    TURNOVER_METRICS = {"receivables_turnover", "days_sales_outstanding", "inventory_turnover", "days_inventory",
++                        "payables_turnover", "days_payables", "cash_conversion_cycle",
++                        "return_on_invested_capital", "return_on_capital_employed", "fixed_asset_turnover",
++                        "working_capital_turnover", "incremental_roic", "asset_turnover"}
+     # IFRS 5 re-presents the income statement above net income when an operation is discontinued, so
+     # these lines from an earlier filing may exclude a different set of businesses than a later one.
+     RE_PRESENTED_LINES = {
+@@ -178,17 +186,21 @@ class Calculator:
+                       "abs(dividends_paid) / free_cash_flow", True)
+                 ratio("fcf_dividend_coverage_ratio", "free_cash_flow", "dividends_paid",
+                       "free_cash_flow / abs(dividends_paid)", True)
+-                ratio("capex_to_depreciation", "capex", "depreciation_amortization",
+-                      "abs(capex) / abs(depreciation_amortization)", True)
+-                ratio("capex_to_depreciation_amortization", "capex", "depreciation_amortization",
+-                      "abs(capex) / abs(depreciation_amortization)", True)
++                # D&A as the income statement reports it, else the cash-flow add-back (the statement capex is on)
++                depreciation = next((key for key in ("depreciation_amortization", "depreciation_amortization_cash_flow")
++                                     if key in lookup), "depreciation_amortization")
++                ratio("capex_to_depreciation", "capex", depreciation, f"abs(capex) / abs({depreciation})", True)
++                ratio("capex_to_depreciation_amortization", "capex", depreciation,
++                      f"abs(capex) / abs({depreciation})", True)
++                # the catalog key is selling_and_distribution_expense; selling_distribution_expense is older
++                selling = next((key for key in ("selling_and_distribution_expense", "selling_distribution_expense")
++                                if key in lookup), None)
+                 if ("selling_general_administrative_expense" not in lookup and
+-                        "general_and_administrative_expense" in lookup and
+-                        "selling_distribution_expense" in lookup):
++                        "general_and_administrative_expense" in lookup and selling):
+                     add("selling_general_administrative_expense",
+                         abs(lookup["general_and_administrative_expense"].value) +
+-                        abs(lookup["selling_distribution_expense"].value),
+-                        "abs(general_and_administrative_expense) + abs(selling_distribution_expense)",
++                        abs(lookup[selling].value),
++                        f"abs(general_and_administrative_expense) + abs({selling})",
+                         lookup["general_and_administrative_expense"],
+                         lookup["general_and_administrative_expense"].unit,
+                         lookup["general_and_administrative_expense"].currency)
+@@ -371,12 +383,18 @@ class Calculator:
+                         lookup["total_hydrocarbon_production"], unit="years", currency="",
+                     )
+                 prior_instant = historical.get((company_id, base.fiscal_year - 1, PeriodKind.INSTANT), {})
++                # Flows of a year with discontinued operations exclude the business that the opening balances
++                # still hold (IFRS 5 does not re-present the prior balance sheet), so turnover on an average of
++                # the two balances would mix bases and is withheld.
++                re_presented_year = any(
++                    (row := historical.get((company_id, year, PeriodKind.FY), {}).get("discontinued_operations_income"))
++                    and row.value for year in (base.fiscal_year - 1, base.fiscal_year))
+                 if "total_assets" in lookup and "total_assets" in prior_instant:
+                     average = (lookup["total_assets"].value + prior_instant["total_assets"].value) / 2
+                     if average and "net_income" in lookup:
+                         add("return_on_assets", lookup["net_income"].value / average,
+                             "net_income / average(total_assets)", lookup["net_income"])
+-                    if average and "revenue" in lookup:
++                    if average and "revenue" in lookup and not re_presented_year:
+                         add("asset_turnover", lookup["revenue"].value / average,
+                             "revenue / average(total_assets)", lookup["revenue"])
+                     if average and "operating_cash_flow" in lookup:
+@@ -413,13 +431,33 @@ class Calculator:
+                     if average_loans:
+                         add("cost_of_risk", abs(lookup["provision_expense"].value) / average_loans,
+                             "abs(provision_expense) / average(net_loans)", lookup["provision_expense"])
+-                if "accounts_receivable" in lookup and "accounts_receivable" in prior_instant and "revenue" in lookup:
++                if not re_presented_year and "accounts_receivable" in lookup and "accounts_receivable" in prior_instant \
++                        and "revenue" in lookup:
+                     average = (lookup["accounts_receivable"].value + prior_instant["accounts_receivable"].value) / 2
+                     if average:
+                         add("receivables_turnover", lookup["revenue"].value / average,
+                             "revenue / average(accounts_receivable)", lookup["revenue"])
+                         add("days_sales_outstanding", average / lookup["revenue"].value * Decimal(365),
+                             "average(accounts_receivable) / revenue * 365", lookup["revenue"])
++                # Inventory and payables turn over against cost of sales, on the average of the opening and
++                # closing balances, like receivables against revenue.
++                cost = lookup.get("cost_of_revenue")
++                for balance, turnover, days in (("inventory", "inventory_turnover", "days_inventory"),
++                                                ("accounts_payable", "payables_turnover", "days_payables")):
++                    if re_presented_year or cost is None or not cost.value or balance not in lookup \
++                            or balance not in prior_instant:
++                        continue
++                    average = (lookup[balance].value + prior_instant[balance].value) / 2
++                    if average:
++                        add(turnover, abs(cost.value) / average, f"abs(cost_of_revenue) / average({balance})", cost)
++                        add(days, average / abs(cost.value) * Decimal(365),
++                            f"average({balance}) / abs(cost_of_revenue) * 365", cost)
++                if all(key in lookup for key in ("days_sales_outstanding", "days_inventory", "days_payables")):
++                    add("cash_conversion_cycle",
++                        lookup["days_sales_outstanding"].value + lookup["days_inventory"].value
++                        - lookup["days_payables"].value,
++                        "days_sales_outstanding + days_inventory - days_payables", lookup["days_inventory"],
++                        "days")
+                 instant_now = historical.get((company_id, base.fiscal_year, PeriodKind.INSTANT), {})
+                 debt = sum((instant_now[key].value for key in ("current_debt", "long_term_debt") if key in instant_now), Decimal(0))
+                 if debt and "ebitda" in lookup and lookup["ebitda"].value:
+@@ -609,7 +647,15 @@ class Calculator:
+             add("nopat", nopat, "ebit * (1 - (-income_taxes_and_zakat) / income_before_income_taxes_and_zakat)",
+                 lookup["ebit"], currency, currency)
+ 
++        # Continuing-operations flows of a year with discontinued operations exclude a business the opening
++        # balances still hold (IFRS 5 leaves the prior balance sheet as it was): withhold flow-to-balance ratios.
++        mixed_basis = any(
++            (row := historical.get((company_id, year, PeriodKind.FY), {}).get("discontinued_operations_income"))
++            and row.value for year in (base.fiscal_year - 1, base.fiscal_year))
++
+         def average_return(metric, numerator, measure, formula):
++            if mixed_basis:
++                return
+             denominator = average(measure, currency)
+             if numerator is not None and denominator:
+                 add(metric, numerator / denominator, formula, reference)
+@@ -623,7 +669,7 @@ class Calculator:
+         wc_open, wc_close = working_capital(opening, currency), working_capital(closing, currency)
+         # Provisional guard (near-zero threshold is DEFINITION_PENDING): both balances positive and
+         # the average at least 5% of revenue, so the turnover never exceeds 20x.
+-        if revenue and wc_open is not None and wc_close is not None and wc_open > 0 and wc_close > 0 \
++        if not mixed_basis and revenue and wc_open is not None and wc_close is not None and wc_open > 0 and wc_close > 0 \
+                 and (wc_open + wc_close) / 2 >= revenue * Decimal("0.05"):
+             add("working_capital_turnover", revenue / ((wc_open + wc_close) / 2),
+                 "revenue / average(opening, closing)(current_assets - current_liabilities); "
+@@ -631,7 +677,7 @@ class Calculator:
+ 
+         prior_nopat = nopat_of(prior_fy) if prior_fy and prior_fy.get("ebit") and prior_fy["ebit"].currency == currency else None
+         ic_now, ic_prior = invested_capital(closing, currency), invested_capital(opening, currency)
+-        if None not in (nopat, prior_nopat, ic_now, ic_prior) and ic_now != ic_prior:
++        if not mixed_basis and None not in (nopat, prior_nopat, ic_now, ic_prior) and ic_now != ic_prior:
+             add("incremental_roic", (nopat - prior_nopat) / (ic_now - ic_prior),
+                 "(nopat - prior_fy(nopat)) / (closing - opening)(invested_capital)", reference)
+ 
+diff --git a/src/finengine/comparisons.py b/src/finengine/comparisons.py
+index 9eeadff..5dd76f3 100644
+--- a/src/finengine/comparisons.py
++++ b/src/finengine/comparisons.py
+@@ -15,6 +15,7 @@ from .database import Database, _dimensions
+ def comparison_metrics() -> set[str]:
+     calculator = Calculator()
+     return {*calculator.GROWTH_METRICS.values(), *calculator.QOQ_METRICS.values(), *calculator.TTM_GROWTH.values(),
++            *calculator.TURNOVER_METRICS,
+             *(calculator.TTM_NAMED.get(metric, f"{metric}_ttm") for metric in {*calculator.TTM_FLOWS, *calculator.TTM_NAMED}),
+             *(f"{stem}_cagr_{years}y" for stem, horizons in calculator.CAGR_METRICS.values() for years in horizons)}
+ 
+diff --git a/tests/test_efficiency.py b/tests/test_efficiency.py
+new file mode 100644
+index 0000000..657a3b1
+--- /dev/null
++++ b/tests/test_efficiency.py
+@@ -0,0 +1,91 @@
++import unittest
++from decimal import Decimal
++
++from finengine.calculations import Calculator
++from finengine.models import Fact, PeriodKind
++
++
++def fact(metric, value, year, kind=PeriodKind.FY):
++    start = f"{year}-01-01" if kind == PeriodKind.FY else None
++    return Fact("sa:TST", metric, Decimal(value), "SAR", "SAR", start, f"{year}-12-31", kind, year, None,
++                "source:test", "https://example.test", f"{year + 1}-03-01")
++
++
++def balances(year, inventory, payables, receivables):
++    return [fact("inventory", inventory, year, PeriodKind.INSTANT),
++            fact("accounts_payable", payables, year, PeriodKind.INSTANT),
++            fact("accounts_receivable", receivables, year, PeriodKind.INSTANT)]
++
++
++class EfficiencyTests(unittest.TestCase):
++    def derived(self, facts):
++        return {f.metric: f.value for f in Calculator().calculate(facts) if f.period_end == "2025-12-31"}
++
++    def base(self):
++        return [*balances(2024, "90", "45", "100"), *balances(2025, "110", "55", "100"),
++                fact("revenue", "1000", 2025), fact("cost_of_revenue", "-730", 2025)]
++
++    def test_turnover_and_days_on_average_balances(self):
++        out = self.derived(self.base())
++        self.assertEqual(out["inventory_turnover"], Decimal("7.3"))
++        self.assertEqual(out["days_inventory"], Decimal("50"))
++        self.assertEqual(out["payables_turnover"], Decimal("14.6"))
++        self.assertEqual(out["days_payables"], Decimal("25"))
++        self.assertEqual(out["cash_conversion_cycle"], Decimal("36.5") + Decimal("50") - Decimal("25"))
++
++    def test_without_the_opening_balance_nothing_is_averaged(self):
++        out = self.derived([*balances(2025, "110", "55", "100"), fact("cost_of_revenue", "-730", 2025)])
++        self.assertNotIn("inventory_turnover", out)
++
++    def test_a_year_with_discontinued_operations_is_withheld(self):
++        out = self.derived([*self.base(), fact("discontinued_operations_income", "-5", 2025)])
++        self.assertFalse({"inventory_turnover", "days_payables", "receivables_turnover",
++                          "cash_conversion_cycle"} & out.keys())
++
++    def test_selling_general_administrative_from_the_catalog_line_names(self):
++        out = self.derived([fact("revenue", "1000", 2025), fact("general_and_administrative_expense", "-60", 2025),
++                            fact("selling_and_distribution_expense", "-40", 2025)])
++        self.assertEqual(out["selling_general_administrative_expense"], Decimal("100"))
++        self.assertEqual(out["selling_general_administrative_to_revenue"], Decimal("0.1"))
++
++
++if __name__ == "__main__":
++    unittest.main()
++
++
++class CapexToDepreciationTests(unittest.TestCase):
++    def test_cash_flow_add_back_when_no_income_statement_depreciation(self):
++        out = {f.metric: f.value for f in Calculator().calculate(
++            [fact("capex", "-90", 2025), fact("depreciation_amortization_cash_flow", "120", 2025)])}
++        self.assertEqual(out["capex_to_depreciation_amortization"], Decimal("0.75"))
++
++    def test_income_statement_depreciation_is_preferred(self):
++        out = {f.metric: f.value for f in Calculator().calculate(
++            [fact("capex", "-90", 2025), fact("depreciation_amortization", "100", 2025),
++             fact("depreciation_amortization_cash_flow", "120", 2025)])}
++        self.assertEqual(out["capex_to_depreciation"], Decimal("0.9"))
++
++
++class CapitalReturnBasisTests(unittest.TestCase):
++    def run_year(self, discontinued):
++        facts = [fact("ebit", "100", 2025), fact("income_before_income_taxes_and_zakat", "100", 2025),
++                 fact("income_taxes_and_zakat", "-20", 2025), fact("revenue", "1000", 2025)]
++        for year, equity in ((2024, "900"), (2025, "1100")):
++            facts += [fact("total_equity", equity, year, PeriodKind.INSTANT),
++                      fact("current_debt", "0", year, PeriodKind.INSTANT),
++                      fact("long_term_debt", "0", year, PeriodKind.INSTANT),
++                      fact("cash", "0", year, PeriodKind.INSTANT)]
++        if discontinued:
++            facts.append(fact("discontinued_operations_income", "-5", 2025))
++        return {f.metric: f.value for f in Calculator().calculate(facts, industry="Chemicals")
++                if f.period_end == "2025-12-31"}
++
++    def test_return_on_invested_capital_on_one_basis(self):
++        out = self.run_year(False)
++        self.assertEqual(out["nopat"], Decimal("80"))
++        self.assertEqual(out["return_on_invested_capital"], Decimal("0.08"))
++
++    def test_withheld_when_the_year_reports_discontinued_operations(self):
++        out = self.run_year(True)
++        self.assertEqual(out["nopat"], Decimal("80"))
++        self.assertNotIn("return_on_invested_capital", out)
+-- 
+2.43.0
+
+
+From 1ff74db017e128e475475496e0649a3003ca0021 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 23:44:40 +0000
+Subject: [PATCH 2/4] Free-float shares and market cap from the latest
+ free-float position
+
+Point-in-time: the free-float share is the latest ownership position dated on or
+before the price date; free_float_shares = shares_outstanding * free float,
+free_float_market_cap = market_cap * free float.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/domains.py      | 10 ++++++++++
+ tests/test_company_domains.py | 15 +++++++++++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index c70496e..eada30b 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -173,6 +173,16 @@ class CompanyDomainStore:
+             "market_cap": (market_cap, "price_close * shares_outstanding", price["company_currency"], price["company_currency"]),
+             "enterprise_value": (enterprise_value, "market_cap + net_debt", price["company_currency"], price["company_currency"]),
+         }
++        # The free-float share reported in the latest ownership positions dated on or before the price date.
++        free_float = self.db.conn.execute(
++            """SELECT ownership_pct FROM ownership_positions WHERE company_id=? AND is_current=1
++            AND ownership_type='free_float' AND ownership_pct IS NOT NULL AND as_of_date<=?
++            ORDER BY as_of_date DESC LIMIT 1""", (company_id, price["observed_at"])).fetchone()
++        if free_float:
++            share = Decimal(str(free_float["ownership_pct"]))
++            calculations["free_float_shares"] = (shares * share, "shares_outstanding * latest(free_float)", "", "shares")
++            calculations["free_float_market_cap"] = (market_cap * share, "market_cap * latest(free_float)",
++                                                     price["company_currency"], price["company_currency"])
+         if price["turnover"] is not None and price["volume"] is not None and Decimal(price["volume"]):
+             calculations["vwap"] = (
+                 Decimal(price["turnover"]) / Decimal(price["volume"]),
+diff --git a/tests/test_company_domains.py b/tests/test_company_domains.py
+index 1b3f2fd..b40f7fd 100644
+--- a/tests/test_company_domains.py
++++ b/tests/test_company_domains.py
+@@ -108,6 +108,21 @@ class CompanyDomainTests(unittest.TestCase):
+             "market_cap_to_net_income",
+         }.issubset(metrics))
+ 
++    def test_free_float_value_uses_the_latest_free_float_on_or_before_the_price_date(self):
++        self.db.publish_batch([Fact("sa:TST", "shares_outstanding", Decimal("10"), "SAR", "SAR", None, "2025-12-31",
++                                    PeriodKind.INSTANT, 2025, None, self.source.source_key,
++                                    self.source.source_url, self.source.filed_at)])
++        for as_of, pct in (("2025-12-31", "0.30"), ("2026-06-30", "0.40")):
++            self.store.publish_ownership_position("sa:TST", "public", "Public", "free_float", as_of,
++                                                  self.source.source_key, ownership_pct=pct)
++        self.store.publish_market_price("sa:TST", "2026-03-02", "30", "SAR", self.source.source_key,
++                                        open="29", high="31", low="28", volume="1000")
++        self.store.refresh_market_valuations("sa:TST")
++        values = {row[0]: Decimal(row[1]) for row in self.db.conn.execute(
++            """SELECT metric_key,value_decimal FROM data_points WHERE company_id='sa:TST' AND is_current=1
++            AND metric_key IN ('free_float_shares','free_float_market_cap')""")}
++        self.assertEqual(values, {"free_float_shares": Decimal("3"), "free_float_market_cap": Decimal("90")})
++
+     def test_market_statistics_require_honest_windows_and_publish_derived_history(self):
+         start = date(2024, 12, 25)
+         for offset in range(402):
+-- 
+2.43.0
+
+
+From 374337034bf16e5ba364c650051e79282a5940b7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 23:44:40 +0000
+Subject: [PATCH 3/4] Major holder change counts entries and exits between
+ reconciled partitions
+
+When both dates' holder rows add up to 100%, a holder missing at one date held
+nothing then, so a controlling stake moving from one holder to another is a change
+for both. Without reconciled partitions only holders reported at both dates are
+compared, as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/ownership_metrics.py | 26 ++++++++++++++++----------
+ tests/test_ownership_metrics.py    |  7 +++++++
+ 2 files changed, 23 insertions(+), 10 deletions(-)
+
+diff --git a/src/finengine/ownership_metrics.py b/src/finengine/ownership_metrics.py
+index 35f2e2c..44d5010 100644
+--- a/src/finengine/ownership_metrics.py
++++ b/src/finengine/ownership_metrics.py
+@@ -114,14 +114,20 @@ def ownership_metrics(rows) -> dict[str, list[dict]]:
+     dates = sorted(by_date, reverse=True)
+     if len(dates) >= 2:
+         latest, prior = dates[0], dates[1]
+-        before = {(row["holder_key"], row["ownership_type"]): _pct(row) for row in by_date[prior]
+-                  if row["ownership_type"] != CLASS_TOTAL_TYPE and _pct(row) is not None}
+-        for row in by_date[latest]:
+-            identity = (row["holder_key"], row["ownership_type"])
+-            now = _pct(row)
+-            if row["ownership_type"] == CLASS_TOTAL_TYPE or now is None or identity not in before:
+-                continue
+-            if max(now, before[identity]) >= MAJOR_HOLDER_THRESHOLD:
+-                emit("major_holder_change", latest, now - before[identity],
+-                     f"ownership_pct change since {prior}", row["holder_key"])
++        holdings = {date: {(row["holder_key"], row["ownership_type"]): _pct(row) for row in by_date[date]
++                           if row["ownership_type"] != CLASS_TOTAL_TYPE and _pct(row) is not None}
++                    for date in (latest, prior)}
++        # Within partitions that both add up to 100%, a holder missing at one date held nothing then
++        # (an exit or an entry); otherwise only holders reported at both dates are compared.
++        both_reconciled = all(_reconciled([row for row in by_date[date] if row["ownership_type"] != CLASS_TOTAL_TYPE])
++                              for date in (latest, prior))
++        identities = (holdings[latest].keys() | holdings[prior].keys() if both_reconciled
++                      else holdings[latest].keys() & holdings[prior].keys())
++        for identity in sorted(identities):
++            now = holdings[latest].get(identity, Decimal(0))
++            before = holdings[prior].get(identity, Decimal(0))
++            if max(now, before) >= MAJOR_HOLDER_THRESHOLD:
++                basis = (f"ownership_pct change since {prior}" if identity in holdings[latest] and identity in holdings[prior]
++                         else f"ownership_pct change since {prior}; absent from one reconciled partition (0%)")
++                emit("major_holder_change", latest, now - before, basis, identity[0])
+     return dict(out)
+diff --git a/tests/test_ownership_metrics.py b/tests/test_ownership_metrics.py
+index 7a1a35c..f7505a2 100644
+--- a/tests/test_ownership_metrics.py
++++ b/tests/test_ownership_metrics.py
+@@ -86,6 +86,13 @@ class OwnershipMetricTests(unittest.TestCase):
+         self.assertEqual([(item["holder_key"], item["value"]) for item in changes], [("pif", Decimal("0.02"))])
+         self.assertNotIn("major_holder_change", values(rows[:1]))
+ 
++    def test_controlling_stake_moving_between_holders_in_reconciled_partitions(self):
++        rows = [row("pif", "0.7", holder_type="government", date="2019-12-31"),
++                row("public", "0.3", "free_float", "public", date="2019-12-31"),
++                row("aramco", "0.7", holder_type="corporate_strategic"), row("public", "0.3", "free_float", "public")]
++        changes = {item["holder_key"]: item["value"] for item in ownership_metrics(rows)["major_holder_change"]}
++        self.assertEqual(changes, {"aramco": Decimal("0.7"), "pif": Decimal("-0.7"), "public": Decimal("0")})
++
+     def test_ownership_concentration_is_never_emitted_until_defined(self):
+         rows = [row("only", "1")]
+         self.assertNotIn("ownership_concentration", values(rows))
+-- 
+2.43.0
+
+
+From e6b7490b826c1d34b522048d339a093f886a01b6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 25 Oct 2026 23:44:50 +0000
+Subject: [PATCH 4/4] SABIC statement lines, balances 2020-2023, ownership
+ history, release volumes
+
+- AR2025 statements and notes 20/32/33/39 (figures matched on their pages):
+  capex 2025 as PPE + intangibles (as 2019-2024), cash-flow D&A, zakat and tax,
+  EBIT 2024, NCI share of profit, other reserves, 2023 equity as restated (note
+  42), 2024 weighted shares, key management compensation, bank guarantees.
+- Zakat and income tax stored as an expense (negative), the engine convention,
+  in the 2019-2025 statement manifests.
+- Balances: 2020 (Q4 2021 report), 2021-2022 (2022 FS), 2023 (2023 FS, text
+  matched): inventories, trade receivables and payables, cash, debt, totals,
+  statutory reserve; subtotals checked.
+- AR2025 five-year table: the 2021-2023 'cash' rows were the cash-flow closing
+  cash (2023: 33.80 bn vs 32.41 bn on the balance sheet) and duplicated cash_end;
+  removed, balance-sheet cash now comes from the statements.
+- Ownership: PIF 70% / public 30% at 2019-12-31 (Q4 2019 note 1); board and senior
+  executives' SABIC shares at 2025-12-31 as an insider class total (pp.119-120).
+- FY2025 release: adjusted EBIT and adjusted EPS 2025/2024; Q3 2026 release:
+  sales volumes by product line, segment and Specialties.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/sabic-2019-ownership.json        |  38 ++
+ data/imports/sabic-2020-fy-statements.json    |   8 +-
+ ...2021-2025-five-year-financial-history.json |   3 -
+ data/imports/sabic-2021-fy-statements.json    |   8 +-
+ .../sabic-2021-q4-opening-balances.json       |  88 +++++
+ data/imports/sabic-2022-fy-statements.json    |   8 +-
+ .../sabic-2022-fy-working-capital.json        | 179 +++++++++
+ data/imports/sabic-2023-fy-balance-sheet.json | 140 +++++++
+ data/imports/sabic-2023-fy-statements.json    |   8 +-
+ .../sabic-2025-governance-industry.json       |  25 ++
+ data/imports/sabic-2025-statement-lines.json  | 347 ++++++++++++++++++
+ .../sabic-2026-fy2025-earnings-release.json   |  54 +++
+ .../sabic-2026-q3-earnings-release.json       |  78 ++++
+ tests/test_services.py                        |   3 +-
+ 14 files changed, 967 insertions(+), 20 deletions(-)
+ create mode 100644 data/imports/sabic-2019-ownership.json
+ create mode 100644 data/imports/sabic-2021-q4-opening-balances.json
+ create mode 100644 data/imports/sabic-2022-fy-working-capital.json
+ create mode 100644 data/imports/sabic-2023-fy-balance-sheet.json
+ create mode 100644 data/imports/sabic-2025-statement-lines.json
+
+diff --git a/data/imports/sabic-2019-ownership.json b/data/imports/sabic-2019-ownership.json
+new file mode 100644
+index 0000000..0f3ecae
+--- /dev/null
++++ b/data/imports/sabic-2019-ownership.json
+@@ -0,0 +1,38 @@
++{
++ "company_id": "sa:2010",
++ "filing_type": "Quarterly Report 2019 Q4 (SABIC investor relations) - note 1 ownership",
++ "filed_at": "2019-12-31",
++ "period_end": "2019-12-31",
++ "source_url": "https://www.sabic.com/en/Images/19Q4_%20SABIC_Consolidated%20FS%20English%20-%20signed_tcm1010-21922.pdf",
++ "notes": "sha256 4ea3406caef5661d78d0840c31bea9fdba29a2a623975ad0094f5a2c34541b5d. Note 1 (page 9): ownership as at 31 December 2019, before Saudi Aramco acquired the PIF stake (June 2020).",
++ "facts": [],
++ "ownership_positions": [
++  {
++   "holder_key": "public_investment_fund",
++   "holder_name": "Public Investment Fund (Government of the Kingdom of Saudi Arabia)",
++   "holder_type": "government",
++   "ownership_type": "direct",
++   "as_of_date": "2019-12-31",
++   "shares": null,
++   "ownership_pct": 0.7,
++   "country": "SA",
++   "metadata": {
++    "page": 9,
++    "quote": "SABIC is 70% owned by the Government of the Kingdom of Saudi Arabia (“KSA”) through the Public Investment Fund (“PIF”) and 30% by the private sector."
++   }
++  },
++  {
++   "holder_key": "public_free_float",
++   "holder_name": "Public shareholders",
++   "holder_type": "public",
++   "ownership_type": "free_float",
++   "as_of_date": "2019-12-31",
++   "shares": null,
++   "ownership_pct": 0.3,
++   "metadata": {
++    "page": 9,
++    "quote": "SABIC is 70% owned by the Government of the Kingdom of Saudi Arabia (“KSA”) through the Public Investment Fund (“PIF”) and 30% by the private sector."
++   }
++  }
++ ]
++}
+\ No newline at end of file
+diff --git a/data/imports/sabic-2020-fy-statements.json b/data/imports/sabic-2020-fy-statements.json
+index 41a99e5..ec00d26 100644
+--- a/data/imports/sabic-2020-fy-statements.json
++++ b/data/imports/sabic-2020-fy-statements.json
+@@ -125,7 +125,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 2024981,
++   "value": -2024981,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2020-01-01",
+@@ -133,7 +133,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2020,
+    "page": 5,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+@@ -305,7 +305,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 2594939,
++   "value": -2594939,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2019-01-01",
+@@ -313,7 +313,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2019,
+    "page": 5,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+diff --git a/data/imports/sabic-2021-2025-five-year-financial-history.json b/data/imports/sabic-2021-2025-five-year-financial-history.json
+index ac6fd6f..5fab732 100644
+--- a/data/imports/sabic-2021-2025-five-year-financial-history.json
++++ b/data/imports/sabic-2021-2025-five-year-financial-history.json
+@@ -37,7 +37,6 @@
+     {"metric":"financing_cash_flow","source_label":"Net cash used in financing activities","value":"-18.90","period_end":"2023-12-31","period_kind":"fy","fiscal_year":2023,"period_start":"2023-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"cash_change","source_label":"Decrease in cash and cash equivalent","value":"-6.22","period_end":"2023-12-31","period_kind":"fy","fiscal_year":2023,"period_start":"2023-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"cash_end","source_label":"Cash and cash equivalents at the end of the year","value":"33.80","period_end":"2023-12-31","period_kind":"fy","fiscal_year":2023,"period_start":"2023-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+-    {"metric":"cash","source_label":"Cash and cash equivalents at the end of the year","value":"33.80","period_end":"2023-12-31","period_kind":"instant","fiscal_year":2023,"page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"capex","source_label":"Capital expenditures","value":"10.49","period_end":"2023-12-31","period_kind":"fy","fiscal_year":2023,"period_start":"2023-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"free_cash_flow","source_label":"Free cash flow","value":"13.96","period_end":"2023-12-31","period_kind":"fy","fiscal_year":2023,"period_start":"2023-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"shares_outstanding","source_label":"Number of registered shares issued","value":"3000","period_end":"2023-12-31","period_kind":"instant","fiscal_year":2023,"page":19,"table":"Five-year overview and dividend","scale":"1000000","unit":"shares"},
+@@ -59,7 +58,6 @@
+     {"metric":"financing_cash_flow","source_label":"Net cash used in financing activities","value":"-25.42","period_end":"2022-12-31","period_kind":"fy","fiscal_year":2022,"period_start":"2022-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"cash_change","source_label":"Decrease in cash and cash equivalent","value":"-2.17","period_end":"2022-12-31","period_kind":"fy","fiscal_year":2022,"period_start":"2022-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"cash_end","source_label":"Cash and cash equivalents at the end of the year","value":"40.04","period_end":"2022-12-31","period_kind":"fy","fiscal_year":2022,"period_start":"2022-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+-    {"metric":"cash","source_label":"Cash and cash equivalents at the end of the year","value":"40.04","period_end":"2022-12-31","period_kind":"instant","fiscal_year":2022,"page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"capex","source_label":"Capital expenditures","value":"10.22","period_end":"2022-12-31","period_kind":"fy","fiscal_year":2022,"period_start":"2022-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"free_cash_flow","source_label":"Free cash flow","value":"25.59","period_end":"2022-12-31","period_kind":"fy","fiscal_year":2022,"period_start":"2022-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"shares_outstanding","source_label":"Number of registered shares issued","value":"3000","period_end":"2022-12-31","period_kind":"instant","fiscal_year":2022,"page":19,"table":"Five-year overview and dividend","scale":"1000000","unit":"shares"},
+@@ -79,7 +77,6 @@
+     {"metric":"financing_cash_flow","source_label":"Net cash used in financing activities","value":"-17.82","period_end":"2021-12-31","period_kind":"fy","fiscal_year":2021,"period_start":"2021-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"cash_change","source_label":"Increase in cash and cash equivalent","value":"12.75","period_end":"2021-12-31","period_kind":"fy","fiscal_year":2021,"period_start":"2021-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"cash_end","source_label":"Cash and cash equivalents at the end of the year","value":"42.31","period_end":"2021-12-31","period_kind":"fy","fiscal_year":2021,"period_start":"2021-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+-    {"metric":"cash","source_label":"Cash and cash equivalents at the end of the year","value":"42.31","period_end":"2021-12-31","period_kind":"instant","fiscal_year":2021,"page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"capex","source_label":"Capital expenditures","value":"10.97","period_end":"2021-12-31","period_kind":"fy","fiscal_year":2021,"period_start":"2021-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"free_cash_flow","source_label":"Free cash flow","value":"28.52","period_end":"2021-12-31","period_kind":"fy","fiscal_year":2021,"period_start":"2021-01-01","page":42,"table":"Summarized consolidated cash flows","scale":"1000000000","currency":"SAR","unit":"SAR"},
+     {"metric":"shares_outstanding","source_label":"Number of registered shares issued","value":"3000","period_end":"2021-12-31","period_kind":"instant","fiscal_year":2021,"page":19,"table":"Five-year overview and dividend","scale":"1000000","unit":"shares"},
+diff --git a/data/imports/sabic-2021-fy-statements.json b/data/imports/sabic-2021-fy-statements.json
+index 44b1041..776c283 100644
+--- a/data/imports/sabic-2021-fy-statements.json
++++ b/data/imports/sabic-2021-fy-statements.json
+@@ -125,7 +125,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 3586206,
++   "value": -3586206,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2021-01-01",
+@@ -133,7 +133,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2021,
+    "page": 5,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+@@ -305,7 +305,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 2021028,
++   "value": -2021028,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2020-01-01",
+@@ -313,7 +313,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2020,
+    "page": 5,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+diff --git a/data/imports/sabic-2021-q4-opening-balances.json b/data/imports/sabic-2021-q4-opening-balances.json
+new file mode 100644
+index 0000000..0a4c2ee
+--- /dev/null
++++ b/data/imports/sabic-2021-q4-opening-balances.json
+@@ -0,0 +1,88 @@
++{
++ "company_id": "sa:2010",
++ "filing_type": "Quarterly Report 2021 Q4 (SABIC investor relations) - statement of financial position",
++ "filed_at": "2022-02-16",
++ "period_end": "2020-12-31",
++ "source_url": "https://www.sabic.com/en/Images/SABIC-Q4-21-FS-EN_tcm1010-31959.pdf",
++ "notes": "sha256 d46541e0b7c82dd42c3c1f2c24a365f23694d9304fa3155004c88136c22d1150. Page image transcribed; current assets add to the printed totals for every year. Only the 2020 comparative column is taken: the 2021 balances come from the 2022 financial statements, which re-present them.",
++ "facts": [
++  {
++   "metric": "inventory",
++   "value": 19311198,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2020-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2020,
++   "page": 4,
++   "source_label": "Inventories",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_receivable",
++   "value": 16927713,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2020-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2020,
++   "page": 4,
++   "source_label": "Trade receivables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "total_assets",
++   "value": 295468550,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2020-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2020,
++   "page": 4,
++   "source_label": "Total assets",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "property_plant_equipment",
++   "value": 136179720,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2020-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2020,
++   "page": 4,
++   "source_label": "Property, plant and equipment",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "current_assets",
++   "value": 81392652,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2020-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2020,
++   "page": 4,
++   "source_label": "Total current assets",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "current_liabilities",
++   "value": 37492910,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2020-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2020,
++   "page": 4,
++   "source_label": "Total current liabilities",
++   "table": "statement of financial position"
++  }
++ ]
++}
+\ No newline at end of file
+diff --git a/data/imports/sabic-2022-fy-statements.json b/data/imports/sabic-2022-fy-statements.json
+index 4a158aa..d0d9416 100644
+--- a/data/imports/sabic-2022-fy-statements.json
++++ b/data/imports/sabic-2022-fy-statements.json
+@@ -125,7 +125,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 2495353,
++   "value": -2495353,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2022-01-01",
+@@ -133,7 +133,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2022,
+    "page": 9,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+@@ -331,7 +331,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 3586193,
++   "value": -3586193,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2021-01-01",
+@@ -339,7 +339,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2021,
+    "page": 9,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+diff --git a/data/imports/sabic-2022-fy-working-capital.json b/data/imports/sabic-2022-fy-working-capital.json
+new file mode 100644
+index 0000000..a844049
+--- /dev/null
++++ b/data/imports/sabic-2022-fy-working-capital.json
+@@ -0,0 +1,179 @@
++{
++ "company_id": "sa:2010",
++ "filing_type": "SABIC Financials 2022 (SABIC investor relations) - statement of financial position",
++ "filed_at": "2023-05-11",
++ "period_end": "2022-12-31",
++ "source_url": "https://www.sabic.com/en/Images/SABIC-FS-2022-EN_tcm1010-40119.pdf",
++ "notes": "sha256 ec7c20ddaca197fec7610983a02daf2f361f9f1566641426a1fb7c48aa9d83ad. Page image transcribed; current assets and current liabilities add to the printed totals for every year.",
++ "facts": [
++  {
++   "metric": "inventory",
++   "value": 28224642,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 8,
++   "source_label": "Inventories",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_receivable",
++   "value": 23923727,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 8,
++   "source_label": "Trade receivables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_payable",
++   "value": 22537990,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 8,
++   "source_label": "Trade payables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "statutory_reserve",
++   "value": 15000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 8,
++   "source_label": "Statutory reserve (printed as nil where shown as a dash)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "inventory",
++   "value": 28621278,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Inventories",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_receivable",
++   "value": 26330104,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Trade receivables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_payable",
++   "value": 26149125,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Trade payables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "statutory_reserve",
++   "value": 15000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Statutory reserve (printed as nil where shown as a dash)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "cash",
++   "value": 42319393,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Cash and cash equivalents (statement of financial position)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "total_assets",
++   "value": 319355328,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Total assets",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "property_plant_equipment",
++   "value": 131018714,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Property, plant and equipment",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "current_assets",
++   "value": 108314631,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Total current assets",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "current_liabilities",
++   "value": 51194010,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2021-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2021,
++   "page": 8,
++   "source_label": "Total current liabilities",
++   "table": "statement of financial position"
++  }
++ ]
++}
+\ No newline at end of file
+diff --git a/data/imports/sabic-2023-fy-balance-sheet.json b/data/imports/sabic-2023-fy-balance-sheet.json
+new file mode 100644
+index 0000000..b6b6690
+--- /dev/null
++++ b/data/imports/sabic-2023-fy-balance-sheet.json
+@@ -0,0 +1,140 @@
++{
++ "company_id": "sa:2010",
++ "filing_type": "Sabic FInancials 2023 (SABIC investor relations) - statement of financial position",
++ "filed_at": "2024-03-21",
++ "period_end": "2023-12-31",
++ "source_url": "https://www.sabic.com/en/Images/SABIC%20FINANCIALS%202023_tcm1010-42878.pdf",
++ "notes": "sha256 360ac91dbb586a3d8c9a8a4536b4293db31ed98367400e0abf1ea9e07b9ddeef. Page text matched figure by figure; current assets add to the printed totals for every year.",
++ "facts": [
++  {
++   "metric": "inventory",
++   "value": 18332223,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Inventories",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_receivable",
++   "value": 19295374,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Trade receivables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "accounts_payable",
++   "value": 20087016,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Trade payables",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "statutory_reserve",
++   "value": 0,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Statutory reserve (printed as nil where shown as a dash)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "cash",
++   "value": 32414996,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Cash and cash equivalents (statement of financial position)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "current_debt",
++   "value": 4715767,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Short-term borrowings plus current portion of debt",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "long_term_debt",
++   "value": 23255179,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 9,
++   "source_label": "Debt (non-current)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "cash",
++   "value": 40059331,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 9,
++   "source_label": "Cash and cash equivalents (statement of financial position)",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "current_debt",
++   "value": 6895692,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 9,
++   "source_label": "Short-term borrowings plus current portion of debt",
++   "table": "statement of financial position"
++  },
++  {
++   "metric": "long_term_debt",
++   "value": 21543556,
++   "currency": "SAR",
++   "unit": "SAR",
++   "scale": 1000,
++   "period_end": "2022-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2022,
++   "page": 9,
++   "source_label": "Debt (non-current)",
++   "table": "statement of financial position"
++  }
++ ]
++}
+\ No newline at end of file
+diff --git a/data/imports/sabic-2023-fy-statements.json b/data/imports/sabic-2023-fy-statements.json
+index 9db575f..30afd75 100644
+--- a/data/imports/sabic-2023-fy-statements.json
++++ b/data/imports/sabic-2023-fy-statements.json
+@@ -151,7 +151,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 830952,
++   "value": -830952,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2023-01-01",
+@@ -159,7 +159,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2023,
+    "page": 10,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+@@ -383,7 +383,7 @@
+   },
+   {
+    "metric": "income_taxes_and_zakat",
+-   "value": 2363416,
++   "value": -2363416,
+    "currency": "SAR",
+    "unit": "SAR",
+    "period_start": "2022-01-01",
+@@ -391,7 +391,7 @@
+    "period_kind": "fy",
+    "fiscal_year": 2022,
+    "page": 10,
+-   "source_label": "Zakat expense + income tax expense (sum of the two printed lines)",
++   "source_label": "Zakat expense + income tax expense (sum of the two printed lines; expense negative)",
+    "scale": 1000
+   },
+   {
+diff --git a/data/imports/sabic-2025-governance-industry.json b/data/imports/sabic-2025-governance-industry.json
+index 33671f9..8a60a12 100644
+--- a/data/imports/sabic-2025-governance-industry.json
++++ b/data/imports/sabic-2025-governance-industry.json
+@@ -470,6 +470,31 @@
+    }
+   }
+  ],
++ "ownership_positions": [
++  {
++   "holder_key": "board_and_senior_executives",
++   "holder_name": "Board members and senior executives",
++   "holder_type": "insider",
++   "ownership_type": "aggregate",
++   "as_of_date": "2025-12-31",
++   "shares": 81200,
++   "ownership_pct": 2.70667e-05,
++   "metadata": {
++    "holders": {
++     "Yousef Al-Zamel": 69200,
++     "Mohammed Al-Subaie": 2000,
++     "Dr. Faisal Al-Faqeer": 7500,
++     "Ahmed Al-Shaikh": 2500
++    },
++    "pages": [
++     119,
++     120
++    ],
++    "issued_shares": 3000000000,
++    "note": "inside the public free float; includes spouses and minor children"
++   }
++  }
++ ],
+  "typed_facts": [
+   {
+    "metric": "dividend_payment_frequency",
+diff --git a/data/imports/sabic-2025-statement-lines.json b/data/imports/sabic-2025-statement-lines.json
+new file mode 100644
+index 0000000..f340303
+--- /dev/null
++++ b/data/imports/sabic-2025-statement-lines.json
+@@ -0,0 +1,347 @@
++{
++ "company_id": "sa:2010",
++ "filing_type": "Integrated Annual Report 2025 - statement and note lines",
++ "filed_at": "2026-03-03",
++ "period_end": "2025-12-31",
++ "source_url": "https://www.sabic.com/en/Images/SABIC-Integrated-Annual-Report-2025-EN_tcm1010-49452.pdf",
++ "notes": "Consolidated statements and notes 20, 32, 33 and 39 of the Integrated Annual Report 2025; each printed figure is matched on its page. Capex is purchase of PPE plus additions of intangible assets (SABIC's free-cash-flow definition, as for 2019-2024). Cash-flow D&A and capex include discontinued operations, as the statement does.",
++ "facts": [
++  {
++   "metric": "ppe_purchases",
++   "value": -8750028,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 137,
++   "source_label": "Purchase of property, plant and equipment",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "intangible_asset_purchases",
++   "value": -24777,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 137,
++   "source_label": "Additions of intangible assets",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "capex",
++   "value": -8774805,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 137,
++   "source_label": "Purchase of property, plant and equipment + additions of intangible assets",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "depreciation_amortization_cash_flow",
++   "value": 12897679,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 136,
++   "source_label": "Depreciation of PPE + depreciation of right-of-use assets + amortisation of intangible and other assets",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "income_taxes_and_zakat",
++   "value": -1603954,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 133,
++   "source_label": "Zakat expense + income tax (sum of the two printed lines; expense negative)",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "income_taxes_and_zakat",
++   "value": -821073,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 133,
++   "source_label": "Zakat expense + income tax (sum of the two printed lines; expense negative)",
++   "period_start": "2024-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "ebit",
++   "value": 9426513,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 133,
++   "source_label": "Income from operations (EBIT)",
++   "period_start": "2024-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "total_equity",
++   "value": 194807590,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 135,
++   "source_label": "Total equity - balance as at 1 January 2024 (restated)",
++   "scale": 1000
++  },
++  {
++   "metric": "equity_parent",
++   "value": 166953664,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2023-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2023,
++   "page": 135,
++   "source_label": "Equity attributable to equity holders of the Parent - balance as at 1 January 2024 (restated)",
++   "scale": 1000
++  },
++  {
++   "metric": "minority_interest_income",
++   "value": 1054265,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 133,
++   "source_label": "Net (loss) income attributable to non-controlling interests",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "minority_interest_income",
++   "value": 2184593,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 133,
++   "source_label": "Net (loss) income attributable to non-controlling interests",
++   "period_start": "2024-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "accumulated_other_comprehensive_income",
++   "value": -1472793,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2025,
++   "page": 135,
++   "source_label": "Other reserves (balance as at 31 December)",
++   "scale": 1000
++  },
++  {
++   "metric": "accumulated_other_comprehensive_income",
++   "value": -4112475,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2024,
++   "page": 135,
++   "source_label": "Other reserves (balance as at 31 December)",
++   "scale": 1000
++  },
++  {
++   "metric": "weighted_average_shares_basic",
++   "value": 3000000,
++   "currency": "SAR",
++   "unit": "shares",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 200,
++   "source_label": "Weighted average number of ordinary shares ('000)",
++   "period_start": "2024-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "weighted_average_shares_diluted",
++   "value": 3000000,
++   "currency": "SAR",
++   "unit": "shares",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 200,
++   "source_label": "Weighted average number of ordinary shares ('000); no dilutive instruments",
++   "period_start": "2024-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 47499,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 202,
++   "source_label": "Key management compensation - Short-term employee benefits",
++   "period_start": "2025-01-01",
++   "scale": 1000,
++   "dimensions": {
++    "compensation_type": "Short-term employee benefits"
++   }
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 38425,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 202,
++   "source_label": "Key management compensation - Short-term employee benefits",
++   "period_start": "2024-01-01",
++   "scale": 1000,
++   "dimensions": {
++    "compensation_type": "Short-term employee benefits"
++   }
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 8610,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 202,
++   "source_label": "Key management compensation - Post-employment benefits",
++   "period_start": "2025-01-01",
++   "scale": 1000,
++   "dimensions": {
++    "compensation_type": "Post-employment benefits"
++   }
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 8182,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 202,
++   "source_label": "Key management compensation - Post-employment benefits",
++   "period_start": "2024-01-01",
++   "scale": 1000,
++   "dimensions": {
++    "compensation_type": "Post-employment benefits"
++   }
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 11604,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 202,
++   "source_label": "Key management compensation - Other long-term benefits",
++   "period_start": "2025-01-01",
++   "scale": 1000,
++   "dimensions": {
++    "compensation_type": "Other long-term benefits"
++   }
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 30439,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 202,
++   "source_label": "Key management compensation - Other long-term benefits",
++   "period_start": "2024-01-01",
++   "scale": 1000,
++   "dimensions": {
++    "compensation_type": "Other long-term benefits"
++   }
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 67713,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 202,
++   "source_label": "Key management compensation - total",
++   "period_start": "2025-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "key_management_compensation",
++   "value": 77046,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 202,
++   "source_label": "Key management compensation - total",
++   "period_start": "2024-01-01",
++   "scale": 1000
++  },
++  {
++   "metric": "contingencies",
++   "value": 1070,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2025-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2025,
++   "page": 213,
++   "source_label": "Bank guarantees issued on the Group's behalf (contingent liabilities, note 39.3)",
++   "scale": 1000000
++  },
++  {
++   "metric": "contingencies",
++   "value": 1150,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_end": "2024-12-31",
++   "period_kind": "instant",
++   "fiscal_year": 2024,
++   "page": 213,
++   "source_label": "Bank guarantees issued on the Group's behalf (contingent liabilities, note 39.3)",
++   "scale": 1000000
++  }
++ ]
++}
+\ No newline at end of file
+diff --git a/data/imports/sabic-2026-fy2025-earnings-release.json b/data/imports/sabic-2026-fy2025-earnings-release.json
+index 0c45f27..c4b4a03 100644
+--- a/data/imports/sabic-2026-fy2025-earnings-release.json
++++ b/data/imports/sabic-2026-fy2025-earnings-release.json
+@@ -173,6 +173,60 @@
+    "table": "Summary financial results",
+    "source_label": "Income from operations (EBIT)",
+    "scale": "1000000000"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": "6.92",
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "fiscal_quarter": null,
++   "table": "Summary financial results",
++   "source_label": "Adjusted EBIT (income from operations excluding non-operational anomalies and one-offs)",
++   "scale": "1000000000"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": "9.79",
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "fiscal_quarter": null,
++   "table": "Summary financial results",
++   "source_label": "Adjusted EBIT (income from operations excluding non-operational anomalies and one-offs)",
++   "scale": "1000000000"
++  },
++  {
++   "metric": "earnings_per_share_normalized",
++   "value": "0.69",
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "fiscal_quarter": null,
++   "table": "Summary financial results",
++   "source_label": "Adjusted earnings per share attributable to equity holders of the Parent (SAR)"
++  },
++  {
++   "metric": "earnings_per_share_normalized",
++   "value": "1.96",
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "fiscal_quarter": null,
++   "table": "Summary financial results",
++   "source_label": "Adjusted earnings per share attributable to equity holders of the Parent (SAR)"
+   }
+  ],
+  "disclosures": [
+diff --git a/data/imports/sabic-2026-q3-earnings-release.json b/data/imports/sabic-2026-q3-earnings-release.json
+index b2deb26..71b8488 100644
+--- a/data/imports/sabic-2026-q3-earnings-release.json
++++ b/data/imports/sabic-2026-q3-earnings-release.json
+@@ -1457,6 +1457,84 @@
+    "dimensions": {
+     "segment": "Specialties"
+    }
++  },
++  {
++   "metric": "sales_volume_by_product",
++   "value": "3.67",
++   "unit": "million_tonnes",
++   "period_start": "2026-07-01",
++   "period_end": "2026-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2026,
++   "fiscal_quarter": 3,
++   "table": "Summary financial results",
++   "source_label": "Chemicals sales volume was 3.67 MMT",
++   "scope": "segment",
++   "dimensions": {
++    "segment": "Petrochemicals",
++    "product": "Chemicals"
++   }
++  },
++  {
++   "metric": "sales_volume_by_product",
++   "value": "2.95",
++   "unit": "million_tonnes",
++   "period_start": "2026-07-01",
++   "period_end": "2026-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2026,
++   "fiscal_quarter": 3,
++   "table": "Summary financial results",
++   "source_label": "Polymers sales volume was 2.95",
++   "scope": "segment",
++   "dimensions": {
++    "segment": "Petrochemicals",
++    "product": "Polymers"
++   }
++  },
++  {
++   "metric": "sales_volume",
++   "value": "6.71",
++   "unit": "million_tonnes",
++   "period_start": "2026-07-01",
++   "period_end": "2026-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2026,
++   "fiscal_quarter": 3,
++   "table": "Summary financial results",
++   "source_label": "Total Petrochemicals sales volume of 6.71 MMT",
++   "scope": "segment",
++   "dimensions": {
++    "segment": "Petrochemicals"
++   }
++  },
++  {
++   "metric": "sales_volume",
++   "value": "1.62",
++   "unit": "million_tonnes",
++   "period_start": "2026-07-01",
++   "period_end": "2026-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2026,
++   "fiscal_quarter": 3,
++   "table": "Summary financial results",
++   "source_label": "Total Agri-Nutrients sales volume of 1.62 MMT",
++   "scope": "segment",
++   "dimensions": {
++    "segment": "Agri-Nutrients"
++   }
++  },
++  {
++   "metric": "specialties_sales_volume",
++   "value": "0.065",
++   "unit": "million_tonnes",
++   "period_start": "2026-07-01",
++   "period_end": "2026-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2026,
++   "fiscal_quarter": 3,
++   "table": "Summary financial results",
++   "source_label": "Total Specialties sales volume of 65 KMT during Q3 2026"
+   }
+  ],
+  "disclosures": [
+diff --git a/tests/test_services.py b/tests/test_services.py
+index 90e816e..0404a5a 100644
+--- a/tests/test_services.py
++++ b/tests/test_services.py
+@@ -736,7 +736,8 @@ class ServiceTests(unittest.TestCase):
+         self.assertEqual(chemicals["provenance"]["extraction"]["page"], 47)
+         self.assertEqual(sabic["attributes"]["business_description"]["category"],
+                          "business_model")
+-        self.assertEqual(len(sabic["ownership"]), 3)
++        # 2025: Aramco, free float, foreign class total, insider class total; 2019: PIF and free float
++        self.assertEqual(len(sabic["ownership"]), 6)
+         self.assertEqual(len(sabic["corporate_actions"]), 3)
+         self.assertEqual(len(sabic_annual_prices), 5)
+         by_category = {row["category"]: row for row in sabic_completeness["categories"]}
+-- 
+2.43.0
+

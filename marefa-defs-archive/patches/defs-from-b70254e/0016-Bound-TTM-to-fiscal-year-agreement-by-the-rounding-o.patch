@@ -1,0 +1,106 @@
+From 11fce1b85535a560c950ab8029a893ad528d6728 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:07:43 +0000
+Subject: [PATCH 16/21] Bound TTM-to-fiscal-year agreement by the rounding of
+ the reported figures
+
+The fixed 0.5% tolerance had no basis and let a 55 million gap through on
+a 76 billion total. A TTM window that is exactly a fiscal year may now
+differ from that year's reported value only by what the rounding of the
+five figures can explain: half the last stated unit of each, with a zero
+taking the finest precision of the others. Of the 29 such windows in the
+current imports, 24 agree within rounding and 5 are withheld as conflicts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 26 +++++++++++++++++++++++---
+ tests/test_contract_derivations.py | 18 +++++++++++++++++-
+ 2 files changed, 40 insertions(+), 4 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index ba18837..3f95836 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -11,8 +11,6 @@ class Calculator:
+     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
+     # Quarterly dividends whose trailing-twelve-month sum has its own catalog key.
+     TTM_NAMED = {"dividends_per_share": "dividend_per_share_ttm", "dividends_paid": "total_dividend_paid_ttm"}
+-    # A TTM window that is exactly a fiscal year must agree with that year's reported value.
+-    TTM_FY_TOLERANCE = Decimal("0.005")
+     HISTORY_METRICS = {
+         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
+         "income_taxes_and_zakat",
+@@ -800,6 +798,25 @@ class Calculator:
+                 "sum of bank-quality signals passed [" + ", ".join(sorted(bank_evaluated)) + "]",
+                 base, unit="score")
+ 
++    @staticmethod
++    def _rounding_half_unit(value: Decimal) -> Decimal:
++        """Half the last reported unit of a figure: 0.3312 -> 0.00005, 80104000000 -> 500000.
++
++        A figure with a fractional part keeps its stated decimals; for a whole number (often a scaled
++        figure such as millions) trailing zeros are read as rounding, which can only widen the bound."""
++        exponent = value.as_tuple().exponent
++        if value and value == value.to_integral_value():
++            exponent = value.normalize().as_tuple().exponent
++        return Decimal(1).scaleb(exponent) / 2
++
++    @classmethod
++    def _rounding_bound(cls, values: list[Decimal]) -> Decimal:
++        """Largest gap rounding alone can explain between a sum and a total; a zero has no stated
++        precision, so it takes the finest precision of the other figures."""
++        units = [cls._rounding_half_unit(value) for value in values if value]
++        finest = min(units, default=Decimal(0))
++        return sum(units, Decimal(0)) + finest * sum(1 for value in values if not value)
++
+     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
+         out = []
+         groups = defaultdict(dict)
+@@ -829,7 +846,10 @@ class Calculator:
+                 annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
+                                            tuple(sorted(base.dimensions.items())), last[0].period_start,
+                                            base.period_end))
+-                if annual is not None and abs(total - annual.value) > self.TTM_FY_TOLERANCE * abs(annual.value):
++                # A window that is exactly a fiscal year must agree with that year's reported value
++                # within the rounding the five reported figures can carry; a larger gap is a conflict.
++                if annual is not None and abs(total - annual.value) > self._rounding_bound(
++                        [item.value for item in last] + [annual.value]):
+                     continue
+                 out.append(Fact(
+                     base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 44ef11d..46b4a1a 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -272,10 +272,26 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+ 
+     def test_ttm_contradicting_the_same_fiscal_year_is_withheld(self):
+         self.assertEqual(self.dividend_ttm(["0", "0.48", "0", "0"], annual="0.96"), {})
+-        # Rounding inside the tolerance still agrees; no fiscal-year value means nothing to contradict.
++        # Quarters stated to two decimals can differ from a four-decimal year by their rounding only.
+         self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
++        # No fiscal-year value means nothing to contradict.
+         self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
+ 
++    def test_ttm_agreement_bound_is_the_rounding_of_the_reported_figures(self):
++        quarters = ["80104", "80112", "80113", "80118"]  # sum 320447; five whole figures: bound 2.5
++        paid = lambda annual: self.dividend_ttm(quarters, annual=annual, metric="dividends_paid", unit="SAR")
++        self.assertTrue(paid("320449"))
++        self.assertEqual(paid("320451"), {})
++        # Figures in millions: 80104000000 carries +/-500000, so a one-million gap is still rounding.
++        scaled = [q + "000000" for q in quarters]
++        self.assertTrue(self.dividend_ttm(scaled, annual="320448000000", metric="dividends_paid", unit="SAR"))
++        self.assertEqual(self.dividend_ttm(scaled, annual="320451000000", metric="dividends_paid", unit="SAR"), {})
++        # A zero quarter takes the finest precision of the other figures, not +/-0.5.
++        self.assertEqual(Calculator._rounding_bound([Decimal("0"), Decimal("0.48"), Decimal("0.96")]), Decimal("0.015"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.30")), Decimal("0.005"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.00")), Decimal("0.005"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("17720000000.00")), Decimal("5000000"))
++
+     def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
+         history = [fact("dividends_per_share", "1.3112", PeriodKind.FY, "2022-12-31", 2022, unit="SAR/share")]
+         batch = [*annual(2025, net_income="350210", dividends_paid="320447"),
+-- 
+2.43.0
+

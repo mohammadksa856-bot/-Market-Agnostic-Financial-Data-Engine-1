@@ -1,0 +1,53 @@
+From b1338765153a5e9e38ac6b0110c682cd4af527ac Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 20 Oct 2026 14:15:19 +0000
+Subject: [PATCH 02/21] Emit no NOPAT or after-tax returns for a loss year
+
+A negative pre-tax income turns abs(tax) / pretax into a negative rate
+and inflates NOPAT; the tax rate is now undefined unless pretax > 0.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 3 ++-
+ tests/test_contract_derivations.py | 9 +++++++++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index ceadeed..e27bb4a 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -539,8 +539,9 @@ class Calculator:
+             return rows["current_assets"].value - rows["current_liabilities"].value
+ 
+         def tax_rate(rows):
++            # A loss year has no meaningful tax rate: NOPAT and its returns are not emitted.
+             taxes, pretax = val(rows, "income_taxes_and_zakat"), val(rows, "income_before_income_taxes_and_zakat")
+-            return abs(taxes) / pretax if taxes is not None and pretax else None
++            return abs(taxes) / pretax if taxes is not None and pretax is not None and pretax > 0 else None
+ 
+         ebit, revenue, net_income = val(lookup, "ebit"), val(lookup, "revenue"), val(lookup, "net_income")
+         rate = tax_rate(lookup)
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index a5034ef..cf4bd0a 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -82,6 +82,15 @@ class ContractDerivationTests(unittest.TestCase):
+         for metric in ("return_on_capital", "return_on_capital_employed", "fixed_asset_turnover", "margin_expansion"):
+             self.assertNotIn((metric, "2025-12-31"), out)
+ 
++    def test_loss_year_emits_no_nopat_or_after_tax_returns(self):
++        facts = [item for item in self.facts if not (item.metric == "income_before_income_taxes_and_zakat"
++                                                     and item.period_end == "2025-12-31")]
++        facts.append(fact("income_before_income_taxes_and_zakat", "-50", PeriodKind.FY, "2025-12-31", 2025))
++        out = self.calculate(facts)
++        for metric in ("nopat", "return_on_invested_capital", "incremental_roic"):
++            self.assertNotIn((metric, "2025-12-31"), out)
++        self.assertIn(("return_on_capital_employed", "2025-12-31"), out)  # pre-tax returns are still defined
++
+     def test_quarter_on_quarter_uses_the_previous_fiscal_quarter(self):
+         quarters = [
+             fact("revenue", "100", PeriodKind.QUARTER, "2026-03-31", 2026, 1),
+-- 
+2.43.0
+

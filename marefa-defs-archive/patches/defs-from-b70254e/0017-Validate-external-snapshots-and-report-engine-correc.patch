@@ -1,0 +1,967 @@
+From c9c2940dc84561a58fc997073daf550dd66993d9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:23:34 +0000
+Subject: [PATCH 17/21] Validate external snapshots and report
+ engine-correction impact
+
+contract-compare now refuses a snapshot that is not a valid bundle and
+names every structural problem; contract-validate runs the same check on
+its own, and docs/contract-bundle.schema.json publishes the format. A
+producer without field definitions may list plain keys and declare
+absent records missing; absent definitions are reported, not diffed.
+engine-impact compares two snapshots of the same imports and reports
+rows removed, added or changed per metric and every company's score
+before and after; its corrections can be attached to an export so a
+conflict on a corrected key is flagged, not hidden. Exports now carry
+observations for profile, price, ownership, corporate-action and
+disclosure keys as well as data points.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ docs/CONTRACT_BUNDLE.md           |  24 +++
+ docs/contract-bundle.schema.json  | 267 ++++++++++++++++++++++++
+ src/finengine/cli.py              |  29 ++-
+ src/finengine/contract_compare.py | 335 +++++++++++++++++++++++++++++-
+ tests/test_contract_compare.py    | 147 ++++++++++++-
+ 5 files changed, 786 insertions(+), 16 deletions(-)
+ create mode 100644 docs/CONTRACT_BUNDLE.md
+ create mode 100644 docs/contract-bundle.schema.json
+
+diff --git a/docs/CONTRACT_BUNDLE.md b/docs/CONTRACT_BUNDLE.md
+new file mode 100644
+index 0000000..ba97554
+--- /dev/null
++++ b/docs/CONTRACT_BUNDLE.md
+@@ -0,0 +1,24 @@
++# Contract bundles: comparing independent pipelines
++
++A bundle (`docs/contract-bundle.schema.json`) is the factory contract a pipeline scored a company
++against, plus its evidence for every contract key: `closed`, `missing` or `excluded` (a reviewed
++unavailable / not-applicable assessment), with the observations behind each closed key.
++
++| Command | Purpose |
++|---|---|
++| `contract-export MARKET SYMBOL --out F --label L [--corrections IMPACT.json]` | Bundle this engine's evidence. Refuses to finish unless the bundle reproduces the evaluator's total score. |
++| `contract-validate F` | Structural check of any snapshot, including one produced elsewhere. Exit code 2 and the full error list when invalid. |
++| `contract-compare A B` | Common and extra keys; weight, category-placement and definition differences; value, unit, period and source conflicts on keys both closed; union coverage counted once per contract slot. |
++| `engine-impact BEFORE.sqlite3 AFTER.sqlite3 --label L` | What an engine change did to the same imports: rows removed, added or changed per metric, and every company's contract score before and after. Inputs are read from temporary copies. |
++
++**Minimal snapshots.** A producer that has no field definitions may list fields as plain keys, and
++may declare `"record_default": "missing"` so that only closed keys need a record. Missing definitions
++are reported as `definition_not_provided`, never as a definition difference.
++
++**Engine corrections.** An impact report's `engine_corrections` can be attached to a bundle. A conflict
++on a key one pipeline's engine corrected is flagged with that correction, so a fixed calculation is
++not mistaken for a data dispute; the conflict itself is still reported.
++
++**Counting.** A contract key can sit in more than one category (e.g. `segments` and
++`sector_specific_fields`); closure is reported per distinct key and per slot, and a key closed by both
++pipelines counts once.
+diff --git a/docs/contract-bundle.schema.json b/docs/contract-bundle.schema.json
+new file mode 100644
+index 0000000..8ae5984
+--- /dev/null
++++ b/docs/contract-bundle.schema.json
+@@ -0,0 +1,267 @@
++{
++ "$schema": "https://json-schema.org/draft/2020-12/schema",
++ "$id": "finengine/contract-bundle-v1",
++ "title": "Factory-contract evidence bundle, version 1",
++ "description": "The contract a pipeline scored against and its per-key evidence. Checked by `finengine contract-validate`, which also enforces the cross-field rules this schema cannot express (unique keys, every contract key recorded, records only for contract keys).",
++ "type": "object",
++ "required": [
++  "bundle_version",
++  "company_id",
++  "contract",
++  "records"
++ ],
++ "properties": {
++  "bundle_version": {
++   "const": 1
++  },
++  "label": {
++   "type": "string"
++  },
++  "engine_sha": {
++   "type": "string"
++  },
++  "company_id": {
++   "type": "string",
++   "minLength": 1
++  },
++  "engine_total_score": {
++   "anyOf": [
++    {
++     "type": "number"
++    },
++    {
++     "type": "string",
++     "pattern": "^-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$"
++    }
++   ]
++  },
++  "record_default": {
++   "enum": [
++    "missing"
++   ],
++   "description": "Contract keys without a record are missing."
++  },
++  "contract": {
++   "type": "object",
++   "required": [
++    "categories"
++   ],
++   "properties": {
++    "version": {},
++    "categories": {
++     "type": "array",
++     "minItems": 1,
++     "items": {
++      "type": "object",
++      "required": [
++       "key",
++       "weight"
++      ],
++      "properties": {
++       "key": {
++        "type": "string",
++        "minLength": 1
++       },
++       "weight": {
++        "anyOf": [
++         {
++          "type": "number"
++         },
++         {
++          "type": "string",
++          "pattern": "^-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$"
++         }
++        ]
++       },
++       "not_applicable": {
++        "type": "boolean"
++       },
++       "score_only": {
++        "anyOf": [
++         {
++          "type": "number"
++         },
++         {
++          "type": "string",
++          "pattern": "^-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$"
++         }
++        ],
++        "description": "Category scored without a field list, between 0 and 1."
++       },
++       "fields": {
++        "type": "array",
++        "items": {
++         "anyOf": [
++          {
++           "type": "string",
++           "minLength": 1
++          },
++          {
++           "type": "object",
++           "required": [
++            "key"
++           ],
++           "properties": {
++            "key": {
++             "type": "string",
++             "minLength": 1
++            },
++            "definition": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "unit": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "period_behavior": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "value_type": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "storage_domain": {
++             "type": [
++              "string",
++              "null"
++             ]
++            }
++           }
++          }
++         ]
++        }
++       }
++      }
++     }
++    }
++   }
++  },
++  "records": {
++   "type": "array",
++   "items": {
++    "type": "object",
++    "required": [
++     "key",
++     "status"
++    ],
++    "properties": {
++     "key": {
++      "type": "string",
++      "minLength": 1
++     },
++     "status": {
++      "enum": [
++       "closed",
++       "missing",
++       "excluded"
++      ]
++     },
++     "storage_domain": {
++      "type": "string"
++     },
++     "observations": {
++      "type": "array",
++      "items": {
++       "type": "object",
++       "required": [
++        "period_kind",
++        "period_end",
++        "value"
++       ],
++       "properties": {
++        "period_kind": {
++         "enum": [
++          "instant",
++          "quarter",
++          "ytd",
++          "fy",
++          "ttm",
++          "as_of",
++          "daily"
++         ]
++        },
++        "period_start": {
++         "anyOf": [
++          {
++           "type": "string",
++           "pattern": "^\\d{4}-\\d{2}-\\d{2}"
++          },
++          {
++           "type": "null"
++          },
++          {
++           "const": ""
++          }
++         ]
++        },
++        "period_end": {
++         "type": "string",
++         "pattern": "^\\d{4}-\\d{2}-\\d{2}"
++        },
++        "dimensions": {
++         "type": "string"
++        },
++        "value": {},
++        "unit": {
++         "type": [
++          "string",
++          "null"
++         ]
++        },
++        "currency": {
++         "type": [
++          "string",
++          "null"
++         ]
++        },
++        "source_url": {
++         "type": [
++          "string",
++          "null"
++         ]
++        },
++        "calculation": {
++         "type": [
++          "string",
++          "null"
++         ]
++        }
++       }
++      }
++     }
++    }
++   }
++  },
++  "engine_corrections": {
++   "type": "array",
++   "items": {
++    "type": "object",
++    "required": [
++     "id",
++     "keys"
++    ],
++    "properties": {
++     "id": {
++      "type": "string"
++     },
++     "keys": {
++      "type": "array",
++      "items": {
++       "type": "string"
++      }
++     }
++    }
++   }
++  }
++ }
++}
+diff --git a/src/finengine/cli.py b/src/finengine/cli.py
+index d0aa735..356551c 100644
+--- a/src/finengine/cli.py
++++ b/src/finengine/cli.py
+@@ -1065,7 +1065,9 @@ def main():
+     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
+-    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs")
++    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs"); contract_export.add_argument("--corrections",help="engine-impact JSON whose engine_corrections are attached")
++    contract_validate=sub.add_parser("contract-validate"); contract_validate.add_argument("bundle")
++    impact=sub.add_parser("engine-impact"); impact.add_argument("before"); impact.add_argument("after"); impact.add_argument("--label",required=True); impact.add_argument("--company",action="append"); impact.add_argument("--out"); impact.add_argument("--contract",default="config/factory/18-category-contract.json"); impact.add_argument("--sector-packs",default="config/factory/sector-packs")
+     contract_compare=sub.add_parser("contract-compare"); contract_compare.add_argument("bundle_a"); contract_compare.add_argument("bundle_b"); contract_compare.add_argument("--tolerance",default="0.000001")
+     share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
+     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+@@ -1224,14 +1226,33 @@ def main():
+         db=Database(a.db)
+         try:
+             company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+-            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs)
++            corrections=json.loads(Path(a.corrections).read_text(encoding="utf-8"))["engine_corrections"] if a.corrections else None
++            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs,engine_corrections=corrections)
+         finally: db.close()
+         Path(a.out).write_text(json.dumps(bundle,indent=1,ensure_ascii=False),encoding="utf-8")
+         print(json.dumps({"out":a.out,"engine_total_score":bundle["engine_total_score"],"records":len(bundle["records"])},indent=2)); return
+     if a.cmd=="contract-compare":
+         from decimal import Decimal
+-        from .contract_compare import compare_bundles, load_bundle
+-        print(json.dumps(compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance)),indent=2,ensure_ascii=False)); return
++        from .contract_compare import InvalidBundle, compare_bundles, load_bundle
++        try: result=compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance))
++        except InvalidBundle as error:
++            print(json.dumps({"status":"invalid_bundle","errors":error.errors},indent=2,ensure_ascii=False)); raise SystemExit(2)
++        print(json.dumps(result,indent=2,ensure_ascii=False)); return
++    if a.cmd=="contract-validate":
++        from .contract_compare import load_bundle, normalize_bundle, validate_bundle
++        try: bundle=load_bundle(a.bundle)
++        except json.JSONDecodeError as error:
++            print(json.dumps({"status":"invalid_json","errors":[str(error)]},indent=2)); raise SystemExit(2)
++        result=validate_bundle(normalize_bundle(bundle) if isinstance(bundle,dict) else bundle)
++        print(json.dumps({"status":"invalid_bundle" if result["errors"] else "valid",**result},indent=2,ensure_ascii=False))
++        if result["errors"]: raise SystemExit(2)
++        return
++    if a.cmd=="engine-impact":
++        from .contract_compare import engine_impact
++        result=engine_impact(a.before,a.after,label=a.label,companies=a.company,contract_path=a.contract,sector_pack_dir=a.sector_packs)
++        text=json.dumps(result,indent=2,ensure_ascii=False)
++        if a.out: Path(a.out).write_text(text,encoding="utf-8")
++        print(json.dumps({"label":result["label"],"rows":result["rows"],"companies":[{k:v for k,v in c.items() if k in ("company_id","score_before","score_after","delta")} for c in result["companies"]]},indent=2)); return
+     if a.cmd=="share-basis-audit":
+         from .share_basis import audit_share_basis, withheld_metric_keys
+         db=Database(a.db)
+diff --git a/src/finengine/contract_compare.py b/src/finengine/contract_compare.py
+index 84235ae..fded8ac 100644
+--- a/src/finengine/contract_compare.py
++++ b/src/finengine/contract_compare.py
+@@ -8,12 +8,169 @@ of their union counted once per (category, key) slot, so a key closed by both is
+ """
+ from __future__ import annotations
+ 
++import copy
+ import json
+-from decimal import Decimal
++from contextlib import closing
++import shutil
++import sqlite3
++import tempfile
++from datetime import date
++from decimal import Decimal, InvalidOperation
+ from pathlib import Path
+ 
+ BUNDLE_VERSION = 1
+ DEFINITION_ATTRIBUTES = ("definition", "unit", "period_behavior", "value_type")
++RECORD_STATUSES = ("closed", "missing", "excluded")
++PERIOD_KINDS = ("instant", "quarter", "ytd", "fy", "ttm", "as_of", "daily")
++
++
++class InvalidBundle(ValueError):
++    """A snapshot that does not have the bundle structure; `errors` names every problem found."""
++
++    def __init__(self, label: str, errors: list[str]):
++        super().__init__(f"invalid bundle {label!r}: " + "; ".join(errors))
++        self.errors = errors
++
++
++def normalize_bundle(bundle: dict) -> dict:
++    """Copy with minimal-snapshot shorthands expanded: a field may be given as its key alone, and
++    `record_default: "missing"` declares every contract key without a record as missing."""
++    bundle = copy.deepcopy(bundle)
++    for category in (bundle.get("contract") or {}).get("categories") or []:
++        if isinstance(category, dict) and isinstance(category.get("fields"), list):
++            category["fields"] = [{"key": field} if isinstance(field, str) else field
++                                  for field in category["fields"]]
++    if bundle.get("record_default") == "missing" and isinstance(bundle.get("records"), list):
++        recorded = {record.get("key") for record in bundle["records"] if isinstance(record, dict)}
++        for category in bundle["contract"]["categories"]:
++            for field in category.get("fields") or []:
++                if isinstance(field, dict) and field.get("key") not in recorded:
++                    bundle["records"].append({"key": field["key"], "status": "missing", "observations": []})
++                    recorded.add(field["key"])
++    return bundle
++
++
++def _is_number(value) -> bool:
++    try:
++        Decimal(str(value))
++        return not isinstance(value, bool)
++    except (InvalidOperation, ValueError):
++        return False
++
++
++def _is_date(value) -> bool:
++    try:
++        date.fromisoformat(str(value))
++        return True
++    except ValueError:
++        return False
++
++
++def validate_bundle(bundle) -> dict:
++    """Structural check of a snapshot before any comparison. Returns errors and warnings."""
++    errors: list[str] = []
++    warnings: list[str] = []
++    if not isinstance(bundle, dict):
++        return {"errors": ["snapshot is not a JSON object"], "warnings": []}
++    if bundle.get("bundle_version") != BUNDLE_VERSION:
++        errors.append(f"bundle_version must be {BUNDLE_VERSION}, got {bundle.get('bundle_version')!r}")
++    if not isinstance(bundle.get("company_id"), str) or not bundle.get("company_id"):
++        errors.append("company_id must be a non-empty string")
++    contract = bundle.get("contract")
++    categories = contract.get("categories") if isinstance(contract, dict) else None
++    if not isinstance(categories, list) or not categories:
++        errors.append("contract.categories must be a non-empty list")
++        categories = []
++    contract_keys: set[str] = set()
++    seen_categories: set[str] = set()
++    total_weight = Decimal(0)
++    for index, category in enumerate(categories):
++        where = f"contract.categories[{index}]"
++        if not isinstance(category, dict):
++            errors.append(f"{where} is not an object"); continue
++        key = category.get("key")
++        if not isinstance(key, str) or not key:
++            errors.append(f"{where}.key must be a non-empty string")
++        elif key in seen_categories:
++            errors.append(f"category {key!r} appears twice")
++        seen_categories.add(key)
++        if not _is_number(category.get("weight")) or Decimal(str(category["weight"])) < 0:
++            errors.append(f"{where}.weight must be a non-negative number")
++        else:
++            total_weight += Decimal(str(category["weight"]))
++        if category.get("score_only") is not None:
++            if not _is_number(category["score_only"]) or not 0 <= Decimal(str(category["score_only"])) <= 1:
++                errors.append(f"{where}.score_only must be a number between 0 and 1")
++            continue
++        fields = category.get("fields")
++        if not isinstance(fields, list) or (not fields and not category.get("not_applicable")):
++            errors.append(f"{where}.fields must be a non-empty list"); continue
++        seen_fields = set()
++        for position, field in enumerate(fields):
++            field_key = field.get("key") if isinstance(field, dict) else None
++            if not isinstance(field_key, str) or not field_key:
++                errors.append(f"{where}.fields[{position}] needs a non-empty key"); continue
++            if field_key in seen_fields:
++                errors.append(f"key {field_key!r} appears twice in category {key!r}")
++            seen_fields.add(field_key)
++            contract_keys.add(field_key)
++    if categories and total_weight != Decimal(100):
++        warnings.append(f"category weights sum to {total_weight}, not 100")
++    records = bundle.get("records")
++    if not isinstance(records, list):
++        errors.append("records must be a list"); records = []
++    record_keys: set[str] = set()
++    for index, record in enumerate(records):
++        where = f"records[{index}]"
++        if not isinstance(record, dict):
++            errors.append(f"{where} is not an object"); continue
++        key = record.get("key")
++        if not isinstance(key, str) or not key:
++            errors.append(f"{where}.key must be a non-empty string"); continue
++        if key in record_keys:
++            errors.append(f"record {key!r} appears twice")
++        record_keys.add(key)
++        if record.get("status") not in RECORD_STATUSES:
++            errors.append(f"record {key!r} status must be one of {', '.join(RECORD_STATUSES)}")
++        observations = record.get("observations", [])
++        if not isinstance(observations, list):
++            errors.append(f"record {key!r} observations must be a list"); continue
++        for position, item in enumerate(observations):
++            at = f"record {key!r} observation {position}"
++            if not isinstance(item, dict):
++                errors.append(f"{at} is not an object"); continue
++            if item.get("period_kind") not in PERIOD_KINDS:
++                errors.append(f"{at} period_kind must be one of {', '.join(PERIOD_KINDS)}")
++            if not _is_date(item.get("period_end")):
++                errors.append(f"{at} period_end must be an ISO date")
++            if item.get("period_start") not in (None, "") and not _is_date(item["period_start"]):
++                errors.append(f"{at} period_start must be an ISO date or empty")
++            if "value" not in item:
++                errors.append(f"{at} has no value")
++        if record.get("status") == "closed" and not observations:
++            warnings.append(f"record {key!r} is closed without observations; values cannot be compared")
++    unknown = sorted(record_keys - contract_keys)
++    if unknown:
++        errors.append(f"{len(unknown)} records are not contract keys: {', '.join(unknown[:10])}")
++    unrecorded = sorted(contract_keys - record_keys)
++    if unrecorded:
++        errors.append(f"{len(unrecorded)} contract keys have no record (declare record_default: \"missing\" "
++                      f"if absence means missing): {', '.join(unrecorded[:10])}")
++    for index, correction in enumerate(bundle.get("engine_corrections") or []):
++        if not isinstance(correction, dict) or not isinstance(correction.get("id"), str) \
++                or not isinstance(correction.get("keys"), list):
++            errors.append(f"engine_corrections[{index}] needs an id and a list of keys")
++    return {"errors": errors, "warnings": warnings}
++
++
++def checked_bundle(bundle: dict) -> dict:
++    """Normalized bundle, or InvalidBundle naming every structural problem."""
++    normalized = normalize_bundle(bundle) if isinstance(bundle, dict) else bundle
++    result = validate_bundle(normalized)
++    if result["errors"]:
++        label = bundle.get("label") if isinstance(bundle, dict) else None
++        raise InvalidBundle(str(label), result["errors"])
++    return normalized
+ 
+ 
+ def _decimal(value) -> Decimal | None:
+@@ -93,9 +250,7 @@ def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal
+ 
+ 
+ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001")) -> dict:
+-    for bundle in (a, b):
+-        if bundle.get("bundle_version") != BUNDLE_VERSION:
+-            raise ValueError(f"unsupported bundle version in {bundle.get('label')!r}")
++    a, b = checked_bundle(a), checked_bundle(b)
+     if a.get("company_id") != b.get("company_id"):
+         raise ValueError("bundles describe different companies")
+     slots_a, slots_b = _slots(a), _slots(b)
+@@ -112,11 +267,14 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         in_b = sorted(category for category, field in slots_b if field == key)
+         if in_a != in_b:
+             placement.append({"key": key, "a_categories": in_a, "b_categories": in_b})
+-    definition_diffs = []
++    definition_diffs, definition_not_provided = [], []
+     for key in sorted(keys_a & keys_b):
+         left = next(field for (_, k), field in slots_a.items() if k == key)
+         right = next(field for (_, k), field in slots_b.items() if k == key)
+-        changed = {attr: [left.get(attr), right.get(attr)] for attr in DEFINITION_ATTRIBUTES
++        provided = [attr for attr in DEFINITION_ATTRIBUTES if attr in left and attr in right]
++        if len(provided) < len(DEFINITION_ATTRIBUTES):
++            definition_not_provided.append(key)
++        changed = {attr: [left.get(attr), right.get(attr)] for attr in provided
+                    if left.get(attr) != right.get(attr)}
+         if changed:
+             definition_diffs.append({"key": key, **changed})
+@@ -124,8 +282,17 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+     closed_a, closed_b = _closed(a), _closed(b)
+     records_a, records_b = _records(a), _records(b)
+     conflicts = []
++    corrections: dict[str, list[str]] = {}
++    for side, bundle in (("a", a), ("b", b)):
++        for correction in bundle.get("engine_corrections") or []:
++            for key in correction["keys"]:
++                corrections.setdefault(key, []).append(f"{side}:{correction['id']}")
+     for key in sorted(closed_a & closed_b):
+-        conflicts.extend(_observation_conflicts(key, records_a[key], records_b[key], tolerance))
++        for item in _observation_conflicts(key, records_a[key], records_b[key], tolerance):
++            if key in corrections:
++                # One pipeline's engine changed this key; the gap may be that correction, not a data dispute.
++                item["engine_corrections"] = sorted(corrections[key])
++            conflicts.append(item)
+ 
+     def closure(slots):
+         expected = {key for _, key in slots}
+@@ -144,7 +311,8 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         "keys": {"common": sorted(keys_a & keys_b), "only_in_a": sorted(keys_a - keys_b),
+                  "only_in_b": sorted(keys_b - keys_a)},
+         "weight_diffs": weight_diffs, "category_placement_diffs": placement,
+-        "definition_diffs": definition_diffs, "conflicts": conflicts,
++        "definition_diffs": definition_diffs, "definition_not_provided": definition_not_provided,
++        "conflicts": conflicts,
+         "closure": {"on_contract_a": closure(slots_a), "on_contract_b": closure(slots_b)},
+         "scores": {
+             "a_on_a": str(contract_score(a, closed_a)), "b_on_b": str(contract_score(b, closed_b)),
+@@ -152,13 +320,98 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         },
+         "conflicted_keys": sorted({item["key"] for item in conflicts
+                                    if item["type"] not in ("source_differs_same_value",)}),
++        "conflicts_touched_by_engine_corrections": sorted({item["key"] for item in conflicts
++                                                          if item.get("engine_corrections")}),
+     }
+ 
+ 
++PROFILE_COLUMNS = {"company_name": "name", "symbol": "symbol", "isin": "isin", "cik": "cik", "exchange": "exchange",
++                   "market": "market", "country": "country", "currency": "currency",
++                   "fiscal_year_end": "fiscal_year_end", "sector": "sector", "industry": "industry",
++                   "timezone": "timezone"}
++PRICE_COLUMNS = {"price_open": "open", "price_high": "high", "price_low": "low", "price_close": "close",
++                 "price_adjusted_close": "adjusted_close", "trading_volume": "volume", "trading_turnover": "turnover"}
++OWNERSHIP_FIELDS = {"holder_name": "holder_name", "holder_type": "holder_type", "shares_held": "shares",
++                    "ownership_percentage": "ownership_pct", "government_ownership": "ownership_pct",
++                    "free_float": "ownership_pct", "foreign_ownership": "ownership_pct",
++                    "strategic_ownership": "ownership_pct"}
++OWNERSHIP_FILTERS = {"government_ownership": lambda row: row["holder_type"] == "government",
++                     "free_float": lambda row: row["ownership_type"] == "free_float",
++                     "foreign_ownership": lambda row: row["holder_type"] == "foreign",
++                     "strategic_ownership": lambda row: row["holder_type"] in {"corporate_strategic", "strategic"}}
++
++
++def _canonical(value) -> str:
++    return json.dumps(value, sort_keys=True, ensure_ascii=False, default=str)
++
++
++def _source_url(db, source_key):
++    row = db.conn.execute("SELECT source_url FROM source_documents WHERE source_key=?", (source_key,)).fetchone()
++    return row["source_url"] if row else None
++
++
++def _domain_observations(db, company, key: str, domain: str, limit: int) -> list[dict]:
++    """Observations for a closed key held outside data_points, so non-numeric evidence compares too."""
++    company_id = company["company_id"]
++    if domain == "company_profile":
++        row = db.conn.execute("""SELECT * FROM company_attributes WHERE company_id=? AND attribute_key=?
++            AND is_current=1 ORDER BY effective_at DESC LIMIT 1""", (company_id, key)).fetchone()
++        if row is not None:
++            return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["effective_at"])[:10],
++                     "dimensions": "", "value": row["value_json"], "unit": None, "currency": None,
++                     "source_url": _source_url(db, row["source_key"]), "calculation": None}]
++        if key in PROFILE_COLUMNS and company[PROFILE_COLUMNS[key]]:
++            # Registry values carry no date of their own: stated as of the export.
++            return [{"period_kind": "as_of", "period_start": None, "period_end": date.today().isoformat(),
++                     "dimensions": "registry", "value": str(company[PROFILE_COLUMNS[key]]), "unit": None,
++                     "currency": None, "source_url": None, "calculation": None}]
++        return []
++    if domain == "market_prices" and key in PRICE_COLUMNS | {"fifty_two_week_high": "", "fifty_two_week_low": ""}:
++        interval = "1y" if key.startswith("fifty_two_week") else "1d"
++        column = {"fifty_two_week_high": "high", "fifty_two_week_low": "low"}.get(key, PRICE_COLUMNS.get(key))
++        row = db.conn.execute(f"""SELECT p.* FROM market_prices p JOIN listings l USING(listing_id)
++            JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1 AND p.interval=?
++            AND p.{column} IS NOT NULL ORDER BY p.observed_at DESC LIMIT 1""", (company_id, interval)).fetchone()
++        if row is None:
++            return []
++        return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["observed_at"])[:10],
++                 "dimensions": interval, "value": str(row[column]), "unit": None, "currency": row["currency"],
++                 "source_url": _source_url(db, row["source_key"]), "calculation": None}]
++    if domain == "corporate_actions":
++        rows = db.conn.execute("""SELECT * FROM corporate_actions WHERE company_id=? AND action_type=? AND is_current=1
++            ORDER BY COALESCE(effective_date,ex_date,announcement_date) DESC LIMIT ?""", (company_id, key, limit)).fetchall()
++        return [{"period_kind": "as_of", "period_start": None,
++                 "period_end": str(row["effective_date"] or row["ex_date"] or row["announcement_date"])[:10],
++                 "dimensions": row["action_key"],
++                 "value": _canonical({name: row[name] for name in ("announcement_date", "ex_date", "record_date",
++                                      "payment_date", "effective_date", "cash_amount", "currency",
++                                      "ratio_numerator", "ratio_denominator", "status")}),
++                 "unit": None, "currency": row["currency"], "source_url": _source_url(db, row["source_key"]),
++                 "calculation": None} for row in rows if row["effective_date"] or row["ex_date"] or row["announcement_date"]]
++    if domain == "ownership_positions" and key in OWNERSHIP_FIELDS:
++        rows = [row for row in db.conn.execute("""SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1
++            ORDER BY as_of_date DESC""", (company_id,)).fetchall() if OWNERSHIP_FILTERS.get(key, lambda r: True)(row)]
++        column = OWNERSHIP_FIELDS[key]
++        return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["as_of_date"])[:10],
++                 "dimensions": row["holder_key"], "value": None if row[column] is None else str(row[column]),
++                 "unit": "percent" if column == "ownership_pct" else None, "currency": None,
++                 "source_url": _source_url(db, row["source_key"]), "calculation": None}
++                for row in rows[:limit] if row["as_of_date"] and row[column] is not None]
++    if domain == "disclosures":
++        rows = db.conn.execute("""SELECT * FROM disclosures WHERE company_id=? AND disclosure_type=? AND is_current=1
++            ORDER BY published_at DESC LIMIT ?""", (company_id, key, limit)).fetchall()
++        return [{"period_kind": "as_of", "period_start": None,
++                 "period_end": str(row["period_end"] or row["published_at"])[:10], "dimensions": row["content_hash"],
++                 "value": row["title"], "unit": None, "currency": None,
++                 "source_url": _source_url(db, row["source_key"]), "calculation": None}
++                for row in rows if (row["period_end"] or row["published_at"])]
++    return []
++
++
+ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+                   contract_path: str | Path = "config/factory/18-category-contract.json",
+                   sector_pack_dir: str | Path = "config/factory/sector-packs",
+-                  observations_per_key: int = 12) -> dict:
++                  observations_per_key: int = 12, engine_corrections: list[dict] | None = None) -> dict:
+     """Bundle this engine's contract and evidence for one company (read-only apart from the evaluator's refresh)."""
+     from .factory_contract import evaluate_factory_contract
+     result = evaluate_factory_contract(db, company_id, contract_path=contract_path, sector_pack_dir=sector_pack_dir)
+@@ -196,7 +449,13 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+             status = "excluded" if key in excluded else ("missing" if key in missing else "closed")
+             record = records.setdefault(key, {"key": key, "status": status, "storage_domain": row["storage_domain"],
+                                               "observations": []})
+-            if status == "closed" and row["storage_domain"] == "data_points" and not record["observations"]:
++            if status == "closed" and not record["observations"] and row["storage_domain"] != "data_points":
++                record["observations"] = _domain_observations(db, company, key, row["storage_domain"],
++                                                              observations_per_key)
++            current_point = db.conn.execute(
++                "SELECT 1 FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1 LIMIT 1",
++                (company_id, key)).fetchone()
++            if status == "closed" and not record["observations"] and current_point:
+                 record["observations"] = [{
+                     "period_kind": item["period_kind"], "period_start": item["period_start"],
+                     "period_end": item["period_end"], "dimensions": item["dimensions_hash"] or "",
+@@ -209,7 +468,9 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+     bundle = {"bundle_version": BUNDLE_VERSION, "label": label, "engine_sha": engine_sha, "company_id": company_id,
+               "engine_total_score": result["total_score"],
+               "contract": {"version": result.get("contract_version"), "categories": categories},
+-              "records": sorted(records.values(), key=lambda item: item["key"])}
++              "records": sorted(records.values(), key=lambda item: item["key"]),
++              "engine_corrections": engine_corrections or []}
++    checked_bundle(bundle)
+     computed = contract_score(bundle, _closed(bundle))
+     if abs(computed - Decimal(result["total_score"])) > Decimal("0.0001"):
+         raise ValueError(f"bundle score {computed} does not reproduce the evaluator {result['total_score']}")
+@@ -218,3 +479,55 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+ 
+ def load_bundle(path: str | Path) -> dict:
+     return json.loads(Path(path).read_text(encoding="utf-8"))
++
++
++def _rows(path: Path, companies: set[str] | None) -> dict:
++    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
++        query = """SELECT company_id,metric_key,period_end,period_kind,fiscal_quarter,dimensions_hash,
++                   COALESCE(value_decimal,value_text,value_json) FROM data_points WHERE is_current=1"""
++        return {row[:6]: row[6] for row in conn.execute(query)
++                if companies is None or row[0] in companies}
++
++
++def engine_impact(before: str | Path, after: str | Path, *, label: str, companies: list[str] | None = None,
++                  contract_path: str | Path = "config/factory/18-category-contract.json",
++                  sector_pack_dir: str | Path = "config/factory/sector-packs") -> dict:
++    """What an engine change did to the same imports: rows removed, added or changed per metric, and
++    each company's contract score before and after. Inputs are read from temporary copies only."""
++    from .database import Database
++    from .factory_contract import evaluate_factory_contract
++    wanted = set(companies) if companies else None
++    old, new = _rows(Path(before), wanted), _rows(Path(after), wanted)
++    by_metric: dict[str, dict[str, int]] = {}
++    for kind, keys in (("removed", set(old) - set(new)), ("added", set(new) - set(old)),
++                       ("changed", {key for key in set(old) & set(new) if old[key] != new[key]})):
++        for key in keys:
++            by_metric.setdefault(key[1], {"removed": 0, "added": 0, "changed": 0})[kind] += 1
++    scores = []
++    with tempfile.TemporaryDirectory() as scratch:
++        copies = []
++        for name, path in (("before", before), ("after", after)):
++            target = Path(scratch) / f"{name}.sqlite3"
++            shutil.copyfile(path, target)
++            copies.append(Database(str(target)))
++        try:
++            # Every company, not only those whose rows changed: an evaluator change moves scores without rows.
++            everyone = {row[0] for db in copies for row in db.conn.execute("SELECT company_id FROM companies")}
++            for company in sorted(wanted or everyone):
++                results = [evaluate_factory_contract(db, company, contract_path=contract_path,
++                                                     sector_pack_dir=sector_pack_dir) for db in copies]
++                missing = [{(c["category_key"], key) for c in result["categories"]
++                            for keys in (c["evidence"].get("missing_fields") or {}).values() for key in keys}
++                           for result in results]
++                scores.append({"company_id": company, "score_before": results[0]["total_score"],
++                               "score_after": results[1]["total_score"],
++                               "delta": str(Decimal(results[1]["total_score"]) - Decimal(results[0]["total_score"])),
++                               "keys_closed": sorted(f"{c}:{k}" for c, k in missing[0] - missing[1]),
++                               "keys_opened": sorted(f"{c}:{k}" for c, k in missing[1] - missing[0])})
++        finally:
++            for db in copies:
++                db.close()
++    return {"label": label, "companies": scores,
++            "rows": {kind: sum(item[kind] for item in by_metric.values()) for kind in ("removed", "added", "changed")},
++            "by_metric": dict(sorted(by_metric.items())),
++            "engine_corrections": [{"id": label, "keys": sorted(by_metric)}]}
+diff --git a/tests/test_contract_compare.py b/tests/test_contract_compare.py
+index 73560e3..8d3124e 100644
+--- a/tests/test_contract_compare.py
++++ b/tests/test_contract_compare.py
+@@ -1,8 +1,17 @@
+ import copy
++import tempfile
+ import unittest
+ from decimal import Decimal
++from pathlib import Path
+ 
+-from finengine.contract_compare import BUNDLE_VERSION, compare_bundles, contract_score
++from finengine.contract_compare import (BUNDLE_VERSION, InvalidBundle, compare_bundles, contract_score,
++                                        engine_impact, normalize_bundle, validate_bundle)
++from finengine.database import Database
++from finengine.domains import CompanyDomainStore
++from finengine.contract_compare import export_bundle
++from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
++
++ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+ def field(key, unit="currency", definition=None, period="flow"):
+@@ -102,5 +111,141 @@ class ContractCompareTests(unittest.TestCase):
+             compare_bundles(self.a, other)
+ 
+ 
++class SnapshotValidationTests(unittest.TestCase):
++    def setUp(self):
++        self.valid = bundle("snapshot", [
++            {"key": "statements", "weight": "70", "fields": [field("revenue"), field("ebit")]},
++            {"key": "lineage", "weight": "30", "score_only": "0.5"},
++        ], {"revenue": ("closed", [observation("100")]), "ebit": ("missing", [])})
++
++    def errors(self, snapshot):
++        return validate_bundle(normalize_bundle(snapshot))["errors"]
++
++    def test_a_valid_snapshot_has_no_errors(self):
++        self.assertEqual(validate_bundle(self.valid), {"errors": [], "warnings": []})
++
++    def test_each_structural_problem_is_named(self):
++        broken = copy.deepcopy(self.valid)
++        broken["bundle_version"] = 2
++        broken["contract"]["categories"].append({"key": "statements", "weight": "-1", "fields": [field("x"), field("x")]})
++        broken["records"] += [{"key": "revenue", "status": "closed", "observations": []},
++                              {"key": "ghost", "status": "done",
++                               "observations": [{"period_kind": "annual", "period_end": "31/12/2025"}]}]
++        errors = " | ".join(self.errors(broken))
++        for expected in ("bundle_version must be 1", "category 'statements' appears twice",
++                         "weight must be a non-negative number", "key 'x' appears twice",
++                         "record 'revenue' appears twice", "status must be one of",
++                         "period_kind must be one of", "period_end must be an ISO date", "has no value",
++                         "records are not contract keys: ghost", "contract keys have no record"):
++            self.assertIn(expected, errors)
++
++    def test_compare_refuses_an_invalid_snapshot_and_lists_why(self):
++        broken = copy.deepcopy(self.valid); broken["records"].pop()
++        with self.assertRaises(InvalidBundle) as caught:
++            compare_bundles(self.valid, broken)
++        self.assertTrue(any("no record" in error for error in caught.exception.errors))
++        with self.assertRaises(InvalidBundle):
++            compare_bundles(self.valid, ["not", "a", "bundle"])
++
++    def test_a_minimal_snapshot_lists_keys_only_and_declares_absence_as_missing(self):
++        minimal = {"bundle_version": BUNDLE_VERSION, "label": "codex", "company_id": "sa:TST",
++                   "record_default": "missing",
++                   "contract": {"categories": [{"key": "statements", "weight": "70", "fields": ["revenue", "ebit"]},
++                                               {"key": "lineage", "weight": "30", "score_only": "0.5"}]},
++                   "records": [{"key": "ebit", "status": "closed", "observations": [observation("40")]}]}
++        self.assertEqual(self.errors(minimal), [])
++        result = compare_bundles(self.valid, minimal)
++        self.assertEqual(result["definition_diffs"], [])
++        self.assertEqual(result["definition_not_provided"], ["ebit", "revenue"])
++        self.assertEqual(result["closure"]["on_contract_a"]["closed_union"], 2)
++        self.assertEqual(Decimal(result["scores"]["union_on_a"]), Decimal("70") + Decimal("15"))
++
++    def test_weights_not_summing_to_100_are_a_warning(self):
++        light = copy.deepcopy(self.valid); light["contract"]["categories"][1]["weight"] = "20"
++        self.assertEqual(validate_bundle(light)["warnings"], ["category weights sum to 90, not 100"])
++
++
++class EngineCorrectionTests(unittest.TestCase):
++    def test_conflicts_on_a_corrected_key_are_flagged_not_hidden(self):
++        a = bundle("a", [{"key": "statements", "weight": "100", "fields": [field("revenue_ttm"), field("ebit")]}],
++                   {"revenue_ttm": ("closed", [observation("400", kind="ttm")]), "ebit": ("closed", [observation("40")])})
++        b = copy.deepcopy(a); b["label"] = "b"
++        b["records"][0]["observations"][0]["value"] = "390"
++        b["records"][1]["observations"][0]["value"] = "41"
++        b["engine_corrections"] = [{"id": "ttm-contiguity", "keys": ["revenue_ttm"]}]
++        result = compare_bundles(a, b)
++        flagged = {item["key"]: item.get("engine_corrections") for item in result["conflicts"]}
++        self.assertEqual(flagged, {"revenue_ttm": ["b:ttm-contiguity"], "ebit": None})
++        self.assertEqual(result["conflicts_touched_by_engine_corrections"], ["revenue_ttm"])
++        self.assertEqual(result["conflicted_keys"], ["ebit", "revenue_ttm"])
++
++    def test_engine_impact_reports_rows_and_scores_without_touching_inputs(self):
++        with tempfile.TemporaryDirectory() as temp:
++            paths = []
++            for name, publish in (("before", False), ("after", True)):
++                path = Path(temp) / f"{name}.sqlite3"
++                db = Database(str(path))
++                db.register_company(Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR", isin="SA0000000001",
++                                            exchange="Saudi Exchange", country="SA", sector="Energy",
++                                            industry="Integrated Oil & Gas", timezone="Asia/Riyadh"))
++                source = SourceDocument("sa:TST", Market.SA, "https://example.test/ar", "file:ar", "annual-report",
++                                        "2026-03-01", b"{}")
++                db.save_source(source, "ar", None)
++                db.publish(Fact("sa:TST", "net_income", Decimal("40"), "SAR", "SAR", "2025-01-01", "2025-12-31",
++                                PeriodKind.FY, 2025, None, source.source_key, source.source_url, source.filed_at))
++                if publish:
++                    db.publish(Fact("sa:TST", "revenue", Decimal("400"), "SAR", "SAR", "2025-01-01", "2025-12-31",
++                                    PeriodKind.FY, 2025, None, source.source_key, source.source_url, source.filed_at))
++                db.close()
++                paths.append(path)
++            digest = [path.read_bytes() for path in paths]
++            result = engine_impact(*paths, label="fix-pack", contract_path=ROOT / "config/factory/18-category-contract.json",
++                                   sector_pack_dir=ROOT / "config/factory/sector-packs")
++            self.assertEqual(result["rows"], {"removed": 0, "added": 1, "changed": 0})
++            self.assertEqual(result["by_metric"], {"revenue": {"removed": 0, "added": 1, "changed": 0}})
++            self.assertEqual(result["engine_corrections"], [{"id": "fix-pack", "keys": ["revenue"]}])
++            company = result["companies"][0]
++            self.assertGreater(Decimal(company["delta"]), 0)
++            self.assertIn("financial_statements:revenue", company["keys_closed"])
++            self.assertEqual([path.read_bytes() for path in paths], digest)
++            unchanged = engine_impact(paths[1], paths[1], label="no-op",
++                                      contract_path=ROOT / "config/factory/18-category-contract.json",
++                                      sector_pack_dir=ROOT / "config/factory/sector-packs")
++            # Companies are scored even when no row changed, so an evaluator-only change is visible.
++            self.assertEqual([c["company_id"] for c in unchanged["companies"]], ["sa:TST"])
++            self.assertEqual(unchanged["rows"], {"removed": 0, "added": 0, "changed": 0})
++
++
++class ExportTests(unittest.TestCase):
++    def test_export_carries_values_from_every_domain_and_reproduces_the_score(self):
++        with tempfile.TemporaryDirectory() as temp:
++            db = Database(str(Path(temp) / "export.sqlite3"))
++            db.register_company(Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR", isin="SA0000000001",
++                                        exchange="Saudi Exchange", country="SA", sector="Energy",
++                                        industry="Integrated Oil & Gas", timezone="Asia/Riyadh"))
++            source = SourceDocument("sa:TST", Market.SA, "https://example.test/ar", "file:ar", "annual-report",
++                                    "2026-03-01", b"{}")
++            db.save_source(source, "ar", None)
++            db.publish(Fact("sa:TST", "revenue", Decimal("400"), "SAR", "SAR", "2025-01-01", "2025-12-31",
++                            PeriodKind.FY, 2025, None, source.source_key, source.source_url, source.filed_at))
++            db.publish_company_attribute("sa:TST", "auditor", "PwC", "2025-12-31", source.source_key)
++            CompanyDomainStore(db).publish_corporate_action(
++                "sa:TST:bonus:2023", "sa:TST", "bonus_shares", "bonus issue", "2023-05-08", source.source_key,
++                effective_date="2023-05-08", ratio_numerator=1, ratio_denominator=10, status="completed")
++            bundle = export_bundle(db, "sa:TST", label="t", contract_path=ROOT / "config/factory/18-category-contract.json",
++                                   sector_pack_dir=ROOT / "config/factory/sector-packs")
++            db.close()
++        records = {record["key"]: record for record in bundle["records"]}
++        self.assertEqual(records["revenue"]["observations"][0]["value"], "400")
++        self.assertEqual(records["auditor"]["observations"][0]["value"], '"PwC"')
++        action = records["bonus_shares"]["observations"][0]
++        self.assertEqual((action["period_end"], action["dimensions"]), ("2023-05-08", "sa:TST:bonus:2023"))
++        self.assertIn('"ratio_denominator": "10"', action["value"])
++        self.assertEqual(records["isin"]["observations"][0]["value"], "SA0000000001")
++        self.assertEqual(validate_bundle(bundle)["errors"], [])
++        self.assertEqual(contract_score(bundle, {k for k, r in records.items() if r["status"] == "closed"}),
++                         Decimal(bundle["engine_total_score"]))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+-- 
+2.43.0
+

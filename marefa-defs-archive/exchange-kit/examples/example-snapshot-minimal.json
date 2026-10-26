@@ -1,0 +1,67 @@
+{
+ "bundle_version": 1,
+ "label": "example-minimal",
+ "company_id": "sa:TST",
+ "record_default": "missing",
+ "contract": {
+  "categories": [
+   {
+    "key": "financial_statements",
+    "weight": "60",
+    "fields": [
+     "revenue",
+     "net_income",
+     "total_assets"
+    ]
+   },
+   {
+    "key": "growth",
+    "weight": "30",
+    "fields": [
+     "revenue_growth"
+    ]
+   },
+   {
+    "key": "sources_lineage_freshness",
+    "weight": "10",
+    "score_only": "0.8"
+   }
+  ]
+ },
+ "records": [
+  {
+   "key": "revenue",
+   "status": "closed",
+   "observations": [
+    {
+     "period_kind": "fy",
+     "period_start": "2025-01-01",
+     "period_end": "2025-12-31",
+     "dimensions": "",
+     "value": "1000",
+     "unit": "SAR",
+     "currency": "SAR",
+     "source_url": "https://example.test/q4-results.pdf",
+     "calculation": null
+    }
+   ]
+  },
+  {
+   "key": "total_assets",
+   "status": "closed",
+   "observations": [
+    {
+     "period_kind": "instant",
+     "period_start": null,
+     "period_end": "2025-12-31",
+     "dimensions": "",
+     "value": "5000",
+     "unit": "SAR",
+     "currency": "SAR",
+     "source_url": "https://example.test/ar2025.pdf",
+     "calculation": null
+    }
+   ]
+  }
+ ]
+}

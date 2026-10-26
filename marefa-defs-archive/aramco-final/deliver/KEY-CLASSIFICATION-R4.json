@@ -1,0 +1,185 @@
+{
+ "basis": {
+  "engine": "23176d5",
+  "score": "65.8916",
+  "note": "no score change: an existing 'not disclosed' decision keeps a key missing; only a signed assessment can change the denominator"
+ },
+ "resolved_by_existing_engine_decision": {
+  "source": "src/finengine/domains.py aramco_not_separately_disclosed / oil_gas_not_disclosed, commit 6a64063 (2026-09-15) 'Make Aramco readiness evidence-aware and source-safe': reviewed negative evidence from Aramco's FY2025 annual report and data book; 'a missing value is not converted to zero or invented'",
+  "effect": "definition question closed as NOT DISCLOSED: no proxy is computed; key stays missing; candidate for an unavailable/not_disclosed assessment",
+  "keys": [
+   {
+    "key": "adjusted_ebitda",
+    "points": "0.0551",
+    "counter_evidence_search": "no EBITDA anywhere in AR2025"
+   },
+   {
+    "key": "continuing_operations_income",
+    "points": "0.0551",
+    "counter_evidence_search": "no 'continuing operations' or 'discontinued' anywhere; held-for-sale groups presented within continuing"
+   },
+   {
+    "key": "discontinued_operations_income",
+    "points": "0.0551",
+    "counter_evidence_search": "same"
+   },
+   {
+    "key": "interest_expense",
+    "points": "0.0551",
+    "counter_evidence_search": "only JV/associate summaries (note 7, PDF 202/204) and pension interest cost (note 21, PDF 222)"
+   },
+   {
+    "key": "net_income_cash_flow",
+    "points": "0.0551",
+    "counter_evidence_search": "cash-flow statement starts from income before taxes and zakat (PDF 178)"
+   },
+   {
+    "key": "upstream_operating_income",
+    "points": "0.3076",
+    "counter_evidence_search": "segment note reports EBIT, not operating income (PDF 196)"
+   },
+   {
+    "key": "downstream_operating_income",
+    "points": "0.3076",
+    "counter_evidence_search": "same"
+   },
+   {
+    "key": "refinery_utilization",
+    "points": "0.1522",
+    "counter_evidence_search": "no refinery utilization figure"
+   },
+   {
+    "key": "spare_capacity",
+    "points": "0.1522",
+    "counter_evidence_search": "MSC 12.0 mmbpd only; crude production not separately disclosed"
+   },
+   {
+    "key": "production_entitlement",
+    "points": "0.1522",
+    "counter_evidence_search": "'entitlement' appears only for dividends and employee benefits"
+   },
+   {
+    "key": "lifting_volume",
+    "points": "0.1522",
+    "counter_evidence_search": "no lifting volume figure"
+   }
+  ]
+ },
+ "resolved_by_existing_engine_rule": [
+  {
+   "key": "cik",
+   "points": "0.1379",
+   "rule": "engine rule (46e1951): cik is not_applicable_market_identifier outside the US market"
+  }
+ ],
+ "narrowed": {
+  "book_value_growth": "engine defines book value as total_equity (book_value_per_share, price_to_book); remaining choice: total growth (= equity_growth) or per-share growth"
+ },
+ "definitions_needing_decision": [
+  {
+   "decision": "D01_gross_profit_nature_of_expense",
+   "keys": [
+    "gross_margin",
+    "gross_profit_growth",
+    "gross_profit_qoq",
+    "days_inventory",
+    "inventory_turnover",
+    "days_payables",
+    "payables_turnover",
+    "cash_conversion_cycle",
+    "beneish_m_score"
+   ],
+   "points": "1.8897"
+  },
+  {
+   "decision": "D06_cash_flow_subtotals",
+   "keys": [
+    "operating_profit_before_working_capital_changes"
+   ],
+   "points": "0.0551"
+  },
+  {
+   "decision": "D07_owner_and_discretionary_cash",
+   "keys": [
+    "owner_earnings",
+    "discretionary_cash_flow"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D08_pending_returns_and_wacc",
+   "keys": [
+    "fixed_charge_coverage",
+    "return_on_capital",
+    "economic_profit_proxy"
+   ],
+   "points": "0.7717"
+  },
+  {
+   "decision": "D09_book_value_basis",
+   "keys": [
+    "book_value_growth"
+   ],
+   "points": "0.1429"
+  },
+  {
+   "decision": "D12_dividend_classes",
+   "keys": [
+    "ordinary_dividend",
+    "special_dividend",
+    "total_dividend_declared",
+    "dividend_stability_score"
+   ],
+   "points": "1.0000"
+  },
+  {
+   "decision": "D13_dividend_ttm_and_forward",
+   "keys": [
+    "trailing_twelve_month_dividend",
+    "dividend_yield_ttm",
+    "forward_dividend_per_share",
+    "forward_dividend_run_rate"
+   ],
+   "points": "1.0000"
+  },
+  {
+   "decision": "D14_identity_and_sharia",
+   "keys": [
+    "sharia_status"
+   ],
+   "points": "0.1379"
+  },
+  {
+   "decision": "D16_commercial_pipeline_applicability",
+   "keys": [
+    "average_selling_price_by_product",
+    "book_to_bill_ratio",
+    "committed_offtake_volume",
+    "contract_renewal_profile",
+    "contracted_sales_value",
+    "contracted_sales_volume",
+    "minimum_volume_commitments",
+    "sales_contract_count",
+    "sales_order_backlog",
+    "sales_volume_by_geography",
+    "sales_volume_by_product",
+    "take_or_pay_commitments"
+   ],
+   "points": "1.0667"
+  },
+  {
+   "decision": "D18_contingencies_total",
+   "keys": [
+    "contingencies"
+   ],
+   "points": "0.0551"
+  }
+ ],
+ "summary": {
+  "decision_keys_start": 50,
+  "resolved_by_existing_decision": 12,
+  "decision_keys_remaining": 38,
+  "decision_points_remaining": "6.2294",
+  "resolved_points_kept_missing": "1.6375"
+ }
+}

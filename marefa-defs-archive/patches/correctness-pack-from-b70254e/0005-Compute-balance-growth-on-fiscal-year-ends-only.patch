@@ -1,0 +1,78 @@
+From a8c3f0e53d9707d8803c4bf4077fd2150dc4e922 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:36:26 +0000
+Subject: [PATCH 5/6] Compute balance growth on fiscal year ends only
+
+asset_growth and equity_growth compared any balance with the prior
+fiscal year's balance, so an interim balance against the previous year
+end was stored as annual growth while measuring a few months. Balance
+growth now needs a fiscal year end (a date some FY flow ends on) and the
+exact prior year end, the day before that fiscal year starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py  | 16 +++++++++++++++-
+ tests/test_correctness_pack.py | 12 ++++++++++++
+ 2 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 024741a..a5c172c 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -67,6 +67,13 @@ class Calculator:
+         for fact in all_facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+                 historical[(fact.company_id, fact.fiscal_year, fact.period_kind)][fact.metric] = fact
++        # Balances keyed by their exact date; a date is a fiscal year end only if some FY flow ends on it.
++        instants = defaultdict(dict)
++        for fact in all_facts:
++            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind == PeriodKind.INSTANT:
++                instants[(fact.company_id, fact.period_end)][fact.metric] = fact
++        fiscal_year_starts = {(fact.company_id, fact.period_end): fact.period_start for fact in all_facts
++                              if fact.period_kind == PeriodKind.FY and fact.period_start}
+ 
+         for (company_id, _, _, _, _), group in groups.items():
+             base = next(iter(group.values()))
+@@ -401,7 +408,14 @@ class Calculator:
+                                 f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
+                                 lookup[source_metric])
+             if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT}:
+-                prior = historical.get((company_id, base.fiscal_year - 1, base.period_kind), {})
++                if base.period_kind == PeriodKind.FY:
++                    prior = historical.get((company_id, base.fiscal_year - 1, PeriodKind.FY), {})
++                else:
++                    # Annual balance growth: a fiscal year end against the exact prior year end. An interim
++                    # balance compared with the last year end is a months-long change, not annual growth.
++                    fy_start = fiscal_year_starts.get((company_id, base.period_end))
++                    prior = instants.get((company_id, (date.fromisoformat(fy_start) - timedelta(days=1)).isoformat()),
++                                         {}) if fy_start else {}
+                 for source_metric, output_metric in self.GROWTH_METRICS.items():
+                     if source_metric in group and source_metric in prior and prior[source_metric].value:
+                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
+diff --git a/tests/test_correctness_pack.py b/tests/test_correctness_pack.py
+index f3ec09c..3a595d1 100644
+--- a/tests/test_correctness_pack.py
++++ b/tests/test_correctness_pack.py
+@@ -75,6 +75,18 @@ class FiscalYearViewTests(unittest.TestCase):
+         self.assertNotIn("net_margin", quarter_rows)   # no Q4 net income: nothing to divide
+         self.assertNotIn("payout_ratio", quarter_rows)  # never Q4 dividends over annual income
+ 
++    def test_balance_growth_is_annual_only(self):
++        def balance(end, year, equity):
++            return fact("total_equity", equity, PeriodKind.INSTANT, end, year)
++        history = [balance("2024-12-31", 2024, "1000"), fact("revenue", "500", PeriodKind.FY, "2024-12-31", 2024),
++                   fact("revenue", "550", PeriodKind.FY, "2025-12-31", 2025)]
++        year_end = [balance("2025-12-31", 2025, "1100")]
++        out = by_metric(Calculator().calculate(year_end, history))
++        self.assertEqual(out["equity_growth", "2025-12-31", PeriodKind.INSTANT].value, Decimal("0.1"))
++        interim = [balance("2026-03-31", 2026, "1120")]
++        out = by_metric(Calculator().calculate(interim, [*history, *year_end]))
++        self.assertNotIn(("equity_growth", "2026-03-31", PeriodKind.INSTANT), out)
++
+     def test_a_year_end_point_in_time_value_stays_in_the_annual_view(self):
+         batch = [fact("revenue", "400", PeriodKind.FY, "2025-12-31", 2025),
+                  fact("market_cap", "2000", PeriodKind.AS_OF, "2025-12-31", 2025)]
+-- 
+2.43.0
+

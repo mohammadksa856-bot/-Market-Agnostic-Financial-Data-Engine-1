@@ -1,0 +1,287 @@
+From 30de978a3e991e3a307ab4e12fb9a8c38ae40274 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:13:44 +0000
+Subject: [PATCH 4/6] Correct TTM windows and the fiscal-year view in the
+ calculator
+
+Port of the correctness fixes made on defs/independent-validation, with
+no new formula or data:
+- TTM sums four contiguous quarters only; a missing quarter is never
+  bridged.
+- A TTM window that is exactly a fiscal year must agree with that year's
+  reported value within the rounding of the five figures, else it is a
+  conflict and is not emitted.
+- The fiscal-year lookup holds FY flows, year-end balances and
+  point-in-time values only, so a Q4 row ending on the same date never
+  stands in for the year.
+- Market valuations read decimal rows only.
+Storage TTM fixtures now carry real quarter starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py  | 56 +++++++++++++++++++---
+ src/finengine/domains.py       |  2 +-
+ tests/test_correctness_pack.py | 86 ++++++++++++++++++++++++++++++++++
+ tests/test_storage_jobs.py     | 22 +++++----
+ 4 files changed, 148 insertions(+), 18 deletions(-)
+ create mode 100644 tests/test_correctness_pack.py
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index c8c40bb..024741a 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -1,4 +1,5 @@
+ from collections import defaultdict
++from datetime import date, timedelta
+ from decimal import Decimal
+ 
+ from .models import Fact, PeriodKind
+@@ -48,15 +49,20 @@ class Calculator:
+         all_facts = [*(history or []), *facts]
+         out: list[Fact] = []
+         groups = defaultdict(dict)
++        # `combined` is the fiscal-year view of a period end: FY flows with year-end balances and
++        # point-in-time values (e.g. a reported year-end market cap). A quarter, YTD or TTM row ending
++        # on the same date is a different quantity and never stands in for them.
++        annual_view = {PeriodKind.FY, PeriodKind.INSTANT, PeriodKind.AS_OF}
+         combined = defaultdict(dict)
+         for fact in all_facts:
+-            if fact.scope == "consolidated" and not fact.dimensions:
++            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind in annual_view:
+                 combined[(fact.company_id, fact.period_end)].setdefault(fact.metric, fact)
+         for fact in facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+                 groups[(fact.company_id, fact.period_end, fact.period_kind,
+                         fact.fiscal_year, fact.fiscal_quarter)][fact.metric] = fact
+-                combined[(fact.company_id, fact.period_end)][fact.metric] = fact
++                if fact.period_kind in annual_view:
++                    combined[(fact.company_id, fact.period_end)][fact.metric] = fact
+         historical = defaultdict(dict)
+         for fact in all_facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+@@ -585,22 +591,58 @@ class Calculator:
+                 "sum of bank-quality signals passed [" + ", ".join(sorted(bank_evaluated)) + "]",
+                 base, unit="score")
+ 
++    @staticmethod
++    def _rounding_half_unit(value: Decimal) -> Decimal:
++        """Half the last reported unit of a figure: 0.3312 -> 0.00005, 80104000000 -> 500000.
++
++        A figure with a fractional part keeps its stated decimals; for a whole number (often a scaled
++        figure such as millions) trailing zeros are read as rounding, which can only widen the bound."""
++        exponent = value.as_tuple().exponent
++        if value and value == value.to_integral_value():
++            exponent = value.normalize().as_tuple().exponent
++        return Decimal(1).scaleb(exponent) / 2
++
++    @classmethod
++    def _rounding_bound(cls, values: list[Decimal]) -> Decimal:
++        """Largest gap rounding alone can explain between a sum and a total; a zero has no stated
++        precision, so it takes the finest precision of the other figures."""
++        units = [cls._rounding_half_unit(value) for value in values if value]
++        finest = min(units, default=Decimal(0))
++        return sum(units, Decimal(0)) + finest * sum(1 for value in values if not value)
++
+     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
+         out = []
+         groups = defaultdict(dict)
++        fiscal_years = {}
+         for fact in facts:
++            identity = (fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
++                        tuple(sorted(fact.dimensions.items())))
++            if fact.period_kind == PeriodKind.FY:
++                fiscal_years[(*identity, fact.period_start, fact.period_end)] = fact
+             if fact.metric in self.TTM_FLOWS and fact.period_kind == PeriodKind.QUARTER:
+-                groups[(
+-                    fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
+-                    tuple(sorted(fact.dimensions.items())),
+-                )][fact.period_end] = fact
++                groups[identity][fact.period_end] = fact
+         for rows_by_period in groups.values():
+             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
+             if len(rows) >= 4 and rows[-1].period_end in target_periods:
+                 last = rows[-4:]
++                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
++                if any(not current.period_start or
++                       date.fromisoformat(current.period_start) - timedelta(days=1)
++                       != date.fromisoformat(previous.period_end)
++                       for previous, current in zip(last, last[1:])):
++                    continue
+                 base = last[-1]
++                total = sum((item.value for item in last), Decimal(0))
++                annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
++                                           tuple(sorted(base.dimensions.items())), last[0].period_start,
++                                           base.period_end))
++                # A window that is exactly a fiscal year must agree with that year's reported value
++                # within the rounding the five reported figures can carry; a larger gap is a conflict.
++                if annual is not None and abs(total - annual.value) > self._rounding_bound(
++                        [item.value for item in last] + [annual.value]):
++                    continue
+                 out.append(Fact(
+-                    base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
++                    base.company_id, base.metric + "_ttm", total,
+                     base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
+                     base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
+                     is_calculated=True, calculation="sum(last 4 discrete quarters)",
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 4ea4cb1..df1dcea 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -142,7 +142,7 @@ class CompanyDomainStore:
+             return {"company_id": company_id, "status": "skipped", "reason": "no_market_price", "published": 0}
+         rows = self.db.conn.execute(
+             """SELECT * FROM data_points WHERE company_id=? AND is_current=1
+-            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
++            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=? AND value_type='decimal'
+             AND (currency='' OR currency=?)
+             AND period_end<=? AND period_kind IN ('fy','instant')
+             ORDER BY period_end DESC,version DESC""",
+diff --git a/tests/test_correctness_pack.py b/tests/test_correctness_pack.py
+new file mode 100644
+index 0000000..f3ec09c
+--- /dev/null
++++ b/tests/test_correctness_pack.py
+@@ -0,0 +1,86 @@
++import unittest
++from decimal import Decimal
++
++from finengine.calculations import Calculator
++from finengine.models import Fact, PeriodKind
++
++
++def fact(metric, value, kind, end, year, quarter=None, unit="SAR", currency="SAR", start=None):
++    if start is None and kind == PeriodKind.FY:
++        start = f"{year}-01-01"
++    return Fact("sa:9999", metric, Decimal(value), currency, unit, start, end, kind, year, quarter,
++                f"doc:{metric}:{end}", "https://example.invalid/report.pdf", end)
++
++
++def quarter(metric, value, end, start, year, q, **kw):
++    return fact(metric, value, PeriodKind.QUARTER, end, year, q, start=start, **kw)
++
++
++def by_metric(facts):
++    return {(item.metric, item.period_end, item.period_kind): item for item in facts}
++
++
++QUARTERS = [("2025-01-01", "2025-03-31", 2025, 1), ("2025-04-01", "2025-06-30", 2025, 2),
++            ("2025-07-01", "2025-09-30", 2025, 3), ("2025-10-01", "2025-12-31", 2025, 4),
++            ("2026-01-01", "2026-03-31", 2026, 1)]
++
++
++class TrailingTwelveMonthTests(unittest.TestCase):
++    def ttm(self, values, quarters=QUARTERS[:4], annual=None):
++        facts = [quarter("revenue", value, end, start, year, q) for (start, end, year, q), value in zip(quarters, values)]
++        end = quarters[-1][1]
++        if annual is not None:
++            facts.append(fact("revenue", annual, PeriodKind.FY, end, int(end[:4])))
++        batch = [item for item in facts if item.period_end == end and item.period_kind == PeriodKind.QUARTER]
++        history = [item for item in facts if item not in batch]
++        return by_metric(Calculator().calculate(batch, history)).get(("revenue_ttm", end, PeriodKind.TTM))
++
++    def test_four_contiguous_quarters_are_summed(self):
++        result = self.ttm(["100"] * 4, QUARTERS[1:])
++        self.assertEqual(result.value, Decimal("400"))
++        self.assertEqual(result.period_start, "2025-04-01")
++
++    def test_a_missing_quarter_is_never_bridged(self):
++        gap = [row for row in QUARTERS if row[1] != "2025-09-30"]
++        self.assertIsNone(self.ttm(["100"] * 4, gap))
++
++    def test_a_fiscal_year_window_must_agree_with_the_reported_year_within_rounding(self):
++        quarters = ["80104", "80112", "80113", "80118"]  # sum 320447; five whole figures: bound 2.5
++        self.assertIsNotNone(self.ttm(quarters, annual="320447"))
++        self.assertIsNotNone(self.ttm(quarters, annual="320449"))
++        self.assertIsNone(self.ttm(quarters, annual="320451"))
++        self.assertIsNotNone(self.ttm(["0.33"] * 4, annual="1.3248"))  # two-decimal quarters
++        self.assertIsNone(self.ttm(["0", "0.48", "0", "0"], annual="0.96"))
++        self.assertIsNotNone(self.ttm(["0", "0.48", "0", "0"]))  # no fiscal year: nothing to contradict
++
++    def test_rounding_bound_reads_the_stated_precision(self):
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.3312")), Decimal("0.00005"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("80104000000")), Decimal("500000"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("17720000000.00")), Decimal("5000000"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.30")), Decimal("0.005"))
++        self.assertEqual(Calculator._rounding_bound([Decimal("0"), Decimal("0.48"), Decimal("0.96")]),
++                         Decimal("0.015"))
++
++
++class FiscalYearViewTests(unittest.TestCase):
++    def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
++        batch = [fact("revenue", "400", PeriodKind.FY, "2025-12-31", 2025),
++                 fact("net_income", "40", PeriodKind.FY, "2025-12-31", 2025),
++                 fact("dividends_paid", "30", PeriodKind.FY, "2025-12-31", 2025),
++                 quarter("revenue", "100", "2025-12-31", "2025-10-01", 2025, 4),
++                 quarter("dividends_paid", "8", "2025-12-31", "2025-10-01", 2025, 4)]
++        out = by_metric(Calculator().calculate(batch, []))
++        self.assertEqual(out["net_margin", "2025-12-31", PeriodKind.FY].value, Decimal("0.1"))
++        quarter_rows = {metric for metric, _, kind in out if kind == PeriodKind.QUARTER}
++        self.assertNotIn("net_margin", quarter_rows)   # no Q4 net income: nothing to divide
++        self.assertNotIn("payout_ratio", quarter_rows)  # never Q4 dividends over annual income
++
++    def test_a_year_end_point_in_time_value_stays_in_the_annual_view(self):
++        batch = [fact("revenue", "400", PeriodKind.FY, "2025-12-31", 2025),
++                 fact("market_cap", "2000", PeriodKind.AS_OF, "2025-12-31", 2025)]
++        out = by_metric(Calculator().calculate(batch, []))
++        self.assertIn("price_to_sales", {metric for metric, _, _ in out})
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_storage_jobs.py b/tests/test_storage_jobs.py
+index c17b0cb..9bfe059 100644
+--- a/tests/test_storage_jobs.py
++++ b/tests/test_storage_jobs.py
+@@ -32,8 +32,8 @@ class StorageAndJobsTests(unittest.TestCase):
+         return doc
+ 
+     def fact(self, source, value, period_end="2025-12-31", kind=PeriodKind.FY,
+-             quarter=None, dimensions=None):
+-        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", "2025-01-01",
++             quarter=None, dimensions=None, period_start="2025-01-01"):
++        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", period_start,
+                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
+                     source.filed_at, dimensions=dimensions or {})
+ 
+@@ -472,11 +472,13 @@ class StorageAndJobsTests(unittest.TestCase):
+         self.assertNotIn("beneish_m_score", out)
+ 
+     def test_ttm_uses_published_history(self):
+-        for index, (end, value) in enumerate((("2025-03-31", "10"), ("2025-06-30", "20"), ("2025-09-30", "30")), 1):
++        for index, (start, end, value) in enumerate((("2025-01-01", "2025-03-31", "10"),
++                                                     ("2025-04-01", "2025-06-30", "20"),
++                                                     ("2025-07-01", "2025-09-30", "30")), 1):
+             source = self.source(f"source:{index}")
+-            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index))
++            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index, period_start=start))
+         current_source = self.source("source:4")
+-        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4)
++        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4, period_start="2025-10-01")
+         history = self.db.quarter_history("sa:TST", Calculator.TTM_FLOWS)
+         calculated = Calculator().calculate([current], history)
+         ttm = next(f for f in calculated if f.metric == "revenue_ttm")
+@@ -486,15 +488,15 @@ class StorageAndJobsTests(unittest.TestCase):
+         source = self.source()
+         facts = []
+         periods = (
+-            ("2025-03-31", 1), ("2025-06-30", 2),
+-            ("2025-09-30", 3), ("2025-12-31", 4),
++            ("2025-01-01", "2025-03-31", 1), ("2025-04-01", "2025-06-30", 2),
++            ("2025-07-01", "2025-09-30", 3), ("2025-10-01", "2025-12-31", 4),
+         )
+-        for end, quarter in periods:
++        for start, end, quarter in periods:
+             facts.extend([
+                 self.fact(source, "10", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "upstream"}),
++                          {"segment": "upstream"}, period_start=start),
+                 self.fact(source, "100", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "downstream"}),
++                          {"segment": "downstream"}, period_start=start),
+             ])
+         ttm = [fact for fact in Calculator().calculate(facts) if fact.metric == "revenue_ttm"]
+         values = {fact.dimensions["segment"]: fact.value for fact in ttm}
+-- 
+2.43.0
+

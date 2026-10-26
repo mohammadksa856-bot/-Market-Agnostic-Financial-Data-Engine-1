@@ -1,0 +1,87 @@
+== 0 transfer fingerprints
+== 1 contract-validate
+== 2 reproduce Codex figures from the snapshot records
+reproduction exit 0 (0 = every stated figure reproduced)
+== 3 contract-compare: our bundle vs Codex
+== 4 special-source evidence
+== 5 third engine copy at the Codex commit
+== 6 before: rebuild at the Codex commit (its own assessments: reproduction only; none: official)
+== 7 apply the correctness pack on the integration branch
+Ran 511 tests in 245.644s
+
+OK
+== 8 after: rebuild with the pack (no unsigned assessments)
+== 9 measure from the unified records, compare, escalate
+{
+ "integration_sha": "2ce182dc97dd21a597147cc5820e918d8694b990",
+ "unified_coverage_total": {
+  "distinct_keys": "449/685",
+  "weighted": "61.60757576999020554312638880"
+ },
+ "unified_coverage_conservative": {
+  "excluded": {
+   "short_term_investments_net": "sign defect recorded as ARAMCO95-CORR-STIN-2025, not applied"
+  },
+  "distinct_keys": "448/685",
+  "weighted": "61.55245765975398507068544392"
+ },
+ "before_pack": {
+  "distinct_keys": "448/685",
+  "weighted": "61.47296038537482092774177342"
+ },
+ "keys_withdrawn_by_engine_corrections": [
+  "dividend_cagr_3y"
+ ],
+ "keys_added_by_engine_corrections": [
+  "market_return_1m",
+  "previous_close"
+ ],
+ "keys_codex_data_adds_to_our_version": [],
+ "keys_ours_has_and_integration_lacks": [
+  "cfo_interest_coverage",
+  "debt_service_coverage_proxy",
+  "dividend_payment_frequency",
+  "dividend_per_share_ttm",
+  "fixed_asset_turnover",
+  "free_cash_flow_per_share_growth",
+  "free_cash_flow_qoq",
+  "incremental_roic",
+  "inventory_to_revenue",
+  "margin_expansion",
+  "net_income_qoq",
+  "nopat",
+  "operating_cash_flow_qoq",
+  "return_on_capital_employed",
+  "return_on_invested_capital",
+  "return_on_tangible_assets",
+  "revenue_per_share_growth",
+  "revenue_qoq",
+  "total_dividend_paid_ttm",
+  "working_capital_turnover"
+ ],
+ "engine_impact_sa2222": {
+  "score_before": "61.60757576999020554312638880",
+  "score_after": "61.60757576999020554312638880",
+  "keys_opened": [],
+  "keys_closed": []
+ },
+ "engine_impact_rows_all_companies": {
+  "removed": 540,
+  "added": 35,
+  "changed": 3
+ },
+ "needs_review": 0,
+ "coverage_differences": 0,
+ "identity_checks": {
+  "normalized_by_status": {
+   "published": 18010
+  },
+  "exceptions_sa2222": []
+ },
+ "tests": [
+  "Ran 511 tests in 245.644s",
+  "",
+  "OK"
+ ],
+ "financial_acceptance": "none: coverage is local measurement only"
+}

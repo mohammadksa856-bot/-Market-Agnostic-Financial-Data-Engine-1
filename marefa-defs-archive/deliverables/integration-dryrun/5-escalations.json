@@ -1,0 +1,2731 @@
+{
+ "needs_review": {
+  "count": 4,
+  "items": [
+   {
+    "key": "accounts_payable",
+    "period_kind": "instant",
+    "period_end": "2025-12-31",
+    "type": "value",
+    "a": "79054000000",
+    "b": "1",
+    "against": "integration"
+   },
+   {
+    "key": "company_profile",
+    "type": "weight",
+    "difference": {
+     "category": "company_profile",
+     "a": "8",
+     "b": "9.0"
+    },
+    "against": "integration"
+   },
+   {
+    "key": "accounts_payable",
+    "period_kind": "instant",
+    "period_end": "2025-12-31",
+    "type": "value",
+    "a": "79054000000",
+    "b": "1",
+    "against": "ours"
+   },
+   {
+    "key": "company_profile",
+    "type": "weight",
+    "difference": {
+     "category": "company_profile",
+     "a": "8",
+     "b": "9.0"
+    },
+    "against": "ours"
+   }
+  ]
+ },
+ "coverage_differences": {
+  "count": 244,
+  "items": [
+   {
+    "key": "accrual_ratio",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "accumulated_depreciation_by_class",
+    "only_in_a": [
+     "instant:2024-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "instant:2024-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "instant:2024-12-31:45fdb0d7635b422f7e224ea0122bb3a06e92676bebbbbfdcd257f31491c96db5",
+     "instant:2024-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "instant:2024-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "instant:2024-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb",
+     "instant:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "instant:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "instant:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "instant:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "actuarial_gain_loss",
+    "only_in_a": [
+     "fy:2024-12-31:3e785047dd4bdd0d7c87e81a3eb29e62729c995b89680ff4e3a8a1ee82133c3c",
+     "fy:2024-12-31:f0e733d27e49c182fd7aa474b1fdb7b77e955ead7870d661384476549ae5f23b"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "asset_growth",
+    "only_in_a": [
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "asset_turnover",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "average_realized_crude_oil_price",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "base_dividends_paid",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "borrowings_by_instrument",
+    "only_in_a": [
+     "instant:2025-12-31:162846c8d12a1ae7fef1a4e0b7bb57dc5999ab544914b7050153d9545101347b",
+     "instant:2025-12-31:1ab98698df62f23cff695c18163b63cdc2c82da5c775bd60474bca1e0351e9d7",
+     "instant:2025-12-31:1b7f68baf262e23bc99f83141e9d5edc63fb48aa0f8a633385e63fccf266fac9",
+     "instant:2025-12-31:1d1444c428af25fabfddda6dffd522a64c1ffdaee6fd69fbee5c7fbd5f0a9bd7",
+     "instant:2025-12-31:4d6aab2c634f6df2601c816466db0344f31fc9418c3ceff6086f33d6eae662c4",
+     "instant:2025-12-31:515a24f30c41503104ffdda37f30e9a86156ee386e2780ad6208a3561d279dca",
+     "instant:2025-12-31:703e3f0f4a51b3d7f0bc8292b6d614550c3d4ec31439aeb68674d2491237b7f7",
+     "instant:2025-12-31:b1fe2cac9af42eb43d581b7a30c8bc1f6662f144d1a4da2dd720a64374ff7943",
+     "instant:2025-12-31:da5209fc193f288083f51c65c19f29f91f0a7c07a0db707276a3f5619312a187"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "borrowings_by_maturity",
+    "only_in_a": [
+     "instant:2025-12-31:0006e94fa59d6f643ccdc4833f3536523dedf2328e7e31b2756f4e490b5ca18a",
+     "instant:2025-12-31:53a9d23983e3a63e13f7c5d729bd43933f5abe971bb516c9b4f2e4aa0d34c0d8",
+     "instant:2025-12-31:5fc6b6d9d0db5a3012a3f45ee1414e076edd2e0cd0d6e656a7d98f0a18aafc11",
+     "instant:2025-12-31:788521a73b916ba86d863db2cb6b574d14f51325b4924d261923a7d1b20333c1"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "capex",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "capex_to_cfo",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "capex_to_depreciation",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "capex_to_depreciation_amortization",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "capex_to_revenue",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "cash",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "cash_conversion_of_earnings",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "cash_return_on_assets",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "cash_return_on_equity",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "cfo_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "debt_to_ebitda",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "deferred_tax_assets_by_component",
+    "only_in_a": [
+     "instant:2025-12-31:2eb9afe49bbd0071a742866d16985a244b821a4ec7d2b89cc999b91bb2b3edda"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "deferred_tax_liabilities_by_component",
+    "only_in_a": [
+     "instant:2025-12-31:2eb9afe49bbd0071a742866d16985a244b821a4ec7d2b89cc999b91bb2b3edda"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "depreciation_amortization",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "depreciation_by_ppe_class",
+    "only_in_a": [
+     "fy:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "fy:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "fy:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "fy:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "dividend_coverage_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "dividend_growth",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "dividends_paid",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [
+     "quarter:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "dividends_per_share",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [
+     "quarter:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "due_from_related_parties",
+    "only_in_a": [
+     "instant:2025-12-31:07b07b29d5b4a060512cf0106aeb91c4f77fc75412f3433a536a803dc930000b"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "due_to_related_parties",
+    "only_in_a": [
+     "instant:2025-12-31:b3bfb0aa4c9ef6c9f8c58be3e0954bb8a19d02dd2aa8183ec0de8233448a58a8"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "ebitda",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "ebitda_margin",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "ebitda_per_share",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "effective_tax_rate",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "employee_benefit_expense",
+    "only_in_a": [
+     "fy:2025-12-31:3ac496502abd2d60a60f948a478510db3e65c85a177cc5ec17b094cafc4d301b",
+     "fy:2025-12-31:c5b88043dff30f3d83e9fce86fe85daa0c587f7d2ed72bf7e75b2e7d66c7d94e"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "eps_diluted",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "eps_growth",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "equity_growth",
+    "only_in_a": [
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "equity_ratio",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "fair_value_assets_by_level",
+    "only_in_a": [
+     "instant:2024-12-31:8f87752a7df7fbec446f128eea2ef5a5856c7fea7c8afc12bf7df8ebbe58821b",
+     "instant:2024-12-31:b16d0c79dfc1778b2442fb57b2a83792cf78eb8444e23867db681ddb77d6596b",
+     "instant:2024-12-31:e91ae75ac3174f9f98fc65befecc93637303a5f6f7ef3a95bc851f1c5843af10",
+     "instant:2025-12-31:8f87752a7df7fbec446f128eea2ef5a5856c7fea7c8afc12bf7df8ebbe58821b"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "fair_value_liabilities_by_level",
+    "only_in_a": [
+     "instant:2024-12-31:b16d0c79dfc1778b2442fb57b2a83792cf78eb8444e23867db681ddb77d6596b",
+     "instant:2024-12-31:e91ae75ac3174f9f98fc65befecc93637303a5f6f7ef3a95bc851f1c5843af10"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "fcf_conversion",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "fcf_dividend_coverage_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "fcf_margin",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "fcf_payout_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "finance_cost_by_type",
+    "only_in_a": [
+     "fy:2025-12-31:7ad229f025cad534992cb7448a6b92f4bcd07b0f160a67d8776529e305140526",
+     "fy:2025-12-31:e25e6ea405ab8ae499d6f6edee887862029c8fe3a033a953e0e84ad6bc079cee"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "financial_assets_by_class",
+    "only_in_a": [
+     "instant:2024-12-31:6928baa69703f9787133ac81f1be0767fc9ea886f04055abc7dbaf9ecb4da068",
+     "instant:2024-12-31:f5e86a77de159e3868cedae37e8aa63d9fedfd76a064afa5235aa39512c598c0",
+     "instant:2024-12-31:fbb77afdc7a98e5e2be1a1f9fbacce75e323d5bb703ed680f915fa00add82dbb",
+     "instant:2025-12-31:fbb77afdc7a98e5e2be1a1f9fbacce75e323d5bb703ed680f915fa00add82dbb"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "financial_liabilities_by_class",
+    "only_in_a": [
+     "instant:2024-12-31:5946b968ad01e52c803443b1bb13eea681fccfdc953e62da24ff003b421a3274",
+     "instant:2024-12-31:af36b69c88eef0742cb16759180ddcce45933fec2e0ffbfe1eec702ff4d82f6c"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "financing_cash_flow",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "free_cash_flow",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "free_cash_flow_growth",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "gain_loss_investing",
+    "only_in_a": [
+     "fy:2024-12-31:381a15f0be34c91cb87274871baa7e7610703aa70abe51552b680f0c98546878",
+     "fy:2024-12-31:acd6da13f788f962cc611862643e5b7691b150af8116906bc7bee83761262f17"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "gearing",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "guarantees_issued",
+    "only_in_a": [
+     "instant:2025-12-31:bce30ab344eb11089e9cc0a294cbca7e1a3efb5241e5b595d42db7b94a074db2"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "impairment_by_asset_class",
+    "only_in_a": [
+     "fy:2024-12-31:055accb828f3d469e5a2454337b1509f5bc7e2c1df34c250fb8221afdbb0f963",
+     "fy:2024-12-31:3e22236b86c5c0993a4e8ea6e413e2371ba3a2ebe8ad69f6960a797718248075",
+     "fy:2024-12-31:e1dfe493f2712f12447721483d26953856bceaf94d21b7df6b9e874cc65ee8c1",
+     "fy:2025-12-31:3e22236b86c5c0993a4e8ea6e413e2371ba3a2ebe8ad69f6960a797718248075",
+     "fy:2025-12-31:7e7c3584051090647308a142ef23b4201c76d066827ff741fa627eafd74d9155",
+     "fy:2025-12-31:b00db26cff2d1eb017004297dda5e65da21b87ef30440c7c2b17f950863bd9e6",
+     "fy:2025-12-31:e1dfe493f2712f12447721483d26953856bceaf94d21b7df6b9e874cc65ee8c1"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "income_before_income_taxes_and_zakat",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "income_quality",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "income_taxes_and_zakat",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "intangible_additions_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:413fd2947b660a250e027b5f241882da61d2ac7c564f1251e73b5d093835954c"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "intangible_amortization_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:00a0fb7c85e24a0cd63273bd3574ea73be2ce964ab47f00103b1041b244c65a6",
+     "fy:2025-12-31:dcf80e18bea853840633f33a3213bffc3497df2d3d7d838d80bfb7dc2cc5e8e3"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "intangible_assets_by_class",
+    "only_in_a": [
+     "instant:2025-12-31:00a0fb7c85e24a0cd63273bd3574ea73be2ce964ab47f00103b1041b244c65a6",
+     "instant:2025-12-31:413fd2947b660a250e027b5f241882da61d2ac7c564f1251e73b5d093835954c",
+     "instant:2025-12-31:d82dab34d5552dcda258877ba2b84507a4dfe36b7328840afe46cf42e6aec775",
+     "instant:2025-12-31:dcf80e18bea853840633f33a3213bffc3497df2d3d7d838d80bfb7dc2cc5e8e3"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "investing_cash_flow",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "key_management_compensation",
+    "only_in_a": [
+     "fy:2025-12-31:03e841b8a2165966ad91f1ce693d122d65ca8e1f55942dca2e891d177f9e1864",
+     "fy:2025-12-31:84a14e621977cc42f280595b1bf61a18362311ae4168953af9aef699b8137387"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "lease_maturity_by_band",
+    "only_in_a": [
+     "instant:2024-12-31:0ddba977cc7851344f8ff62e0c9638643568ac19159e0ff7ad44a0387589aa7c",
+     "instant:2024-12-31:53d5ca648c6dd1e3be23f793d5c42816478c89e61c3e707ac26b6d26c674a537",
+     "instant:2024-12-31:69a0695c2c1ac6ee777642ae1bbb2d42cee0ec1fd09e9d0831f38e22fafca870",
+     "instant:2025-12-31:69a0695c2c1ac6ee777642ae1bbb2d42cee0ec1fd09e9d0831f38e22fafca870"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "liabilities_to_assets",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "liabilities_to_equity",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "maximum_sustainable_capacity",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_chemicals_production_capacity",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_debt_to_ebitda",
+    "only_in_a": [],
+    "only_in_b": [
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "against": "integration"
+   },
+   {
+    "key": "net_income",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_income_cagr_3y",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_income_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_income_parent",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_interest_employee_benefits",
+    "only_in_a": [
+     "fy:2024-12-31:7843405917bd158322c0d16132c64d4fd602be92c3f03aa5bb182522f1b1c52c",
+     "fy:2024-12-31:8395fdc90baf6f4282598bf33a4aa592b85a104f43c4115ebd409f21e90a91b6"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "net_refining_capacity",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_cash_flow",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_cash_flow_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_costs",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_expenses",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_income",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_income_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "operating_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "other_commitments_by_type",
+    "only_in_a": [
+     "instant:2025-12-31:38d4b51c9e5d7a7fe0c22ea7e10e7942618c2ae30b31fde8e333ace6581174c4",
+     "instant:2025-12-31:b4ed1a687645442c64919b499b20bea255c7a78b8eaaf7a31a05867b20dfc5a1",
+     "instant:2025-12-31:c2236fdb6c98cf1f00d102908e799db67e38aa17c29d1b7eff34f74e11677aa8"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "other_income_related_to_sales",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "other_operating_revenue",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "payout_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "performance_linked_dividends_paid",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "plan_assets_by_class",
+    "only_in_a": [
+     "instant:2025-12-31:03148be5242e9b619f3a65e556454337d40747cf3d863ce70ac3e03dc62f7d8c",
+     "instant:2025-12-31:ba5450a9ce908fbba02bc8d542e2910c7fb6599cff932c529a6ea71d4b16fc72"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "ppe_additions_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "fy:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "fy:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "fy:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "fy:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "ppe_disposals_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "fy:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "fy:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "fy:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "fy:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "pretax_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "property_plant_equipment_by_class",
+    "only_in_a": [
+     "instant:2025-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "instant:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "instant:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "instant:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "instant:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "related_party_payables",
+    "only_in_a": [
+     "instant:2025-12-31:c596e54b64ea79b7b952331107c6520f7c333ad1bb893f66fd358338952db992"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "related_party_purchases",
+    "only_in_a": [
+     "fy:2025-12-31:c596e54b64ea79b7b952331107c6520f7c333ad1bb893f66fd358338952db992"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "related_party_receivables",
+    "only_in_a": [
+     "instant:2025-12-31:41dd515d03b86ddaf16f4426c77f36b26239ce775cb4b4ce7c558b99a3ec8d29"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "related_party_revenue",
+    "only_in_a": [
+     "fy:2025-12-31:c596e54b64ea79b7b952331107c6520f7c333ad1bb893f66fd358338952db992"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "reserve_life_index",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "return_on_assets",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "return_on_equity",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "return_on_tangible_equity",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue_and_other_income_related_to_sales",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue_by_geography",
+    "only_in_a": [
+     "fy:2024-12-31:6b2b0a15dbd94e28556f208265808821d5552df9f79ff33d03b5fdd6b2a70861",
+     "fy:2024-12-31:782d3307bab12043ed3f488573e5c66009308114bec0eb8ea47bbe4ba7f38109"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue_by_product",
+    "only_in_a": [
+     "fy:2025-12-31:54c4435f3448b80ac768e485122172f59fa747796c6cda5f8737cc8b7c848af4"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue_cagr_3y",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue_ex_other_income",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "revenue_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "roace",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "segment_capex",
+    "only_in_a": [
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "segment_depreciation_amortization",
+    "only_in_a": [
+     "fy:2024-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813",
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2024-12-31:b8324b84bbd98c337f621995c886706820b7dad3af1b4a32a2bf0b9459ee6b90",
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "segment_ebit",
+    "only_in_a": [
+     "fy:2024-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813",
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2024-12-31:b8324b84bbd98c337f621995c886706820b7dad3af1b4a32a2bf0b9459ee6b90",
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "segment_ebitda",
+    "only_in_a": [
+     "fy:2024-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813",
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2024-12-31:b8324b84bbd98c337f621995c886706820b7dad3af1b4a32a2bf0b9459ee6b90",
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "segment_revenue",
+    "only_in_a": [
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2025-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "service_cost_employee_benefits",
+    "only_in_a": [
+     "fy:2024-12-31:44e550c087095483f9a5d14d041db0bf02324247203033d9fd3dfa4c76cadf70",
+     "fy:2024-12-31:a22d1c38886069ae32f71672a9c55e39890e2ab4bdf2d0615a7fef7dd1d781bc"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "supply_reliability",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "tangible_book_value",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "tax_reconciliation_by_component",
+    "only_in_a": [
+     "fy:2024-12-31:2f26d7edf7a3acf3589872c8fb06c96645de9ef26a7263d14621687e5506c9ca",
+     "fy:2024-12-31:a05fb93c2fa2aa7b17461a1d1b9991b4b016c4b99340df9b7ef732c10e24f49e"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_assets",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_equity",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_gas_production",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_hydrocarbon_production",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_hydrocarbon_reserves",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_liabilities",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "total_liquids_production",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "undrawn_credit_facilities",
+    "only_in_a": [
+     "instant:2025-12-31:04c0ce955545d93d82733a8c613c0a689e4e9824a9e7cfcd88671c19e2ff12bf",
+     "instant:2025-12-31:1caaac3f370e0a722acd2cfca3dea8736e75352978e05b2f2d5915ea943bb338",
+     "instant:2025-12-31:408b67cc643833976360826dcbb22231a81845522f4c46ea92bf77a361ae9012",
+     "instant:2025-12-31:6d0e978128c255075915a62686103fa660b99579d96b2f7820e9441bf30f8a2b",
+     "instant:2025-12-31:86b10bec015ee6f644de50ce07a4ede2e21159f38f428a7c079291459952b567",
+     "instant:2025-12-31:f7b4f1390af1d3880a5ff187ce9f47a78b8618a245f4dd5b4df37efab54c056f",
+     "instant:2025-12-31:f8c7b9142b122b5e373627cbe8c3b45b8d89100c548a90d5ae0c7f18eedb3444"
+    ],
+    "only_in_b": [],
+    "against": "integration"
+   },
+   {
+    "key": "accrual_ratio",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "accumulated_depreciation_by_class",
+    "only_in_a": [
+     "instant:2024-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "instant:2024-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "instant:2024-12-31:45fdb0d7635b422f7e224ea0122bb3a06e92676bebbbbfdcd257f31491c96db5",
+     "instant:2024-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "instant:2024-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "instant:2024-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb",
+     "instant:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "instant:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "instant:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "instant:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "actuarial_gain_loss",
+    "only_in_a": [
+     "fy:2024-12-31:3e785047dd4bdd0d7c87e81a3eb29e62729c995b89680ff4e3a8a1ee82133c3c",
+     "fy:2024-12-31:f0e733d27e49c182fd7aa474b1fdb7b77e955ead7870d661384476549ae5f23b"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "asset_growth",
+    "only_in_a": [
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "asset_turnover",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "average_realized_crude_oil_price",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "base_dividends_paid",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "borrowings_by_instrument",
+    "only_in_a": [
+     "instant:2025-12-31:162846c8d12a1ae7fef1a4e0b7bb57dc5999ab544914b7050153d9545101347b",
+     "instant:2025-12-31:1ab98698df62f23cff695c18163b63cdc2c82da5c775bd60474bca1e0351e9d7",
+     "instant:2025-12-31:1b7f68baf262e23bc99f83141e9d5edc63fb48aa0f8a633385e63fccf266fac9",
+     "instant:2025-12-31:1d1444c428af25fabfddda6dffd522a64c1ffdaee6fd69fbee5c7fbd5f0a9bd7",
+     "instant:2025-12-31:4d6aab2c634f6df2601c816466db0344f31fc9418c3ceff6086f33d6eae662c4",
+     "instant:2025-12-31:515a24f30c41503104ffdda37f30e9a86156ee386e2780ad6208a3561d279dca",
+     "instant:2025-12-31:703e3f0f4a51b3d7f0bc8292b6d614550c3d4ec31439aeb68674d2491237b7f7",
+     "instant:2025-12-31:b1fe2cac9af42eb43d581b7a30c8bc1f6662f144d1a4da2dd720a64374ff7943",
+     "instant:2025-12-31:da5209fc193f288083f51c65c19f29f91f0a7c07a0db707276a3f5619312a187"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "borrowings_by_maturity",
+    "only_in_a": [
+     "instant:2025-12-31:0006e94fa59d6f643ccdc4833f3536523dedf2328e7e31b2756f4e490b5ca18a",
+     "instant:2025-12-31:53a9d23983e3a63e13f7c5d729bd43933f5abe971bb516c9b4f2e4aa0d34c0d8",
+     "instant:2025-12-31:5fc6b6d9d0db5a3012a3f45ee1414e076edd2e0cd0d6e656a7d98f0a18aafc11",
+     "instant:2025-12-31:788521a73b916ba86d863db2cb6b574d14f51325b4924d261923a7d1b20333c1"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "capex",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "capex_to_cfo",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "capex_to_revenue",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "cash",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "cash_conversion_of_earnings",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "cash_return_on_assets",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "cash_return_on_equity",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "cfo_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "deferred_tax_assets_by_component",
+    "only_in_a": [
+     "instant:2025-12-31:2eb9afe49bbd0071a742866d16985a244b821a4ec7d2b89cc999b91bb2b3edda"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "deferred_tax_liabilities_by_component",
+    "only_in_a": [
+     "instant:2025-12-31:2eb9afe49bbd0071a742866d16985a244b821a4ec7d2b89cc999b91bb2b3edda"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "depreciation_by_ppe_class",
+    "only_in_a": [
+     "fy:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "fy:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "fy:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "fy:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "dividend_coverage_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "dividend_growth",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "dividends_paid",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2025-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2025-06-30:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2025-09-30:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "dividends_per_share",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2025-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2025-06-30:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2025-09-30:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "due_from_related_parties",
+    "only_in_a": [
+     "instant:2025-12-31:07b07b29d5b4a060512cf0106aeb91c4f77fc75412f3433a536a803dc930000b"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "due_to_related_parties",
+    "only_in_a": [
+     "instant:2025-12-31:b3bfb0aa4c9ef6c9f8c58be3e0954bb8a19d02dd2aa8183ec0de8233448a58a8"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "effective_tax_rate",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "employee_benefit_expense",
+    "only_in_a": [
+     "fy:2025-12-31:3ac496502abd2d60a60f948a478510db3e65c85a177cc5ec17b094cafc4d301b",
+     "fy:2025-12-31:c5b88043dff30f3d83e9fce86fe85daa0c587f7d2ed72bf7e75b2e7d66c7d94e"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "eps_diluted",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "eps_growth",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "equity_growth",
+    "only_in_a": [
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "equity_ratio",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "fair_value_assets_by_level",
+    "only_in_a": [
+     "instant:2024-12-31:8f87752a7df7fbec446f128eea2ef5a5856c7fea7c8afc12bf7df8ebbe58821b",
+     "instant:2024-12-31:b16d0c79dfc1778b2442fb57b2a83792cf78eb8444e23867db681ddb77d6596b",
+     "instant:2024-12-31:e91ae75ac3174f9f98fc65befecc93637303a5f6f7ef3a95bc851f1c5843af10",
+     "instant:2025-12-31:8f87752a7df7fbec446f128eea2ef5a5856c7fea7c8afc12bf7df8ebbe58821b"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "fair_value_liabilities_by_level",
+    "only_in_a": [
+     "instant:2024-12-31:b16d0c79dfc1778b2442fb57b2a83792cf78eb8444e23867db681ddb77d6596b",
+     "instant:2024-12-31:e91ae75ac3174f9f98fc65befecc93637303a5f6f7ef3a95bc851f1c5843af10"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "fcf_dividend_coverage_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "fcf_margin",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "fcf_payout_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "finance_cost_by_type",
+    "only_in_a": [
+     "fy:2025-12-31:7ad229f025cad534992cb7448a6b92f4bcd07b0f160a67d8776529e305140526",
+     "fy:2025-12-31:e25e6ea405ab8ae499d6f6edee887862029c8fe3a033a953e0e84ad6bc079cee"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "financial_assets_by_class",
+    "only_in_a": [
+     "instant:2024-12-31:6928baa69703f9787133ac81f1be0767fc9ea886f04055abc7dbaf9ecb4da068",
+     "instant:2024-12-31:f5e86a77de159e3868cedae37e8aa63d9fedfd76a064afa5235aa39512c598c0",
+     "instant:2024-12-31:fbb77afdc7a98e5e2be1a1f9fbacce75e323d5bb703ed680f915fa00add82dbb",
+     "instant:2025-12-31:fbb77afdc7a98e5e2be1a1f9fbacce75e323d5bb703ed680f915fa00add82dbb"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "financial_liabilities_by_class",
+    "only_in_a": [
+     "instant:2024-12-31:5946b968ad01e52c803443b1bb13eea681fccfdc953e62da24ff003b421a3274",
+     "instant:2024-12-31:af36b69c88eef0742cb16759180ddcce45933fec2e0ffbfe1eec702ff4d82f6c"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "financing_cash_flow",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "free_cash_flow",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "free_cash_flow_growth",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "gain_loss_investing",
+    "only_in_a": [
+     "fy:2024-12-31:381a15f0be34c91cb87274871baa7e7610703aa70abe51552b680f0c98546878",
+     "fy:2024-12-31:acd6da13f788f962cc611862643e5b7691b150af8116906bc7bee83761262f17"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "gearing",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "guarantees_issued",
+    "only_in_a": [
+     "instant:2025-12-31:bce30ab344eb11089e9cc0a294cbca7e1a3efb5241e5b595d42db7b94a074db2"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "impairment_by_asset_class",
+    "only_in_a": [
+     "fy:2024-12-31:055accb828f3d469e5a2454337b1509f5bc7e2c1df34c250fb8221afdbb0f963",
+     "fy:2024-12-31:3e22236b86c5c0993a4e8ea6e413e2371ba3a2ebe8ad69f6960a797718248075",
+     "fy:2024-12-31:e1dfe493f2712f12447721483d26953856bceaf94d21b7df6b9e874cc65ee8c1",
+     "fy:2025-12-31:3e22236b86c5c0993a4e8ea6e413e2371ba3a2ebe8ad69f6960a797718248075",
+     "fy:2025-12-31:7e7c3584051090647308a142ef23b4201c76d066827ff741fa627eafd74d9155",
+     "fy:2025-12-31:b00db26cff2d1eb017004297dda5e65da21b87ef30440c7c2b17f950863bd9e6",
+     "fy:2025-12-31:e1dfe493f2712f12447721483d26953856bceaf94d21b7df6b9e874cc65ee8c1"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "income_before_income_taxes_and_zakat",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "income_quality",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "income_taxes_and_zakat",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "intangible_additions_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:413fd2947b660a250e027b5f241882da61d2ac7c564f1251e73b5d093835954c"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "intangible_amortization_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:00a0fb7c85e24a0cd63273bd3574ea73be2ce964ab47f00103b1041b244c65a6",
+     "fy:2025-12-31:dcf80e18bea853840633f33a3213bffc3497df2d3d7d838d80bfb7dc2cc5e8e3"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "intangible_assets_by_class",
+    "only_in_a": [
+     "instant:2025-12-31:00a0fb7c85e24a0cd63273bd3574ea73be2ce964ab47f00103b1041b244c65a6",
+     "instant:2025-12-31:413fd2947b660a250e027b5f241882da61d2ac7c564f1251e73b5d093835954c",
+     "instant:2025-12-31:d82dab34d5552dcda258877ba2b84507a4dfe36b7328840afe46cf42e6aec775",
+     "instant:2025-12-31:dcf80e18bea853840633f33a3213bffc3497df2d3d7d838d80bfb7dc2cc5e8e3"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "investing_cash_flow",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "key_management_compensation",
+    "only_in_a": [
+     "fy:2025-12-31:03e841b8a2165966ad91f1ce693d122d65ca8e1f55942dca2e891d177f9e1864",
+     "fy:2025-12-31:84a14e621977cc42f280595b1bf61a18362311ae4168953af9aef699b8137387"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "lease_maturity_by_band",
+    "only_in_a": [
+     "instant:2024-12-31:0ddba977cc7851344f8ff62e0c9638643568ac19159e0ff7ad44a0387589aa7c",
+     "instant:2024-12-31:53d5ca648c6dd1e3be23f793d5c42816478c89e61c3e707ac26b6d26c674a537",
+     "instant:2024-12-31:69a0695c2c1ac6ee777642ae1bbb2d42cee0ec1fd09e9d0831f38e22fafca870",
+     "instant:2025-12-31:69a0695c2c1ac6ee777642ae1bbb2d42cee0ec1fd09e9d0831f38e22fafca870"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "liabilities_to_assets",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "liabilities_to_equity",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "margin_expansion",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "maximum_sustainable_capacity",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_chemicals_production_capacity",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_income",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_income_cagr_3y",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "net_income_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_income_parent",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_interest_employee_benefits",
+    "only_in_a": [
+     "fy:2024-12-31:7843405917bd158322c0d16132c64d4fd602be92c3f03aa5bb182522f1b1c52c",
+     "fy:2024-12-31:8395fdc90baf6f4282598bf33a4aa592b85a104f43c4115ebd409f21e90a91b6"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "net_refining_capacity",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_cash_flow",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_cash_flow_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_costs",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_expenses",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_income",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_income_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "operating_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "other_commitments_by_type",
+    "only_in_a": [
+     "instant:2025-12-31:38d4b51c9e5d7a7fe0c22ea7e10e7942618c2ae30b31fde8e333ace6581174c4",
+     "instant:2025-12-31:b4ed1a687645442c64919b499b20bea255c7a78b8eaaf7a31a05867b20dfc5a1",
+     "instant:2025-12-31:c2236fdb6c98cf1f00d102908e799db67e38aa17c29d1b7eff34f74e11677aa8"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "other_income_related_to_sales",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "other_operating_revenue",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "payout_ratio",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "performance_linked_dividends_paid",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "plan_assets_by_class",
+    "only_in_a": [
+     "instant:2025-12-31:03148be5242e9b619f3a65e556454337d40747cf3d863ce70ac3e03dc62f7d8c",
+     "instant:2025-12-31:ba5450a9ce908fbba02bc8d542e2910c7fb6599cff932c529a6ea71d4b16fc72"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "ppe_additions_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "fy:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "fy:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "fy:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "fy:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "ppe_disposals_by_class",
+    "only_in_a": [
+     "fy:2025-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "fy:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "fy:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "fy:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "fy:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "pretax_margin",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "property_plant_equipment_by_class",
+    "only_in_a": [
+     "instant:2025-12-31:3ef6d4c9f098b29ba6001956009c8a8f623b1244b65a260e99eab5f72cfc65d2",
+     "instant:2025-12-31:421b3f6fa37b3feb039c3b2518deeafa9ecd1adb9f38a829ba6215c21842fd36",
+     "instant:2025-12-31:5d07fce49540d4a516f1ea1c8e18b82638618e51e62492d90ad0af2e6501a7a2",
+     "instant:2025-12-31:6b2f3449642826b6c6e7474467576849079ec3a585df5c253d81a80170d6ae57",
+     "instant:2025-12-31:e2a95f2a79f4e72426a55739df9d4cafdd08d2dfeb6c3c91ed7019ba7c982beb"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "related_party_payables",
+    "only_in_a": [
+     "instant:2025-12-31:c596e54b64ea79b7b952331107c6520f7c333ad1bb893f66fd358338952db992"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "related_party_purchases",
+    "only_in_a": [
+     "fy:2025-12-31:c596e54b64ea79b7b952331107c6520f7c333ad1bb893f66fd358338952db992"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "related_party_receivables",
+    "only_in_a": [
+     "instant:2025-12-31:41dd515d03b86ddaf16f4426c77f36b26239ce775cb4b4ce7c558b99a3ec8d29"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "related_party_revenue",
+    "only_in_a": [
+     "fy:2025-12-31:c596e54b64ea79b7b952331107c6520f7c333ad1bb893f66fd358338952db992"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "reserve_life_index",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "return_on_assets",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "return_on_equity",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "return_on_tangible_equity",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "engine_corrections": [
+     "a:correctness-pack@a8c3f0e"
+    ],
+    "against": "ours"
+   },
+   {
+    "key": "revenue",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "quarter:2026-03-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "revenue_and_other_income_related_to_sales",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "revenue_by_geography",
+    "only_in_a": [
+     "fy:2024-12-31:6b2b0a15dbd94e28556f208265808821d5552df9f79ff33d03b5fdd6b2a70861",
+     "fy:2024-12-31:782d3307bab12043ed3f488573e5c66009308114bec0eb8ea47bbe4ba7f38109"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "revenue_by_product",
+    "only_in_a": [
+     "fy:2025-12-31:54c4435f3448b80ac768e485122172f59fa747796c6cda5f8737cc8b7c848af4"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "revenue_cagr_3y",
+    "only_in_a": [
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "revenue_ex_other_income",
+    "only_in_a": [
+     "fy:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "revenue_growth",
+    "only_in_a": [
+     "fy:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "roace",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "segment_capex",
+    "only_in_a": [
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "segment_depreciation_amortization",
+    "only_in_a": [
+     "fy:2024-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813",
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2024-12-31:b8324b84bbd98c337f621995c886706820b7dad3af1b4a32a2bf0b9459ee6b90",
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "segment_ebit",
+    "only_in_a": [
+     "fy:2024-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813",
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2024-12-31:b8324b84bbd98c337f621995c886706820b7dad3af1b4a32a2bf0b9459ee6b90",
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "segment_ebitda",
+    "only_in_a": [
+     "fy:2024-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813",
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2024-12-31:b8324b84bbd98c337f621995c886706820b7dad3af1b4a32a2bf0b9459ee6b90",
+     "fy:2025-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "segment_revenue",
+    "only_in_a": [
+     "fy:2024-12-31:8e7eb81d095536d5014e1a6453a27ae00356851c08af17d800dc9e70a69e512d",
+     "fy:2025-12-31:7e4686bff301bc4b4eae5500a7f363ab2ef66f8d4ff91e61adb465f95d6ae813"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "service_cost_employee_benefits",
+    "only_in_a": [
+     "fy:2024-12-31:44e550c087095483f9a5d14d041db0bf02324247203033d9fd3dfa4c76cadf70",
+     "fy:2024-12-31:a22d1c38886069ae32f71672a9c55e39890e2ab4bdf2d0615a7fef7dd1d781bc"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "supply_reliability",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "tangible_book_value",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "tax_reconciliation_by_component",
+    "only_in_a": [
+     "fy:2024-12-31:2f26d7edf7a3acf3589872c8fb06c96645de9ef26a7263d14621687e5506c9ca",
+     "fy:2024-12-31:a05fb93c2fa2aa7b17461a1d1b9991b4b016c4b99340df9b7ef732c10e24f49e"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_assets",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_equity",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_gas_production",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_hydrocarbon_production",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_hydrocarbon_reserves",
+    "only_in_a": [
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_liabilities",
+    "only_in_a": [
+     "instant:2019-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2020-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2024-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "instant:2025-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "total_liquids_production",
+    "only_in_a": [
+     "fy:2021-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2022-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+     "fy:2023-12-31:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   },
+   {
+    "key": "undrawn_credit_facilities",
+    "only_in_a": [
+     "instant:2025-12-31:04c0ce955545d93d82733a8c613c0a689e4e9824a9e7cfcd88671c19e2ff12bf",
+     "instant:2025-12-31:1caaac3f370e0a722acd2cfca3dea8736e75352978e05b2f2d5915ea943bb338",
+     "instant:2025-12-31:408b67cc643833976360826dcbb22231a81845522f4c46ea92bf77a361ae9012",
+     "instant:2025-12-31:6d0e978128c255075915a62686103fa660b99579d96b2f7820e9441bf30f8a2b",
+     "instant:2025-12-31:86b10bec015ee6f644de50ce07a4ede2e21159f38f428a7c079291459952b567",
+     "instant:2025-12-31:f7b4f1390af1d3880a5ff187ce9f47a78b8618a245f4dd5b4df37efab54c056f",
+     "instant:2025-12-31:f8c7b9142b122b5e373627cbe8c3b45b8d89100c548a90d5ae0c7f18eedb3444"
+    ],
+    "only_in_b": [],
+    "against": "ours"
+   }
+  ]
+ },
+ "touched_by_engine_corrections": [
+  "asset_growth",
+  "effective_tax_rate",
+  "equity_growth",
+  "net_income_cagr_3y",
+  "return_on_assets",
+  "return_on_equity",
+  "return_on_tangible_equity"
+ ]
+}

@@ -1,0 +1,97 @@
+From 0c7a35fd4b9a631e6d761b0ca26af4ee94fb4d78 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:03:40 +0000
+Subject: [PATCH 3/6] Never bridge an archive gap in market statistics
+
+previous_close took the prior archived row and calendar returns took the
+last close on or before the lookback date, however old either was. A hole
+in the price archive therefore labelled a months-old close as the
+previous session or as the one-month baseline. Both now require a session
+within 10 calendar days, the longest market closure seen in the archives.
+Current archives are unaffected.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/domains.py      | 19 ++++++++++++-------
+ tests/test_company_domains.py | 25 +++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+), 7 deletions(-)
+
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 94291a6..4ea4cb1 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -327,12 +327,14 @@ class CompanyDomainStore:
+         latest_date = date.fromisoformat(latest["observed_at"][:10])
+         latest_close = Decimal(latest["close"])
+         currency = latest["company_currency"]
+-        calculations: dict[str, tuple[Decimal, str, str, str]] = {
+-            "previous_close": (
++        calculations: dict[str, tuple[Decimal, str, str, str]] = {}
++        # Longest market closure seen in the archives (Eid holidays); a wider hole is an archive gap.
++        max_session_gap = timedelta(days=10)
++        if latest_date - date.fromisoformat(rows[-2]["observed_at"][:10]) <= max_session_gap:
++            calculations["previous_close"] = (
+                 Decimal(rows[-2]["close"]), "previous_archived_trading_session_close",
+                 currency, f"{currency}/share",
+-            ),
+-        }
++            )
+ 
+         for sessions in (20, 50, 200):
+             if len(rows) < sessions:
+@@ -400,9 +402,12 @@ class CompanyDomainStore:
+         def calendar_return(metric: str, target: date, formula: str) -> None:
+             if dated_rows[0][0] > target:
+                 return
+-            baseline = next((row for observed, row in reversed(dated_rows)
+-                             if observed <= target), None)
+-            if baseline is not None and Decimal(baseline["close"]):
++            baseline_dated = next(((observed, row) for observed, row in reversed(dated_rows)
++                                   if observed <= target), None)
++            if baseline_dated is None or target - baseline_dated[0] > max_session_gap:
++                return
++            baseline = baseline_dated[1]
++            if Decimal(baseline["close"]):
+                 calculations[metric] = (
+                     latest_close / Decimal(baseline["close"]) - Decimal(1),
+                     formula, "", "ratio",
+diff --git a/tests/test_company_domains.py b/tests/test_company_domains.py
+index c9a69d8..1b3f2fd 100644
+--- a/tests/test_company_domains.py
++++ b/tests/test_company_domains.py
+@@ -136,6 +136,31 @@ class CompanyDomainTests(unittest.TestCase):
+         self.assertNotIn("market_return_3y", metrics)
+         self.assertNotIn("market_return_5y", metrics)
+ 
++    def test_market_statistics_never_bridge_an_archive_gap(self):
++        def publish(observed, close):
++            self.store.publish_market_price("sa:TST", observed.isoformat(), Decimal(close), "SAR",
++                                            self.source.source_key)
++        # Sessions until 2025-03-01, a five-month hole, then a month of sessions to 2025-09-03.
++        for offset in range(60):
++            publish(date(2025, 1, 1) + timedelta(days=offset), "20")
++        for offset in range(31):
++            publish(date(2025, 8, 3) + timedelta(days=offset), "25")
++        self.store.refresh_market_statistics("sa:TST")
++        metrics = {row[0] for row in self.db.conn.execute(
++            "SELECT metric_key FROM data_points WHERE company_id='sa:TST' AND period_kind='as_of' AND is_current=1")}
++        self.assertIn("market_return_1m", metrics)   # baseline 2025-08-04 is a real session
++        self.assertNotIn("market_return_3m", metrics)  # nearest close is months before 2025-06-04
++        self.assertIn("previous_close", metrics)
++
++    def test_previous_close_needs_the_previous_session(self):
++        for observed in (date(2025, 1, 2), date(2025, 3, 2)):
++            self.store.publish_market_price("sa:TST", observed.isoformat(), Decimal("20"), "SAR",
++                                            self.source.source_key)
++        self.store.refresh_market_statistics("sa:TST")
++        metrics = {row[0] for row in self.db.conn.execute(
++            "SELECT metric_key FROM data_points WHERE company_id='sa:TST' AND period_kind='as_of' AND is_current=1")}
++        self.assertNotIn("previous_close", metrics)
++
+     def test_ownership_and_corporate_actions_are_structured(self):
+         self.assertEqual(self.store.publish_ownership_position(
+             "sa:TST", "holder:government", "Government", "beneficial", "2025-12-31",
+-- 
+2.43.0
+

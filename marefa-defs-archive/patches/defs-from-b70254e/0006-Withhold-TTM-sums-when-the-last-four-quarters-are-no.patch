@@ -1,0 +1,125 @@
+From addb53db20a17af6a78def0669f0d1b28fb144de Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:18:37 +0000
+Subject: [PATCH 06/21] Withhold TTM sums when the last four quarters are not
+ contiguous
+
+_ttm summed the four latest discrete quarters even when one was missing,
+so a gap bridged a 15-month window and a mislabelled year-to-date row
+counted as a quarter. Require each quarter to start the day after the
+previous one ends. Storage TTM fixtures now carry real quarter starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      |  6 ++++++
+ tests/test_contract_derivations.py | 23 +++++++++++++++++++++++
+ tests/test_storage_jobs.py         | 22 ++++++++++++----------
+ 3 files changed, 41 insertions(+), 10 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 1a03ad0..aa0161b 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -804,6 +804,12 @@ class Calculator:
+             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
+             if len(rows) >= 4 and rows[-1].period_end in target_periods:
+                 last = rows[-4:]
++                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
++                if any(not current.period_start or
++                       date.fromisoformat(current.period_start) - timedelta(days=1)
++                       != date.fromisoformat(previous.period_end)
++                       for previous, current in zip(last, last[1:])):
++                    continue
+                 base = last[-1]
+                 out.append(Fact(
+                     base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 49eb002..589b7cd 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -233,5 +233,28 @@ class ContractDerivationTests(unittest.TestCase):
+         self.assertEqual(out["revenue_qoq", "2026-03-31"].value, Decimal("0.25"))
+ 
+ 
++class TrailingTwelveMonthTests(unittest.TestCase):
++    QUARTERS = [("2025-01-01", "2025-03-31", 2025, 1), ("2025-04-01", "2025-06-30", 2025, 2),
++                ("2025-07-01", "2025-09-30", 2025, 3), ("2025-10-01", "2025-12-31", 2025, 4),
++                ("2026-01-01", "2026-03-31", 2026, 1)]
++
++    def ttm(self, quarters, batch_end):
++        facts = [quarter("revenue", "100", end, start, year, q) for start, end, year, q in quarters]
++        batch = [item for item in facts if item.period_end == batch_end]
++        history = [item for item in facts if item.period_end != batch_end]
++        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
++        return out.get(("revenue_ttm", batch_end))
++
++    def test_ttm_sums_the_last_four_contiguous_quarters(self):
++        result = self.ttm(self.QUARTERS, "2026-03-31")
++        self.assertEqual(result.value, Decimal("400"))
++        self.assertEqual(result.period_start, "2025-04-01")
++        self.assertEqual(result.period_kind, PeriodKind.TTM)
++
++    def test_ttm_is_withheld_when_a_quarter_is_missing(self):
++        gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
++        self.assertIsNone(self.ttm(gap, "2026-03-31"))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tests/test_storage_jobs.py b/tests/test_storage_jobs.py
+index c17b0cb..9bfe059 100644
+--- a/tests/test_storage_jobs.py
++++ b/tests/test_storage_jobs.py
+@@ -32,8 +32,8 @@ class StorageAndJobsTests(unittest.TestCase):
+         return doc
+ 
+     def fact(self, source, value, period_end="2025-12-31", kind=PeriodKind.FY,
+-             quarter=None, dimensions=None):
+-        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", "2025-01-01",
++             quarter=None, dimensions=None, period_start="2025-01-01"):
++        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", period_start,
+                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
+                     source.filed_at, dimensions=dimensions or {})
+ 
+@@ -472,11 +472,13 @@ class StorageAndJobsTests(unittest.TestCase):
+         self.assertNotIn("beneish_m_score", out)
+ 
+     def test_ttm_uses_published_history(self):
+-        for index, (end, value) in enumerate((("2025-03-31", "10"), ("2025-06-30", "20"), ("2025-09-30", "30")), 1):
++        for index, (start, end, value) in enumerate((("2025-01-01", "2025-03-31", "10"),
++                                                     ("2025-04-01", "2025-06-30", "20"),
++                                                     ("2025-07-01", "2025-09-30", "30")), 1):
+             source = self.source(f"source:{index}")
+-            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index))
++            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index, period_start=start))
+         current_source = self.source("source:4")
+-        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4)
++        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4, period_start="2025-10-01")
+         history = self.db.quarter_history("sa:TST", Calculator.TTM_FLOWS)
+         calculated = Calculator().calculate([current], history)
+         ttm = next(f for f in calculated if f.metric == "revenue_ttm")
+@@ -486,15 +488,15 @@ class StorageAndJobsTests(unittest.TestCase):
+         source = self.source()
+         facts = []
+         periods = (
+-            ("2025-03-31", 1), ("2025-06-30", 2),
+-            ("2025-09-30", 3), ("2025-12-31", 4),
++            ("2025-01-01", "2025-03-31", 1), ("2025-04-01", "2025-06-30", 2),
++            ("2025-07-01", "2025-09-30", 3), ("2025-10-01", "2025-12-31", 4),
+         )
+-        for end, quarter in periods:
++        for start, end, quarter in periods:
+             facts.extend([
+                 self.fact(source, "10", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "upstream"}),
++                          {"segment": "upstream"}, period_start=start),
+                 self.fact(source, "100", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "downstream"}),
++                          {"segment": "downstream"}, period_start=start),
+             ])
+         ttm = [fact for fact in Calculator().calculate(facts) if fact.metric == "revenue_ttm"]
+         values = {fact.dimensions["segment"]: fact.value for fact in ttm}
+-- 
+2.43.0
+

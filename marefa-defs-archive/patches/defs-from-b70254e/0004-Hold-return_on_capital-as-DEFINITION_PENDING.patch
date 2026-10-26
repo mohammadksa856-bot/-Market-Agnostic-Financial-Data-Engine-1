@@ -1,0 +1,116 @@
+From fda1451bf6afd0b043a7a14fe555239aa181ffd1 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 20 Oct 2026 15:22:39 +0000
+Subject: [PATCH 04/21] Hold return_on_capital as DEFINITION_PENDING
+
+Its capital base (debt + equity, or net working capital + net fixed
+assets) needs an accounting decision; it is no longer emitted.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      |  7 +------
+ src/finengine/database.py          |  2 --
+ tests/test_contract_derivations.py | 12 ++++++------
+ 3 files changed, 7 insertions(+), 14 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index e3d0d5a..1a03ad0 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -58,6 +58,7 @@ class Calculator:
+     # Contract keys whose definition needs an accounting decision; never emitted until it is made.
+     DEFINITION_PENDING = {
+         "fixed_charge_coverage": "fixed charges under IFRS 16 (which lease costs count) are not defined",
++        "return_on_capital": "capital base not defined: debt + equity, or net working capital + net fixed assets",
+     }
+ 
+     def calculate(self, facts: list[Fact], history: list[Fact] | None = None,
+@@ -533,10 +534,6 @@ class Calculator:
+             assets, current = money(rows, "total_assets", currency), money(rows, "current_liabilities", currency)
+             return None if None in (assets, current) else assets - current
+ 
+-        def debt_plus_equity(rows, currency):
+-            total_debt, equity = debt(rows, currency), money(rows, "total_equity", currency)
+-            return None if None in (total_debt, equity) else total_debt + equity
+-
+         def working_capital(rows, currency):
+             assets, current = money(rows, "current_assets", currency), money(rows, "current_liabilities", currency)
+             return None if None in (assets, current) else assets - current
+@@ -574,8 +571,6 @@ class Calculator:
+ 
+         average_return("return_on_invested_capital", nopat, invested_capital,
+                        "nopat / average(opening, closing)(total_equity + current_debt + long_term_debt - cash)")
+-        average_return("return_on_capital", ebit, debt_plus_equity,
+-                       "ebit / average(opening, closing)(current_debt + long_term_debt + total_equity)")
+         average_return("return_on_capital_employed", ebit, capital_employed,
+                        "ebit / average(opening, closing)(total_assets - current_liabilities)")
+         average_return("fixed_asset_turnover", revenue, lambda rows, cur: money(rows, "property_plant_equipment", cur),
+diff --git a/src/finengine/database.py b/src/finengine/database.py
+index d54898a..0935e9f 100644
+--- a/src/finengine/database.py
++++ b/src/finengine/database.py
+@@ -1085,8 +1085,6 @@ class Database:
+             "return_on_invested_capital": ("nopat / average(opening, closing)(total_equity + current_debt + long_term_debt - cash)",
+                                            "opening_closing_balance",
+                                            ("nopat", "total_equity", "current_debt", "long_term_debt", "cash")),
+-            "return_on_capital": ("ebit / average(opening, closing)(current_debt + long_term_debt + total_equity)",
+-                                  "opening_closing_balance", ("ebit", "current_debt", "long_term_debt", "total_equity")),
+             "return_on_capital_employed": ("ebit / average(opening, closing)(total_assets - current_liabilities)",
+                                            "opening_closing_balance", ("ebit", "total_assets", "current_liabilities")),
+             "fixed_asset_turnover": ("revenue / average(opening, closing)(property_plant_equipment)", "opening_closing_balance",
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 58213ee..49eb002 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -43,7 +43,7 @@ def replaced(facts, metric, end, value, **kw):
+                  currency=kw.get("currency", original.currency), start=original.period_start)]
+ 
+ 
+-FY_METRICS = ("nopat", "return_on_invested_capital", "return_on_capital", "return_on_capital_employed",
++FY_METRICS = ("nopat", "return_on_invested_capital", "return_on_capital_employed",
+               "fixed_asset_turnover", "working_capital_turnover", "incremental_roic", "margin_expansion",
+               "inventory_to_revenue", "return_on_tangible_assets", "cfo_interest_coverage",
+               "debt_service_coverage_proxy", "revenue_per_share_growth", "free_cash_flow_per_share_growth")
+@@ -86,7 +86,6 @@ class ContractDerivationTests(unittest.TestCase):
+         self.assertEqual(out["nopat", "2025-12-31"].value, nopat)
+         # invested capital: opening 2024-12-31 = 800 + 200 - 100 = 900; closing = 900 + 300 - 100 = 1100
+         self.assertEqual(out["return_on_invested_capital", "2025-12-31"].value, nopat / Decimal(1000))
+-        self.assertEqual(out["return_on_capital", "2025-12-31"].value, Decimal(300) / Decimal(1100))
+         self.assertEqual(out["return_on_capital_employed", "2025-12-31"].value, Decimal(300) / Decimal(1300))
+         self.assertEqual(out["fixed_asset_turnover", "2025-12-31"].value, Decimal(1200) / Decimal(1000))
+         self.assertEqual(out["working_capital_turnover", "2025-12-31"].value, Decimal(1200) / Decimal(250))
+@@ -114,7 +113,7 @@ class ContractDerivationTests(unittest.TestCase):
+         # Without the opening year-end balance the interim one is not used as a substitute.
+         opening_removed = [item for item in [*self.facts, *interim] if item.period_end != "2024-12-31"
+                            or item.period_kind != PeriodKind.INSTANT]
+-        self.assertNone(self.calculate(opening_removed), "return_on_invested_capital", "return_on_capital",
++        self.assertNone(self.calculate(opening_removed), "return_on_invested_capital",
+                         "return_on_capital_employed", "fixed_asset_turnover", "working_capital_turnover")
+ 
+     # ── 2. currencies, units and scopes are never mixed
+@@ -122,7 +121,7 @@ class ContractDerivationTests(unittest.TestCase):
+     def test_a_balance_in_another_currency_blocks_the_average(self):
+         facts = replaced(self.facts, "total_equity", "2024-12-31", "800", unit="USD", currency="USD")
+         out = self.calculate(facts)
+-        self.assertNone(out, "return_on_invested_capital", "return_on_capital", "incremental_roic")
++        self.assertNone(out, "return_on_invested_capital", "incremental_roic")
+         self.assertIn(("return_on_capital_employed", "2025-12-31"), out)
+         facts = replaced(self.facts, "revenue", "2024-12-31", "1000", unit="SAR thousands")
+         self.assertNone(self.calculate(facts), "margin_expansion", "revenue_per_share_growth")
+@@ -131,9 +130,10 @@ class ContractDerivationTests(unittest.TestCase):
+ 
+     def test_missing_debt_component_is_not_zero(self):
+         out = self.calculate(without(self.facts, "long_term_debt", "2024-12-31"))
+-        self.assertNone(out, "return_on_invested_capital", "return_on_capital", "incremental_roic")
++        self.assertNone(out, "return_on_invested_capital", "incremental_roic")
+         out = self.calculate(replaced(self.facts, "long_term_debt", "2024-12-31", "0"))
+-        self.assertEqual(out["return_on_capital", "2025-12-31"].value, Decimal(300) / ((Decimal(850) + 1200) / 2))
++        nopat = Decimal(300) * (1 - Decimal(120) / Decimal(300))
++        self.assertEqual(out["return_on_invested_capital", "2025-12-31"].value, nopat / ((Decimal(750) + 1100) / 2))
+ 
+     # ── 4. tax keeps its sign; loss years and implausible rates withhold after-tax metrics
+ 
+-- 
+2.43.0
+

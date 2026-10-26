@@ -1,0 +1,90 @@
+From 54ef922a8aa850c36b00e3a8408be231e975e5d9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:31:56 +0000
+Subject: [PATCH 07/21] Add verified Aramco FY2024 D&A, FY2025 dividend
+ installments and adjusted EBIT
+
+Reported figures from the Aramco 2025 annual report only, no derived
+values: 2024 depreciation and amortization (income statement comparative,
+cross-checked with the cash-flow statement), the four quarterly dividend
+installments of 2025 (note 37), and consolidated adjusted EBIT for 2025
+and 2024 under the existing Adjusted EBIT mapping in
+config/supplements/2222.json. Each fact cites its PDF page and table.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 60 +++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+ create mode 100644 data/imports/aramco-2025-defs-evidence.json
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+new file mode 100644
+index 0000000..1dfe8bd
+--- /dev/null
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -0,0 +1,60 @@
++{
++ "filing_type": "Annual report 2025 independently verified comparatives (defs/independent-validation, isolated)",
++ "filed_at": "2026-03-09",
++ "period_end": "2025-12-31",
++ "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
++ "facts": [
++  {
++   "metric": "depreciation_amortization",
++   "value": -91679,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 174,
++   "table": "consolidated statement of income, 2024 comparative column (PDF index 174, printed page 172; cross-checked with consolidated statement of cash flows, PDF index 178)"
++  },
++  {
++   "metric": "dividend_installments_count",
++   "value": 4,
++   "scale": 1,
++   "currency": "",
++   "unit": "count",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 235,
++   "table": "note 37 dividends: declared and paid each quarter March/June/September/December (PDF index 235)"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": 744610,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 47,
++   "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": 788335,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 47,
++   "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  }
++ ]
++}
+\ No newline at end of file
+-- 
+2.43.0
+

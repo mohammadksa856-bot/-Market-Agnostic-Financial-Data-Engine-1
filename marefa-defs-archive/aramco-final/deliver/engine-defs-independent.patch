@@ -1,0 +1,290 @@
+From 204b2307e062222bd811186233a88cdb68b2770e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 12:59:35 +0000
+Subject: [PATCH 1/3] Count market statistics data points toward market_data
+ completeness
+
+refresh_catalog_completeness only recognised vwap among the market
+statistics published as data points, so previous_close, returns and the
+other market_prices-domain fields stayed missing even when current.
+Count every catalogued market_prices field that has a current data point.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/domains.py      | 12 ++++++++----
+ tests/test_company_domains.py | 18 ++++++++++++++++++
+ 2 files changed, 26 insertions(+), 4 deletions(-)
+
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 98085a3..d455740 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -645,10 +645,14 @@ class CompanyDomainStore:
+                      "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover",
+                      "fifty_two_week_high":"high_52w","fifty_two_week_low":"low_52w"}
+         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
+-        available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
+-            """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
+-            AND metric_key IN ('vwap')""", (company_id,)
+-        ))
++        # Market statistics (vwap, previous close, returns, moving averages, ...) are published as
++        # data points by refresh_market_statistics/valuations; count every market_prices field that is current.
++        market_keys = sorted({row["field_key"] for row in expected_rows if row["storage_domain"] == "market_prices"})
++        if market_keys:
++            available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
++                f"""SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
++                AND metric_key IN ({",".join("?" for _ in market_keys)})""", (company_id, *market_keys)
++            ))
+         ownership_rows = self.db.conn.execute(
+             "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+         if ownership_rows:
+diff --git a/tests/test_company_domains.py b/tests/test_company_domains.py
+index 69012ad..c9a69d8 100644
+--- a/tests/test_company_domains.py
++++ b/tests/test_company_domains.py
+@@ -242,6 +242,24 @@ class CompanyDomainTests(unittest.TestCase):
+         self.assertGreater(completeness["required_fields"], 0)
+         self.assertTrue(any(row["required_missing"] for row in completeness["categories"]))
+ 
++    def test_market_statistics_published_as_data_points_count_for_market_data(self):
++        def market_data_missing():
++            result = self.store.refresh_catalog_completeness("sa:TST")
++            return {key for row in result["categories"] if row["category"] == "market_data"
++                    for key in row["missing"]}
++        before = market_data_missing()
++        self.assertIn("previous_close", before)
++        self.assertIn("market_return_1m", before)
++        stat = Fact("sa:TST", "previous_close", Decimal("27.5"), "SAR", "SAR", "2026-06-30", "2026-06-30",
++                    PeriodKind.INSTANT, 2026, None, self.source.source_key, self.source.source_url,
++                    self.source.filed_at)
++        self.db.publish(stat)
++        after = market_data_missing()
++        self.assertNotIn("previous_close", after)
++        # Only fields catalogued in the market_prices domain change; others stay missing.
++        self.assertIn("market_return_1m", after)
++        self.assertEqual(before - after, {"previous_close"})
++
+     def test_sector_packs_are_explicit_and_apply_only_to_matching_industries(self):
+         counts = {row["pack_key"]: row["n"] for row in self.db.conn.execute(
+             "SELECT pack_key,count(*) n FROM data_catalog_fields WHERE enabled=1 GROUP BY pack_key")}
+-- 
+2.43.0
+
+
+From addb53db20a17af6a78def0669f0d1b28fb144de Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:18:37 +0000
+Subject: [PATCH 2/3] Withhold TTM sums when the last four quarters are not
+ contiguous
+
+_ttm summed the four latest discrete quarters even when one was missing,
+so a gap bridged a 15-month window and a mislabelled year-to-date row
+counted as a quarter. Require each quarter to start the day after the
+previous one ends. Storage TTM fixtures now carry real quarter starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      |  6 ++++++
+ tests/test_contract_derivations.py | 23 +++++++++++++++++++++++
+ tests/test_storage_jobs.py         | 22 ++++++++++++----------
+ 3 files changed, 41 insertions(+), 10 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 1a03ad0..aa0161b 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -804,6 +804,12 @@ class Calculator:
+             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
+             if len(rows) >= 4 and rows[-1].period_end in target_periods:
+                 last = rows[-4:]
++                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
++                if any(not current.period_start or
++                       date.fromisoformat(current.period_start) - timedelta(days=1)
++                       != date.fromisoformat(previous.period_end)
++                       for previous, current in zip(last, last[1:])):
++                    continue
+                 base = last[-1]
+                 out.append(Fact(
+                     base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 49eb002..589b7cd 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -233,5 +233,28 @@ class ContractDerivationTests(unittest.TestCase):
+         self.assertEqual(out["revenue_qoq", "2026-03-31"].value, Decimal("0.25"))
+ 
+ 
++class TrailingTwelveMonthTests(unittest.TestCase):
++    QUARTERS = [("2025-01-01", "2025-03-31", 2025, 1), ("2025-04-01", "2025-06-30", 2025, 2),
++                ("2025-07-01", "2025-09-30", 2025, 3), ("2025-10-01", "2025-12-31", 2025, 4),
++                ("2026-01-01", "2026-03-31", 2026, 1)]
++
++    def ttm(self, quarters, batch_end):
++        facts = [quarter("revenue", "100", end, start, year, q) for start, end, year, q in quarters]
++        batch = [item for item in facts if item.period_end == batch_end]
++        history = [item for item in facts if item.period_end != batch_end]
++        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
++        return out.get(("revenue_ttm", batch_end))
++
++    def test_ttm_sums_the_last_four_contiguous_quarters(self):
++        result = self.ttm(self.QUARTERS, "2026-03-31")
++        self.assertEqual(result.value, Decimal("400"))
++        self.assertEqual(result.period_start, "2025-04-01")
++        self.assertEqual(result.period_kind, PeriodKind.TTM)
++
++    def test_ttm_is_withheld_when_a_quarter_is_missing(self):
++        gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
++        self.assertIsNone(self.ttm(gap, "2026-03-31"))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tests/test_storage_jobs.py b/tests/test_storage_jobs.py
+index c17b0cb..9bfe059 100644
+--- a/tests/test_storage_jobs.py
++++ b/tests/test_storage_jobs.py
+@@ -32,8 +32,8 @@ class StorageAndJobsTests(unittest.TestCase):
+         return doc
+ 
+     def fact(self, source, value, period_end="2025-12-31", kind=PeriodKind.FY,
+-             quarter=None, dimensions=None):
+-        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", "2025-01-01",
++             quarter=None, dimensions=None, period_start="2025-01-01"):
++        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", period_start,
+                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
+                     source.filed_at, dimensions=dimensions or {})
+ 
+@@ -472,11 +472,13 @@ class StorageAndJobsTests(unittest.TestCase):
+         self.assertNotIn("beneish_m_score", out)
+ 
+     def test_ttm_uses_published_history(self):
+-        for index, (end, value) in enumerate((("2025-03-31", "10"), ("2025-06-30", "20"), ("2025-09-30", "30")), 1):
++        for index, (start, end, value) in enumerate((("2025-01-01", "2025-03-31", "10"),
++                                                     ("2025-04-01", "2025-06-30", "20"),
++                                                     ("2025-07-01", "2025-09-30", "30")), 1):
+             source = self.source(f"source:{index}")
+-            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index))
++            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index, period_start=start))
+         current_source = self.source("source:4")
+-        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4)
++        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4, period_start="2025-10-01")
+         history = self.db.quarter_history("sa:TST", Calculator.TTM_FLOWS)
+         calculated = Calculator().calculate([current], history)
+         ttm = next(f for f in calculated if f.metric == "revenue_ttm")
+@@ -486,15 +488,15 @@ class StorageAndJobsTests(unittest.TestCase):
+         source = self.source()
+         facts = []
+         periods = (
+-            ("2025-03-31", 1), ("2025-06-30", 2),
+-            ("2025-09-30", 3), ("2025-12-31", 4),
++            ("2025-01-01", "2025-03-31", 1), ("2025-04-01", "2025-06-30", 2),
++            ("2025-07-01", "2025-09-30", 3), ("2025-10-01", "2025-12-31", 4),
+         )
+-        for end, quarter in periods:
++        for start, end, quarter in periods:
+             facts.extend([
+                 self.fact(source, "10", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "upstream"}),
++                          {"segment": "upstream"}, period_start=start),
+                 self.fact(source, "100", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "downstream"}),
++                          {"segment": "downstream"}, period_start=start),
+             ])
+         ttm = [fact for fact in Calculator().calculate(facts) if fact.metric == "revenue_ttm"]
+         values = {fact.dimensions["segment"]: fact.value for fact in ttm}
+-- 
+2.43.0
+
+
+From 54ef922a8aa850c36b00e3a8408be231e975e5d9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:31:56 +0000
+Subject: [PATCH 3/3] Add verified Aramco FY2024 D&A, FY2025 dividend
+ installments and adjusted EBIT
+
+Reported figures from the Aramco 2025 annual report only, no derived
+values: 2024 depreciation and amortization (income statement comparative,
+cross-checked with the cash-flow statement), the four quarterly dividend
+installments of 2025 (note 37), and consolidated adjusted EBIT for 2025
+and 2024 under the existing Adjusted EBIT mapping in
+config/supplements/2222.json. Each fact cites its PDF page and table.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 60 +++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+ create mode 100644 data/imports/aramco-2025-defs-evidence.json
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+new file mode 100644
+index 0000000..1dfe8bd
+--- /dev/null
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -0,0 +1,60 @@
++{
++ "filing_type": "Annual report 2025 independently verified comparatives (defs/independent-validation, isolated)",
++ "filed_at": "2026-03-09",
++ "period_end": "2025-12-31",
++ "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
++ "facts": [
++  {
++   "metric": "depreciation_amortization",
++   "value": -91679,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 174,
++   "table": "consolidated statement of income, 2024 comparative column (PDF index 174, printed page 172; cross-checked with consolidated statement of cash flows, PDF index 178)"
++  },
++  {
++   "metric": "dividend_installments_count",
++   "value": 4,
++   "scale": 1,
++   "currency": "",
++   "unit": "count",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 235,
++   "table": "note 37 dividends: declared and paid each quarter March/June/September/December (PDF index 235)"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": 744610,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 47,
++   "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": 788335,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 47,
++   "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  }
++ ]
++}
+\ No newline at end of file
+-- 
+2.43.0
+

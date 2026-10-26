@@ -1,0 +1,115 @@
+{
+ "bundle_version": 1,
+ "label": "example-full",
+ "engine_sha": "0000000",
+ "company_id": "sa:TST",
+ "contract": {
+  "categories": [
+   {
+    "key": "financial_statements",
+    "weight": "60",
+    "fields": [
+     {
+      "key": "revenue",
+      "definition": "Revenue",
+      "unit": "currency",
+      "period_behavior": "flow",
+      "value_type": "decimal"
+     },
+     {
+      "key": "net_income",
+      "definition": "Net Income",
+      "unit": "currency",
+      "period_behavior": "flow",
+      "value_type": "decimal"
+     },
+     {
+      "key": "total_assets",
+      "definition": "Total Assets",
+      "unit": "currency",
+      "period_behavior": "instant",
+      "value_type": "decimal"
+     }
+    ]
+   },
+   {
+    "key": "growth",
+    "weight": "30",
+    "fields": [
+     {
+      "key": "revenue_growth",
+      "definition": "Revenue Growth",
+      "unit": "ratio",
+      "period_behavior": "derived",
+      "value_type": "decimal"
+     }
+    ]
+   },
+   {
+    "key": "sources_lineage_freshness",
+    "weight": "10",
+    "score_only": "0.9"
+   }
+  ]
+ },
+ "records": [
+  {
+   "key": "revenue",
+   "status": "closed",
+   "observations": [
+    {
+     "period_kind": "fy",
+     "period_start": "2025-01-01",
+     "period_end": "2025-12-31",
+     "dimensions": "",
+     "value": "1000",
+     "unit": "SAR",
+     "currency": "SAR",
+     "source_url": "https://example.test/ar2025.pdf",
+     "calculation": null
+    }
+   ],
+   "observations_truncated": false
+  },
+  {
+   "key": "net_income",
+   "status": "closed",
+   "observations": [
+    {
+     "period_kind": "fy",
+     "period_start": "2025-01-01",
+     "period_end": "2025-12-31",
+     "dimensions": "",
+     "value": "120",
+     "unit": "SAR",
+     "currency": "SAR",
+     "source_url": "https://example.test/ar2025.pdf",
+     "calculation": null
+    }
+   ]
+  },
+  {
+   "key": "total_assets",
+   "status": "missing",
+   "observations": []
+  },
+  {
+   "key": "revenue_growth",
+   "status": "closed",
+   "observations": [
+    {
+     "period_kind": "fy",
+     "period_start": "2025-01-01",
+     "period_end": "2025-12-31",
+     "dimensions": "",
+     "value": "0.05",
+     "unit": "ratio",
+     "currency": "SAR",
+     "source_url": "https://example.test/ar2025.pdf",
+     "calculation": "revenue / prior_fy(revenue) - 1"
+    }
+   ]
+  }
+ ],
+ "engine_corrections": []
+}

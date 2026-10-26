@@ -1,0 +1,105 @@
+From f51d12faa0e3321ba46641560818932de6dc0567 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:56:26 +0000
+Subject: [PATCH 09/21] Sum quarterly dividends into their TTM keys and reject
+ TTM that contradicts its fiscal year
+
+Four contiguous discrete quarters of dividends_per_share and
+dividends_paid now produce dividend_per_share_ttm and
+total_dividend_paid_ttm under the existing TTM rule. Any TTM window that
+is exactly a fiscal year must agree with that year's reported value
+within 0.5%; otherwise the quarters and the annual figure contradict each
+other and no TTM is emitted.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 19 +++++++++++++++++--
+ tests/test_contract_derivations.py | 25 +++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+), 2 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index aa0161b..c4199fc 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -9,6 +9,10 @@ class Calculator:
+     """Deterministic, source-traceable calculations; AI never calculates production facts."""
+ 
+     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
++    # Quarterly dividends whose trailing-twelve-month sum has its own catalog key.
++    TTM_NAMED = {"dividends_per_share": "dividend_per_share_ttm", "dividends_paid": "total_dividend_paid_ttm"}
++    # A TTM window that is exactly a fiscal year must agree with that year's reported value.
++    TTM_FY_TOLERANCE = Decimal("0.005")
+     HISTORY_METRICS = {
+         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
+         "income_taxes_and_zakat",
+@@ -794,8 +798,13 @@ class Calculator:
+     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
+         out = []
+         groups = defaultdict(dict)
++        fiscal_years = {}
+         for fact in facts:
+-            if fact.metric in self.TTM_FLOWS and fact.period_kind == PeriodKind.QUARTER:
++            identity = (fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
++                        tuple(sorted(fact.dimensions.items())))
++            if fact.period_kind == PeriodKind.FY:
++                fiscal_years[(*identity, fact.period_start, fact.period_end)] = fact
++            if (fact.metric in self.TTM_FLOWS or fact.metric in self.TTM_NAMED) and fact.period_kind == PeriodKind.QUARTER:
+                 groups[(
+                     fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
+                     tuple(sorted(fact.dimensions.items())),
+@@ -811,8 +820,14 @@ class Calculator:
+                        for previous, current in zip(last, last[1:])):
+                     continue
+                 base = last[-1]
++                total = sum((item.value for item in last), Decimal(0))
++                annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
++                                           tuple(sorted(base.dimensions.items())), last[0].period_start,
++                                           base.period_end))
++                if annual is not None and abs(total - annual.value) > self.TTM_FY_TOLERANCE * abs(annual.value):
++                    continue
+                 out.append(Fact(
+-                    base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
++                    base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
+                     base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
+                     base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
+                     is_calculated=True, calculation="sum(last 4 discrete quarters)",
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 589b7cd..3a0beaa 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -251,6 +251,31 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+         self.assertEqual(result.period_start, "2025-04-01")
+         self.assertEqual(result.period_kind, PeriodKind.TTM)
+ 
++    def dividend_ttm(self, quarterly, annual=None, metric="dividends_per_share", unit="SAR/share"):
++        facts = [quarter(metric, value, end, start, 2025, q, unit=unit)
++                 for (start, end, _, q), value in zip(self.QUARTERS[:4], quarterly)]
++        if annual is not None:
++            facts.append(fact(metric, annual, PeriodKind.FY, "2025-12-31", 2025, unit=unit))
++        batch = [item for item in facts if item.period_end == "2025-12-31" and item.period_kind == PeriodKind.QUARTER]
++        history = [item for item in facts if item not in batch]
++        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
++        return {key: value for key, value in out.items() if value.period_kind == PeriodKind.TTM}
++
++    def test_quarterly_dividends_produce_the_named_ttm_keys(self):
++        per_share = self.dividend_ttm(["0.3312"] * 4, annual="1.3248")
++        self.assertEqual(set(per_share), {("dividend_per_share_ttm", "2025-12-31")})
++        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].value, Decimal("1.3248"))
++        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].unit, "SAR/share")
++        paid = self.dividend_ttm(["80104", "80112", "80113", "80118"], annual="320447",
++                                 metric="dividends_paid", unit="SAR")
++        self.assertEqual(paid["total_dividend_paid_ttm", "2025-12-31"].value, Decimal("320447"))
++
++    def test_ttm_contradicting_the_same_fiscal_year_is_withheld(self):
++        self.assertEqual(self.dividend_ttm(["0", "0.48", "0", "0"], annual="0.96"), {})
++        # Rounding inside the tolerance still agrees; no fiscal-year value means nothing to contradict.
++        self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
++        self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
++
+     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+         self.assertIsNone(self.ttm(gap, "2026-03-31"))
+-- 
+2.43.0
+

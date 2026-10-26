@@ -1,0 +1,397 @@
+From be0db2bd3c9fd7acba780078033ff2aec82ba479 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:12:31 +0000
+Subject: [PATCH 12/21] Add contract-export and contract-compare for
+ reconciling independent pipelines
+
+A bundle carries the contract a pipeline scored against and its per-key
+evidence. contract-export writes one from this engine and refuses to
+finish unless the bundle reproduces the evaluator's total score;
+contract-compare reports common and extra keys, weight, placement and
+definition differences, value, unit, period and source conflicts on keys
+both pipelines closed, and union coverage counted once per contract slot.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/cli.py              |  15 ++
+ src/finengine/contract_compare.py | 220 ++++++++++++++++++++++++++++++
+ tests/test_contract_compare.py    | 106 ++++++++++++++
+ 3 files changed, 341 insertions(+)
+ create mode 100644 src/finengine/contract_compare.py
+ create mode 100644 tests/test_contract_compare.py
+
+diff --git a/src/finengine/cli.py b/src/finengine/cli.py
+index 4b44a75..d0aa735 100644
+--- a/src/finengine/cli.py
++++ b/src/finengine/cli.py
+@@ -1065,6 +1065,8 @@ def main():
+     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
++    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs")
++    contract_compare=sub.add_parser("contract-compare"); contract_compare.add_argument("bundle_a"); contract_compare.add_argument("bundle_b"); contract_compare.add_argument("--tolerance",default="0.000001")
+     share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
+     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+     field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
+@@ -1217,6 +1219,19 @@ def main():
+             result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+         finally: db.close()
+         print(json.dumps(result,indent=2)); return
++    if a.cmd=="contract-export":
++        from .contract_compare import export_bundle
++        db=Database(a.db)
++        try:
++            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
++            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs)
++        finally: db.close()
++        Path(a.out).write_text(json.dumps(bundle,indent=1,ensure_ascii=False),encoding="utf-8")
++        print(json.dumps({"out":a.out,"engine_total_score":bundle["engine_total_score"],"records":len(bundle["records"])},indent=2)); return
++    if a.cmd=="contract-compare":
++        from decimal import Decimal
++        from .contract_compare import compare_bundles, load_bundle
++        print(json.dumps(compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance)),indent=2,ensure_ascii=False)); return
+     if a.cmd=="share-basis-audit":
+         from .share_basis import audit_share_basis, withheld_metric_keys
+         db=Database(a.db)
+diff --git a/src/finengine/contract_compare.py b/src/finengine/contract_compare.py
+new file mode 100644
+index 0000000..84235ae
+--- /dev/null
++++ b/src/finengine/contract_compare.py
+@@ -0,0 +1,220 @@
++"""Compare two factory-contract evidence bundles from independent pipelines.
++
++A bundle is the contract a pipeline scored against (categories, weights, field definitions) and its
++per-field evidence (closed or missing, with the observations behind a closed field). Comparing two
++bundles reports which keys each contract expects, where definitions or weights differ, where the two
++pipelines closed the same key with conflicting values, units, periods or sources, and the coverage
++of their union counted once per (category, key) slot, so a key closed by both is never counted twice.
++"""
++from __future__ import annotations
++
++import json
++from decimal import Decimal
++from pathlib import Path
++
++BUNDLE_VERSION = 1
++DEFINITION_ATTRIBUTES = ("definition", "unit", "period_behavior", "value_type")
++
++
++def _decimal(value) -> Decimal | None:
++    try:
++        return Decimal(str(value))
++    except Exception:
++        return None
++
++
++def _slots(bundle: dict) -> dict[tuple[str, str], dict]:
++    return {(category["key"], field["key"]): field
++            for category in bundle["contract"]["categories"]
++            for field in category.get("fields", [])}
++
++
++def _records(bundle: dict) -> dict[str, dict]:
++    return {record["key"]: record for record in bundle.get("records", [])}
++
++
++def _closed(bundle: dict) -> set[str]:
++    return {key for key, record in _records(bundle).items() if record.get("status") == "closed"}
++
++
++def _excluded(bundle: dict) -> set[str]:
++    return {key for key, record in _records(bundle).items() if record.get("status") == "excluded"}
++
++
++def contract_score(bundle: dict, closed: set[str]) -> Decimal:
++    """Weighted score of `closed` keys against this bundle's contract (engine formula)."""
++    excluded = _excluded(bundle)
++    total = Decimal(0)
++    for category in bundle["contract"]["categories"]:
++        weight = Decimal(str(category["weight"]))
++        if category.get("score_only") is not None:
++            total += weight * Decimal(str(category["score_only"]))
++            continue
++        fields = [field["key"] for field in category.get("fields", []) if field["key"] not in excluded]
++        if category.get("not_applicable") or not fields:
++            total += weight
++            continue
++        total += weight * Decimal(len([key for key in fields if key in closed])) / Decimal(len(fields))
++    return total
++
++
++def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal) -> list[dict]:
++    def index(record):
++        return {(item.get("period_kind"), item.get("period_end"), item.get("dimensions", "")): item
++                for item in record.get("observations", [])}
++    a, b = index(left), index(right)
++    shared = sorted(set(a) & set(b), key=lambda item: tuple(str(part) for part in item))
++    if (a or b) and not shared:
++        return [{"key": key, "type": "period_mismatch", "a_periods": sorted(f"{k[0]}:{k[1]}" for k in a),
++                 "b_periods": sorted(f"{k[0]}:{k[1]}" for k in b)}]
++    conflicts = []
++    for period in shared:
++        x, y = a[period], b[period]
++        where = {"key": key, "period_kind": period[0], "period_end": period[1]}
++        if (x.get("unit"), x.get("currency")) != (y.get("unit"), y.get("currency")):
++            conflicts.append({**where, "type": "unit_or_currency",
++                              "a": [x.get("unit"), x.get("currency")], "b": [y.get("unit"), y.get("currency")]})
++            continue
++        vx, vy = _decimal(x.get("value")), _decimal(y.get("value"))
++        if vx is None or vy is None:
++            if x.get("value") != y.get("value"):
++                conflicts.append({**where, "type": "value", "a": x.get("value"), "b": y.get("value")})
++            continue
++        scale = max(abs(vx), abs(vy))
++        if scale and abs(vx - vy) > tolerance * scale:
++            conflicts.append({**where, "type": "value", "a": str(vx), "b": str(vy)})
++        elif x.get("source_url") and y.get("source_url") and x["source_url"] != y["source_url"]:
++            conflicts.append({**where, "type": "source_differs_same_value",
++                              "a": x["source_url"], "b": y["source_url"]})
++        if x.get("period_start") != y.get("period_start"):
++            conflicts.append({**where, "type": "period_start",
++                              "a": x.get("period_start"), "b": y.get("period_start")})
++    return conflicts
++
++
++def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001")) -> dict:
++    for bundle in (a, b):
++        if bundle.get("bundle_version") != BUNDLE_VERSION:
++            raise ValueError(f"unsupported bundle version in {bundle.get('label')!r}")
++    if a.get("company_id") != b.get("company_id"):
++        raise ValueError("bundles describe different companies")
++    slots_a, slots_b = _slots(a), _slots(b)
++    keys_a, keys_b = {key for _, key in slots_a}, {key for _, key in slots_b}
++    categories_a = {c["key"]: c for c in a["contract"]["categories"]}
++    categories_b = {c["key"]: c for c in b["contract"]["categories"]}
++
++    weight_diffs = [{"category": key, "a": str(categories_a[key]["weight"]), "b": str(categories_b[key]["weight"])}
++                    for key in sorted(set(categories_a) & set(categories_b))
++                    if Decimal(str(categories_a[key]["weight"])) != Decimal(str(categories_b[key]["weight"]))]
++    placement = []
++    for key in sorted(keys_a & keys_b):
++        in_a = sorted(category for category, field in slots_a if field == key)
++        in_b = sorted(category for category, field in slots_b if field == key)
++        if in_a != in_b:
++            placement.append({"key": key, "a_categories": in_a, "b_categories": in_b})
++    definition_diffs = []
++    for key in sorted(keys_a & keys_b):
++        left = next(field for (_, k), field in slots_a.items() if k == key)
++        right = next(field for (_, k), field in slots_b.items() if k == key)
++        changed = {attr: [left.get(attr), right.get(attr)] for attr in DEFINITION_ATTRIBUTES
++                   if left.get(attr) != right.get(attr)}
++        if changed:
++            definition_diffs.append({"key": key, **changed})
++
++    closed_a, closed_b = _closed(a), _closed(b)
++    records_a, records_b = _records(a), _records(b)
++    conflicts = []
++    for key in sorted(closed_a & closed_b):
++        conflicts.extend(_observation_conflicts(key, records_a[key], records_b[key], tolerance))
++
++    def closure(slots):
++        expected = {key for _, key in slots}
++        return {
++            "slots": len(slots), "keys": len(expected),
++            "closed_both": len(expected & closed_a & closed_b),
++            "closed_only_a": len((expected & closed_a) - closed_b),
++            "closed_only_b": len((expected & closed_b) - closed_a),
++            "closed_union": len(expected & (closed_a | closed_b)),
++            "slots_closed_union": sum(1 for _, key in slots if key in closed_a | closed_b),
++        }
++
++    union = closed_a | closed_b
++    return {
++        "a": a.get("label"), "b": b.get("label"), "company_id": a.get("company_id"),
++        "keys": {"common": sorted(keys_a & keys_b), "only_in_a": sorted(keys_a - keys_b),
++                 "only_in_b": sorted(keys_b - keys_a)},
++        "weight_diffs": weight_diffs, "category_placement_diffs": placement,
++        "definition_diffs": definition_diffs, "conflicts": conflicts,
++        "closure": {"on_contract_a": closure(slots_a), "on_contract_b": closure(slots_b)},
++        "scores": {
++            "a_on_a": str(contract_score(a, closed_a)), "b_on_b": str(contract_score(b, closed_b)),
++            "union_on_a": str(contract_score(a, union)), "union_on_b": str(contract_score(b, union)),
++        },
++        "conflicted_keys": sorted({item["key"] for item in conflicts
++                                   if item["type"] not in ("source_differs_same_value",)}),
++    }
++
++
++def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
++                  contract_path: str | Path = "config/factory/18-category-contract.json",
++                  sector_pack_dir: str | Path = "config/factory/sector-packs",
++                  observations_per_key: int = 12) -> dict:
++    """Bundle this engine's contract and evidence for one company (read-only apart from the evaluator's refresh)."""
++    from .factory_contract import evaluate_factory_contract
++    result = evaluate_factory_contract(db, company_id, contract_path=contract_path, sector_pack_dir=sector_pack_dir)
++    company = db.conn.execute("SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
++    catalog = db.conn.execute(
++        """SELECT * FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed' AND
++        (scope_type='all' OR (scope_type='market' AND scope_value=?) OR
++         (scope_type='sector' AND scope_value=?) OR (scope_type='industry' AND scope_value=?) OR
++         (scope_type='company' AND scope_value=?))""",
++        (company["market"], company["sector"] or "", company["industry"] or "", company_id)).fetchall()
++    by_group: dict[str, list] = {}
++    for row in catalog:
++        by_group.setdefault(row["category"], []).append(row)
++    categories, records = [], {}
++    for category in result["categories"]:
++        evidence = category["evidence"]
++        entry = {"key": category["category_key"], "weight": str(category["weight"])}
++        if category["status"] == "not_applicable":
++            entry["not_applicable"] = True
++        groups = evidence.get("field_groups") or []
++        if category["category_key"] == "sources_lineage_freshness":
++            entry["score_only"] = str(category["score"])
++        rows = [row for group in groups for row in by_group.get(group, [])]
++        excluded = {item["field_key"] for item in evidence.get("reviewed_unavailable_or_not_applicable", [])}
++        missing = {key for keys in (evidence.get("missing_fields") or {}).values() for key in keys}
++        if "score_only" not in entry and not entry.get("not_applicable"):
++            if len(rows) != int(evidence.get("raw_expected_fields", len(rows))):
++                raise ValueError(f"{category['category_key']}: exported fields do not match the evaluator")
++        entry["fields"] = [{"key": row["field_key"], "definition": row["display_name"], "unit": row["default_unit"],
++                            "period_behavior": row["period_behavior"], "value_type": row["value_type"],
++                            "storage_domain": row["storage_domain"]} for row in rows]
++        categories.append(entry)
++        for row in rows:
++            key = row["field_key"]
++            status = "excluded" if key in excluded else ("missing" if key in missing else "closed")
++            record = records.setdefault(key, {"key": key, "status": status, "storage_domain": row["storage_domain"],
++                                              "observations": []})
++            if status == "closed" and row["storage_domain"] == "data_points" and not record["observations"]:
++                record["observations"] = [{
++                    "period_kind": item["period_kind"], "period_start": item["period_start"],
++                    "period_end": item["period_end"], "dimensions": item["dimensions_hash"] or "",
++                    "value": item["value_decimal"] if item["value_decimal"] is not None else item["value_text"],
++                    "unit": item["unit"], "currency": item["currency"], "source_url": item["source_url"],
++                    "calculation": item["calculation"],
++                } for item in db.conn.execute(
++                    """SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1
++                    ORDER BY period_end DESC LIMIT ?""", (company_id, key, observations_per_key))]
++    bundle = {"bundle_version": BUNDLE_VERSION, "label": label, "engine_sha": engine_sha, "company_id": company_id,
++              "engine_total_score": result["total_score"],
++              "contract": {"version": result.get("contract_version"), "categories": categories},
++              "records": sorted(records.values(), key=lambda item: item["key"])}
++    computed = contract_score(bundle, _closed(bundle))
++    if abs(computed - Decimal(result["total_score"])) > Decimal("0.0001"):
++        raise ValueError(f"bundle score {computed} does not reproduce the evaluator {result['total_score']}")
++    return bundle
++
++
++def load_bundle(path: str | Path) -> dict:
++    return json.loads(Path(path).read_text(encoding="utf-8"))
+diff --git a/tests/test_contract_compare.py b/tests/test_contract_compare.py
+new file mode 100644
+index 0000000..73560e3
+--- /dev/null
++++ b/tests/test_contract_compare.py
+@@ -0,0 +1,106 @@
++import copy
++import unittest
++from decimal import Decimal
++
++from finengine.contract_compare import BUNDLE_VERSION, compare_bundles, contract_score
++
++
++def field(key, unit="currency", definition=None, period="flow"):
++    return {"key": key, "definition": definition or key.title(), "unit": unit, "period_behavior": period,
++            "value_type": "decimal"}
++
++
++def observation(value, end="2025-12-31", kind="fy", unit="SAR", currency="SAR", source="https://x.test/ar2025",
++                start="2025-01-01"):
++    return {"period_kind": kind, "period_start": start, "period_end": end, "dimensions": "", "value": value,
++            "unit": unit, "currency": currency, "source_url": source}
++
++
++def bundle(label, categories, records):
++    return {"bundle_version": BUNDLE_VERSION, "label": label, "company_id": "sa:TST",
++            "contract": {"categories": categories},
++            "records": [{"key": key, "status": status, "observations": observations}
++                        for key, (status, observations) in records.items()]}
++
++
++class ContractCompareTests(unittest.TestCase):
++    def setUp(self):
++        self.a = bundle("pipeline-a", [
++            {"key": "statements", "weight": "60", "fields": [field("revenue"), field("ebit"), field("capex")]},
++            {"key": "segments", "weight": "20", "fields": [field("segment_revenue")]},
++            {"key": "sector", "weight": "20", "fields": [field("segment_revenue"), field("refinery_runs", "mbpd")]},
++        ], {
++            "revenue": ("closed", [observation("100")]),
++            "ebit": ("closed", [observation("40")]),
++            "capex": ("missing", []),
++            "segment_revenue": ("closed", [observation("60")]),
++            "refinery_runs": ("missing", []),
++        })
++        self.b = bundle("pipeline-b", [
++            {"key": "statements", "weight": "50", "fields": [field("revenue"), field("ebit", definition="Operating income"),
++                                                            field("capex"), field("gross_profit")]},
++            {"key": "segments", "weight": "50", "fields": [field("segment_revenue")]},
++        ], {
++            "revenue": ("closed", [observation("100", source="https://x.test/ar2025-financials")]),
++            "ebit": ("closed", [observation("41")]),
++            "capex": ("closed", [observation("-30")]),
++            "gross_profit": ("missing", []),
++            "segment_revenue": ("closed", [observation("60", kind="quarter", end="2025-12-31", start="2025-10-01")]),
++        })
++
++    def compare(self):
++        return compare_bundles(self.a, self.b)
++
++    def test_common_and_extra_keys(self):
++        keys = self.compare()["keys"]
++        self.assertEqual(keys["common"], ["capex", "ebit", "revenue", "segment_revenue"])
++        self.assertEqual(keys["only_in_a"], ["refinery_runs"])
++        self.assertEqual(keys["only_in_b"], ["gross_profit"])
++
++    def test_weights_definitions_and_placement_differences(self):
++        result = self.compare()
++        self.assertEqual({row["category"] for row in result["weight_diffs"]}, {"statements", "segments"})
++        self.assertEqual(result["definition_diffs"], [{"key": "ebit", "definition": ["Ebit", "Operating income"]}])
++        self.assertEqual(result["category_placement_diffs"],
++                         [{"key": "segment_revenue", "a_categories": ["sector", "segments"], "b_categories": ["segments"]}])
++
++    def test_value_source_and_period_conflicts(self):
++        conflicts = {(row["key"], row["type"]) for row in self.compare()["conflicts"]}
++        self.assertIn(("ebit", "value"), conflicts)
++        self.assertIn(("revenue", "source_differs_same_value"), conflicts)
++        self.assertIn(("segment_revenue", "period_mismatch"), conflicts)
++        self.assertNotIn(("capex", "value"), conflicts)  # closed only in b: nothing to compare
++        self.assertEqual(self.compare()["conflicted_keys"], ["ebit", "segment_revenue"])
++
++    def test_unit_conflict_is_not_reported_as_a_value_conflict(self):
++        self.b["records"][1]["observations"] = [observation("40000", unit="SAR_thousands")]
++        conflicts = [row for row in self.compare()["conflicts"] if row["key"] == "ebit"]
++        self.assertEqual([row["type"] for row in conflicts], ["unit_or_currency"])
++
++    def test_union_closure_counts_each_key_once(self):
++        closure = self.compare()["closure"]["on_contract_a"]
++        self.assertEqual(closure["keys"], 5)
++        self.assertEqual(closure["slots"], 6)
++        self.assertEqual(closure["closed_both"], 3)       # revenue, ebit, segment_revenue
++        self.assertEqual(closure["closed_only_b"], 1)     # capex
++        self.assertEqual(closure["closed_union"], 4)      # never 3 + 3 + 1
++        self.assertEqual(closure["slots_closed_union"], 5)
++
++    def test_scores_follow_each_contract_and_union_never_exceeds_the_contract(self):
++        scores = {key: Decimal(value) for key, value in self.compare()["scores"].items()}
++        self.assertEqual(scores["a_on_a"], Decimal("60") * 2 / 3 + Decimal("20") + Decimal("20") / 2)
++        self.assertEqual(scores["union_on_a"], Decimal("60") + Decimal("20") + Decimal("20") / 2)
++        self.assertEqual(scores["b_on_b"], Decimal("50") * 3 / 4 + Decimal("50"))
++        self.assertLessEqual(scores["union_on_b"], Decimal("100"))
++
++    def test_excluded_fields_leave_the_denominator_and_bundles_must_match(self):
++        excluded = copy.deepcopy(self.a)
++        excluded["records"][2]["status"] = "excluded"  # capex
++        self.assertEqual(contract_score(excluded, {"revenue", "ebit"}), Decimal("60"))
++        other = copy.deepcopy(self.b); other["company_id"] = "sa:OTHER"
++        with self.assertRaises(ValueError):
++            compare_bundles(self.a, other)
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+

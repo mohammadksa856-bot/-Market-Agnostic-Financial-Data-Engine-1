@@ -1,0 +1,437 @@
+{
+ "basis": {
+  "engine": "80dea99 (defs/independent-validation, local)",
+  "slots": 717,
+  "distinct_keys": 685,
+  "score": "65.8916",
+  "closed_slots": 493,
+  "closed_distinct_keys": 469
+ },
+ "closed_this_round": [
+  {
+   "key": "dividend_per_share_ttm",
+   "from": "D13",
+   "points": "0.2500"
+  },
+  {
+   "key": "total_dividend_paid_ttm",
+   "from": "D13",
+   "points": "0.2500"
+  },
+  {
+   "key": "dividend_payment_frequency",
+   "from": "UNPROVEN",
+   "points": "0.2500"
+  }
+ ],
+ "withheld_this_round": [
+  {
+   "key": "dividend_cagr_3y",
+   "reason": "share-basis audit: DPS 2022 from AR2022 precedes the 2023 bonus issue",
+   "points": "0.2500"
+  }
+ ],
+ "awaiting_signature": [
+  {
+   "key": "general_and_administrative_expense",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.0551",
+   "note": "AR2025 consolidated statement of income (PDF 174) presents one combined line 'Selling, administrative and general'; no split in the notes."
+  },
+  {
+   "key": "selling_and_distribution_expense",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.0551",
+   "note": "AR2025 consolidated statement of income (PDF 174) presents one combined line 'Selling, administrative and general'; no split in the notes."
+  },
+  {
+   "key": "chemicals_revenue",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.3076",
+   "note": "AR2025 note on revenue (PDF 226-227) discloses 'Refined and chemical products' as one line and 'Natural gas and NGLs' with no LNG line."
+  },
+  {
+   "key": "refined_products_revenue",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.3076",
+   "note": "AR2025 note on revenue (PDF 226-227) discloses 'Refined and chemical products' as one line and 'Natural gas and NGLs' with no LNG line."
+  },
+  {
+   "key": "lng_revenue",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.3076",
+   "note": "AR2025 note on revenue (PDF 226-227) discloses 'Refined and chemical products' as one line and 'Natural gas and NGLs' with no LNG line."
+  },
+  {
+   "key": "segment_assets",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.3076",
+   "note": "AR2025 note 4 Operating segments (PDF 196-197) reports revenue, EBIT, D&A, impairment, capex and share of JV results by segment, and non-current assets by geography only; no segment assets, liabilities or investments."
+  },
+  {
+   "key": "segment_liabilities",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.3076",
+   "note": "AR2025 note 4 Operating segments (PDF 196-197) reports revenue, EBIT, D&A, impairment, capex and share of JV results by segment, and non-current assets by geography only; no segment assets, liabilities or investments."
+  },
+  {
+   "key": "segment_investments_associates",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.3076",
+   "note": "AR2025 note 4 Operating segments (PDF 196-197) reports revenue, EBIT, D&A, impairment, capex and share of JV results by segment, and non-current assets by geography only; no segment assets, liabilities or investments."
+  },
+  {
+   "key": "gross_profit",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.0551",
+   "note": "AR2025 statement of income (PDF 174) classifies expenses by nature (purchases, producing and manufacturing, ...); no cost of sales or gross profit subtotal is presented."
+  },
+  {
+   "key": "cost_of_revenue",
+   "status": "unavailable",
+   "reason_code": "not_disclosed",
+   "points_if_signed": "0.0551",
+   "note": "AR2025 statement of income (PDF 174) classifies expenses by nature (purchases, producing and manufacturing, ...); no cost of sales or gross profit subtotal is presented."
+  },
+  {
+   "key": "customer_concentration",
+   "status": "unavailable",
+   "reason_code": "qualitative_only",
+   "points_if_signed": "0.0551",
+   "note": "AR2025 financial risk note (PDF 192): trade receivables arise from a global customer base; no customer amount or percentage is disclosed."
+  },
+  {
+   "key": "capital_reduction",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "delisting",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "merger",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "reverse_split",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "rights_issue",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "rights_offering_date",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "spin_off",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "stock_split",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "suspension",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "symbol_change",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "tender_offer",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  },
+  {
+   "key": "treasury_share_sale",
+   "status": "not_applicable",
+   "reason_code": "event_not_observed",
+   "points_if_signed": "0.1905",
+   "note": "Absent from every ingested Aramco corporate-action record (annual reports 2019-2025). The Saudi Exchange announcement archive has NOT been checked: required before signing."
+  }
+ ],
+ "definitions_needing_decision": [
+  {
+   "decision": "D01_gross_profit_nature_of_expense",
+   "keys": [
+    "gross_margin",
+    "gross_profit_growth",
+    "gross_profit_qoq",
+    "days_inventory",
+    "inventory_turnover",
+    "days_payables",
+    "payables_turnover",
+    "cash_conversion_cycle",
+    "beneish_m_score"
+   ],
+   "points": "1.8897"
+  },
+  {
+   "decision": "D03_adjusted_ebitda",
+   "keys": [
+    "adjusted_ebitda"
+   ],
+   "points": "0.0551"
+  },
+  {
+   "decision": "D04_continuing_discontinued",
+   "keys": [
+    "continuing_operations_income",
+    "discontinued_operations_income"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D05_interest_vs_finance_costs",
+   "keys": [
+    "interest_expense"
+   ],
+   "points": "0.0551"
+  },
+  {
+   "decision": "D06_cash_flow_subtotals",
+   "keys": [
+    "net_income_cash_flow",
+    "operating_profit_before_working_capital_changes"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D07_owner_and_discretionary_cash",
+   "keys": [
+    "owner_earnings",
+    "discretionary_cash_flow"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D08_pending_returns_and_wacc",
+   "keys": [
+    "fixed_charge_coverage",
+    "return_on_capital",
+    "economic_profit_proxy"
+   ],
+   "points": "0.7717"
+  },
+  {
+   "decision": "D09_book_value_basis",
+   "keys": [
+    "book_value_growth"
+   ],
+   "points": "0.1429"
+  },
+  {
+   "decision": "D10_segment_operating_income",
+   "keys": [
+    "upstream_operating_income",
+    "downstream_operating_income"
+   ],
+   "points": "0.6153"
+  },
+  {
+   "decision": "D11_upstream_downstream_kpis",
+   "keys": [
+    "refinery_utilization",
+    "spare_capacity",
+    "production_entitlement",
+    "lifting_volume"
+   ],
+   "points": "0.6087"
+  },
+  {
+   "decision": "D12_dividend_classes",
+   "keys": [
+    "ordinary_dividend",
+    "special_dividend",
+    "total_dividend_declared",
+    "dividend_stability_score"
+   ],
+   "points": "1.0000"
+  },
+  {
+   "decision": "D13_dividend_ttm_and_forward",
+   "keys": [
+    "trailing_twelve_month_dividend",
+    "dividend_yield_ttm",
+    "forward_dividend_per_share",
+    "forward_dividend_run_rate"
+   ],
+   "points": "1.0000"
+  },
+  {
+   "decision": "D14_identity_and_sharia",
+   "keys": [
+    "cik",
+    "sharia_status"
+   ],
+   "points": "0.2759"
+  },
+  {
+   "decision": "D16_commercial_pipeline_applicability",
+   "keys": [
+    "average_selling_price_by_product",
+    "book_to_bill_ratio",
+    "committed_offtake_volume",
+    "contract_renewal_profile",
+    "contracted_sales_value",
+    "contracted_sales_volume",
+    "minimum_volume_commitments",
+    "sales_contract_count",
+    "sales_order_backlog",
+    "sales_volume_by_geography",
+    "sales_volume_by_product",
+    "take_or_pay_commitments"
+   ],
+   "points": "1.0667"
+  },
+  {
+   "decision": "D18_contingencies_total",
+   "keys": [
+    "contingencies"
+   ],
+   "points": "0.0551"
+  }
+ ],
+ "needs_period": [
+  {
+   "key": "eps_cagr_5y",
+   "points": "0.1429",
+   "reason": "EPS 2020 on the post-2023-bonus basis is not in the engine"
+  },
+  {
+   "key": "dividend_cagr_5y",
+   "points": "0.2500",
+   "reason": "DPS 2020 missing; DPS 2021-2022 are on the pre-2023-bonus basis"
+  },
+  {
+   "key": "years_consecutive_dividend_payments",
+   "points": "0.2500",
+   "reason": "dividend history before 2021 not ingested; start-year policy"
+  },
+  {
+   "key": "ebitda_qoq",
+   "points": "0.1429",
+   "reason": "no quarterly EBIT or D&A for Q1/Q2 2026"
+  },
+  {
+   "key": "operating_income_qoq",
+   "points": "0.1429",
+   "reason": "quarterly operating income not ingested (data book not loaded)"
+  },
+  {
+   "key": "eps_qoq",
+   "points": "0.1429",
+   "reason": "quarterly EPS not ingested"
+  },
+  {
+   "key": "revenue_ttm_growth",
+   "points": "0.1429",
+   "reason": "discrete Q3/Q4 2025 and prior-year quarters missing"
+  },
+  {
+   "key": "net_income_ttm_growth",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "eps_ttm_growth",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "ebitda_ttm_growth",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "free_cash_flow_ttm_growth",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "operating_cash_flow_ttm_growth",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "historical_pe_percentile",
+   "points": "0.1935",
+   "reason": "one archived price day only"
+  },
+  {
+   "key": "historical_pb_percentile",
+   "points": "0.1935",
+   "reason": "one archived price day only"
+  },
+  {
+   "key": "payout_ratio_ttm",
+   "points": "0.2500",
+   "reason": "engine payout definition exists; 2025 quarterly net income missing"
+  },
+  {
+   "key": "fcf_payout_ratio_ttm",
+   "points": "0.2500",
+   "reason": "engine FCF payout definition exists; 2025 quarterly FCF missing"
+  }
+ ],
+ "summary": {
+  "def_set_start": 72,
+  "def_closed": 2,
+  "def_awaiting_signature": 19,
+  "def_moved_to_needs_period": 2,
+  "def_still_needing_decision": 49,
+  "unproven_start": 20,
+  "unproven_closed": 1,
+  "unproven_awaiting_signature": 4,
+  "unproven_moved_to_decisions": 1,
+  "unproven_still_needs_period": 14,
+  "keys_needing_decision_total": 50,
+  "decision_points": "7.8669",
+  "needs_period_points": "2.8157",
+  "if_signed_points_gain": "3.3008 (65.8916 -> 69.1924, denominator 717 -> 688 slots)"
+ }
+}

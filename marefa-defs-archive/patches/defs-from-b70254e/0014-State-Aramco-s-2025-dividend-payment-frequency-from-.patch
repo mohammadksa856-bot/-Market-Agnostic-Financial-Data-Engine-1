@@ -1,0 +1,43 @@
+From f0abeb0f7f25435ea2e01f560c33d6aa096d171d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:29:01 +0000
+Subject: [PATCH 14/21] State Aramco's 2025 dividend payment frequency from
+ note 37
+
+One declaration and payment in each quarter of 2025 per note 37 of the
+2025 annual report.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+index e9f6097..0f31422 100644
+--- a/data/imports/aramco-2025-defs-evidence.json
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -164,5 +164,19 @@
+    "page": 235,
+    "table": "note 37 dividends, 'Dividends declared and paid each quarter', row December (PDF index 235, printed page 233); quarter of declaration and payment"
+   }
++ ],
++ "typed_facts": [
++  {
++   "metric": "dividend_payment_frequency",
++   "value": "quarterly",
++   "value_type": "text",
++   "unit": "text",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 235,
++   "table": "note 37 dividends: one declaration and payment in each of March, June, September and December 2025 (PDF index 235)"
++  }
+  ]
+ }
+\ No newline at end of file
+-- 
+2.43.0
+

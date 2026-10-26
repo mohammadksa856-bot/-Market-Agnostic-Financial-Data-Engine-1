@@ -1,0 +1,1248 @@
+{
+  "company_id": "sa:2010",
+  "contract_version": "1.0.0",
+  "scoring_model": "factory_18_category_contract",
+  "legacy_understanding_score_included": false,
+  "sector_pack": null,
+  "total_score": "61.05268548484623529173300784",
+  "target_score": "95.00",
+  "coverage_thresholds_passed": false,
+  "all_hard_gates_evaluated": false,
+  "all_hard_gates_passed": false,
+  "readiness_state": "not_ready",
+  "blocking_reasons": [
+    "weighted_coverage_95",
+    "category_threshold:company_profile",
+    "category_threshold:financial_statements",
+    "hard_gate_failed:financial_statements:1",
+    "category_threshold:profitability",
+    "category_threshold:efficiency",
+    "category_threshold:growth",
+    "category_threshold:valuation",
+    "category_threshold:market_data",
+    "category_threshold:dividends",
+    "category_threshold:segments",
+    "hard_gate_failed:segments:1",
+    "category_threshold:ownership",
+    "hard_gate_failed:ownership:1",
+    "category_threshold:corporate_actions",
+    "category_threshold:announcements",
+    "hard_gate_failed:announcements:1",
+    "category_threshold:operational_kpis",
+    "category_threshold:sector_specific_fields",
+    "hard_gate_evaluator_required:sector_specific_fields",
+    "category_threshold:calculated_smart_metrics",
+    "hard_gate_failed:sources_lineage_freshness:2"
+  ],
+  "categories": [
+    {
+      "category_key": "company_profile",
+      "job_strategy": "one_time_profile_capture",
+      "weight": "8",
+      "threshold": "0.85",
+      "score": "0.5172413793103448275862068966",
+      "weighted_score": "4.137931034482758620689655173",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "company_profile:1",
+          "condition": "company_model completeness < 60%",
+          "action": "category is treated as failing regardless of governance_profile/industry_context scores; a company record cannot be usable without a minimally identified issuer",
+          "status": "passed",
+          "actual": "0.8108108108108108108108108108",
+          "required": "0.6"
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "company_model",
+          "governance_profile",
+          "industry_context"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 58,
+        "expected_fields": 58,
+        "populated_fields": 30,
+        "raw_required_fields": 10,
+        "required_fields": 10,
+        "populated_required_fields": 10,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "company_model": [
+            "cik",
+            "company_name_ar",
+            "legal_name_ar",
+            "lei",
+            "listing_date",
+            "sharia_status",
+            "subsidiaries_count"
+          ],
+          "governance_profile": [
+            "audit_committee",
+            "board_committees",
+            "board_meetings_held",
+            "board_of_directors",
+            "board_size",
+            "board_term_end",
+            "compensation_committee",
+            "compensation_policy",
+            "corporate_secretary",
+            "executive_management_team",
+            "governance_framework",
+            "independent_directors",
+            "internal_control_assessment",
+            "nomination_committee",
+            "sustainability_risk_hse_committee"
+          ],
+          "industry_context": [
+            "competitive_environment",
+            "industry_drivers",
+            "industry_growth",
+            "industry_overview",
+            "industry_size",
+            "regulatory_environment"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "financial_statements",
+      "job_strategy": "periodic_statement_ingestion",
+      "weight": "14",
+      "threshold": "0.95",
+      "score": "0.7244094488188976377952755906",
+      "weighted_score": "10.14173228346456692913385827",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "financial_statements:1",
+          "condition": "fewer than 5 audited annual periods OR fewer than 12 trailing quarterly periods ingested",
+          "action": "category is capped at not-ready regardless of per-field completeness, matching the project's existing five-annual/12-quarter readiness gate described in docs/data/telecom-sector.md",
+          "status": "failed",
+          "annual_periods": 5,
+          "quarter_periods": 4,
+          "required_annual_periods": 5,
+          "required_quarter_periods": 12
+        },
+        {
+          "gate_id": "financial_statements:2",
+          "condition": "any statement value is present without a matching source_documents/content_hash row",
+          "action": "value is rejected at validation, never published \u2014 no synthetic or derived-without-declared-formula statement values are allowed (project rule, see docs/data/known-data-regressions-cleanup.md and telecom-sector.md 'no-synthetic-source' gate)",
+          "status": "passed",
+          "published_values_without_source_hash": 0,
+          "required": 0
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "income_statement",
+          "balance_sheet",
+          "cash_flow",
+          "financial_notes"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 254,
+        "expected_fields": 254,
+        "populated_fields": 184,
+        "raw_required_fields": 18,
+        "required_fields": 18,
+        "populated_required_fields": 18,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "income_statement": [
+            "adjusted_ebit",
+            "exploration_expense",
+            "finance_and_other_income",
+            "investment_income",
+            "minority_interest_income",
+            "operating_costs",
+            "operating_expenses",
+            "other_income_related_to_sales",
+            "other_nonoperating_expense",
+            "other_nonoperating_income",
+            "producing_manufacturing_expense",
+            "purchases",
+            "revenue_and_other_income_related_to_sales",
+            "revenue_ex_other_income",
+            "royalties_and_other_taxes",
+            "selling_general_administrative_expense"
+          ],
+          "balance_sheet": [
+            "accumulated_other_comprehensive_income",
+            "additional_paid_in_capital",
+            "bank_loans",
+            "buildings",
+            "due_from_government",
+            "employee_benefits_asset",
+            "employee_benefits_current",
+            "investments_joint_ventures",
+            "long_term_investments",
+            "long_term_securities",
+            "marketable_securities",
+            "oil_gas_properties",
+            "royalties_payable",
+            "statutory_reserve",
+            "trade_payables_other_liabilities",
+            "treasury_shares"
+          ],
+          "cash_flow": [
+            "acquisitions",
+            "base_dividends_paid",
+            "capital_increase_proceeds",
+            "discretionary_cash_flow",
+            "distributions_joint_ventures_associates",
+            "due_from_government_change",
+            "exploration_evaluation_written_off",
+            "gain_loss_investing",
+            "loans_to_affiliates",
+            "operating_profit_before_working_capital_changes",
+            "other_financing_cash_flow",
+            "other_operating_changes",
+            "owner_earnings",
+            "performance_linked_dividends_paid",
+            "proceeds_noncontrolling_sale",
+            "royalties_payable_change",
+            "share_based_compensation",
+            "shares_issued",
+            "shares_repurchased",
+            "short_term_borrowings_net",
+            "treasury_share_purchases"
+          ],
+          "financial_notes": [
+            "benefit_obligation_by_geography",
+            "borrowings_by_currency",
+            "cancellable_commitment_exposure",
+            "contingencies",
+            "contract_assets",
+            "contract_liabilities",
+            "customer_concentration",
+            "fair_value_plan_assets",
+            "key_management_compensation",
+            "lease_commitments_not_commenced",
+            "plan_assets_by_class",
+            "purchase_commitment_units",
+            "purchase_commitments",
+            "remaining_performance_obligations",
+            "revenue_by_customer_type",
+            "unsecured_borrowings",
+            "weighted_average_borrowing_rate"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "profitability",
+      "job_strategy": "calculated_no_network",
+      "weight": "6",
+      "threshold": "0.85",
+      "score": "0.7391304347826086956521739130",
+      "weighted_score": "4.434782608695652173913043478",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "profitability:1",
+          "condition": "a ratio is populated but one or more of its declared formula inputs is itself unavailable/not_applicable",
+          "action": "publish is rejected; the ratio must be marked missing_formula_inputs_or_history instead of silently computed from a substituted or estimated input (no filling gaps to make a derived number look complete)",
+          "status": "passed",
+          "published_fields": 79,
+          "calculated_fields": 78,
+          "calculated_fields_without_declared_formula": []
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "profitability"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 23,
+        "expected_fields": 23,
+        "populated_fields": 17,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "profitability": [
+            "economic_profit_proxy",
+            "incremental_roic",
+            "nopat",
+            "return_on_capital",
+            "return_on_invested_capital",
+            "roace"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "liquidity_solvency",
+      "job_strategy": "calculated_no_network",
+      "weight": "5",
+      "threshold": "0.9",
+      "score": "0.9",
+      "weighted_score": "4.5",
+      "status": "complete",
+      "threshold_passed": true,
+      "hard_gates": [
+        {
+          "gate_id": "liquidity_solvency:1",
+          "condition": "a ratio is populated but one or more of its declared formula inputs is itself unavailable/not_applicable",
+          "action": "publish is rejected; the ratio must be marked missing_formula_inputs_or_history instead of silently computed from a substituted or estimated input (no filling gaps to make a derived number look complete)",
+          "status": "passed",
+          "published_fields": 50,
+          "calculated_fields": 50,
+          "calculated_fields_without_declared_formula": []
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "liquidity_solvency"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 20,
+        "expected_fields": 20,
+        "populated_fields": 18,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "liquidity_solvency": [
+            "fixed_charge_coverage",
+            "gearing"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "efficiency",
+      "job_strategy": "calculated_no_network",
+      "weight": "4",
+      "threshold": "0.85",
+      "score": "0.6470588235294117647058823529",
+      "weighted_score": "2.588235294117647058823529412",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "efficiency:1",
+          "condition": "a ratio is populated but one or more of its declared formula inputs is itself unavailable/not_applicable",
+          "action": "publish is rejected; the ratio must be marked missing_formula_inputs_or_history instead of silently computed from a substituted or estimated input (no filling gaps to make a derived number look complete)",
+          "status": "passed",
+          "published_fields": 34,
+          "calculated_fields": 34,
+          "calculated_fields_without_declared_formula": []
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "efficiency"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 17,
+        "expected_fields": 17,
+        "populated_fields": 11,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "efficiency": [
+            "capex_to_depreciation_amortization",
+            "cash_conversion_cycle",
+            "days_inventory",
+            "days_payables",
+            "inventory_turnover",
+            "payables_turnover"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "growth",
+      "job_strategy": "calculated_no_network",
+      "weight": "5",
+      "threshold": "0.8",
+      "score": "0.5142857142857142857142857143",
+      "weighted_score": "2.571428571428571428571428572",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "growth:1",
+          "condition": "a ratio is populated but one or more of its declared formula inputs is itself unavailable/not_applicable",
+          "action": "publish is rejected; the ratio must be marked missing_formula_inputs_or_history instead of silently computed from a substituted or estimated input (no filling gaps to make a derived number look complete)",
+          "status": "passed",
+          "published_fields": 40,
+          "calculated_fields": 40,
+          "calculated_fields_without_declared_formula": []
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "growth"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 35,
+        "expected_fields": 35,
+        "populated_fields": 18,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "growth": [
+            "book_value_growth",
+            "ebitda_qoq",
+            "ebitda_ttm_growth",
+            "eps_cagr_3y",
+            "eps_cagr_5y",
+            "eps_ttm_growth",
+            "free_cash_flow_per_share_growth",
+            "free_cash_flow_qoq",
+            "free_cash_flow_ttm_growth",
+            "net_income_cagr_3y",
+            "net_income_cagr_5y",
+            "net_income_ttm_growth",
+            "operating_cash_flow_qoq",
+            "operating_cash_flow_ttm_growth",
+            "revenue_cagr_5y",
+            "revenue_per_share_growth",
+            "revenue_ttm_growth"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "per_share",
+      "job_strategy": "calculated_no_network",
+      "weight": "3",
+      "threshold": "0.9",
+      "score": "0.9230769230769230769230769231",
+      "weighted_score": "2.769230769230769230769230769",
+      "status": "complete",
+      "threshold_passed": true,
+      "hard_gates": [
+        {
+          "gate_id": "per_share:1",
+          "condition": "a ratio is populated but one or more of its declared formula inputs is itself unavailable/not_applicable",
+          "action": "publish is rejected; the ratio must be marked missing_formula_inputs_or_history instead of silently computed from a substituted or estimated input (no filling gaps to make a derived number look complete)",
+          "status": "passed",
+          "published_fields": 22,
+          "calculated_fields": 17,
+          "calculated_fields_without_declared_formula": []
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "per_share"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 13,
+        "expected_fields": 13,
+        "populated_fields": 12,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "per_share": [
+            "earnings_per_share_normalized"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "valuation",
+      "job_strategy": "calculated_no_network",
+      "weight": "6",
+      "threshold": "0.8",
+      "score": "0.6774193548387096774193548387",
+      "weighted_score": "4.064516129032258064516129032",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "valuation:1",
+          "condition": "relative valuation multiples (price_to_earnings, price_to_book, ev_ebitda) are below 90% even though market_data and financial_statements are both above their own thresholds",
+          "action": "category fails regardless of the consensus sub-group's score, since consensus is the one part of this category this project has already accepted as structurally hard to close for free",
+          "status": "passed",
+          "valuation_group_score": "0.84",
+          "market_data_score": "0.7692307692307692307692307692",
+          "financial_statement_score": "0.7103694741323295467276108533",
+          "prerequisites_pass": false,
+          "required_valuation_score_when_prerequisites_pass": "0.9"
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "valuation",
+          "consensus"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 31,
+        "expected_fields": 31,
+        "populated_fields": 21,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "valuation": [
+            "forward_price_to_earnings",
+            "graham_number",
+            "historical_pe_percentile",
+            "peg_ratio"
+          ],
+          "consensus": [
+            "ebit_estimate",
+            "ebitda_estimate",
+            "eps_estimate",
+            "net_income_estimate",
+            "revenue_estimate",
+            "selling_general_administrative_expense_estimate"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "market_data",
+      "job_strategy": "periodic_market_data_sync",
+      "weight": "5",
+      "threshold": "0.85",
+      "score": "0.7692307692307692307692307692",
+      "weighted_score": "3.846153846153846153846153846",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "market_data:1",
+          "condition": "no market_data value has been retrieved from exchange_market_data_feed in the last 5 trading days for an actively listed company",
+          "action": "category is flagged failing even if historical depth is otherwise strong; stale live price data cannot be averaged away by good historical coverage",
+          "status": "passed",
+          "latest_market_observation": "2026-10-22",
+          "maximum_calendar_age_days_for_five_trading_days": 7
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "market_data"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 26,
+        "expected_fields": 26,
+        "populated_fields": 20,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "market_data": [
+            "beta_1y",
+            "beta_5y",
+            "free_float_market_cap",
+            "free_float_shares",
+            "price_adjusted_close",
+            "vwap"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "dividends",
+      "job_strategy": "dividend_corporate_action_polling",
+      "weight": "5",
+      "threshold": "0.9",
+      "score": "0.55",
+      "weighted_score": "2.75",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "dividends:1",
+          "condition": "a dividend_per_share or payout figure is populated with no matching corporate_actions/disclosures announcement id",
+          "action": "rejected at validation; dividend facts must trace to an actual announcement, never be inferred from a price change alone",
+          "status": "passed",
+          "dividend_or_payout_facts": 6,
+          "dividend_actions_linked_to_disclosures": 3
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "dividends"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 20,
+        "expected_fields": 20,
+        "populated_fields": 11,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "dividends": [
+            "dividend_cagr_5y",
+            "dividend_payment_frequency",
+            "dividend_stability_score",
+            "dividend_yield_ttm",
+            "fcf_payout_ratio_ttm",
+            "forward_dividend_per_share",
+            "forward_dividend_run_rate",
+            "payout_ratio_ttm",
+            "special_dividend"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "segments",
+      "job_strategy": "segment_note_periodic_capture",
+      "weight": "4",
+      "threshold": "0.75",
+      "score": "0.4722222222222222222222222222",
+      "weighted_score": "1.888888888888888888888888889",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "segments:1",
+          "condition": "company_pack.reports_multiple_segments is true (multi-segment) AND segment_revenue is missing for any disclosed segment",
+          "action": "category fails outright; a multi-segment company cannot be treated as complete while silently dropping one segment's revenue line",
+          "status": "failed",
+          "disclosed_segments": [
+            "Agri-Nutrients",
+            "Chemicals",
+            "Petrochemicals",
+            "Polymers"
+          ],
+          "segments_with_revenue": [
+            "Agri-Nutrients",
+            "Petrochemicals"
+          ],
+          "segments_missing_revenue": [
+            "Chemicals",
+            "Polymers"
+          ]
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "segments",
+          "commercial_pipeline"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 36,
+        "expected_fields": 36,
+        "populated_fields": 17,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "segments": [
+            "metals_capex",
+            "metals_ebitda",
+            "metals_revenue",
+            "specialties_capex",
+            "specialties_ebitda",
+            "specialties_revenue"
+          ],
+          "commercial_pipeline": [
+            "advance_payment_long_term_sales_agreement",
+            "average_selling_price_by_product",
+            "book_to_bill_ratio",
+            "committed_offtake_volume",
+            "contract_renewal_profile",
+            "contracted_sales_value",
+            "contracted_sales_volume",
+            "minimum_volume_commitments",
+            "sales_contract_count",
+            "sales_order_backlog",
+            "sales_volume_by_geography",
+            "sales_volume_by_product",
+            "take_or_pay_commitments"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "ownership",
+      "job_strategy": "periodic_ownership_sync",
+      "weight": "5",
+      "threshold": "0.85",
+      "score": "0.3888888888888888888888888889",
+      "weighted_score": "1.944444444444444444444444444",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "ownership:1",
+          "condition": "sum of disclosed ownership_percentage across all holder rows for a period exceeds 100% or, once free_float is added, is inconsistent with it",
+          "action": "rejected at validation; ownership must reconcile arithmetically, matching the project's existing practice of publishing ownership only when positions reconcile to 100% (docs/data/telecom-sector.md)",
+          "status": "failed",
+          "as_of_date": "2025-12-31",
+          "ownership_percentage_sum": "1.0621",
+          "maximum": "1.0001"
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "ownership"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 18,
+        "expected_fields": 18,
+        "populated_fields": 7,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "ownership": [
+            "foreign_investor_limit",
+            "government_ownership",
+            "insider_ownership",
+            "institutional_ownership",
+            "institutional_shareholders_count",
+            "major_holder_change",
+            "ownership_concentration",
+            "retail_ownership",
+            "retail_shareholders_count",
+            "top_10_shareholder_concentration",
+            "top_5_shareholder_concentration"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "corporate_actions",
+      "job_strategy": "continuous_announcement_polling",
+      "weight": "4",
+      "threshold": "0.9",
+      "score": "0.1904761904761904761904761905",
+      "weighted_score": "0.7619047619047619047619047620",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "corporate_actions:1",
+          "condition": "a corporate action fact exists with no announcement_id linking it to a disclosures record",
+          "action": "rejected; every action must trace to the announcement that declared it",
+          "status": "passed",
+          "actions_without_disclosure_source_link": 0,
+          "required": 0
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "corporate_actions"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 21,
+        "expected_fields": 21,
+        "populated_fields": 4,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "corporate_actions": [
+            "acquisition",
+            "bonus_shares",
+            "capital_increase",
+            "capital_reduction",
+            "delisting",
+            "dividend_ex_date",
+            "merger",
+            "reverse_split",
+            "rights_issue",
+            "rights_offering_date",
+            "share_buyback",
+            "spin_off",
+            "stock_split",
+            "suspension",
+            "symbol_change",
+            "tender_offer",
+            "treasury_share_sale"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "announcements",
+      "job_strategy": "continuous_announcement_polling",
+      "weight": "5",
+      "threshold": "0.8",
+      "score": "0.1785714285714285714285714286",
+      "weighted_score": "0.8928571428571428571428571430",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "announcements:1",
+          "condition": "no announcement captured for an actively listed company in the trailing 180 days",
+          "action": "flagged failing regardless of historical density, since a live issuer that stops appearing in the feed is far more likely to indicate a broken connector than a genuinely silent company",
+          "status": "failed",
+          "latest_announcement": "2026-03-03",
+          "maximum_age_days": 180
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "disclosures"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 28,
+        "expected_fields": 28,
+        "populated_fields": 5,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "disclosures": [
+            "announcement_body",
+            "announcement_category",
+            "announcement_date",
+            "announcement_id",
+            "announcement_source_url",
+            "announcement_title_ar",
+            "announcement_title_en",
+            "board_change",
+            "contract_award",
+            "contract_flag",
+            "dividend_flag",
+            "earnings_flag",
+            "earnings_release",
+            "governance_flag",
+            "guidance",
+            "interim_report",
+            "litigation",
+            "management_change",
+            "materiality_tag",
+            "merger_acquisition_flag",
+            "regulatory_action",
+            "related_financial_period",
+            "related_party_transaction"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "operational_kpis",
+      "job_strategy": "periodic_operational_kpi_capture",
+      "weight": "7",
+      "threshold": "0.85",
+      "score": "0.56",
+      "weighted_score": "3.92",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "operational_kpis:1",
+          "condition": "the sector pack activates a field_group for this company but zero fields in it are populated across the trailing 4 quarters",
+          "action": "category fails outright for that company even if other activated field_groups are strong, so one entirely-empty activated KPI group cannot be averaged away by a well-covered one",
+          "status": "passed",
+          "activated_groups": [
+            "oil_gas_operations",
+            "chemical_operations",
+            "telecommunications",
+            "utilities",
+            "mining",
+            "retail",
+            "healthcare",
+            "transportation_logistics",
+            "industrial_construction",
+            "technology",
+            "food_agriculture",
+            "asset_management"
+          ],
+          "populated_fields": 28,
+          "required_minimum": 1
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "oil_gas_operations",
+          "chemical_operations",
+          "telecommunications",
+          "utilities",
+          "mining",
+          "retail",
+          "healthcare",
+          "transportation_logistics",
+          "industrial_construction",
+          "technology",
+          "food_agriculture",
+          "asset_management"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 50,
+        "expected_fields": 50,
+        "populated_fields": 28,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [
+          "oil_gas_operations",
+          "telecommunications",
+          "utilities",
+          "mining",
+          "retail",
+          "healthcare",
+          "transportation_logistics",
+          "industrial_construction",
+          "technology",
+          "food_agriculture",
+          "asset_management"
+        ],
+        "missing_fields": {
+          "chemical_operations": [
+            "average_selling_price",
+            "capacity_utilization",
+            "circular_feedstock_volume",
+            "domestic_sales_volume",
+            "ethylene_production",
+            "export_sales_volume",
+            "feedstock_cost_per_tonne",
+            "fertilizer_production",
+            "lost_time_injury_rate",
+            "metals_sales_volume",
+            "methanol_production",
+            "plant_reliability",
+            "polyethylene_production",
+            "polypropylene_production",
+            "production_capacity",
+            "recycled_product_sales",
+            "scope_1_emissions_chemicals",
+            "scope_2_emissions_chemicals",
+            "specialties_sales_volume",
+            "steel_production",
+            "water_consumption_chemicals",
+            "water_withdrawal_chemicals"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "sector_specific_fields",
+      "job_strategy": "sector_specific_periodic_capture",
+      "weight": "7",
+      "threshold": "0.9",
+      "score": "0.7391304347826086956521739130",
+      "weighted_score": "5.173913043478260869565217391",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "sector_specific_fields:1",
+          "condition": "sector_pack activates this category for a company and its score is materially near zero while financial_statements and profitability both pass their own thresholds",
+          "action": "overall readiness cannot be labeled ready; this is the contract's direct implementation of the anti-averaging principle named in the task ('a whole category cannot be near-zero even if others are strong'), and mirrors the existing project rule in docs/data/telecom-sector.md that 'the engine must not label the sector ready before the weighted score and all hard gates pass'",
+          "status": "not_evaluated"
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "banking",
+          "insurance",
+          "real_estate",
+          "segments"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 23,
+        "expected_fields": 23,
+        "populated_fields": 17,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [
+          "banking",
+          "insurance",
+          "real_estate"
+        ],
+        "missing_fields": {
+          "segments": [
+            "metals_capex",
+            "metals_ebitda",
+            "metals_revenue",
+            "specialties_capex",
+            "specialties_ebitda",
+            "specialties_revenue"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "calculated_smart_metrics",
+      "job_strategy": "calculated_no_network",
+      "weight": "5",
+      "threshold": "0.9",
+      "score": "0.5333333333333333333333333333",
+      "weighted_score": "2.666666666666666666666666666",
+      "status": "partial",
+      "threshold_passed": false,
+      "hard_gates": [
+        {
+          "gate_id": "calculated_smart_metrics:1",
+          "condition": "a composite score (piotroski_f_score, altman_z_score, beneish_m_score) is populated while one of its declared component sub-scores is marked unavailable",
+          "action": "rejected; a composite score can never be computed from a partial input set with the gap silently zero-filled \u2014 it must be marked missing_formula_inputs_or_history as a whole instead",
+          "status": "passed",
+          "published_fields": 31,
+          "calculated_fields": 31,
+          "calculated_fields_without_declared_formula": []
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "investor_analytics"
+        ],
+        "sector_pack": null,
+        "raw_expected_fields": 30,
+        "expected_fields": 30,
+        "populated_fields": 16,
+        "raw_required_fields": 0,
+        "required_fields": 0,
+        "populated_required_fields": 0,
+        "reviewed_unavailable_or_not_applicable": [],
+        "rejected_field_assessments": [],
+        "missing_field_groups": [],
+        "missing_fields": {
+          "investor_analytics": [
+            "beneish_m_score",
+            "capex_to_depreciation",
+            "dividend_cagr_10y",
+            "eps_cagr_10y",
+            "free_cash_flow_cagr_10y",
+            "net_income_cagr_10y",
+            "operating_cash_flow_cagr_10y",
+            "revenue_cagr_10y",
+            "selling_general_administrative_to_revenue",
+            "share_based_compensation_to_revenue",
+            "total_return_10y",
+            "total_return_1y",
+            "total_return_3y",
+            "total_return_5y"
+          ]
+        }
+      }
+    },
+    {
+      "category_key": "sources_lineage_freshness",
+      "job_strategy": "provenance_audit_continuous",
+      "weight": "2",
+      "threshold": "1.0",
+      "score": "1",
+      "weighted_score": "2",
+      "status": "complete",
+      "threshold_passed": true,
+      "hard_gates": [
+        {
+          "gate_id": "sources_lineage_freshness:1",
+          "condition": "any published fact anywhere in the dataset is missing one of its own category's provenance_requirements.mandatory_fields",
+          "action": "that fact is excluded from its category's completeness numerator entirely (it does not count as populated) until the missing provenance is supplied \u2014 this is the single hard gate that enforces every other category's provenance_requirements block",
+          "status": "passed",
+          "strict_five_field_provenance_certified": true
+        },
+        {
+          "gate_id": "sources_lineage_freshness:2",
+          "condition": "any published fact's age exceeds its own category's freshness_policy.max_age_before_stale_days",
+          "action": "the fact is flagged stale and excluded from the 'currently fresh' completeness numerator, even though it remains visible as historical data with its staleness disclosed",
+          "status": "failed",
+          "stale_categories": [
+            "company_profile",
+            "market_data",
+            "segments",
+            "ownership",
+            "corporate_actions",
+            "announcements",
+            "operational_kpis",
+            "sector_specific_fields"
+          ],
+          "checks": [
+            {
+              "category_key": "company_profile",
+              "status": "stale",
+              "latest_evidence_at": null,
+              "age_days": null,
+              "max_age_before_stale_days": 365,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "financial_statements",
+              "status": "fresh",
+              "latest_evidence_at": "2026-07-29",
+              "age_days": 88.10407690143519,
+              "max_age_before_stale_days": 100,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "profitability",
+              "status": "fresh",
+              "basis": "derived_from_input_freshness",
+              "dependencies": [
+                "financial_statements"
+              ]
+            },
+            {
+              "category_key": "liquidity_solvency",
+              "status": "fresh",
+              "basis": "derived_from_input_freshness",
+              "dependencies": [
+                "financial_statements"
+              ]
+            },
+            {
+              "category_key": "efficiency",
+              "status": "fresh",
+              "basis": "derived_from_input_freshness",
+              "dependencies": [
+                "financial_statements"
+              ]
+            },
+            {
+              "category_key": "growth",
+              "status": "fresh",
+              "basis": "derived_from_input_freshness",
+              "dependencies": [
+                "financial_statements"
+              ]
+            },
+            {
+              "category_key": "per_share",
+              "status": "fresh",
+              "basis": "derived_from_input_freshness",
+              "dependencies": [
+                "financial_statements"
+              ]
+            },
+            {
+              "category_key": "valuation",
+              "status": "fresh",
+              "latest_evidence_at": "2026-10-25",
+              "age_days": 0.10407690143518519,
+              "max_age_before_stale_days": 2,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "market_data",
+              "status": "stale",
+              "latest_evidence_at": "2026-10-22",
+              "age_days": 3.104076901435185,
+              "max_age_before_stale_days": 1,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "dividends",
+              "status": "fresh",
+              "latest_evidence_at": "2026-07-29",
+              "age_days": 88.10407690143519,
+              "max_age_before_stale_days": 180,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "segments",
+              "status": "stale",
+              "latest_evidence_at": "2026-03-03",
+              "age_days": 236.10407690143518,
+              "max_age_before_stale_days": 100,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "ownership",
+              "status": "stale",
+              "latest_evidence_at": "2025-12-31",
+              "age_days": 298.1040769014352,
+              "max_age_before_stale_days": 90,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "corporate_actions",
+              "status": "stale",
+              "latest_evidence_at": null,
+              "age_days": null,
+              "max_age_before_stale_days": 1,
+              "basis": "monitor_last_success"
+            },
+            {
+              "category_key": "announcements",
+              "status": "stale",
+              "latest_evidence_at": null,
+              "age_days": null,
+              "max_age_before_stale_days": 1,
+              "basis": "monitor_last_success"
+            },
+            {
+              "category_key": "operational_kpis",
+              "status": "stale",
+              "latest_evidence_at": "2026-03-03",
+              "age_days": 236.10407690143518,
+              "max_age_before_stale_days": 120,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "sector_specific_fields",
+              "status": "stale",
+              "latest_evidence_at": "2026-03-03",
+              "age_days": 236.10407690143518,
+              "max_age_before_stale_days": 100,
+              "basis": "latest_governed_category_evidence"
+            },
+            {
+              "category_key": "calculated_smart_metrics",
+              "status": "fresh",
+              "basis": "derived_from_input_freshness",
+              "dependencies": [
+                "financial_statements"
+              ]
+            }
+          ]
+        }
+      ],
+      "evidence": {
+        "field_groups": [
+          "*cross_cutting*"
+        ],
+        "sector_pack": null,
+        "source_documents": 10,
+        "documents_with_url_hash_filing_and_retrieval_time": 10,
+        "facts_with_page_or_table_reference": 582,
+        "strict_five_field_provenance_certified": true
+      }
+    }
+  ],
+  "checked_at": "2026-10-25T02:29:52.254683+00:00"
+}

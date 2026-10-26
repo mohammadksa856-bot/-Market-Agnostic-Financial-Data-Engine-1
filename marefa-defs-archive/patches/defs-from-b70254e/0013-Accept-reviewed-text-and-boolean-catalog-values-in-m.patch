@@ -1,0 +1,167 @@
+From cd51742048c45e715cd704f940608ac2649c04e6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:29:01 +0000
+Subject: [PATCH 13/21] Accept reviewed text and boolean catalog values in
+ manifests
+
+Manifests could only carry numbers, so a disclosed non-numeric field such
+as dividend_payment_frequency had no ingestion path. A typed_facts
+section now publishes through the existing typed publisher after checking
+the field is a data_points catalog field of the declared text or boolean
+type, the value and period are valid, and a page and table are cited;
+numbers are refused there. Market valuations read decimal rows only, as
+the other numeric readers already do.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/bootstrap.py         | 39 +++++++++++++++++-
+ src/finengine/domains.py           |  2 +-
+ tests/test_typed_manifest_facts.py | 64 ++++++++++++++++++++++++++++++
+ 3 files changed, 103 insertions(+), 2 deletions(-)
+ create mode 100644 tests/test_typed_manifest_facts.py
+
+diff --git a/src/finengine/bootstrap.py b/src/finengine/bootstrap.py
+index cda0092..16a5164 100644
+--- a/src/finengine/bootstrap.py
++++ b/src/finengine/bootstrap.py
+@@ -24,8 +24,42 @@ from .report import export_readable_report
+ 
+ MANIFEST_DOMAIN_KEYS = (
+     "company_attributes", "disclosures", "ownership_positions",
+-    "corporate_actions", "market_prices", "consensus_estimates",
++    "corporate_actions", "market_prices", "consensus_estimates", "typed_facts",
+ )
++# Non-numeric catalog values a manifest may state directly; numbers always use the numeric pipeline.
++TYPED_MANIFEST_VALUE_TYPES = {"text": str, "boolean": bool}
++
++
++def _typed_manifest_fact(db: Database, company, payload: dict, item: dict, source_key: str):
++    """Validate one reviewed non-numeric fact against the catalog before it is published."""
++    from datetime import date
++    from .models import PeriodKind, TypedFact, ValueType
++    metric = item.get("metric", "")
++    field = db.conn.execute(
++        "SELECT value_type,storage_domain FROM data_catalog_fields WHERE field_key=? AND enabled=1", (metric,)
++    ).fetchone()
++    if field is None or field["storage_domain"] != "data_points":
++        raise ValueError(f"typed fact {metric!r} is not a data_points catalog field")
++    value_type = item.get("value_type")
++    if value_type not in TYPED_MANIFEST_VALUE_TYPES or value_type != field["value_type"]:
++        raise ValueError(f"typed fact {metric!r} must declare the catalog value type {field['value_type']!r}")
++    value = item.get("value")
++    if not isinstance(value, TYPED_MANIFEST_VALUE_TYPES[value_type]) or (isinstance(value, str) and not value.strip()):
++        raise ValueError(f"typed fact {metric!r} has no valid {value_type} value")
++    kind = PeriodKind(item["period_kind"])
++    end = date.fromisoformat(item["period_end"]).isoformat()
++    start = item.get("period_start")
++    if kind in {PeriodKind.FY, PeriodKind.QUARTER, PeriodKind.YTD, PeriodKind.TTM}:
++        if not start or date.fromisoformat(start) > date.fromisoformat(end):
++            raise ValueError(f"typed fact {metric!r} needs a period_start on or before {end}")
++    if not item.get("page") or not item.get("table"):
++        raise ValueError(f"typed fact {metric!r} must cite its page and table")
++    return TypedFact(
++        company.company_id, metric, value, ValueType(value_type), end, kind, source_key,
++        payload.get("source_url", ""), payload.get("filed_at", ""), unit=item.get("unit", value_type),
++        period_start=start, fiscal_year=int(item.get("fiscal_year") or end[:4]),
++        fiscal_quarter=item.get("fiscal_quarter"),
++    )
+ 
+ 
+ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
+@@ -132,6 +166,9 @@ def _publish_manifest_domains(
+         values.update(company_id=company.company_id, source_key=source_key)
+         state = store.publish_market_price(**values)
+         record("market_prices", state)
++    for item in payload.get("typed_facts", []):
++        state = db.publish_typed(_typed_manifest_fact(db, company, payload, item, source_key))
++        record("typed_facts", state)
+     for item in payload.get("consensus_estimates", []):
+         values = dict(item)
+         values.update(company_id=company.company_id, source_key=source_key)
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 4ea4cb1..df1dcea 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -142,7 +142,7 @@ class CompanyDomainStore:
+             return {"company_id": company_id, "status": "skipped", "reason": "no_market_price", "published": 0}
+         rows = self.db.conn.execute(
+             """SELECT * FROM data_points WHERE company_id=? AND is_current=1
+-            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
++            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=? AND value_type='decimal'
+             AND (currency='' OR currency=?)
+             AND period_end<=? AND period_kind IN ('fy','instant')
+             ORDER BY period_end DESC,version DESC""",
+diff --git a/tests/test_typed_manifest_facts.py b/tests/test_typed_manifest_facts.py
+new file mode 100644
+index 0000000..ecb3674
+--- /dev/null
++++ b/tests/test_typed_manifest_facts.py
+@@ -0,0 +1,64 @@
++import tempfile
++import unittest
++from pathlib import Path
++
++from finengine.bootstrap import _publish_manifest_domains
++from finengine.database import Database
++from finengine.models import Company, Market, SourceDocument
++
++
++class TypedManifestFactTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.db = Database(str(Path(self.temp.name) / "typed.sqlite3"))
++        self.company = Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR", isin="SA0000000001",
++                               exchange="Saudi Exchange", country="SA", sector="Energy",
++                               industry="Integrated Oil & Gas", timezone="Asia/Riyadh")
++        self.db.register_company(self.company)
++        self.source = SourceDocument("sa:TST", Market.SA, "https://example.test/ar2025", "file:typed",
++                                     "annual-report", "2026-03-09", b"{}")
++        self.db.save_source(self.source, "typed", None)
++
++    def tearDown(self):
++        self.db.close(); self.temp.cleanup()
++
++    def publish(self, **overrides):
++        item = {"metric": "dividend_payment_frequency", "value": "quarterly", "value_type": "text",
++                "period_start": "2025-01-01", "period_end": "2025-12-31", "period_kind": "fy",
++                "fiscal_year": 2025, "page": 235, "table": "note 37 dividends"}
++        item.update(overrides)
++        payload = {"source_url": self.source.source_url, "filed_at": "2026-03-09", "typed_facts": [item]}
++        return _publish_manifest_domains(self.db, self.company, payload, self.source.source_key)
++
++    def stored(self):
++        return self.db.conn.execute(
++            """SELECT value_text,value_type,period_kind,period_start,source_key FROM data_points
++            WHERE company_id='sa:TST' AND metric_key='dividend_payment_frequency' AND is_current=1""").fetchall()
++
++    def test_a_reviewed_text_value_is_published_with_its_source(self):
++        self.assertEqual(self.publish()["typed_facts"]["inserted"], 1)
++        self.assertEqual([tuple(row) for row in self.stored()],
++                         [("quarterly", "text", "fy", "2025-01-01", "file:typed")])
++        self.assertEqual(self.publish()["typed_facts"]["duplicate"], 1)
++
++    def test_numbers_and_catalog_type_mismatches_are_refused(self):
++        with self.assertRaises(ValueError):
++            self.publish(value=4)
++        with self.assertRaises(ValueError):
++            self.publish(metric="dividend_installments_count", value="4")  # decimal field: numeric pipeline only
++        with self.assertRaises(ValueError):
++            self.publish(value_type="boolean", value=True)
++        self.assertEqual(self.stored(), [])
++
++    def test_provenance_and_period_are_required(self):
++        with self.assertRaises(ValueError):
++            self.publish(page=None)
++        with self.assertRaises(ValueError):
++            self.publish(period_start=None)
++        with self.assertRaises(ValueError):
++            self.publish(value="  ")
++        self.assertEqual(self.stored(), [])
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+

@@ -1,0 +1,138 @@
+From 5ac0337cc0bfe38043c23366d6e28fa1f3de66f5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:56:26 +0000
+Subject: [PATCH 10/21] Add Aramco 2025 quarterly dividends from note 37
+
+The four quarterly declarations and payments of 2025, in total and per
+share, exactly as stated in note 37 of the 2025 annual report; they sum
+to the reported annual 320,447 million and 1.3248 per share.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 108 ++++++++++++++++++++
+ 1 file changed, 108 insertions(+)
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+index 1dfe8bd..e9f6097 100644
+--- a/data/imports/aramco-2025-defs-evidence.json
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -55,6 +55,114 @@
+    "fiscal_year": 2024,
+    "page": 47,
+    "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80104,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-01-01",
++   "period_end": "2025-03-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 1,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row March (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-01-01",
++   "period_end": "2025-03-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 1,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row March (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80112,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-04-01",
++   "period_end": "2025-06-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 2,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row June (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-04-01",
++   "period_end": "2025-06-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 2,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row June (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80113,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-07-01",
++   "period_end": "2025-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 3,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row September (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-07-01",
++   "period_end": "2025-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 3,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row September (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80118,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-10-01",
++   "period_end": "2025-12-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 4,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row December (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-10-01",
++   "period_end": "2025-12-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 4,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row December (PDF index 235, printed page 233); quarter of declaration and payment"
+   }
+  ]
+ }
+\ No newline at end of file
+-- 
+2.43.0
+

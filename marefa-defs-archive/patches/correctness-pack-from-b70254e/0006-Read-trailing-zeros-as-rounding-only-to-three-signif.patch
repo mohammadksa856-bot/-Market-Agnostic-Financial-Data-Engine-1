@@ -1,0 +1,263 @@
+From f7593d5cc2cfb9ffc8414930b6abdb1b174ffa38 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 18:24:11 +0000
+Subject: [PATCH 6/6] Read trailing zeros as rounding only to three significant
+ digits
+
+A whole number has ambiguous trailing zeros, and reading them all as
+rounding let 1000 carry +/-500 in the TTM-to-fiscal-year agreement
+bound. Trailing zeros now count as rounding only as far as a figure
+showing three significant digits, never finer than a whole unit, while
+stated decimals are kept. The 29 fiscal-year windows in the current
+imports keep their classification (24 agree, 5 withheld). Edge-case
+tests cover YTD and TTM rows on a year end, March fiscal years, missing
+prior year ends, older TTM gaps, losses, every share-basis action type
+and the filing-window boundaries, quarterly EPS across a bonus issue,
+and the 10-day market gap boundary.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py        |   9 +-
+ tests/test_correctness_pack_edges.py | 207 +++++++++++++++++++++++++++
+ 2 files changed, 213 insertions(+), 3 deletions(-)
+ create mode 100644 tests/test_correctness_pack_edges.py
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index a5c172c..81c6d76 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -609,11 +609,14 @@ class Calculator:
+     def _rounding_half_unit(value: Decimal) -> Decimal:
+         """Half the last reported unit of a figure: 0.3312 -> 0.00005, 80104000000 -> 500000.
+ 
+-        A figure with a fractional part keeps its stated decimals; for a whole number (often a scaled
+-        figure such as millions) trailing zeros are read as rounding, which can only widen the bound."""
++        A figure with a fractional part keeps its stated decimals. A whole number (often a scaled figure
++        such as millions) has ambiguous trailing zeros: they count as rounding only as far as a figure
++        showing three significant digits, so 1000 carries +/-5 rather than +/-500, and never less than 0.5."""
+         exponent = value.as_tuple().exponent
+         if value and value == value.to_integral_value():
+-            exponent = value.normalize().as_tuple().exponent
++            trailing = value.normalize().as_tuple().exponent
++            three_significant = value.adjusted() - 2
++            exponent = max(0, min(trailing, three_significant))
+         return Decimal(1).scaleb(exponent) / 2
+ 
+     @classmethod
+diff --git a/tests/test_correctness_pack_edges.py b/tests/test_correctness_pack_edges.py
+new file mode 100644
+index 0000000..b08bccd
+--- /dev/null
++++ b/tests/test_correctness_pack_edges.py
+@@ -0,0 +1,207 @@
++"""Edge cases for the correctness pack: period identity, balance growth, TTM, share basis, market gaps."""
++import tempfile
++import unittest
++from datetime import date, timedelta
++from decimal import Decimal
++from pathlib import Path
++
++from finengine.calculations import Calculator
++from finengine.database import Database
++from finengine.domains import CompanyDomainStore
++from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
++from finengine.share_basis import audit_share_basis
++
++
++def fact(metric, value, kind, end, year, quarter=None, unit="SAR", start=None, filed=None, source=None):
++    if start is None and kind in (PeriodKind.FY, PeriodKind.YTD, PeriodKind.TTM):
++        start = f"{year}-01-01"
++    return Fact("sa:9999", metric, Decimal(value), "SAR", unit, start, end, kind, year, quarter,
++                source or f"doc:{metric}:{end}", "https://example.invalid/report.pdf", filed or end)
++
++
++def out(batch, history=()):
++    return {(item.metric, item.period_end, item.period_kind): item
++            for item in Calculator().calculate(list(batch), list(history))}
++
++
++class FiscalYearVersusQuarterTests(unittest.TestCase):
++    def test_ytd_and_ttm_rows_on_the_year_end_never_replace_the_fiscal_year(self):
++        batch = [fact("revenue", "400", PeriodKind.FY, "2025-12-31", 2025),
++                 fact("net_income", "40", PeriodKind.FY, "2025-12-31", 2025),
++                 fact("revenue", "999", PeriodKind.YTD, "2025-12-31", 2025),
++                 fact("net_income", "1", PeriodKind.TTM, "2025-12-31", 2025)]
++        result = out(batch)
++        self.assertEqual(result["net_margin", "2025-12-31", PeriodKind.FY].value, Decimal("0.1"))
++
++    def test_a_quarter_batch_alone_produces_no_annual_ratio(self):
++        result = out([fact("revenue", "100", PeriodKind.QUARTER, "2025-12-31", 2025, 4, start="2025-10-01"),
++                      fact("net_income", "10", PeriodKind.QUARTER, "2025-12-31", 2025, 4, start="2025-10-01")],
++                     [fact("revenue", "400", PeriodKind.FY, "2025-12-31", 2025)])
++        annual = {metric for metric, _, kind in result if kind == PeriodKind.FY}
++        self.assertNotIn("net_margin", annual)
++        self.assertEqual(result["net_margin", "2025-12-31", PeriodKind.QUARTER].value, Decimal("0.1"))
++
++
++class BalanceGrowthTests(unittest.TestCase):
++    def equity(self, end, year, value):
++        return fact("total_equity", value, PeriodKind.INSTANT, end, year)
++
++    def test_a_march_fiscal_year_compares_march_with_march(self):
++        history = [self.equity("2024-03-31", 2024, "1000"), self.equity("2024-12-31", 2025, "1080"),
++                   fact("revenue", "500", PeriodKind.FY, "2024-03-31", 2024, start="2023-04-01"),
++                   fact("revenue", "550", PeriodKind.FY, "2025-03-31", 2025, start="2024-04-01")]
++        result = out([self.equity("2025-03-31", 2025, "1100")], history)
++        self.assertEqual(result["equity_growth", "2025-03-31", PeriodKind.INSTANT].value, Decimal("0.1"))
++        third_quarter = out([self.equity("2024-12-31", 2025, "1080")], history)
++        self.assertNotIn(("equity_growth", "2024-12-31", PeriodKind.INSTANT), third_quarter)
++
++    def test_no_fallback_to_an_interim_balance_when_the_prior_year_end_is_missing(self):
++        history = [self.equity("2024-06-30", 2024, "900"),
++                   fact("revenue", "550", PeriodKind.FY, "2025-12-31", 2025)]
++        result = out([self.equity("2025-12-31", 2025, "1100")], history)
++        self.assertNotIn(("equity_growth", "2025-12-31", PeriodKind.INSTANT), result)
++
++
++class TrailingTwelveMonthEdgeTests(unittest.TestCase):
++    def quarter(self, value, start, end, year, q):
++        return fact("revenue", value, PeriodKind.QUARTER, end, year, q, start=start)
++
++    def test_a_non_calendar_fiscal_year_is_contiguous_across_the_year_boundary(self):
++        quarters = [self.quarter("10", "2024-04-01", "2024-06-30", 2025, 1),
++                    self.quarter("20", "2024-07-01", "2024-09-30", 2025, 2),
++                    self.quarter("30", "2024-10-01", "2024-12-31", 2025, 3)]
++        last = self.quarter("40", "2025-01-01", "2025-03-31", 2025, 4)
++        annual = fact("revenue", "100", PeriodKind.FY, "2025-03-31", 2025, start="2024-04-01")
++        result = out([last], [*quarters, annual])
++        self.assertEqual(result["revenue_ttm", "2025-03-31", PeriodKind.TTM].value, Decimal("100"))
++
++    def test_an_older_gap_does_not_block_four_newer_contiguous_quarters(self):
++        rows = [self.quarter("5", "2024-01-01", "2024-03-31", 2024, 1),          # gap: Q2 2024 missing
++                self.quarter("10", "2024-07-01", "2024-09-30", 2024, 3),
++                self.quarter("20", "2024-10-01", "2024-12-31", 2024, 4),
++                self.quarter("30", "2025-01-01", "2025-03-31", 2025, 1)]
++        last = self.quarter("40", "2025-04-01", "2025-06-30", 2025, 2)
++        result = out([last], rows)
++        self.assertEqual(result["revenue_ttm", "2025-06-30", PeriodKind.TTM].value, Decimal("100"))
++
++    def test_losses_agree_within_rounding_and_contradictions_are_withheld(self):
++        quarters = [self.quarter(v, s, e, 2025, q) for v, s, e, q in (
++            ("-10.4", "2025-01-01", "2025-03-31", 1), ("-20.4", "2025-04-01", "2025-06-30", 2),
++            ("-30.4", "2025-07-01", "2025-09-30", 3))]
++        last = self.quarter("-40.4", "2025-10-01", "2025-12-31", 2025, 4)
++        agree = out([last], [*quarters, fact("revenue", "-102", PeriodKind.FY, "2025-12-31", 2025)])
++        self.assertIn(("revenue_ttm", "2025-12-31", PeriodKind.TTM), agree)    # -101.6 vs -102: bound 0.7
++        conflict = out([last], [*quarters, fact("revenue", "-103", PeriodKind.FY, "2025-12-31", 2025)])
++        self.assertNotIn(("revenue_ttm", "2025-12-31", PeriodKind.TTM), conflict)
++
++    def test_whole_numbers_read_trailing_zeros_as_rounding_only_to_three_significant_digits(self):
++        half = Calculator._rounding_half_unit
++        self.assertEqual(half(Decimal("1000")), Decimal("5"))             # not +/-500
++        self.assertEqual(half(Decimal("40")), Decimal("0.5"))             # never finer than a whole unit
++        self.assertEqual(half(Decimal("17720000000")), Decimal("5000000"))  # stated to tens of millions
++        self.assertEqual(half(Decimal("80104000000")), Decimal("500000"))
++        self.assertEqual(half(Decimal("0.30")), Decimal("0.005"))         # stated decimals are kept
++        self.assertEqual(Calculator._rounding_bound([Decimal("10.4"), Decimal("1000"), Decimal("5")]),
++                         Decimal("0.05") + Decimal("5") + Decimal("0.5"))
++
++
++class ShareBasisEdgeTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.db = Database(str(Path(self.temp.name) / "basis.sqlite3"))
++        self.db.register_company(Company("sa:9999", Market.SA, "9999", "Edge Co", "SAR", isin="SA0000009999",
++                                         exchange="Saudi Exchange", country="SA", sector="Energy",
++                                         industry="Integrated Oil & Gas", timezone="Asia/Riyadh"))
++        self.store = CompanyDomainStore(self.db)
++        self.sources = {}
++        for name, filed in (("ar2022", "2023-03-12"), ("ar2023", "2024-03-10"), ("q1", "2024-05-05"), ("q2", "2024-08-05")):
++            document = SourceDocument("sa:9999", Market.SA, f"https://example.test/{name}", f"source:{name}",
++                                      "report", filed, b"{}")
++            self.db.save_source(document, name, None)
++            self.sources[name] = document
++
++    def tearDown(self):
++        self.db.close(); self.temp.cleanup()
++
++    def publish(self, metric, value, kind, start, end, year, source, quarter=None, calculated=False):
++        document = self.sources[source]
++        self.db.publish(Fact("sa:9999", metric, Decimal(value), "SAR", "SAR/share" if metric != "eps_qoq" and
++                             not calculated else "ratio", start, end, kind, year, quarter, document.source_key,
++                             document.source_url, document.filed_at, is_calculated=calculated,
++                             calculation="derived" if calculated else None))
++
++    def event(self, action_type, effective):
++        self.store.publish_corporate_action(f"sa:9999:{action_type}:{effective}", "sa:9999", action_type, action_type,
++                                            effective, self.sources["ar2023"].source_key, effective_date=effective,
++                                            status="completed")
++
++    def flagged(self):
++        return {(row["metric_key"], row["period_end"]) for row in audit_share_basis(self.db.conn, "sa:9999")}
++
++    def annual_growth(self):
++        self.publish("eps_diluted", "1.80", PeriodKind.FY, "2021-01-01", "2021-12-31", 2021, "ar2022")
++        self.publish("eps_diluted", "2.47", PeriodKind.FY, "2022-01-01", "2022-12-31", 2022, "ar2023")
++        self.publish("eps_growth", "0.37", PeriodKind.FY, "2022-01-01", "2022-12-31", 2022, "ar2023", calculated=True)
++
++    def test_splits_reverse_splits_and_rights_issues_all_change_the_basis(self):
++        self.annual_growth()
++        for action in ("stock_split", "reverse_split", "rights_issue"):
++            with self.subTest(action=action):
++                self.event(action, "2023-06-01")
++                self.assertEqual(self.flagged(), {("eps_growth", "2022-12-31")})
++                self.db.conn.execute("UPDATE corporate_actions SET is_current=0"); self.db.conn.commit()
++
++    def test_cash_dividends_and_buybacks_do_not(self):
++        self.annual_growth()
++        self.event("cash_dividend", "2023-06-01")
++        self.event("share_buyback", "2023-06-01")
++        self.assertEqual(self.flagged(), set())
++
++    def test_the_filing_window_is_exclusive_of_the_earlier_report_and_inclusive_of_the_later(self):
++        self.annual_growth()
++        self.event("bonus_shares", "2023-03-12")   # effective on the earlier filing date: both restated
++        self.assertEqual(self.flagged(), set())
++        self.event("bonus_shares", "2024-03-10")   # effective on the later filing date: only the later restated
++        self.assertEqual(self.flagged(), {("eps_growth", "2022-12-31")})
++
++    def test_quarterly_eps_change_across_a_bonus_is_withheld(self):
++        self.publish("eps_diluted", "0.40", PeriodKind.QUARTER, "2024-01-01", "2024-03-31", 2024, "q1", quarter=1)
++        self.publish("eps_diluted", "0.38", PeriodKind.QUARTER, "2024-04-01", "2024-06-30", 2024, "q2", quarter=2)
++        self.publish("eps_qoq", "-0.05", PeriodKind.QUARTER, "2024-04-01", "2024-06-30", 2024, "q2", quarter=2,
++                     calculated=True)
++        self.assertEqual(self.flagged(), set())
++        self.event("bonus_shares", "2024-06-15")
++        self.assertEqual(self.flagged(), {("eps_qoq", "2024-06-30")})
++
++
++class MarketGapBoundaryTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.db = Database(str(Path(self.temp.name) / "market.sqlite3"))
++        self.db.register_company(Company("sa:9999", Market.SA, "9999", "Edge Co", "SAR", isin="SA0000009999",
++                                         exchange="Saudi Exchange", country="SA", sector="Energy",
++                                         industry="Integrated Oil & Gas", timezone="Asia/Riyadh"))
++        self.source = SourceDocument("sa:9999", Market.SA, "https://example.test/prices", "source:prices",
++                                     "prices", "2025-09-01", b"{}")
++        self.db.save_source(self.source, "prices", None)
++        self.store = CompanyDomainStore(self.db)
++
++    def tearDown(self):
++        self.db.close(); self.temp.cleanup()
++
++    def previous_close_after_gap(self, days):
++        for observed in (date(2025, 6, 1), date(2025, 6, 1) + timedelta(days=days)):
++            self.store.publish_market_price("sa:9999", observed.isoformat(), Decimal("20"), "SAR", self.source.source_key)
++        self.store.refresh_market_statistics("sa:9999")
++        return self.db.conn.execute("""SELECT count(*) FROM data_points WHERE company_id='sa:9999'
++            AND metric_key='previous_close' AND is_current=1""").fetchone()[0]
++
++    def test_a_ten_day_closure_is_a_session_gap_and_eleven_days_is_an_archive_hole(self):
++        self.assertEqual(self.previous_close_after_gap(10), 1)
++
++    def test_eleven_days_is_an_archive_hole(self):
++        self.assertEqual(self.previous_close_after_gap(11), 0)
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+

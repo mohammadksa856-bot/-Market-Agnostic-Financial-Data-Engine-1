@@ -1,0 +1,2929 @@
+From 204b2307e062222bd811186233a88cdb68b2770e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 12:59:35 +0000
+Subject: [PATCH 01/15] Count market statistics data points toward market_data
+ completeness
+
+refresh_catalog_completeness only recognised vwap among the market
+statistics published as data points, so previous_close, returns and the
+other market_prices-domain fields stayed missing even when current.
+Count every catalogued market_prices field that has a current data point.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/domains.py      | 12 ++++++++----
+ tests/test_company_domains.py | 18 ++++++++++++++++++
+ 2 files changed, 26 insertions(+), 4 deletions(-)
+
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 98085a3..d455740 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -645,10 +645,14 @@ class CompanyDomainStore:
+                      "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover",
+                      "fifty_two_week_high":"high_52w","fifty_two_week_low":"low_52w"}
+         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
+-        available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
+-            """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
+-            AND metric_key IN ('vwap')""", (company_id,)
+-        ))
++        # Market statistics (vwap, previous close, returns, moving averages, ...) are published as
++        # data points by refresh_market_statistics/valuations; count every market_prices field that is current.
++        market_keys = sorted({row["field_key"] for row in expected_rows if row["storage_domain"] == "market_prices"})
++        if market_keys:
++            available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
++                f"""SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
++                AND metric_key IN ({",".join("?" for _ in market_keys)})""", (company_id, *market_keys)
++            ))
+         ownership_rows = self.db.conn.execute(
+             "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+         if ownership_rows:
+diff --git a/tests/test_company_domains.py b/tests/test_company_domains.py
+index 69012ad..c9a69d8 100644
+--- a/tests/test_company_domains.py
++++ b/tests/test_company_domains.py
+@@ -242,6 +242,24 @@ class CompanyDomainTests(unittest.TestCase):
+         self.assertGreater(completeness["required_fields"], 0)
+         self.assertTrue(any(row["required_missing"] for row in completeness["categories"]))
+ 
++    def test_market_statistics_published_as_data_points_count_for_market_data(self):
++        def market_data_missing():
++            result = self.store.refresh_catalog_completeness("sa:TST")
++            return {key for row in result["categories"] if row["category"] == "market_data"
++                    for key in row["missing"]}
++        before = market_data_missing()
++        self.assertIn("previous_close", before)
++        self.assertIn("market_return_1m", before)
++        stat = Fact("sa:TST", "previous_close", Decimal("27.5"), "SAR", "SAR", "2026-06-30", "2026-06-30",
++                    PeriodKind.INSTANT, 2026, None, self.source.source_key, self.source.source_url,
++                    self.source.filed_at)
++        self.db.publish(stat)
++        after = market_data_missing()
++        self.assertNotIn("previous_close", after)
++        # Only fields catalogued in the market_prices domain change; others stay missing.
++        self.assertIn("market_return_1m", after)
++        self.assertEqual(before - after, {"previous_close"})
++
+     def test_sector_packs_are_explicit_and_apply_only_to_matching_industries(self):
+         counts = {row["pack_key"]: row["n"] for row in self.db.conn.execute(
+             "SELECT pack_key,count(*) n FROM data_catalog_fields WHERE enabled=1 GROUP BY pack_key")}
+-- 
+2.43.0
+
+
+From addb53db20a17af6a78def0669f0d1b28fb144de Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:18:37 +0000
+Subject: [PATCH 02/15] Withhold TTM sums when the last four quarters are not
+ contiguous
+
+_ttm summed the four latest discrete quarters even when one was missing,
+so a gap bridged a 15-month window and a mislabelled year-to-date row
+counted as a quarter. Require each quarter to start the day after the
+previous one ends. Storage TTM fixtures now carry real quarter starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      |  6 ++++++
+ tests/test_contract_derivations.py | 23 +++++++++++++++++++++++
+ tests/test_storage_jobs.py         | 22 ++++++++++++----------
+ 3 files changed, 41 insertions(+), 10 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 1a03ad0..aa0161b 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -804,6 +804,12 @@ class Calculator:
+             rows = sorted(rows_by_period.values(), key=lambda item: item.period_end)
+             if len(rows) >= 4 and rows[-1].period_end in target_periods:
+                 last = rows[-4:]
++                # Four discrete quarters must be contiguous; a missing quarter is never bridged.
++                if any(not current.period_start or
++                       date.fromisoformat(current.period_start) - timedelta(days=1)
++                       != date.fromisoformat(previous.period_end)
++                       for previous, current in zip(last, last[1:])):
++                    continue
+                 base = last[-1]
+                 out.append(Fact(
+                     base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 49eb002..589b7cd 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -233,5 +233,28 @@ class ContractDerivationTests(unittest.TestCase):
+         self.assertEqual(out["revenue_qoq", "2026-03-31"].value, Decimal("0.25"))
+ 
+ 
++class TrailingTwelveMonthTests(unittest.TestCase):
++    QUARTERS = [("2025-01-01", "2025-03-31", 2025, 1), ("2025-04-01", "2025-06-30", 2025, 2),
++                ("2025-07-01", "2025-09-30", 2025, 3), ("2025-10-01", "2025-12-31", 2025, 4),
++                ("2026-01-01", "2026-03-31", 2026, 1)]
++
++    def ttm(self, quarters, batch_end):
++        facts = [quarter("revenue", "100", end, start, year, q) for start, end, year, q in quarters]
++        batch = [item for item in facts if item.period_end == batch_end]
++        history = [item for item in facts if item.period_end != batch_end]
++        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
++        return out.get(("revenue_ttm", batch_end))
++
++    def test_ttm_sums_the_last_four_contiguous_quarters(self):
++        result = self.ttm(self.QUARTERS, "2026-03-31")
++        self.assertEqual(result.value, Decimal("400"))
++        self.assertEqual(result.period_start, "2025-04-01")
++        self.assertEqual(result.period_kind, PeriodKind.TTM)
++
++    def test_ttm_is_withheld_when_a_quarter_is_missing(self):
++        gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
++        self.assertIsNone(self.ttm(gap, "2026-03-31"))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tests/test_storage_jobs.py b/tests/test_storage_jobs.py
+index c17b0cb..9bfe059 100644
+--- a/tests/test_storage_jobs.py
++++ b/tests/test_storage_jobs.py
+@@ -32,8 +32,8 @@ class StorageAndJobsTests(unittest.TestCase):
+         return doc
+ 
+     def fact(self, source, value, period_end="2025-12-31", kind=PeriodKind.FY,
+-             quarter=None, dimensions=None):
+-        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", "2025-01-01",
++             quarter=None, dimensions=None, period_start="2025-01-01"):
++        return Fact(self.company.company_id, "revenue", Decimal(value), "SAR", "SAR", period_start,
+                     period_end, kind, 2025, quarter, source.source_key, source.source_url,
+                     source.filed_at, dimensions=dimensions or {})
+ 
+@@ -472,11 +472,13 @@ class StorageAndJobsTests(unittest.TestCase):
+         self.assertNotIn("beneish_m_score", out)
+ 
+     def test_ttm_uses_published_history(self):
+-        for index, (end, value) in enumerate((("2025-03-31", "10"), ("2025-06-30", "20"), ("2025-09-30", "30")), 1):
++        for index, (start, end, value) in enumerate((("2025-01-01", "2025-03-31", "10"),
++                                                     ("2025-04-01", "2025-06-30", "20"),
++                                                     ("2025-07-01", "2025-09-30", "30")), 1):
+             source = self.source(f"source:{index}")
+-            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index))
++            self.db.publish(self.fact(source, value, end, PeriodKind.QUARTER, index, period_start=start))
+         current_source = self.source("source:4")
+-        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4)
++        current = self.fact(current_source, "40", "2025-12-31", PeriodKind.QUARTER, 4, period_start="2025-10-01")
+         history = self.db.quarter_history("sa:TST", Calculator.TTM_FLOWS)
+         calculated = Calculator().calculate([current], history)
+         ttm = next(f for f in calculated if f.metric == "revenue_ttm")
+@@ -486,15 +488,15 @@ class StorageAndJobsTests(unittest.TestCase):
+         source = self.source()
+         facts = []
+         periods = (
+-            ("2025-03-31", 1), ("2025-06-30", 2),
+-            ("2025-09-30", 3), ("2025-12-31", 4),
++            ("2025-01-01", "2025-03-31", 1), ("2025-04-01", "2025-06-30", 2),
++            ("2025-07-01", "2025-09-30", 3), ("2025-10-01", "2025-12-31", 4),
+         )
+-        for end, quarter in periods:
++        for start, end, quarter in periods:
+             facts.extend([
+                 self.fact(source, "10", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "upstream"}),
++                          {"segment": "upstream"}, period_start=start),
+                 self.fact(source, "100", end, PeriodKind.QUARTER, quarter,
+-                          {"segment": "downstream"}),
++                          {"segment": "downstream"}, period_start=start),
+             ])
+         ttm = [fact for fact in Calculator().calculate(facts) if fact.metric == "revenue_ttm"]
+         values = {fact.dimensions["segment"]: fact.value for fact in ttm}
+-- 
+2.43.0
+
+
+From 54ef922a8aa850c36b00e3a8408be231e975e5d9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:31:56 +0000
+Subject: [PATCH 03/15] Add verified Aramco FY2024 D&A, FY2025 dividend
+ installments and adjusted EBIT
+
+Reported figures from the Aramco 2025 annual report only, no derived
+values: 2024 depreciation and amortization (income statement comparative,
+cross-checked with the cash-flow statement), the four quarterly dividend
+installments of 2025 (note 37), and consolidated adjusted EBIT for 2025
+and 2024 under the existing Adjusted EBIT mapping in
+config/supplements/2222.json. Each fact cites its PDF page and table.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 60 +++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+ create mode 100644 data/imports/aramco-2025-defs-evidence.json
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+new file mode 100644
+index 0000000..1dfe8bd
+--- /dev/null
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -0,0 +1,60 @@
++{
++ "filing_type": "Annual report 2025 independently verified comparatives (defs/independent-validation, isolated)",
++ "filed_at": "2026-03-09",
++ "period_end": "2025-12-31",
++ "source_url": "https://www.aramco.com/-/media/publications/corporate-reports/reports-and-presentations/2025/fy/saudi-aramco-ara-2025-english.pdf",
++ "facts": [
++  {
++   "metric": "depreciation_amortization",
++   "value": -91679,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 174,
++   "table": "consolidated statement of income, 2024 comparative column (PDF index 174, printed page 172; cross-checked with consolidated statement of cash flows, PDF index 178)"
++  },
++  {
++   "metric": "dividend_installments_count",
++   "value": 4,
++   "scale": 1,
++   "currency": "",
++   "unit": "count",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 235,
++   "table": "note 37 dividends: declared and paid each quarter March/June/September/December (PDF index 235)"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": 744610,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 47,
++   "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  },
++  {
++   "metric": "adjusted_ebit",
++   "value": 788335,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2024-01-01",
++   "period_end": "2024-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2024,
++   "page": 47,
++   "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  }
++ ]
++}
+\ No newline at end of file
+-- 
+2.43.0
+
+
+From 0c390acfc5473ae82b40a4e1eeb70d40a6ab8fa8 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:50:14 +0000
+Subject: [PATCH 04/15] Withhold per-share comparisons that straddle a
+ share-basis event
+
+A per-share value is restated for every bonus issue, split or rights
+issue effective before its report is filed, so EPS or DPS taken from
+reports filed on either side of such an event sit on different bases.
+share_basis.audit_share_basis names the current growth, CAGR and QoQ rows
+affected without rewriting stored data; completeness no longer counts a
+per-share comparison key whose every current row is affected, and the
+share-basis-audit command reports them for acceptance review.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/cli.py         |  11 ++++
+ src/finengine/domains.py     |   5 +-
+ src/finengine/share_basis.py | 109 +++++++++++++++++++++++++++++++++++
+ tests/test_share_basis.py    |  86 +++++++++++++++++++++++++++
+ 4 files changed, 210 insertions(+), 1 deletion(-)
+ create mode 100644 src/finengine/share_basis.py
+ create mode 100644 tests/test_share_basis.py
+
+diff --git a/src/finengine/cli.py b/src/finengine/cli.py
+index b1fc8c1..4b44a75 100644
+--- a/src/finengine/cli.py
++++ b/src/finengine/cli.py
+@@ -1065,6 +1065,7 @@ def main():
+     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
++    share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
+     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+     field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
+     field_availability_list=sub.add_parser("field-availability-list"); field_availability_list.add_argument("market"); field_availability_list.add_argument("symbol"); field_availability_list.add_argument("--status",choices=["unavailable","not_applicable"])
+@@ -1216,6 +1217,16 @@ def main():
+             result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+         finally: db.close()
+         print(json.dumps(result,indent=2)); return
++    if a.cmd=="share-basis-audit":
++        from .share_basis import audit_share_basis, withheld_metric_keys
++        db=Database(a.db)
++        try:
++            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
++            findings=[{key:value for key,value in row.items() if key!="id"} for row in audit_share_basis(db.conn,company.company_id)]
++            result={"company_id":company.company_id,"withheld_rows":findings,
++                    "withheld_keys":sorted(withheld_metric_keys(db.conn,company.company_id))}
++        finally: db.close()
++        print(json.dumps(result,indent=2)); return
+     if a.cmd=="field-availability-set":
+         db=Database(a.db)
+         try:
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index d455740..94291a6 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -620,9 +620,12 @@ class CompanyDomainStore:
+              (scope_type='company' AND scope_value=?))""",
+             (company["market"], company["sector"] or "", company["industry"] or "", company_id),
+         ).fetchall()
++        from .share_basis import withheld_metric_keys
+         available = {
++            # A per-share comparison whose every current row straddles a share-basis event is not counted.
+             "data_points": {row["metric_key"] for row in self.db.conn.execute(
+-                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))},
++                "SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1", (company_id,))}
++            - withheld_metric_keys(self.db.conn, company_id),
+             "company_profile": {row["attribute_key"] for row in self.db.conn.execute(
+                 "SELECT DISTINCT attribute_key FROM company_attributes WHERE company_id=? AND is_current=1", (company_id,))},
+             "market_prices": set(), "ownership_positions": set(), "consensus_estimates": set(),
+diff --git a/src/finengine/share_basis.py b/src/finengine/share_basis.py
+new file mode 100644
+index 0000000..58c9573
+--- /dev/null
++++ b/src/finengine/share_basis.py
+@@ -0,0 +1,109 @@
++"""Per-share comparisons that straddle a share-basis event.
++
++A reported per-share value (or weighted share count) is restated for every bonus issue, split or
++rights issue effective before its report is filed. Two values taken from reports filed on either
++side of such an event therefore sit on different share bases, and a growth rate, CAGR or quarterly
++change between them compares unlike quantities. The audit never rewrites stored data: it names the
++affected current rows so completeness and acceptance views can withhold them.
++"""
++from __future__ import annotations
++
++import sqlite3
++from datetime import date, timedelta
++
++SHARE_BASIS_ACTIONS = ("bonus_shares", "stock_split", "reverse_split", "rights_issue")
++
++# output metric -> (per-share input metric, comparison, fiscal-year lag)
++COMPARISONS = {
++    "eps_growth": ("eps_diluted", "fy", 1),
++    "dividend_per_share_growth": ("dividends_per_share", "fy", 1),
++    "eps_cagr_3y": ("eps_diluted", "fy", 3),
++    "eps_cagr_5y": ("eps_diluted", "fy", 5),
++    "dividend_cagr_3y": ("dividends_per_share", "fy", 3),
++    "dividend_cagr_5y": ("dividends_per_share", "fy", 5),
++    "eps_qoq": ("eps_diluted", "quarter", 0),
++    "revenue_per_share_growth": ("weighted_average_shares", "fy", 1),
++    "free_cash_flow_per_share_growth": ("weighted_average_shares", "fy", 1),
++}
++SHARE_COUNT_BASES = ("weighted_average_shares_diluted", "weighted_average_shares_basic")
++
++
++def share_basis_events(conn: sqlite3.Connection, company_id: str) -> list[str]:
++    placeholders = ",".join("?" for _ in SHARE_BASIS_ACTIONS)
++    return sorted(row[0] for row in conn.execute(
++        f"""SELECT DISTINCT effective_date FROM corporate_actions WHERE company_id=? AND is_current=1
++        AND action_type IN ({placeholders}) AND effective_date IS NOT NULL AND effective_date<>''""",
++        (company_id, *SHARE_BASIS_ACTIONS)))
++
++
++def _consolidated(conn, company_id, metric, where, args):
++    return conn.execute(
++        f"""SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1
++        AND scope='consolidated' AND dimensions_json IN ('{{}}','') AND {where}
++        ORDER BY filed_at DESC LIMIT 1""", (company_id, metric, *args)).fetchone()
++
++
++def _input_metric(row, metric):
++    if metric != "weighted_average_shares":
++        return metric
++    formula = row["calculation"] or ""
++    return next((base for base in SHARE_COUNT_BASES if base in formula), SHARE_COUNT_BASES[0])
++
++
++def _inputs(conn, row, metric, kind, lag):
++    company_id = row["company_id"]
++    metric = _input_metric(row, metric)
++    if kind == "fy":
++        now = _consolidated(conn, company_id, metric, "period_kind='fy' AND fiscal_year=?", (row["fiscal_year"],))
++        prior = _consolidated(conn, company_id, metric, "period_kind='fy' AND fiscal_year=?",
++                              (row["fiscal_year"] - lag,))
++    else:
++        now = _consolidated(conn, company_id, metric, "period_kind='quarter' AND period_end=?", (row["period_end"],))
++        prior = None
++        if now is not None and now["period_start"]:
++            previous_end = (date.fromisoformat(now["period_start"]) - timedelta(days=1)).isoformat()
++            prior = _consolidated(conn, company_id, metric, "period_kind='quarter' AND period_end=?", (previous_end,))
++    return now, prior
++
++
++def audit_share_basis(conn: sqlite3.Connection, company_id: str) -> list[dict]:
++    """Current calculated per-share comparisons that cannot be shown on one share basis."""
++    if conn.row_factory is None:
++        conn.row_factory = sqlite3.Row
++    events = share_basis_events(conn, company_id)
++    if not events:
++        return []
++    placeholders = ",".join("?" for _ in COMPARISONS)
++    findings = []
++    for row in conn.execute(
++            f"""SELECT * FROM data_points WHERE company_id=? AND is_current=1 AND is_calculated=1
++            AND metric_key IN ({placeholders}) ORDER BY metric_key, period_end""",
++            (company_id, *COMPARISONS)).fetchall():
++        metric, kind, lag = COMPARISONS[row["metric_key"]]
++        now, prior = _inputs(conn, row, metric, kind, lag)
++        base = {"id": row["id"], "company_id": company_id, "metric_key": row["metric_key"],
++                "period_end": row["period_end"], "period_kind": row["period_kind"]}
++        if now is None or prior is None or not now["filed_at"] or not prior["filed_at"]:
++            findings.append({**base, "reason": "inputs_not_resolved", "events": events})
++            continue
++        low, high = sorted((now["filed_at"][:10], prior["filed_at"][:10]))
++        straddled = [event for event in events if low < event[:10] <= high]
++        if straddled:
++            findings.append({**base, "reason": "share_basis_event_between_sources", "events": straddled,
++                             "inputs": [(item["metric_key"], item["period_end"], item["filed_at"][:10])
++                                        for item in (prior, now)]})
++    return findings
++
++
++def withheld_metric_keys(conn: sqlite3.Connection, company_id: str) -> set[str]:
++    """Per-share comparison keys whose every current row is withheld by the audit."""
++    withheld_ids = {finding["id"] for finding in audit_share_basis(conn, company_id)}
++    if not withheld_ids:
++        return set()
++    current = {}
++    placeholders = ",".join("?" for _ in COMPARISONS)
++    for row_id, metric_key in conn.execute(
++            f"""SELECT id, metric_key FROM data_points WHERE company_id=? AND is_current=1
++            AND metric_key IN ({placeholders})""", (company_id, *COMPARISONS)):
++        current.setdefault(metric_key, set()).add(row_id)
++    return {metric for metric, ids in current.items() if ids <= withheld_ids}
+diff --git a/tests/test_share_basis.py b/tests/test_share_basis.py
+new file mode 100644
+index 0000000..125c2cb
+--- /dev/null
++++ b/tests/test_share_basis.py
+@@ -0,0 +1,86 @@
++import tempfile
++import unittest
++from decimal import Decimal
++from pathlib import Path
++
++from finengine.database import Database
++from finengine.domains import CompanyDomainStore
++from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
++from finengine.share_basis import audit_share_basis, withheld_metric_keys
++
++
++class ShareBasisAuditTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.db = Database(str(Path(self.temp.name) / "basis.sqlite3"))
++        self.db.register_company(Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR",
++                                         isin="SA0000000001", exchange="Saudi Exchange", country="SA",
++                                         sector="Energy", industry="Integrated Oil & Gas",
++                                         timezone="Asia/Riyadh"))
++        self.store = CompanyDomainStore(self.db)
++        self.sources = {}
++        # Annual reports: FY2021 filed 2022-03, FY2022 report filed 2023-03, FY2023 report filed 2024-03.
++        for year, filed in ((2021, "2022-03-20"), (2022, "2023-03-12"), (2023, "2024-03-10")):
++            source = SourceDocument("sa:TST", Market.SA, f"https://example.test/ar{year}", f"source:ar{year}",
++                                    "annual-report", filed, b"{}")
++            self.db.save_source(source, f"digest{year}", None)
++            self.sources[year] = source
++
++    def tearDown(self):
++        self.db.close(); self.temp.cleanup()
++
++    def fact(self, metric, value, year, report, calculated=False):
++        source = self.sources[report]
++        return Fact("sa:TST", metric, Decimal(value), "SAR", "SAR/share" if metric == "eps_diluted" else "ratio",
++                    f"{year}-01-01", f"{year}-12-31", PeriodKind.FY, year, None, source.source_key,
++                    source.source_url, source.filed_at, is_calculated=calculated,
++                    calculation="eps_diluted / prior_fy(eps_diluted) - 1" if calculated else None)
++
++    def bonus(self, effective):
++        self.store.publish_corporate_action(f"sa:TST:bonus:{effective}", "sa:TST", "bonus_shares", "bonus issue",
++                                            effective, self.sources[2023].source_key, effective_date=effective,
++                                            ratio_numerator=1, ratio_denominator=10, status="completed")
++
++    def flagged(self):
++        return {(row["metric_key"], row["period_end"]) for row in audit_share_basis(self.db.conn, "sa:TST")}
++
++    def publish_growth_2022(self):
++        # EPS 2021 as last stated in the FY2022 report; EPS 2022 restated in the FY2023 report.
++        for item in (self.fact("eps_diluted", "1.80", 2021, 2022), self.fact("eps_diluted", "2.47", 2022, 2023),
++                     self.fact("eps_growth", "0.372", 2022, 2023, calculated=True)):
++            self.db.publish(item)
++
++    def test_growth_between_reports_filed_either_side_of_a_bonus_is_withheld(self):
++        self.publish_growth_2022()
++        self.bonus("2023-05-08")
++        self.assertEqual(self.flagged(), {("eps_growth", "2022-12-31")})
++        self.assertEqual(withheld_metric_keys(self.db.conn, "sa:TST"), {"eps_growth"})
++        missing = {key for row in self.store.refresh_catalog_completeness("sa:TST")["categories"]
++                   for key in row["missing"]}
++        self.assertIn("eps_growth", missing)
++
++    def test_no_event_or_an_event_outside_the_filing_window_keeps_the_growth(self):
++        self.publish_growth_2022()
++        self.assertEqual(self.flagged(), set())
++        self.bonus("2024-06-01")  # after both reports: both values share the old basis
++        self.bonus("2022-05-12")  # before both reports: both values are restated for it
++        self.assertEqual(self.flagged(), set())
++
++    def test_a_clean_year_keeps_the_key_counted(self):
++        self.publish_growth_2022()
++        for item in (self.fact("eps_diluted", "1.87", 2023, 2023),
++                     self.fact("eps_growth", "-0.243", 2023, 2023, calculated=True)):
++            self.db.publish(item)
++        self.bonus("2023-05-08")
++        self.assertEqual(self.flagged(), {("eps_growth", "2022-12-31")})
++        self.assertEqual(withheld_metric_keys(self.db.conn, "sa:TST"), set())
++
++    def test_unresolved_inputs_are_withheld_when_the_company_has_share_basis_events(self):
++        self.db.publish(self.fact("eps_growth", "0.1", 2022, 2023, calculated=True))
++        self.bonus("2023-05-08")
++        reasons = {row["reason"] for row in audit_share_basis(self.db.conn, "sa:TST")}
++        self.assertEqual(reasons, {"inputs_not_resolved"})
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+
+
+From f51d12faa0e3321ba46641560818932de6dc0567 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:56:26 +0000
+Subject: [PATCH 05/15] Sum quarterly dividends into their TTM keys and reject
+ TTM that contradicts its fiscal year
+
+Four contiguous discrete quarters of dividends_per_share and
+dividends_paid now produce dividend_per_share_ttm and
+total_dividend_paid_ttm under the existing TTM rule. Any TTM window that
+is exactly a fiscal year must agree with that year's reported value
+within 0.5%; otherwise the quarters and the annual figure contradict each
+other and no TTM is emitted.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 19 +++++++++++++++++--
+ tests/test_contract_derivations.py | 25 +++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+), 2 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index aa0161b..c4199fc 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -9,6 +9,10 @@ class Calculator:
+     """Deterministic, source-traceable calculations; AI never calculates production facts."""
+ 
+     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
++    # Quarterly dividends whose trailing-twelve-month sum has its own catalog key.
++    TTM_NAMED = {"dividends_per_share": "dividend_per_share_ttm", "dividends_paid": "total_dividend_paid_ttm"}
++    # A TTM window that is exactly a fiscal year must agree with that year's reported value.
++    TTM_FY_TOLERANCE = Decimal("0.005")
+     HISTORY_METRICS = {
+         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
+         "income_taxes_and_zakat",
+@@ -794,8 +798,13 @@ class Calculator:
+     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
+         out = []
+         groups = defaultdict(dict)
++        fiscal_years = {}
+         for fact in facts:
+-            if fact.metric in self.TTM_FLOWS and fact.period_kind == PeriodKind.QUARTER:
++            identity = (fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
++                        tuple(sorted(fact.dimensions.items())))
++            if fact.period_kind == PeriodKind.FY:
++                fiscal_years[(*identity, fact.period_start, fact.period_end)] = fact
++            if (fact.metric in self.TTM_FLOWS or fact.metric in self.TTM_NAMED) and fact.period_kind == PeriodKind.QUARTER:
+                 groups[(
+                     fact.company_id, fact.metric, fact.currency, fact.unit, fact.scope,
+                     tuple(sorted(fact.dimensions.items())),
+@@ -811,8 +820,14 @@ class Calculator:
+                        for previous, current in zip(last, last[1:])):
+                     continue
+                 base = last[-1]
++                total = sum((item.value for item in last), Decimal(0))
++                annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
++                                           tuple(sorted(base.dimensions.items())), last[0].period_start,
++                                           base.period_end))
++                if annual is not None and abs(total - annual.value) > self.TTM_FY_TOLERANCE * abs(annual.value):
++                    continue
+                 out.append(Fact(
+-                    base.company_id, base.metric + "_ttm", sum((item.value for item in last), Decimal(0)),
++                    base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
+                     base.currency, base.unit, last[0].period_start, base.period_end, PeriodKind.TTM,
+                     base.fiscal_year, base.fiscal_quarter, base.source_key, base.source_url, base.filed_at,
+                     is_calculated=True, calculation="sum(last 4 discrete quarters)",
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 589b7cd..3a0beaa 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -251,6 +251,31 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+         self.assertEqual(result.period_start, "2025-04-01")
+         self.assertEqual(result.period_kind, PeriodKind.TTM)
+ 
++    def dividend_ttm(self, quarterly, annual=None, metric="dividends_per_share", unit="SAR/share"):
++        facts = [quarter(metric, value, end, start, 2025, q, unit=unit)
++                 for (start, end, _, q), value in zip(self.QUARTERS[:4], quarterly)]
++        if annual is not None:
++            facts.append(fact(metric, annual, PeriodKind.FY, "2025-12-31", 2025, unit=unit))
++        batch = [item for item in facts if item.period_end == "2025-12-31" and item.period_kind == PeriodKind.QUARTER]
++        history = [item for item in facts if item not in batch]
++        out = by_metric(Calculator().calculate(batch, history, industry=INDUSTRY))
++        return {key: value for key, value in out.items() if value.period_kind == PeriodKind.TTM}
++
++    def test_quarterly_dividends_produce_the_named_ttm_keys(self):
++        per_share = self.dividend_ttm(["0.3312"] * 4, annual="1.3248")
++        self.assertEqual(set(per_share), {("dividend_per_share_ttm", "2025-12-31")})
++        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].value, Decimal("1.3248"))
++        self.assertEqual(per_share["dividend_per_share_ttm", "2025-12-31"].unit, "SAR/share")
++        paid = self.dividend_ttm(["80104", "80112", "80113", "80118"], annual="320447",
++                                 metric="dividends_paid", unit="SAR")
++        self.assertEqual(paid["total_dividend_paid_ttm", "2025-12-31"].value, Decimal("320447"))
++
++    def test_ttm_contradicting_the_same_fiscal_year_is_withheld(self):
++        self.assertEqual(self.dividend_ttm(["0", "0.48", "0", "0"], annual="0.96"), {})
++        # Rounding inside the tolerance still agrees; no fiscal-year value means nothing to contradict.
++        self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
++        self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
++
+     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+         self.assertIsNone(self.ttm(gap, "2026-03-31"))
+-- 
+2.43.0
+
+
+From 5ac0337cc0bfe38043c23366d6e28fa1f3de66f5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 13:56:26 +0000
+Subject: [PATCH 06/15] Add Aramco 2025 quarterly dividends from note 37
+
+The four quarterly declarations and payments of 2025, in total and per
+share, exactly as stated in note 37 of the 2025 annual report; they sum
+to the reported annual 320,447 million and 1.3248 per share.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 108 ++++++++++++++++++++
+ 1 file changed, 108 insertions(+)
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+index 1dfe8bd..e9f6097 100644
+--- a/data/imports/aramco-2025-defs-evidence.json
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -55,6 +55,114 @@
+    "fiscal_year": 2024,
+    "page": 47,
+    "table": "EBIT and adjusted EBIT, consolidated issuer non-IFRS measure (PDF index 47, printed page 45; reconciliation of adjusting items PDF index 48); label mapping per config/supplements/2222.json"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80104,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-01-01",
++   "period_end": "2025-03-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 1,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row March (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-01-01",
++   "period_end": "2025-03-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 1,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row March (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80112,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-04-01",
++   "period_end": "2025-06-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 2,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row June (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-04-01",
++   "period_end": "2025-06-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 2,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row June (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80113,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-07-01",
++   "period_end": "2025-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 3,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row September (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-07-01",
++   "period_end": "2025-09-30",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 3,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row September (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_paid",
++   "value": 80118,
++   "scale": 1000000,
++   "currency": "SAR",
++   "unit": "SAR",
++   "period_start": "2025-10-01",
++   "period_end": "2025-12-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 4,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row December (PDF index 235, printed page 233); quarter of declaration and payment"
++  },
++  {
++   "metric": "dividends_per_share",
++   "value": 0.3312,
++   "currency": "SAR",
++   "unit": "SAR/share",
++   "period_start": "2025-10-01",
++   "period_end": "2025-12-31",
++   "period_kind": "quarter",
++   "fiscal_year": 2025,
++   "fiscal_quarter": 4,
++   "page": 235,
++   "table": "note 37 dividends, 'Dividends declared and paid each quarter', row December (PDF index 235, printed page 233); quarter of declaration and payment"
+   }
+  ]
+ }
+\ No newline at end of file
+-- 
+2.43.0
+
+
+From 76dd697a41d8b3cf86a5ccf1a66228577496d597 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:03:40 +0000
+Subject: [PATCH 07/15] Never bridge an archive gap in market statistics
+
+previous_close took the prior archived row and calendar returns took the
+last close on or before the lookback date, however old either was. A hole
+in the price archive therefore labelled a months-old close as the
+previous session or as the one-month baseline. Both now require a session
+within 10 calendar days, the longest market closure seen in the archives.
+Current archives are unaffected.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/domains.py      | 19 ++++++++++++-------
+ tests/test_company_domains.py | 25 +++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+), 7 deletions(-)
+
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 94291a6..4ea4cb1 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -327,12 +327,14 @@ class CompanyDomainStore:
+         latest_date = date.fromisoformat(latest["observed_at"][:10])
+         latest_close = Decimal(latest["close"])
+         currency = latest["company_currency"]
+-        calculations: dict[str, tuple[Decimal, str, str, str]] = {
+-            "previous_close": (
++        calculations: dict[str, tuple[Decimal, str, str, str]] = {}
++        # Longest market closure seen in the archives (Eid holidays); a wider hole is an archive gap.
++        max_session_gap = timedelta(days=10)
++        if latest_date - date.fromisoformat(rows[-2]["observed_at"][:10]) <= max_session_gap:
++            calculations["previous_close"] = (
+                 Decimal(rows[-2]["close"]), "previous_archived_trading_session_close",
+                 currency, f"{currency}/share",
+-            ),
+-        }
++            )
+ 
+         for sessions in (20, 50, 200):
+             if len(rows) < sessions:
+@@ -400,9 +402,12 @@ class CompanyDomainStore:
+         def calendar_return(metric: str, target: date, formula: str) -> None:
+             if dated_rows[0][0] > target:
+                 return
+-            baseline = next((row for observed, row in reversed(dated_rows)
+-                             if observed <= target), None)
+-            if baseline is not None and Decimal(baseline["close"]):
++            baseline_dated = next(((observed, row) for observed, row in reversed(dated_rows)
++                                   if observed <= target), None)
++            if baseline_dated is None or target - baseline_dated[0] > max_session_gap:
++                return
++            baseline = baseline_dated[1]
++            if Decimal(baseline["close"]):
+                 calculations[metric] = (
+                     latest_close / Decimal(baseline["close"]) - Decimal(1),
+                     formula, "", "ratio",
+diff --git a/tests/test_company_domains.py b/tests/test_company_domains.py
+index c9a69d8..1b3f2fd 100644
+--- a/tests/test_company_domains.py
++++ b/tests/test_company_domains.py
+@@ -136,6 +136,31 @@ class CompanyDomainTests(unittest.TestCase):
+         self.assertNotIn("market_return_3y", metrics)
+         self.assertNotIn("market_return_5y", metrics)
+ 
++    def test_market_statistics_never_bridge_an_archive_gap(self):
++        def publish(observed, close):
++            self.store.publish_market_price("sa:TST", observed.isoformat(), Decimal(close), "SAR",
++                                            self.source.source_key)
++        # Sessions until 2025-03-01, a five-month hole, then a month of sessions to 2025-09-03.
++        for offset in range(60):
++            publish(date(2025, 1, 1) + timedelta(days=offset), "20")
++        for offset in range(31):
++            publish(date(2025, 8, 3) + timedelta(days=offset), "25")
++        self.store.refresh_market_statistics("sa:TST")
++        metrics = {row[0] for row in self.db.conn.execute(
++            "SELECT metric_key FROM data_points WHERE company_id='sa:TST' AND period_kind='as_of' AND is_current=1")}
++        self.assertIn("market_return_1m", metrics)   # baseline 2025-08-04 is a real session
++        self.assertNotIn("market_return_3m", metrics)  # nearest close is months before 2025-06-04
++        self.assertIn("previous_close", metrics)
++
++    def test_previous_close_needs_the_previous_session(self):
++        for observed in (date(2025, 1, 2), date(2025, 3, 2)):
++            self.store.publish_market_price("sa:TST", observed.isoformat(), Decimal("20"), "SAR",
++                                            self.source.source_key)
++        self.store.refresh_market_statistics("sa:TST")
++        metrics = {row[0] for row in self.db.conn.execute(
++            "SELECT metric_key FROM data_points WHERE company_id='sa:TST' AND period_kind='as_of' AND is_current=1")}
++        self.assertNotIn("previous_close", metrics)
++
+     def test_ownership_and_corporate_actions_are_structured(self):
+         self.assertEqual(self.store.publish_ownership_position(
+             "sa:TST", "holder:government", "Government", "beneficial", "2025-12-31",
+-- 
+2.43.0
+
+
+From be0db2bd3c9fd7acba780078033ff2aec82ba479 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:12:31 +0000
+Subject: [PATCH 08/15] Add contract-export and contract-compare for
+ reconciling independent pipelines
+
+A bundle carries the contract a pipeline scored against and its per-key
+evidence. contract-export writes one from this engine and refuses to
+finish unless the bundle reproduces the evaluator's total score;
+contract-compare reports common and extra keys, weight, placement and
+definition differences, value, unit, period and source conflicts on keys
+both pipelines closed, and union coverage counted once per contract slot.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/cli.py              |  15 ++
+ src/finengine/contract_compare.py | 220 ++++++++++++++++++++++++++++++
+ tests/test_contract_compare.py    | 106 ++++++++++++++
+ 3 files changed, 341 insertions(+)
+ create mode 100644 src/finengine/contract_compare.py
+ create mode 100644 tests/test_contract_compare.py
+
+diff --git a/src/finengine/cli.py b/src/finengine/cli.py
+index 4b44a75..d0aa735 100644
+--- a/src/finengine/cli.py
++++ b/src/finengine/cli.py
+@@ -1065,6 +1065,8 @@ def main():
+     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
++    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs")
++    contract_compare=sub.add_parser("contract-compare"); contract_compare.add_argument("bundle_a"); contract_compare.add_argument("bundle_b"); contract_compare.add_argument("--tolerance",default="0.000001")
+     share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
+     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+     field_availability=sub.add_parser("field-availability-set"); field_availability.add_argument("market"); field_availability.add_argument("symbol"); field_availability.add_argument("field_key"); field_availability.add_argument("status",choices=["unavailable","not_applicable"]); field_availability.add_argument("--reason-code",required=True); field_availability.add_argument("--reason",required=True); field_availability.add_argument("--assessed-by",required=True); field_availability.add_argument("--source-key"); field_availability.add_argument("--evidence-url",default=""); field_availability.add_argument("--evidence-note",default=""); field_availability.add_argument("--rule-reference",default=""); field_availability.add_argument("--expires-at")
+@@ -1217,6 +1219,19 @@ def main():
+             result=evaluate_factory_contract(db,company.company_id,contract_path=a.contract,sector_pack_dir=a.sector_packs)
+         finally: db.close()
+         print(json.dumps(result,indent=2)); return
++    if a.cmd=="contract-export":
++        from .contract_compare import export_bundle
++        db=Database(a.db)
++        try:
++            company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
++            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs)
++        finally: db.close()
++        Path(a.out).write_text(json.dumps(bundle,indent=1,ensure_ascii=False),encoding="utf-8")
++        print(json.dumps({"out":a.out,"engine_total_score":bundle["engine_total_score"],"records":len(bundle["records"])},indent=2)); return
++    if a.cmd=="contract-compare":
++        from decimal import Decimal
++        from .contract_compare import compare_bundles, load_bundle
++        print(json.dumps(compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance)),indent=2,ensure_ascii=False)); return
+     if a.cmd=="share-basis-audit":
+         from .share_basis import audit_share_basis, withheld_metric_keys
+         db=Database(a.db)
+diff --git a/src/finengine/contract_compare.py b/src/finengine/contract_compare.py
+new file mode 100644
+index 0000000..84235ae
+--- /dev/null
++++ b/src/finengine/contract_compare.py
+@@ -0,0 +1,220 @@
++"""Compare two factory-contract evidence bundles from independent pipelines.
++
++A bundle is the contract a pipeline scored against (categories, weights, field definitions) and its
++per-field evidence (closed or missing, with the observations behind a closed field). Comparing two
++bundles reports which keys each contract expects, where definitions or weights differ, where the two
++pipelines closed the same key with conflicting values, units, periods or sources, and the coverage
++of their union counted once per (category, key) slot, so a key closed by both is never counted twice.
++"""
++from __future__ import annotations
++
++import json
++from decimal import Decimal
++from pathlib import Path
++
++BUNDLE_VERSION = 1
++DEFINITION_ATTRIBUTES = ("definition", "unit", "period_behavior", "value_type")
++
++
++def _decimal(value) -> Decimal | None:
++    try:
++        return Decimal(str(value))
++    except Exception:
++        return None
++
++
++def _slots(bundle: dict) -> dict[tuple[str, str], dict]:
++    return {(category["key"], field["key"]): field
++            for category in bundle["contract"]["categories"]
++            for field in category.get("fields", [])}
++
++
++def _records(bundle: dict) -> dict[str, dict]:
++    return {record["key"]: record for record in bundle.get("records", [])}
++
++
++def _closed(bundle: dict) -> set[str]:
++    return {key for key, record in _records(bundle).items() if record.get("status") == "closed"}
++
++
++def _excluded(bundle: dict) -> set[str]:
++    return {key for key, record in _records(bundle).items() if record.get("status") == "excluded"}
++
++
++def contract_score(bundle: dict, closed: set[str]) -> Decimal:
++    """Weighted score of `closed` keys against this bundle's contract (engine formula)."""
++    excluded = _excluded(bundle)
++    total = Decimal(0)
++    for category in bundle["contract"]["categories"]:
++        weight = Decimal(str(category["weight"]))
++        if category.get("score_only") is not None:
++            total += weight * Decimal(str(category["score_only"]))
++            continue
++        fields = [field["key"] for field in category.get("fields", []) if field["key"] not in excluded]
++        if category.get("not_applicable") or not fields:
++            total += weight
++            continue
++        total += weight * Decimal(len([key for key in fields if key in closed])) / Decimal(len(fields))
++    return total
++
++
++def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal) -> list[dict]:
++    def index(record):
++        return {(item.get("period_kind"), item.get("period_end"), item.get("dimensions", "")): item
++                for item in record.get("observations", [])}
++    a, b = index(left), index(right)
++    shared = sorted(set(a) & set(b), key=lambda item: tuple(str(part) for part in item))
++    if (a or b) and not shared:
++        return [{"key": key, "type": "period_mismatch", "a_periods": sorted(f"{k[0]}:{k[1]}" for k in a),
++                 "b_periods": sorted(f"{k[0]}:{k[1]}" for k in b)}]
++    conflicts = []
++    for period in shared:
++        x, y = a[period], b[period]
++        where = {"key": key, "period_kind": period[0], "period_end": period[1]}
++        if (x.get("unit"), x.get("currency")) != (y.get("unit"), y.get("currency")):
++            conflicts.append({**where, "type": "unit_or_currency",
++                              "a": [x.get("unit"), x.get("currency")], "b": [y.get("unit"), y.get("currency")]})
++            continue
++        vx, vy = _decimal(x.get("value")), _decimal(y.get("value"))
++        if vx is None or vy is None:
++            if x.get("value") != y.get("value"):
++                conflicts.append({**where, "type": "value", "a": x.get("value"), "b": y.get("value")})
++            continue
++        scale = max(abs(vx), abs(vy))
++        if scale and abs(vx - vy) > tolerance * scale:
++            conflicts.append({**where, "type": "value", "a": str(vx), "b": str(vy)})
++        elif x.get("source_url") and y.get("source_url") and x["source_url"] != y["source_url"]:
++            conflicts.append({**where, "type": "source_differs_same_value",
++                              "a": x["source_url"], "b": y["source_url"]})
++        if x.get("period_start") != y.get("period_start"):
++            conflicts.append({**where, "type": "period_start",
++                              "a": x.get("period_start"), "b": y.get("period_start")})
++    return conflicts
++
++
++def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001")) -> dict:
++    for bundle in (a, b):
++        if bundle.get("bundle_version") != BUNDLE_VERSION:
++            raise ValueError(f"unsupported bundle version in {bundle.get('label')!r}")
++    if a.get("company_id") != b.get("company_id"):
++        raise ValueError("bundles describe different companies")
++    slots_a, slots_b = _slots(a), _slots(b)
++    keys_a, keys_b = {key for _, key in slots_a}, {key for _, key in slots_b}
++    categories_a = {c["key"]: c for c in a["contract"]["categories"]}
++    categories_b = {c["key"]: c for c in b["contract"]["categories"]}
++
++    weight_diffs = [{"category": key, "a": str(categories_a[key]["weight"]), "b": str(categories_b[key]["weight"])}
++                    for key in sorted(set(categories_a) & set(categories_b))
++                    if Decimal(str(categories_a[key]["weight"])) != Decimal(str(categories_b[key]["weight"]))]
++    placement = []
++    for key in sorted(keys_a & keys_b):
++        in_a = sorted(category for category, field in slots_a if field == key)
++        in_b = sorted(category for category, field in slots_b if field == key)
++        if in_a != in_b:
++            placement.append({"key": key, "a_categories": in_a, "b_categories": in_b})
++    definition_diffs = []
++    for key in sorted(keys_a & keys_b):
++        left = next(field for (_, k), field in slots_a.items() if k == key)
++        right = next(field for (_, k), field in slots_b.items() if k == key)
++        changed = {attr: [left.get(attr), right.get(attr)] for attr in DEFINITION_ATTRIBUTES
++                   if left.get(attr) != right.get(attr)}
++        if changed:
++            definition_diffs.append({"key": key, **changed})
++
++    closed_a, closed_b = _closed(a), _closed(b)
++    records_a, records_b = _records(a), _records(b)
++    conflicts = []
++    for key in sorted(closed_a & closed_b):
++        conflicts.extend(_observation_conflicts(key, records_a[key], records_b[key], tolerance))
++
++    def closure(slots):
++        expected = {key for _, key in slots}
++        return {
++            "slots": len(slots), "keys": len(expected),
++            "closed_both": len(expected & closed_a & closed_b),
++            "closed_only_a": len((expected & closed_a) - closed_b),
++            "closed_only_b": len((expected & closed_b) - closed_a),
++            "closed_union": len(expected & (closed_a | closed_b)),
++            "slots_closed_union": sum(1 for _, key in slots if key in closed_a | closed_b),
++        }
++
++    union = closed_a | closed_b
++    return {
++        "a": a.get("label"), "b": b.get("label"), "company_id": a.get("company_id"),
++        "keys": {"common": sorted(keys_a & keys_b), "only_in_a": sorted(keys_a - keys_b),
++                 "only_in_b": sorted(keys_b - keys_a)},
++        "weight_diffs": weight_diffs, "category_placement_diffs": placement,
++        "definition_diffs": definition_diffs, "conflicts": conflicts,
++        "closure": {"on_contract_a": closure(slots_a), "on_contract_b": closure(slots_b)},
++        "scores": {
++            "a_on_a": str(contract_score(a, closed_a)), "b_on_b": str(contract_score(b, closed_b)),
++            "union_on_a": str(contract_score(a, union)), "union_on_b": str(contract_score(b, union)),
++        },
++        "conflicted_keys": sorted({item["key"] for item in conflicts
++                                   if item["type"] not in ("source_differs_same_value",)}),
++    }
++
++
++def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
++                  contract_path: str | Path = "config/factory/18-category-contract.json",
++                  sector_pack_dir: str | Path = "config/factory/sector-packs",
++                  observations_per_key: int = 12) -> dict:
++    """Bundle this engine's contract and evidence for one company (read-only apart from the evaluator's refresh)."""
++    from .factory_contract import evaluate_factory_contract
++    result = evaluate_factory_contract(db, company_id, contract_path=contract_path, sector_pack_dir=sector_pack_dir)
++    company = db.conn.execute("SELECT * FROM companies WHERE company_id=?", (company_id,)).fetchone()
++    catalog = db.conn.execute(
++        """SELECT * FROM data_catalog_fields WHERE enabled=1 AND review_state='reviewed' AND
++        (scope_type='all' OR (scope_type='market' AND scope_value=?) OR
++         (scope_type='sector' AND scope_value=?) OR (scope_type='industry' AND scope_value=?) OR
++         (scope_type='company' AND scope_value=?))""",
++        (company["market"], company["sector"] or "", company["industry"] or "", company_id)).fetchall()
++    by_group: dict[str, list] = {}
++    for row in catalog:
++        by_group.setdefault(row["category"], []).append(row)
++    categories, records = [], {}
++    for category in result["categories"]:
++        evidence = category["evidence"]
++        entry = {"key": category["category_key"], "weight": str(category["weight"])}
++        if category["status"] == "not_applicable":
++            entry["not_applicable"] = True
++        groups = evidence.get("field_groups") or []
++        if category["category_key"] == "sources_lineage_freshness":
++            entry["score_only"] = str(category["score"])
++        rows = [row for group in groups for row in by_group.get(group, [])]
++        excluded = {item["field_key"] for item in evidence.get("reviewed_unavailable_or_not_applicable", [])}
++        missing = {key for keys in (evidence.get("missing_fields") or {}).values() for key in keys}
++        if "score_only" not in entry and not entry.get("not_applicable"):
++            if len(rows) != int(evidence.get("raw_expected_fields", len(rows))):
++                raise ValueError(f"{category['category_key']}: exported fields do not match the evaluator")
++        entry["fields"] = [{"key": row["field_key"], "definition": row["display_name"], "unit": row["default_unit"],
++                            "period_behavior": row["period_behavior"], "value_type": row["value_type"],
++                            "storage_domain": row["storage_domain"]} for row in rows]
++        categories.append(entry)
++        for row in rows:
++            key = row["field_key"]
++            status = "excluded" if key in excluded else ("missing" if key in missing else "closed")
++            record = records.setdefault(key, {"key": key, "status": status, "storage_domain": row["storage_domain"],
++                                              "observations": []})
++            if status == "closed" and row["storage_domain"] == "data_points" and not record["observations"]:
++                record["observations"] = [{
++                    "period_kind": item["period_kind"], "period_start": item["period_start"],
++                    "period_end": item["period_end"], "dimensions": item["dimensions_hash"] or "",
++                    "value": item["value_decimal"] if item["value_decimal"] is not None else item["value_text"],
++                    "unit": item["unit"], "currency": item["currency"], "source_url": item["source_url"],
++                    "calculation": item["calculation"],
++                } for item in db.conn.execute(
++                    """SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1
++                    ORDER BY period_end DESC LIMIT ?""", (company_id, key, observations_per_key))]
++    bundle = {"bundle_version": BUNDLE_VERSION, "label": label, "engine_sha": engine_sha, "company_id": company_id,
++              "engine_total_score": result["total_score"],
++              "contract": {"version": result.get("contract_version"), "categories": categories},
++              "records": sorted(records.values(), key=lambda item: item["key"])}
++    computed = contract_score(bundle, _closed(bundle))
++    if abs(computed - Decimal(result["total_score"])) > Decimal("0.0001"):
++        raise ValueError(f"bundle score {computed} does not reproduce the evaluator {result['total_score']}")
++    return bundle
++
++
++def load_bundle(path: str | Path) -> dict:
++    return json.loads(Path(path).read_text(encoding="utf-8"))
+diff --git a/tests/test_contract_compare.py b/tests/test_contract_compare.py
+new file mode 100644
+index 0000000..73560e3
+--- /dev/null
++++ b/tests/test_contract_compare.py
+@@ -0,0 +1,106 @@
++import copy
++import unittest
++from decimal import Decimal
++
++from finengine.contract_compare import BUNDLE_VERSION, compare_bundles, contract_score
++
++
++def field(key, unit="currency", definition=None, period="flow"):
++    return {"key": key, "definition": definition or key.title(), "unit": unit, "period_behavior": period,
++            "value_type": "decimal"}
++
++
++def observation(value, end="2025-12-31", kind="fy", unit="SAR", currency="SAR", source="https://x.test/ar2025",
++                start="2025-01-01"):
++    return {"period_kind": kind, "period_start": start, "period_end": end, "dimensions": "", "value": value,
++            "unit": unit, "currency": currency, "source_url": source}
++
++
++def bundle(label, categories, records):
++    return {"bundle_version": BUNDLE_VERSION, "label": label, "company_id": "sa:TST",
++            "contract": {"categories": categories},
++            "records": [{"key": key, "status": status, "observations": observations}
++                        for key, (status, observations) in records.items()]}
++
++
++class ContractCompareTests(unittest.TestCase):
++    def setUp(self):
++        self.a = bundle("pipeline-a", [
++            {"key": "statements", "weight": "60", "fields": [field("revenue"), field("ebit"), field("capex")]},
++            {"key": "segments", "weight": "20", "fields": [field("segment_revenue")]},
++            {"key": "sector", "weight": "20", "fields": [field("segment_revenue"), field("refinery_runs", "mbpd")]},
++        ], {
++            "revenue": ("closed", [observation("100")]),
++            "ebit": ("closed", [observation("40")]),
++            "capex": ("missing", []),
++            "segment_revenue": ("closed", [observation("60")]),
++            "refinery_runs": ("missing", []),
++        })
++        self.b = bundle("pipeline-b", [
++            {"key": "statements", "weight": "50", "fields": [field("revenue"), field("ebit", definition="Operating income"),
++                                                            field("capex"), field("gross_profit")]},
++            {"key": "segments", "weight": "50", "fields": [field("segment_revenue")]},
++        ], {
++            "revenue": ("closed", [observation("100", source="https://x.test/ar2025-financials")]),
++            "ebit": ("closed", [observation("41")]),
++            "capex": ("closed", [observation("-30")]),
++            "gross_profit": ("missing", []),
++            "segment_revenue": ("closed", [observation("60", kind="quarter", end="2025-12-31", start="2025-10-01")]),
++        })
++
++    def compare(self):
++        return compare_bundles(self.a, self.b)
++
++    def test_common_and_extra_keys(self):
++        keys = self.compare()["keys"]
++        self.assertEqual(keys["common"], ["capex", "ebit", "revenue", "segment_revenue"])
++        self.assertEqual(keys["only_in_a"], ["refinery_runs"])
++        self.assertEqual(keys["only_in_b"], ["gross_profit"])
++
++    def test_weights_definitions_and_placement_differences(self):
++        result = self.compare()
++        self.assertEqual({row["category"] for row in result["weight_diffs"]}, {"statements", "segments"})
++        self.assertEqual(result["definition_diffs"], [{"key": "ebit", "definition": ["Ebit", "Operating income"]}])
++        self.assertEqual(result["category_placement_diffs"],
++                         [{"key": "segment_revenue", "a_categories": ["sector", "segments"], "b_categories": ["segments"]}])
++
++    def test_value_source_and_period_conflicts(self):
++        conflicts = {(row["key"], row["type"]) for row in self.compare()["conflicts"]}
++        self.assertIn(("ebit", "value"), conflicts)
++        self.assertIn(("revenue", "source_differs_same_value"), conflicts)
++        self.assertIn(("segment_revenue", "period_mismatch"), conflicts)
++        self.assertNotIn(("capex", "value"), conflicts)  # closed only in b: nothing to compare
++        self.assertEqual(self.compare()["conflicted_keys"], ["ebit", "segment_revenue"])
++
++    def test_unit_conflict_is_not_reported_as_a_value_conflict(self):
++        self.b["records"][1]["observations"] = [observation("40000", unit="SAR_thousands")]
++        conflicts = [row for row in self.compare()["conflicts"] if row["key"] == "ebit"]
++        self.assertEqual([row["type"] for row in conflicts], ["unit_or_currency"])
++
++    def test_union_closure_counts_each_key_once(self):
++        closure = self.compare()["closure"]["on_contract_a"]
++        self.assertEqual(closure["keys"], 5)
++        self.assertEqual(closure["slots"], 6)
++        self.assertEqual(closure["closed_both"], 3)       # revenue, ebit, segment_revenue
++        self.assertEqual(closure["closed_only_b"], 1)     # capex
++        self.assertEqual(closure["closed_union"], 4)      # never 3 + 3 + 1
++        self.assertEqual(closure["slots_closed_union"], 5)
++
++    def test_scores_follow_each_contract_and_union_never_exceeds_the_contract(self):
++        scores = {key: Decimal(value) for key, value in self.compare()["scores"].items()}
++        self.assertEqual(scores["a_on_a"], Decimal("60") * 2 / 3 + Decimal("20") + Decimal("20") / 2)
++        self.assertEqual(scores["union_on_a"], Decimal("60") + Decimal("20") + Decimal("20") / 2)
++        self.assertEqual(scores["b_on_b"], Decimal("50") * 3 / 4 + Decimal("50"))
++        self.assertLessEqual(scores["union_on_b"], Decimal("100"))
++
++    def test_excluded_fields_leave_the_denominator_and_bundles_must_match(self):
++        excluded = copy.deepcopy(self.a)
++        excluded["records"][2]["status"] = "excluded"  # capex
++        self.assertEqual(contract_score(excluded, {"revenue", "ebit"}), Decimal("60"))
++        other = copy.deepcopy(self.b); other["company_id"] = "sa:OTHER"
++        with self.assertRaises(ValueError):
++            compare_bundles(self.a, other)
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+
+
+From cd51742048c45e715cd704f940608ac2649c04e6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:29:01 +0000
+Subject: [PATCH 09/15] Accept reviewed text and boolean catalog values in
+ manifests
+
+Manifests could only carry numbers, so a disclosed non-numeric field such
+as dividend_payment_frequency had no ingestion path. A typed_facts
+section now publishes through the existing typed publisher after checking
+the field is a data_points catalog field of the declared text or boolean
+type, the value and period are valid, and a page and table are cited;
+numbers are refused there. Market valuations read decimal rows only, as
+the other numeric readers already do.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/bootstrap.py         | 39 +++++++++++++++++-
+ src/finengine/domains.py           |  2 +-
+ tests/test_typed_manifest_facts.py | 64 ++++++++++++++++++++++++++++++
+ 3 files changed, 103 insertions(+), 2 deletions(-)
+ create mode 100644 tests/test_typed_manifest_facts.py
+
+diff --git a/src/finengine/bootstrap.py b/src/finengine/bootstrap.py
+index cda0092..16a5164 100644
+--- a/src/finengine/bootstrap.py
++++ b/src/finengine/bootstrap.py
+@@ -24,8 +24,42 @@ from .report import export_readable_report
+ 
+ MANIFEST_DOMAIN_KEYS = (
+     "company_attributes", "disclosures", "ownership_positions",
+-    "corporate_actions", "market_prices", "consensus_estimates",
++    "corporate_actions", "market_prices", "consensus_estimates", "typed_facts",
+ )
++# Non-numeric catalog values a manifest may state directly; numbers always use the numeric pipeline.
++TYPED_MANIFEST_VALUE_TYPES = {"text": str, "boolean": bool}
++
++
++def _typed_manifest_fact(db: Database, company, payload: dict, item: dict, source_key: str):
++    """Validate one reviewed non-numeric fact against the catalog before it is published."""
++    from datetime import date
++    from .models import PeriodKind, TypedFact, ValueType
++    metric = item.get("metric", "")
++    field = db.conn.execute(
++        "SELECT value_type,storage_domain FROM data_catalog_fields WHERE field_key=? AND enabled=1", (metric,)
++    ).fetchone()
++    if field is None or field["storage_domain"] != "data_points":
++        raise ValueError(f"typed fact {metric!r} is not a data_points catalog field")
++    value_type = item.get("value_type")
++    if value_type not in TYPED_MANIFEST_VALUE_TYPES or value_type != field["value_type"]:
++        raise ValueError(f"typed fact {metric!r} must declare the catalog value type {field['value_type']!r}")
++    value = item.get("value")
++    if not isinstance(value, TYPED_MANIFEST_VALUE_TYPES[value_type]) or (isinstance(value, str) and not value.strip()):
++        raise ValueError(f"typed fact {metric!r} has no valid {value_type} value")
++    kind = PeriodKind(item["period_kind"])
++    end = date.fromisoformat(item["period_end"]).isoformat()
++    start = item.get("period_start")
++    if kind in {PeriodKind.FY, PeriodKind.QUARTER, PeriodKind.YTD, PeriodKind.TTM}:
++        if not start or date.fromisoformat(start) > date.fromisoformat(end):
++            raise ValueError(f"typed fact {metric!r} needs a period_start on or before {end}")
++    if not item.get("page") or not item.get("table"):
++        raise ValueError(f"typed fact {metric!r} must cite its page and table")
++    return TypedFact(
++        company.company_id, metric, value, ValueType(value_type), end, kind, source_key,
++        payload.get("source_url", ""), payload.get("filed_at", ""), unit=item.get("unit", value_type),
++        period_start=start, fiscal_year=int(item.get("fiscal_year") or end[:4]),
++        fiscal_quarter=item.get("fiscal_quarter"),
++    )
+ 
+ 
+ def _manifest_company(path: Path, payload: dict, registry: CompanyRegistry):
+@@ -132,6 +166,9 @@ def _publish_manifest_domains(
+         values.update(company_id=company.company_id, source_key=source_key)
+         state = store.publish_market_price(**values)
+         record("market_prices", state)
++    for item in payload.get("typed_facts", []):
++        state = db.publish_typed(_typed_manifest_fact(db, company, payload, item, source_key))
++        record("typed_facts", state)
+     for item in payload.get("consensus_estimates", []):
+         values = dict(item)
+         values.update(company_id=company.company_id, source_key=source_key)
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 4ea4cb1..df1dcea 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -142,7 +142,7 @@ class CompanyDomainStore:
+             return {"company_id": company_id, "status": "skipped", "reason": "no_market_price", "published": 0}
+         rows = self.db.conn.execute(
+             """SELECT * FROM data_points WHERE company_id=? AND is_current=1
+-            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=?
++            AND scope='consolidated' AND dimensions_json='{}' AND filed_at<=? AND value_type='decimal'
+             AND (currency='' OR currency=?)
+             AND period_end<=? AND period_kind IN ('fy','instant')
+             ORDER BY period_end DESC,version DESC""",
+diff --git a/tests/test_typed_manifest_facts.py b/tests/test_typed_manifest_facts.py
+new file mode 100644
+index 0000000..ecb3674
+--- /dev/null
++++ b/tests/test_typed_manifest_facts.py
+@@ -0,0 +1,64 @@
++import tempfile
++import unittest
++from pathlib import Path
++
++from finengine.bootstrap import _publish_manifest_domains
++from finengine.database import Database
++from finengine.models import Company, Market, SourceDocument
++
++
++class TypedManifestFactTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.db = Database(str(Path(self.temp.name) / "typed.sqlite3"))
++        self.company = Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR", isin="SA0000000001",
++                               exchange="Saudi Exchange", country="SA", sector="Energy",
++                               industry="Integrated Oil & Gas", timezone="Asia/Riyadh")
++        self.db.register_company(self.company)
++        self.source = SourceDocument("sa:TST", Market.SA, "https://example.test/ar2025", "file:typed",
++                                     "annual-report", "2026-03-09", b"{}")
++        self.db.save_source(self.source, "typed", None)
++
++    def tearDown(self):
++        self.db.close(); self.temp.cleanup()
++
++    def publish(self, **overrides):
++        item = {"metric": "dividend_payment_frequency", "value": "quarterly", "value_type": "text",
++                "period_start": "2025-01-01", "period_end": "2025-12-31", "period_kind": "fy",
++                "fiscal_year": 2025, "page": 235, "table": "note 37 dividends"}
++        item.update(overrides)
++        payload = {"source_url": self.source.source_url, "filed_at": "2026-03-09", "typed_facts": [item]}
++        return _publish_manifest_domains(self.db, self.company, payload, self.source.source_key)
++
++    def stored(self):
++        return self.db.conn.execute(
++            """SELECT value_text,value_type,period_kind,period_start,source_key FROM data_points
++            WHERE company_id='sa:TST' AND metric_key='dividend_payment_frequency' AND is_current=1""").fetchall()
++
++    def test_a_reviewed_text_value_is_published_with_its_source(self):
++        self.assertEqual(self.publish()["typed_facts"]["inserted"], 1)
++        self.assertEqual([tuple(row) for row in self.stored()],
++                         [("quarterly", "text", "fy", "2025-01-01", "file:typed")])
++        self.assertEqual(self.publish()["typed_facts"]["duplicate"], 1)
++
++    def test_numbers_and_catalog_type_mismatches_are_refused(self):
++        with self.assertRaises(ValueError):
++            self.publish(value=4)
++        with self.assertRaises(ValueError):
++            self.publish(metric="dividend_installments_count", value="4")  # decimal field: numeric pipeline only
++        with self.assertRaises(ValueError):
++            self.publish(value_type="boolean", value=True)
++        self.assertEqual(self.stored(), [])
++
++    def test_provenance_and_period_are_required(self):
++        with self.assertRaises(ValueError):
++            self.publish(page=None)
++        with self.assertRaises(ValueError):
++            self.publish(period_start=None)
++        with self.assertRaises(ValueError):
++            self.publish(value="  ")
++        self.assertEqual(self.stored(), [])
++
++
++if __name__ == "__main__":
++    unittest.main()
+-- 
+2.43.0
+
+
+From f0abeb0f7f25435ea2e01f560c33d6aa096d171d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:29:01 +0000
+Subject: [PATCH 10/15] State Aramco's 2025 dividend payment frequency from
+ note 37
+
+One declaration and payment in each quarter of 2025 per note 37 of the
+2025 annual report.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ data/imports/aramco-2025-defs-evidence.json | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/data/imports/aramco-2025-defs-evidence.json b/data/imports/aramco-2025-defs-evidence.json
+index e9f6097..0f31422 100644
+--- a/data/imports/aramco-2025-defs-evidence.json
++++ b/data/imports/aramco-2025-defs-evidence.json
+@@ -164,5 +164,19 @@
+    "page": 235,
+    "table": "note 37 dividends, 'Dividends declared and paid each quarter', row December (PDF index 235, printed page 233); quarter of declaration and payment"
+   }
++ ],
++ "typed_facts": [
++  {
++   "metric": "dividend_payment_frequency",
++   "value": "quarterly",
++   "value_type": "text",
++   "unit": "text",
++   "period_start": "2025-01-01",
++   "period_end": "2025-12-31",
++   "period_kind": "fy",
++   "fiscal_year": 2025,
++   "page": 235,
++   "table": "note 37 dividends: one declaration and payment in each of March, June, September and December 2025 (PDF index 235)"
++  }
+  ]
+ }
+\ No newline at end of file
+-- 
+2.43.0
+
+
+From 80dea999b6942245618b0be7f5c06985902a8705 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:37:54 +0000
+Subject: [PATCH 11/15] Keep quarter, YTD and TTM rows out of the fiscal-year
+ lookup
+
+The annual lookup was keyed by period end alone, so a Q4 row ending on
+the fiscal year end replaced the FY value of the same metric. Annual
+formulas then mixed one quarter with a full year: a payout ratio of Q4
+dividends over annual net income, and a three-year CAGR of one quarter's
+DPS against an annual DPS. The fiscal-year view now holds only FY flows,
+year-end balances and point-in-time values such as a reported year-end
+market cap.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      |  9 +++++++--
+ tests/test_contract_derivations.py | 15 +++++++++++++++
+ 2 files changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index c4199fc..ba18837 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -70,15 +70,20 @@ class Calculator:
+         all_facts = [*(history or []), *facts]
+         out: list[Fact] = []
+         groups = defaultdict(dict)
++        # `combined` is the fiscal-year view of a period end: FY flows with year-end balances and
++        # point-in-time values (e.g. a reported year-end market cap). A quarter, YTD or TTM row ending
++        # on the same date is a different quantity and never stands in for them.
++        annual_view = {PeriodKind.FY, PeriodKind.INSTANT, PeriodKind.AS_OF}
+         combined = defaultdict(dict)
+         for fact in all_facts:
+-            if fact.scope == "consolidated" and not fact.dimensions:
++            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind in annual_view:
+                 combined[(fact.company_id, fact.period_end)].setdefault(fact.metric, fact)
+         for fact in facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+                 groups[(fact.company_id, fact.period_end, fact.period_kind,
+                         fact.fiscal_year, fact.fiscal_quarter)][fact.metric] = fact
+-                combined[(fact.company_id, fact.period_end)][fact.metric] = fact
++                if fact.period_kind in annual_view:
++                    combined[(fact.company_id, fact.period_end)][fact.metric] = fact
+         historical = defaultdict(dict)
+         for fact in all_facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 3a0beaa..44ef11d 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -276,6 +276,21 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+         self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
+         self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
+ 
++    def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
++        history = [fact("dividends_per_share", "1.3112", PeriodKind.FY, "2022-12-31", 2022, unit="SAR/share")]
++        batch = [*annual(2025, net_income="350210", dividends_paid="320447"),
++                 fact("dividends_per_share", "1.3248", PeriodKind.FY, "2025-12-31", 2025, unit="SAR/share"),
++                 quarter("dividends_paid", "80118", "2025-12-31", "2025-10-01", 2025, 4),
++                 quarter("dividends_per_share", "0.3312", "2025-12-31", "2025-10-01", 2025, 4, unit="SAR/share")]
++        out = Calculator().calculate(batch, history, industry=INDUSTRY)
++        mixed = [(item.metric, item.period_kind) for item in out
++                 if item.period_kind == PeriodKind.QUARTER and item.metric in ("payout_ratio", "dividend_cagr_3y")]
++        self.assertEqual(mixed, [])
++        annual_out = by_metric(item for item in out if item.period_kind == PeriodKind.FY)
++        self.assertEqual(annual_out["payout_ratio", "2025-12-31"].value, Decimal("320447") / Decimal("350210"))
++        self.assertEqual(annual_out["dividend_cagr_3y", "2025-12-31"].value,
++                         (Decimal("1.3248") / Decimal("1.3112")) ** (Decimal(1) / Decimal(3)) - 1)
++
+     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+         self.assertIsNone(self.ttm(gap, "2026-03-31"))
+-- 
+2.43.0
+
+
+From 11fce1b85535a560c950ab8029a893ad528d6728 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:07:43 +0000
+Subject: [PATCH 12/15] Bound TTM-to-fiscal-year agreement by the rounding of
+ the reported figures
+
+The fixed 0.5% tolerance had no basis and let a 55 million gap through on
+a 76 billion total. A TTM window that is exactly a fiscal year may now
+differ from that year's reported value only by what the rounding of the
+five figures can explain: half the last stated unit of each, with a zero
+taking the finest precision of the others. Of the 29 such windows in the
+current imports, 24 agree within rounding and 5 are withheld as conflicts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 26 +++++++++++++++++++++++---
+ tests/test_contract_derivations.py | 18 +++++++++++++++++-
+ 2 files changed, 40 insertions(+), 4 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index ba18837..3f95836 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -11,8 +11,6 @@ class Calculator:
+     TTM_FLOWS = {"revenue", "net_income", "operating_cash_flow", "capex", "free_cash_flow"}
+     # Quarterly dividends whose trailing-twelve-month sum has its own catalog key.
+     TTM_NAMED = {"dividends_per_share": "dividend_per_share_ttm", "dividends_paid": "total_dividend_paid_ttm"}
+-    # A TTM window that is exactly a fiscal year must agree with that year's reported value.
+-    TTM_FY_TOLERANCE = Decimal("0.005")
+     HISTORY_METRICS = {
+         "revenue", "gross_profit", "operating_income", "income_before_income_taxes_and_zakat",
+         "income_taxes_and_zakat",
+@@ -800,6 +798,25 @@ class Calculator:
+                 "sum of bank-quality signals passed [" + ", ".join(sorted(bank_evaluated)) + "]",
+                 base, unit="score")
+ 
++    @staticmethod
++    def _rounding_half_unit(value: Decimal) -> Decimal:
++        """Half the last reported unit of a figure: 0.3312 -> 0.00005, 80104000000 -> 500000.
++
++        A figure with a fractional part keeps its stated decimals; for a whole number (often a scaled
++        figure such as millions) trailing zeros are read as rounding, which can only widen the bound."""
++        exponent = value.as_tuple().exponent
++        if value and value == value.to_integral_value():
++            exponent = value.normalize().as_tuple().exponent
++        return Decimal(1).scaleb(exponent) / 2
++
++    @classmethod
++    def _rounding_bound(cls, values: list[Decimal]) -> Decimal:
++        """Largest gap rounding alone can explain between a sum and a total; a zero has no stated
++        precision, so it takes the finest precision of the other figures."""
++        units = [cls._rounding_half_unit(value) for value in values if value]
++        finest = min(units, default=Decimal(0))
++        return sum(units, Decimal(0)) + finest * sum(1 for value in values if not value)
++
+     def _ttm(self, facts: list[Fact], target_periods: set[str]) -> list[Fact]:
+         out = []
+         groups = defaultdict(dict)
+@@ -829,7 +846,10 @@ class Calculator:
+                 annual = fiscal_years.get((base.company_id, base.metric, base.currency, base.unit, base.scope,
+                                            tuple(sorted(base.dimensions.items())), last[0].period_start,
+                                            base.period_end))
+-                if annual is not None and abs(total - annual.value) > self.TTM_FY_TOLERANCE * abs(annual.value):
++                # A window that is exactly a fiscal year must agree with that year's reported value
++                # within the rounding the five reported figures can carry; a larger gap is a conflict.
++                if annual is not None and abs(total - annual.value) > self._rounding_bound(
++                        [item.value for item in last] + [annual.value]):
+                     continue
+                 out.append(Fact(
+                     base.company_id, self.TTM_NAMED.get(base.metric, base.metric + "_ttm"), total,
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 44ef11d..46b4a1a 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -272,10 +272,26 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+ 
+     def test_ttm_contradicting_the_same_fiscal_year_is_withheld(self):
+         self.assertEqual(self.dividend_ttm(["0", "0.48", "0", "0"], annual="0.96"), {})
+-        # Rounding inside the tolerance still agrees; no fiscal-year value means nothing to contradict.
++        # Quarters stated to two decimals can differ from a four-decimal year by their rounding only.
+         self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
++        # No fiscal-year value means nothing to contradict.
+         self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
+ 
++    def test_ttm_agreement_bound_is_the_rounding_of_the_reported_figures(self):
++        quarters = ["80104", "80112", "80113", "80118"]  # sum 320447; five whole figures: bound 2.5
++        paid = lambda annual: self.dividend_ttm(quarters, annual=annual, metric="dividends_paid", unit="SAR")
++        self.assertTrue(paid("320449"))
++        self.assertEqual(paid("320451"), {})
++        # Figures in millions: 80104000000 carries +/-500000, so a one-million gap is still rounding.
++        scaled = [q + "000000" for q in quarters]
++        self.assertTrue(self.dividend_ttm(scaled, annual="320448000000", metric="dividends_paid", unit="SAR"))
++        self.assertEqual(self.dividend_ttm(scaled, annual="320451000000", metric="dividends_paid", unit="SAR"), {})
++        # A zero quarter takes the finest precision of the other figures, not +/-0.5.
++        self.assertEqual(Calculator._rounding_bound([Decimal("0"), Decimal("0.48"), Decimal("0.96")]), Decimal("0.015"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.30")), Decimal("0.005"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("0.00")), Decimal("0.005"))
++        self.assertEqual(Calculator._rounding_half_unit(Decimal("17720000000.00")), Decimal("5000000"))
++
+     def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
+         history = [fact("dividends_per_share", "1.3112", PeriodKind.FY, "2022-12-31", 2022, unit="SAR/share")]
+         batch = [*annual(2025, net_income="350210", dividends_paid="320447"),
+-- 
+2.43.0
+
+
+From c9c2940dc84561a58fc997073daf550dd66993d9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:23:34 +0000
+Subject: [PATCH 13/15] Validate external snapshots and report
+ engine-correction impact
+
+contract-compare now refuses a snapshot that is not a valid bundle and
+names every structural problem; contract-validate runs the same check on
+its own, and docs/contract-bundle.schema.json publishes the format. A
+producer without field definitions may list plain keys and declare
+absent records missing; absent definitions are reported, not diffed.
+engine-impact compares two snapshots of the same imports and reports
+rows removed, added or changed per metric and every company's score
+before and after; its corrections can be attached to an export so a
+conflict on a corrected key is flagged, not hidden. Exports now carry
+observations for profile, price, ownership, corporate-action and
+disclosure keys as well as data points.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ docs/CONTRACT_BUNDLE.md           |  24 +++
+ docs/contract-bundle.schema.json  | 267 ++++++++++++++++++++++++
+ src/finengine/cli.py              |  29 ++-
+ src/finengine/contract_compare.py | 335 +++++++++++++++++++++++++++++-
+ tests/test_contract_compare.py    | 147 ++++++++++++-
+ 5 files changed, 786 insertions(+), 16 deletions(-)
+ create mode 100644 docs/CONTRACT_BUNDLE.md
+ create mode 100644 docs/contract-bundle.schema.json
+
+diff --git a/docs/CONTRACT_BUNDLE.md b/docs/CONTRACT_BUNDLE.md
+new file mode 100644
+index 0000000..ba97554
+--- /dev/null
++++ b/docs/CONTRACT_BUNDLE.md
+@@ -0,0 +1,24 @@
++# Contract bundles: comparing independent pipelines
++
++A bundle (`docs/contract-bundle.schema.json`) is the factory contract a pipeline scored a company
++against, plus its evidence for every contract key: `closed`, `missing` or `excluded` (a reviewed
++unavailable / not-applicable assessment), with the observations behind each closed key.
++
++| Command | Purpose |
++|---|---|
++| `contract-export MARKET SYMBOL --out F --label L [--corrections IMPACT.json]` | Bundle this engine's evidence. Refuses to finish unless the bundle reproduces the evaluator's total score. |
++| `contract-validate F` | Structural check of any snapshot, including one produced elsewhere. Exit code 2 and the full error list when invalid. |
++| `contract-compare A B` | Common and extra keys; weight, category-placement and definition differences; value, unit, period and source conflicts on keys both closed; union coverage counted once per contract slot. |
++| `engine-impact BEFORE.sqlite3 AFTER.sqlite3 --label L` | What an engine change did to the same imports: rows removed, added or changed per metric, and every company's contract score before and after. Inputs are read from temporary copies. |
++
++**Minimal snapshots.** A producer that has no field definitions may list fields as plain keys, and
++may declare `"record_default": "missing"` so that only closed keys need a record. Missing definitions
++are reported as `definition_not_provided`, never as a definition difference.
++
++**Engine corrections.** An impact report's `engine_corrections` can be attached to a bundle. A conflict
++on a key one pipeline's engine corrected is flagged with that correction, so a fixed calculation is
++not mistaken for a data dispute; the conflict itself is still reported.
++
++**Counting.** A contract key can sit in more than one category (e.g. `segments` and
++`sector_specific_fields`); closure is reported per distinct key and per slot, and a key closed by both
++pipelines counts once.
+diff --git a/docs/contract-bundle.schema.json b/docs/contract-bundle.schema.json
+new file mode 100644
+index 0000000..8ae5984
+--- /dev/null
++++ b/docs/contract-bundle.schema.json
+@@ -0,0 +1,267 @@
++{
++ "$schema": "https://json-schema.org/draft/2020-12/schema",
++ "$id": "finengine/contract-bundle-v1",
++ "title": "Factory-contract evidence bundle, version 1",
++ "description": "The contract a pipeline scored against and its per-key evidence. Checked by `finengine contract-validate`, which also enforces the cross-field rules this schema cannot express (unique keys, every contract key recorded, records only for contract keys).",
++ "type": "object",
++ "required": [
++  "bundle_version",
++  "company_id",
++  "contract",
++  "records"
++ ],
++ "properties": {
++  "bundle_version": {
++   "const": 1
++  },
++  "label": {
++   "type": "string"
++  },
++  "engine_sha": {
++   "type": "string"
++  },
++  "company_id": {
++   "type": "string",
++   "minLength": 1
++  },
++  "engine_total_score": {
++   "anyOf": [
++    {
++     "type": "number"
++    },
++    {
++     "type": "string",
++     "pattern": "^-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$"
++    }
++   ]
++  },
++  "record_default": {
++   "enum": [
++    "missing"
++   ],
++   "description": "Contract keys without a record are missing."
++  },
++  "contract": {
++   "type": "object",
++   "required": [
++    "categories"
++   ],
++   "properties": {
++    "version": {},
++    "categories": {
++     "type": "array",
++     "minItems": 1,
++     "items": {
++      "type": "object",
++      "required": [
++       "key",
++       "weight"
++      ],
++      "properties": {
++       "key": {
++        "type": "string",
++        "minLength": 1
++       },
++       "weight": {
++        "anyOf": [
++         {
++          "type": "number"
++         },
++         {
++          "type": "string",
++          "pattern": "^-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$"
++         }
++        ]
++       },
++       "not_applicable": {
++        "type": "boolean"
++       },
++       "score_only": {
++        "anyOf": [
++         {
++          "type": "number"
++         },
++         {
++          "type": "string",
++          "pattern": "^-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?$"
++         }
++        ],
++        "description": "Category scored without a field list, between 0 and 1."
++       },
++       "fields": {
++        "type": "array",
++        "items": {
++         "anyOf": [
++          {
++           "type": "string",
++           "minLength": 1
++          },
++          {
++           "type": "object",
++           "required": [
++            "key"
++           ],
++           "properties": {
++            "key": {
++             "type": "string",
++             "minLength": 1
++            },
++            "definition": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "unit": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "period_behavior": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "value_type": {
++             "type": [
++              "string",
++              "null"
++             ]
++            },
++            "storage_domain": {
++             "type": [
++              "string",
++              "null"
++             ]
++            }
++           }
++          }
++         ]
++        }
++       }
++      }
++     }
++    }
++   }
++  },
++  "records": {
++   "type": "array",
++   "items": {
++    "type": "object",
++    "required": [
++     "key",
++     "status"
++    ],
++    "properties": {
++     "key": {
++      "type": "string",
++      "minLength": 1
++     },
++     "status": {
++      "enum": [
++       "closed",
++       "missing",
++       "excluded"
++      ]
++     },
++     "storage_domain": {
++      "type": "string"
++     },
++     "observations": {
++      "type": "array",
++      "items": {
++       "type": "object",
++       "required": [
++        "period_kind",
++        "period_end",
++        "value"
++       ],
++       "properties": {
++        "period_kind": {
++         "enum": [
++          "instant",
++          "quarter",
++          "ytd",
++          "fy",
++          "ttm",
++          "as_of",
++          "daily"
++         ]
++        },
++        "period_start": {
++         "anyOf": [
++          {
++           "type": "string",
++           "pattern": "^\\d{4}-\\d{2}-\\d{2}"
++          },
++          {
++           "type": "null"
++          },
++          {
++           "const": ""
++          }
++         ]
++        },
++        "period_end": {
++         "type": "string",
++         "pattern": "^\\d{4}-\\d{2}-\\d{2}"
++        },
++        "dimensions": {
++         "type": "string"
++        },
++        "value": {},
++        "unit": {
++         "type": [
++          "string",
++          "null"
++         ]
++        },
++        "currency": {
++         "type": [
++          "string",
++          "null"
++         ]
++        },
++        "source_url": {
++         "type": [
++          "string",
++          "null"
++         ]
++        },
++        "calculation": {
++         "type": [
++          "string",
++          "null"
++         ]
++        }
++       }
++      }
++     }
++    }
++   }
++  },
++  "engine_corrections": {
++   "type": "array",
++   "items": {
++    "type": "object",
++    "required": [
++     "id",
++     "keys"
++    ],
++    "properties": {
++     "id": {
++      "type": "string"
++     },
++     "keys": {
++      "type": "array",
++      "items": {
++       "type": "string"
++      }
++     }
++    }
++   }
++  }
++ }
++}
+diff --git a/src/finengine/cli.py b/src/finengine/cli.py
+index d0aa735..356551c 100644
+--- a/src/finengine/cli.py
++++ b/src/finengine/cli.py
+@@ -1065,7 +1065,9 @@ def main():
+     factory_status=sub.add_parser("factory-status"); factory_status.add_argument("run_id")
+     factory_cancel=sub.add_parser("factory-cancel"); factory_cancel.add_argument("run_id")
+     factory_throughput=sub.add_parser("factory-throughput"); factory_throughput.add_argument("run_id",nargs="?"); factory_throughput.add_argument("--window-hours",type=int,default=24)
+-    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs")
++    contract_export=sub.add_parser("contract-export"); contract_export.add_argument("market"); contract_export.add_argument("symbol"); contract_export.add_argument("--out",required=True); contract_export.add_argument("--label",required=True); contract_export.add_argument("--engine-sha",default=""); contract_export.add_argument("--contract",default="config/factory/18-category-contract.json"); contract_export.add_argument("--sector-packs",default="config/factory/sector-packs"); contract_export.add_argument("--corrections",help="engine-impact JSON whose engine_corrections are attached")
++    contract_validate=sub.add_parser("contract-validate"); contract_validate.add_argument("bundle")
++    impact=sub.add_parser("engine-impact"); impact.add_argument("before"); impact.add_argument("after"); impact.add_argument("--label",required=True); impact.add_argument("--company",action="append"); impact.add_argument("--out"); impact.add_argument("--contract",default="config/factory/18-category-contract.json"); impact.add_argument("--sector-packs",default="config/factory/sector-packs")
+     contract_compare=sub.add_parser("contract-compare"); contract_compare.add_argument("bundle_a"); contract_compare.add_argument("bundle_b"); contract_compare.add_argument("--tolerance",default="0.000001")
+     share_basis=sub.add_parser("share-basis-audit"); share_basis.add_argument("market"); share_basis.add_argument("symbol")
+     factory_contract=sub.add_parser("factory-contract-readiness"); factory_contract.add_argument("market"); factory_contract.add_argument("symbol"); factory_contract.add_argument("--contract",default="config/factory/18-category-contract.json"); factory_contract.add_argument("--sector-packs",default="config/factory/sector-packs")
+@@ -1224,14 +1226,33 @@ def main():
+         db=Database(a.db)
+         try:
+             company=CompanyRegistry.from_database(db.conn).resolve(a.market,a.symbol)
+-            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs)
++            corrections=json.loads(Path(a.corrections).read_text(encoding="utf-8"))["engine_corrections"] if a.corrections else None
++            bundle=export_bundle(db,company.company_id,label=a.label,engine_sha=a.engine_sha,contract_path=a.contract,sector_pack_dir=a.sector_packs,engine_corrections=corrections)
+         finally: db.close()
+         Path(a.out).write_text(json.dumps(bundle,indent=1,ensure_ascii=False),encoding="utf-8")
+         print(json.dumps({"out":a.out,"engine_total_score":bundle["engine_total_score"],"records":len(bundle["records"])},indent=2)); return
+     if a.cmd=="contract-compare":
+         from decimal import Decimal
+-        from .contract_compare import compare_bundles, load_bundle
+-        print(json.dumps(compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance)),indent=2,ensure_ascii=False)); return
++        from .contract_compare import InvalidBundle, compare_bundles, load_bundle
++        try: result=compare_bundles(load_bundle(a.bundle_a),load_bundle(a.bundle_b),tolerance=Decimal(a.tolerance))
++        except InvalidBundle as error:
++            print(json.dumps({"status":"invalid_bundle","errors":error.errors},indent=2,ensure_ascii=False)); raise SystemExit(2)
++        print(json.dumps(result,indent=2,ensure_ascii=False)); return
++    if a.cmd=="contract-validate":
++        from .contract_compare import load_bundle, normalize_bundle, validate_bundle
++        try: bundle=load_bundle(a.bundle)
++        except json.JSONDecodeError as error:
++            print(json.dumps({"status":"invalid_json","errors":[str(error)]},indent=2)); raise SystemExit(2)
++        result=validate_bundle(normalize_bundle(bundle) if isinstance(bundle,dict) else bundle)
++        print(json.dumps({"status":"invalid_bundle" if result["errors"] else "valid",**result},indent=2,ensure_ascii=False))
++        if result["errors"]: raise SystemExit(2)
++        return
++    if a.cmd=="engine-impact":
++        from .contract_compare import engine_impact
++        result=engine_impact(a.before,a.after,label=a.label,companies=a.company,contract_path=a.contract,sector_pack_dir=a.sector_packs)
++        text=json.dumps(result,indent=2,ensure_ascii=False)
++        if a.out: Path(a.out).write_text(text,encoding="utf-8")
++        print(json.dumps({"label":result["label"],"rows":result["rows"],"companies":[{k:v for k,v in c.items() if k in ("company_id","score_before","score_after","delta")} for c in result["companies"]]},indent=2)); return
+     if a.cmd=="share-basis-audit":
+         from .share_basis import audit_share_basis, withheld_metric_keys
+         db=Database(a.db)
+diff --git a/src/finengine/contract_compare.py b/src/finengine/contract_compare.py
+index 84235ae..fded8ac 100644
+--- a/src/finengine/contract_compare.py
++++ b/src/finengine/contract_compare.py
+@@ -8,12 +8,169 @@ of their union counted once per (category, key) slot, so a key closed by both is
+ """
+ from __future__ import annotations
+ 
++import copy
+ import json
+-from decimal import Decimal
++from contextlib import closing
++import shutil
++import sqlite3
++import tempfile
++from datetime import date
++from decimal import Decimal, InvalidOperation
+ from pathlib import Path
+ 
+ BUNDLE_VERSION = 1
+ DEFINITION_ATTRIBUTES = ("definition", "unit", "period_behavior", "value_type")
++RECORD_STATUSES = ("closed", "missing", "excluded")
++PERIOD_KINDS = ("instant", "quarter", "ytd", "fy", "ttm", "as_of", "daily")
++
++
++class InvalidBundle(ValueError):
++    """A snapshot that does not have the bundle structure; `errors` names every problem found."""
++
++    def __init__(self, label: str, errors: list[str]):
++        super().__init__(f"invalid bundle {label!r}: " + "; ".join(errors))
++        self.errors = errors
++
++
++def normalize_bundle(bundle: dict) -> dict:
++    """Copy with minimal-snapshot shorthands expanded: a field may be given as its key alone, and
++    `record_default: "missing"` declares every contract key without a record as missing."""
++    bundle = copy.deepcopy(bundle)
++    for category in (bundle.get("contract") or {}).get("categories") or []:
++        if isinstance(category, dict) and isinstance(category.get("fields"), list):
++            category["fields"] = [{"key": field} if isinstance(field, str) else field
++                                  for field in category["fields"]]
++    if bundle.get("record_default") == "missing" and isinstance(bundle.get("records"), list):
++        recorded = {record.get("key") for record in bundle["records"] if isinstance(record, dict)}
++        for category in bundle["contract"]["categories"]:
++            for field in category.get("fields") or []:
++                if isinstance(field, dict) and field.get("key") not in recorded:
++                    bundle["records"].append({"key": field["key"], "status": "missing", "observations": []})
++                    recorded.add(field["key"])
++    return bundle
++
++
++def _is_number(value) -> bool:
++    try:
++        Decimal(str(value))
++        return not isinstance(value, bool)
++    except (InvalidOperation, ValueError):
++        return False
++
++
++def _is_date(value) -> bool:
++    try:
++        date.fromisoformat(str(value))
++        return True
++    except ValueError:
++        return False
++
++
++def validate_bundle(bundle) -> dict:
++    """Structural check of a snapshot before any comparison. Returns errors and warnings."""
++    errors: list[str] = []
++    warnings: list[str] = []
++    if not isinstance(bundle, dict):
++        return {"errors": ["snapshot is not a JSON object"], "warnings": []}
++    if bundle.get("bundle_version") != BUNDLE_VERSION:
++        errors.append(f"bundle_version must be {BUNDLE_VERSION}, got {bundle.get('bundle_version')!r}")
++    if not isinstance(bundle.get("company_id"), str) or not bundle.get("company_id"):
++        errors.append("company_id must be a non-empty string")
++    contract = bundle.get("contract")
++    categories = contract.get("categories") if isinstance(contract, dict) else None
++    if not isinstance(categories, list) or not categories:
++        errors.append("contract.categories must be a non-empty list")
++        categories = []
++    contract_keys: set[str] = set()
++    seen_categories: set[str] = set()
++    total_weight = Decimal(0)
++    for index, category in enumerate(categories):
++        where = f"contract.categories[{index}]"
++        if not isinstance(category, dict):
++            errors.append(f"{where} is not an object"); continue
++        key = category.get("key")
++        if not isinstance(key, str) or not key:
++            errors.append(f"{where}.key must be a non-empty string")
++        elif key in seen_categories:
++            errors.append(f"category {key!r} appears twice")
++        seen_categories.add(key)
++        if not _is_number(category.get("weight")) or Decimal(str(category["weight"])) < 0:
++            errors.append(f"{where}.weight must be a non-negative number")
++        else:
++            total_weight += Decimal(str(category["weight"]))
++        if category.get("score_only") is not None:
++            if not _is_number(category["score_only"]) or not 0 <= Decimal(str(category["score_only"])) <= 1:
++                errors.append(f"{where}.score_only must be a number between 0 and 1")
++            continue
++        fields = category.get("fields")
++        if not isinstance(fields, list) or (not fields and not category.get("not_applicable")):
++            errors.append(f"{where}.fields must be a non-empty list"); continue
++        seen_fields = set()
++        for position, field in enumerate(fields):
++            field_key = field.get("key") if isinstance(field, dict) else None
++            if not isinstance(field_key, str) or not field_key:
++                errors.append(f"{where}.fields[{position}] needs a non-empty key"); continue
++            if field_key in seen_fields:
++                errors.append(f"key {field_key!r} appears twice in category {key!r}")
++            seen_fields.add(field_key)
++            contract_keys.add(field_key)
++    if categories and total_weight != Decimal(100):
++        warnings.append(f"category weights sum to {total_weight}, not 100")
++    records = bundle.get("records")
++    if not isinstance(records, list):
++        errors.append("records must be a list"); records = []
++    record_keys: set[str] = set()
++    for index, record in enumerate(records):
++        where = f"records[{index}]"
++        if not isinstance(record, dict):
++            errors.append(f"{where} is not an object"); continue
++        key = record.get("key")
++        if not isinstance(key, str) or not key:
++            errors.append(f"{where}.key must be a non-empty string"); continue
++        if key in record_keys:
++            errors.append(f"record {key!r} appears twice")
++        record_keys.add(key)
++        if record.get("status") not in RECORD_STATUSES:
++            errors.append(f"record {key!r} status must be one of {', '.join(RECORD_STATUSES)}")
++        observations = record.get("observations", [])
++        if not isinstance(observations, list):
++            errors.append(f"record {key!r} observations must be a list"); continue
++        for position, item in enumerate(observations):
++            at = f"record {key!r} observation {position}"
++            if not isinstance(item, dict):
++                errors.append(f"{at} is not an object"); continue
++            if item.get("period_kind") not in PERIOD_KINDS:
++                errors.append(f"{at} period_kind must be one of {', '.join(PERIOD_KINDS)}")
++            if not _is_date(item.get("period_end")):
++                errors.append(f"{at} period_end must be an ISO date")
++            if item.get("period_start") not in (None, "") and not _is_date(item["period_start"]):
++                errors.append(f"{at} period_start must be an ISO date or empty")
++            if "value" not in item:
++                errors.append(f"{at} has no value")
++        if record.get("status") == "closed" and not observations:
++            warnings.append(f"record {key!r} is closed without observations; values cannot be compared")
++    unknown = sorted(record_keys - contract_keys)
++    if unknown:
++        errors.append(f"{len(unknown)} records are not contract keys: {', '.join(unknown[:10])}")
++    unrecorded = sorted(contract_keys - record_keys)
++    if unrecorded:
++        errors.append(f"{len(unrecorded)} contract keys have no record (declare record_default: \"missing\" "
++                      f"if absence means missing): {', '.join(unrecorded[:10])}")
++    for index, correction in enumerate(bundle.get("engine_corrections") or []):
++        if not isinstance(correction, dict) or not isinstance(correction.get("id"), str) \
++                or not isinstance(correction.get("keys"), list):
++            errors.append(f"engine_corrections[{index}] needs an id and a list of keys")
++    return {"errors": errors, "warnings": warnings}
++
++
++def checked_bundle(bundle: dict) -> dict:
++    """Normalized bundle, or InvalidBundle naming every structural problem."""
++    normalized = normalize_bundle(bundle) if isinstance(bundle, dict) else bundle
++    result = validate_bundle(normalized)
++    if result["errors"]:
++        label = bundle.get("label") if isinstance(bundle, dict) else None
++        raise InvalidBundle(str(label), result["errors"])
++    return normalized
+ 
+ 
+ def _decimal(value) -> Decimal | None:
+@@ -93,9 +250,7 @@ def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal
+ 
+ 
+ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001")) -> dict:
+-    for bundle in (a, b):
+-        if bundle.get("bundle_version") != BUNDLE_VERSION:
+-            raise ValueError(f"unsupported bundle version in {bundle.get('label')!r}")
++    a, b = checked_bundle(a), checked_bundle(b)
+     if a.get("company_id") != b.get("company_id"):
+         raise ValueError("bundles describe different companies")
+     slots_a, slots_b = _slots(a), _slots(b)
+@@ -112,11 +267,14 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         in_b = sorted(category for category, field in slots_b if field == key)
+         if in_a != in_b:
+             placement.append({"key": key, "a_categories": in_a, "b_categories": in_b})
+-    definition_diffs = []
++    definition_diffs, definition_not_provided = [], []
+     for key in sorted(keys_a & keys_b):
+         left = next(field for (_, k), field in slots_a.items() if k == key)
+         right = next(field for (_, k), field in slots_b.items() if k == key)
+-        changed = {attr: [left.get(attr), right.get(attr)] for attr in DEFINITION_ATTRIBUTES
++        provided = [attr for attr in DEFINITION_ATTRIBUTES if attr in left and attr in right]
++        if len(provided) < len(DEFINITION_ATTRIBUTES):
++            definition_not_provided.append(key)
++        changed = {attr: [left.get(attr), right.get(attr)] for attr in provided
+                    if left.get(attr) != right.get(attr)}
+         if changed:
+             definition_diffs.append({"key": key, **changed})
+@@ -124,8 +282,17 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+     closed_a, closed_b = _closed(a), _closed(b)
+     records_a, records_b = _records(a), _records(b)
+     conflicts = []
++    corrections: dict[str, list[str]] = {}
++    for side, bundle in (("a", a), ("b", b)):
++        for correction in bundle.get("engine_corrections") or []:
++            for key in correction["keys"]:
++                corrections.setdefault(key, []).append(f"{side}:{correction['id']}")
+     for key in sorted(closed_a & closed_b):
+-        conflicts.extend(_observation_conflicts(key, records_a[key], records_b[key], tolerance))
++        for item in _observation_conflicts(key, records_a[key], records_b[key], tolerance):
++            if key in corrections:
++                # One pipeline's engine changed this key; the gap may be that correction, not a data dispute.
++                item["engine_corrections"] = sorted(corrections[key])
++            conflicts.append(item)
+ 
+     def closure(slots):
+         expected = {key for _, key in slots}
+@@ -144,7 +311,8 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         "keys": {"common": sorted(keys_a & keys_b), "only_in_a": sorted(keys_a - keys_b),
+                  "only_in_b": sorted(keys_b - keys_a)},
+         "weight_diffs": weight_diffs, "category_placement_diffs": placement,
+-        "definition_diffs": definition_diffs, "conflicts": conflicts,
++        "definition_diffs": definition_diffs, "definition_not_provided": definition_not_provided,
++        "conflicts": conflicts,
+         "closure": {"on_contract_a": closure(slots_a), "on_contract_b": closure(slots_b)},
+         "scores": {
+             "a_on_a": str(contract_score(a, closed_a)), "b_on_b": str(contract_score(b, closed_b)),
+@@ -152,13 +320,98 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         },
+         "conflicted_keys": sorted({item["key"] for item in conflicts
+                                    if item["type"] not in ("source_differs_same_value",)}),
++        "conflicts_touched_by_engine_corrections": sorted({item["key"] for item in conflicts
++                                                          if item.get("engine_corrections")}),
+     }
+ 
+ 
++PROFILE_COLUMNS = {"company_name": "name", "symbol": "symbol", "isin": "isin", "cik": "cik", "exchange": "exchange",
++                   "market": "market", "country": "country", "currency": "currency",
++                   "fiscal_year_end": "fiscal_year_end", "sector": "sector", "industry": "industry",
++                   "timezone": "timezone"}
++PRICE_COLUMNS = {"price_open": "open", "price_high": "high", "price_low": "low", "price_close": "close",
++                 "price_adjusted_close": "adjusted_close", "trading_volume": "volume", "trading_turnover": "turnover"}
++OWNERSHIP_FIELDS = {"holder_name": "holder_name", "holder_type": "holder_type", "shares_held": "shares",
++                    "ownership_percentage": "ownership_pct", "government_ownership": "ownership_pct",
++                    "free_float": "ownership_pct", "foreign_ownership": "ownership_pct",
++                    "strategic_ownership": "ownership_pct"}
++OWNERSHIP_FILTERS = {"government_ownership": lambda row: row["holder_type"] == "government",
++                     "free_float": lambda row: row["ownership_type"] == "free_float",
++                     "foreign_ownership": lambda row: row["holder_type"] == "foreign",
++                     "strategic_ownership": lambda row: row["holder_type"] in {"corporate_strategic", "strategic"}}
++
++
++def _canonical(value) -> str:
++    return json.dumps(value, sort_keys=True, ensure_ascii=False, default=str)
++
++
++def _source_url(db, source_key):
++    row = db.conn.execute("SELECT source_url FROM source_documents WHERE source_key=?", (source_key,)).fetchone()
++    return row["source_url"] if row else None
++
++
++def _domain_observations(db, company, key: str, domain: str, limit: int) -> list[dict]:
++    """Observations for a closed key held outside data_points, so non-numeric evidence compares too."""
++    company_id = company["company_id"]
++    if domain == "company_profile":
++        row = db.conn.execute("""SELECT * FROM company_attributes WHERE company_id=? AND attribute_key=?
++            AND is_current=1 ORDER BY effective_at DESC LIMIT 1""", (company_id, key)).fetchone()
++        if row is not None:
++            return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["effective_at"])[:10],
++                     "dimensions": "", "value": row["value_json"], "unit": None, "currency": None,
++                     "source_url": _source_url(db, row["source_key"]), "calculation": None}]
++        if key in PROFILE_COLUMNS and company[PROFILE_COLUMNS[key]]:
++            # Registry values carry no date of their own: stated as of the export.
++            return [{"period_kind": "as_of", "period_start": None, "period_end": date.today().isoformat(),
++                     "dimensions": "registry", "value": str(company[PROFILE_COLUMNS[key]]), "unit": None,
++                     "currency": None, "source_url": None, "calculation": None}]
++        return []
++    if domain == "market_prices" and key in PRICE_COLUMNS | {"fifty_two_week_high": "", "fifty_two_week_low": ""}:
++        interval = "1y" if key.startswith("fifty_two_week") else "1d"
++        column = {"fifty_two_week_high": "high", "fifty_two_week_low": "low"}.get(key, PRICE_COLUMNS.get(key))
++        row = db.conn.execute(f"""SELECT p.* FROM market_prices p JOIN listings l USING(listing_id)
++            JOIN securities s USING(security_id) WHERE s.company_id=? AND p.is_current=1 AND p.interval=?
++            AND p.{column} IS NOT NULL ORDER BY p.observed_at DESC LIMIT 1""", (company_id, interval)).fetchone()
++        if row is None:
++            return []
++        return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["observed_at"])[:10],
++                 "dimensions": interval, "value": str(row[column]), "unit": None, "currency": row["currency"],
++                 "source_url": _source_url(db, row["source_key"]), "calculation": None}]
++    if domain == "corporate_actions":
++        rows = db.conn.execute("""SELECT * FROM corporate_actions WHERE company_id=? AND action_type=? AND is_current=1
++            ORDER BY COALESCE(effective_date,ex_date,announcement_date) DESC LIMIT ?""", (company_id, key, limit)).fetchall()
++        return [{"period_kind": "as_of", "period_start": None,
++                 "period_end": str(row["effective_date"] or row["ex_date"] or row["announcement_date"])[:10],
++                 "dimensions": row["action_key"],
++                 "value": _canonical({name: row[name] for name in ("announcement_date", "ex_date", "record_date",
++                                      "payment_date", "effective_date", "cash_amount", "currency",
++                                      "ratio_numerator", "ratio_denominator", "status")}),
++                 "unit": None, "currency": row["currency"], "source_url": _source_url(db, row["source_key"]),
++                 "calculation": None} for row in rows if row["effective_date"] or row["ex_date"] or row["announcement_date"]]
++    if domain == "ownership_positions" and key in OWNERSHIP_FIELDS:
++        rows = [row for row in db.conn.execute("""SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1
++            ORDER BY as_of_date DESC""", (company_id,)).fetchall() if OWNERSHIP_FILTERS.get(key, lambda r: True)(row)]
++        column = OWNERSHIP_FIELDS[key]
++        return [{"period_kind": "as_of", "period_start": None, "period_end": str(row["as_of_date"])[:10],
++                 "dimensions": row["holder_key"], "value": None if row[column] is None else str(row[column]),
++                 "unit": "percent" if column == "ownership_pct" else None, "currency": None,
++                 "source_url": _source_url(db, row["source_key"]), "calculation": None}
++                for row in rows[:limit] if row["as_of_date"] and row[column] is not None]
++    if domain == "disclosures":
++        rows = db.conn.execute("""SELECT * FROM disclosures WHERE company_id=? AND disclosure_type=? AND is_current=1
++            ORDER BY published_at DESC LIMIT ?""", (company_id, key, limit)).fetchall()
++        return [{"period_kind": "as_of", "period_start": None,
++                 "period_end": str(row["period_end"] or row["published_at"])[:10], "dimensions": row["content_hash"],
++                 "value": row["title"], "unit": None, "currency": None,
++                 "source_url": _source_url(db, row["source_key"]), "calculation": None}
++                for row in rows if (row["period_end"] or row["published_at"])]
++    return []
++
++
+ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+                   contract_path: str | Path = "config/factory/18-category-contract.json",
+                   sector_pack_dir: str | Path = "config/factory/sector-packs",
+-                  observations_per_key: int = 12) -> dict:
++                  observations_per_key: int = 12, engine_corrections: list[dict] | None = None) -> dict:
+     """Bundle this engine's contract and evidence for one company (read-only apart from the evaluator's refresh)."""
+     from .factory_contract import evaluate_factory_contract
+     result = evaluate_factory_contract(db, company_id, contract_path=contract_path, sector_pack_dir=sector_pack_dir)
+@@ -196,7 +449,13 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+             status = "excluded" if key in excluded else ("missing" if key in missing else "closed")
+             record = records.setdefault(key, {"key": key, "status": status, "storage_domain": row["storage_domain"],
+                                               "observations": []})
+-            if status == "closed" and row["storage_domain"] == "data_points" and not record["observations"]:
++            if status == "closed" and not record["observations"] and row["storage_domain"] != "data_points":
++                record["observations"] = _domain_observations(db, company, key, row["storage_domain"],
++                                                              observations_per_key)
++            current_point = db.conn.execute(
++                "SELECT 1 FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1 LIMIT 1",
++                (company_id, key)).fetchone()
++            if status == "closed" and not record["observations"] and current_point:
+                 record["observations"] = [{
+                     "period_kind": item["period_kind"], "period_start": item["period_start"],
+                     "period_end": item["period_end"], "dimensions": item["dimensions_hash"] or "",
+@@ -209,7 +468,9 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+     bundle = {"bundle_version": BUNDLE_VERSION, "label": label, "engine_sha": engine_sha, "company_id": company_id,
+               "engine_total_score": result["total_score"],
+               "contract": {"version": result.get("contract_version"), "categories": categories},
+-              "records": sorted(records.values(), key=lambda item: item["key"])}
++              "records": sorted(records.values(), key=lambda item: item["key"]),
++              "engine_corrections": engine_corrections or []}
++    checked_bundle(bundle)
+     computed = contract_score(bundle, _closed(bundle))
+     if abs(computed - Decimal(result["total_score"])) > Decimal("0.0001"):
+         raise ValueError(f"bundle score {computed} does not reproduce the evaluator {result['total_score']}")
+@@ -218,3 +479,55 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+ 
+ def load_bundle(path: str | Path) -> dict:
+     return json.loads(Path(path).read_text(encoding="utf-8"))
++
++
++def _rows(path: Path, companies: set[str] | None) -> dict:
++    with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
++        query = """SELECT company_id,metric_key,period_end,period_kind,fiscal_quarter,dimensions_hash,
++                   COALESCE(value_decimal,value_text,value_json) FROM data_points WHERE is_current=1"""
++        return {row[:6]: row[6] for row in conn.execute(query)
++                if companies is None or row[0] in companies}
++
++
++def engine_impact(before: str | Path, after: str | Path, *, label: str, companies: list[str] | None = None,
++                  contract_path: str | Path = "config/factory/18-category-contract.json",
++                  sector_pack_dir: str | Path = "config/factory/sector-packs") -> dict:
++    """What an engine change did to the same imports: rows removed, added or changed per metric, and
++    each company's contract score before and after. Inputs are read from temporary copies only."""
++    from .database import Database
++    from .factory_contract import evaluate_factory_contract
++    wanted = set(companies) if companies else None
++    old, new = _rows(Path(before), wanted), _rows(Path(after), wanted)
++    by_metric: dict[str, dict[str, int]] = {}
++    for kind, keys in (("removed", set(old) - set(new)), ("added", set(new) - set(old)),
++                       ("changed", {key for key in set(old) & set(new) if old[key] != new[key]})):
++        for key in keys:
++            by_metric.setdefault(key[1], {"removed": 0, "added": 0, "changed": 0})[kind] += 1
++    scores = []
++    with tempfile.TemporaryDirectory() as scratch:
++        copies = []
++        for name, path in (("before", before), ("after", after)):
++            target = Path(scratch) / f"{name}.sqlite3"
++            shutil.copyfile(path, target)
++            copies.append(Database(str(target)))
++        try:
++            # Every company, not only those whose rows changed: an evaluator change moves scores without rows.
++            everyone = {row[0] for db in copies for row in db.conn.execute("SELECT company_id FROM companies")}
++            for company in sorted(wanted or everyone):
++                results = [evaluate_factory_contract(db, company, contract_path=contract_path,
++                                                     sector_pack_dir=sector_pack_dir) for db in copies]
++                missing = [{(c["category_key"], key) for c in result["categories"]
++                            for keys in (c["evidence"].get("missing_fields") or {}).values() for key in keys}
++                           for result in results]
++                scores.append({"company_id": company, "score_before": results[0]["total_score"],
++                               "score_after": results[1]["total_score"],
++                               "delta": str(Decimal(results[1]["total_score"]) - Decimal(results[0]["total_score"])),
++                               "keys_closed": sorted(f"{c}:{k}" for c, k in missing[0] - missing[1]),
++                               "keys_opened": sorted(f"{c}:{k}" for c, k in missing[1] - missing[0])})
++        finally:
++            for db in copies:
++                db.close()
++    return {"label": label, "companies": scores,
++            "rows": {kind: sum(item[kind] for item in by_metric.values()) for kind in ("removed", "added", "changed")},
++            "by_metric": dict(sorted(by_metric.items())),
++            "engine_corrections": [{"id": label, "keys": sorted(by_metric)}]}
+diff --git a/tests/test_contract_compare.py b/tests/test_contract_compare.py
+index 73560e3..8d3124e 100644
+--- a/tests/test_contract_compare.py
++++ b/tests/test_contract_compare.py
+@@ -1,8 +1,17 @@
+ import copy
++import tempfile
+ import unittest
+ from decimal import Decimal
++from pathlib import Path
+ 
+-from finengine.contract_compare import BUNDLE_VERSION, compare_bundles, contract_score
++from finengine.contract_compare import (BUNDLE_VERSION, InvalidBundle, compare_bundles, contract_score,
++                                        engine_impact, normalize_bundle, validate_bundle)
++from finengine.database import Database
++from finengine.domains import CompanyDomainStore
++from finengine.contract_compare import export_bundle
++from finengine.models import Company, Fact, Market, PeriodKind, SourceDocument
++
++ROOT = Path(__file__).resolve().parents[1]
+ 
+ 
+ def field(key, unit="currency", definition=None, period="flow"):
+@@ -102,5 +111,141 @@ class ContractCompareTests(unittest.TestCase):
+             compare_bundles(self.a, other)
+ 
+ 
++class SnapshotValidationTests(unittest.TestCase):
++    def setUp(self):
++        self.valid = bundle("snapshot", [
++            {"key": "statements", "weight": "70", "fields": [field("revenue"), field("ebit")]},
++            {"key": "lineage", "weight": "30", "score_only": "0.5"},
++        ], {"revenue": ("closed", [observation("100")]), "ebit": ("missing", [])})
++
++    def errors(self, snapshot):
++        return validate_bundle(normalize_bundle(snapshot))["errors"]
++
++    def test_a_valid_snapshot_has_no_errors(self):
++        self.assertEqual(validate_bundle(self.valid), {"errors": [], "warnings": []})
++
++    def test_each_structural_problem_is_named(self):
++        broken = copy.deepcopy(self.valid)
++        broken["bundle_version"] = 2
++        broken["contract"]["categories"].append({"key": "statements", "weight": "-1", "fields": [field("x"), field("x")]})
++        broken["records"] += [{"key": "revenue", "status": "closed", "observations": []},
++                              {"key": "ghost", "status": "done",
++                               "observations": [{"period_kind": "annual", "period_end": "31/12/2025"}]}]
++        errors = " | ".join(self.errors(broken))
++        for expected in ("bundle_version must be 1", "category 'statements' appears twice",
++                         "weight must be a non-negative number", "key 'x' appears twice",
++                         "record 'revenue' appears twice", "status must be one of",
++                         "period_kind must be one of", "period_end must be an ISO date", "has no value",
++                         "records are not contract keys: ghost", "contract keys have no record"):
++            self.assertIn(expected, errors)
++
++    def test_compare_refuses_an_invalid_snapshot_and_lists_why(self):
++        broken = copy.deepcopy(self.valid); broken["records"].pop()
++        with self.assertRaises(InvalidBundle) as caught:
++            compare_bundles(self.valid, broken)
++        self.assertTrue(any("no record" in error for error in caught.exception.errors))
++        with self.assertRaises(InvalidBundle):
++            compare_bundles(self.valid, ["not", "a", "bundle"])
++
++    def test_a_minimal_snapshot_lists_keys_only_and_declares_absence_as_missing(self):
++        minimal = {"bundle_version": BUNDLE_VERSION, "label": "codex", "company_id": "sa:TST",
++                   "record_default": "missing",
++                   "contract": {"categories": [{"key": "statements", "weight": "70", "fields": ["revenue", "ebit"]},
++                                               {"key": "lineage", "weight": "30", "score_only": "0.5"}]},
++                   "records": [{"key": "ebit", "status": "closed", "observations": [observation("40")]}]}
++        self.assertEqual(self.errors(minimal), [])
++        result = compare_bundles(self.valid, minimal)
++        self.assertEqual(result["definition_diffs"], [])
++        self.assertEqual(result["definition_not_provided"], ["ebit", "revenue"])
++        self.assertEqual(result["closure"]["on_contract_a"]["closed_union"], 2)
++        self.assertEqual(Decimal(result["scores"]["union_on_a"]), Decimal("70") + Decimal("15"))
++
++    def test_weights_not_summing_to_100_are_a_warning(self):
++        light = copy.deepcopy(self.valid); light["contract"]["categories"][1]["weight"] = "20"
++        self.assertEqual(validate_bundle(light)["warnings"], ["category weights sum to 90, not 100"])
++
++
++class EngineCorrectionTests(unittest.TestCase):
++    def test_conflicts_on_a_corrected_key_are_flagged_not_hidden(self):
++        a = bundle("a", [{"key": "statements", "weight": "100", "fields": [field("revenue_ttm"), field("ebit")]}],
++                   {"revenue_ttm": ("closed", [observation("400", kind="ttm")]), "ebit": ("closed", [observation("40")])})
++        b = copy.deepcopy(a); b["label"] = "b"
++        b["records"][0]["observations"][0]["value"] = "390"
++        b["records"][1]["observations"][0]["value"] = "41"
++        b["engine_corrections"] = [{"id": "ttm-contiguity", "keys": ["revenue_ttm"]}]
++        result = compare_bundles(a, b)
++        flagged = {item["key"]: item.get("engine_corrections") for item in result["conflicts"]}
++        self.assertEqual(flagged, {"revenue_ttm": ["b:ttm-contiguity"], "ebit": None})
++        self.assertEqual(result["conflicts_touched_by_engine_corrections"], ["revenue_ttm"])
++        self.assertEqual(result["conflicted_keys"], ["ebit", "revenue_ttm"])
++
++    def test_engine_impact_reports_rows_and_scores_without_touching_inputs(self):
++        with tempfile.TemporaryDirectory() as temp:
++            paths = []
++            for name, publish in (("before", False), ("after", True)):
++                path = Path(temp) / f"{name}.sqlite3"
++                db = Database(str(path))
++                db.register_company(Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR", isin="SA0000000001",
++                                            exchange="Saudi Exchange", country="SA", sector="Energy",
++                                            industry="Integrated Oil & Gas", timezone="Asia/Riyadh"))
++                source = SourceDocument("sa:TST", Market.SA, "https://example.test/ar", "file:ar", "annual-report",
++                                        "2026-03-01", b"{}")
++                db.save_source(source, "ar", None)
++                db.publish(Fact("sa:TST", "net_income", Decimal("40"), "SAR", "SAR", "2025-01-01", "2025-12-31",
++                                PeriodKind.FY, 2025, None, source.source_key, source.source_url, source.filed_at))
++                if publish:
++                    db.publish(Fact("sa:TST", "revenue", Decimal("400"), "SAR", "SAR", "2025-01-01", "2025-12-31",
++                                    PeriodKind.FY, 2025, None, source.source_key, source.source_url, source.filed_at))
++                db.close()
++                paths.append(path)
++            digest = [path.read_bytes() for path in paths]
++            result = engine_impact(*paths, label="fix-pack", contract_path=ROOT / "config/factory/18-category-contract.json",
++                                   sector_pack_dir=ROOT / "config/factory/sector-packs")
++            self.assertEqual(result["rows"], {"removed": 0, "added": 1, "changed": 0})
++            self.assertEqual(result["by_metric"], {"revenue": {"removed": 0, "added": 1, "changed": 0}})
++            self.assertEqual(result["engine_corrections"], [{"id": "fix-pack", "keys": ["revenue"]}])
++            company = result["companies"][0]
++            self.assertGreater(Decimal(company["delta"]), 0)
++            self.assertIn("financial_statements:revenue", company["keys_closed"])
++            self.assertEqual([path.read_bytes() for path in paths], digest)
++            unchanged = engine_impact(paths[1], paths[1], label="no-op",
++                                      contract_path=ROOT / "config/factory/18-category-contract.json",
++                                      sector_pack_dir=ROOT / "config/factory/sector-packs")
++            # Companies are scored even when no row changed, so an evaluator-only change is visible.
++            self.assertEqual([c["company_id"] for c in unchanged["companies"]], ["sa:TST"])
++            self.assertEqual(unchanged["rows"], {"removed": 0, "added": 0, "changed": 0})
++
++
++class ExportTests(unittest.TestCase):
++    def test_export_carries_values_from_every_domain_and_reproduces_the_score(self):
++        with tempfile.TemporaryDirectory() as temp:
++            db = Database(str(Path(temp) / "export.sqlite3"))
++            db.register_company(Company("sa:TST", Market.SA, "TST", "Test Energy", "SAR", isin="SA0000000001",
++                                        exchange="Saudi Exchange", country="SA", sector="Energy",
++                                        industry="Integrated Oil & Gas", timezone="Asia/Riyadh"))
++            source = SourceDocument("sa:TST", Market.SA, "https://example.test/ar", "file:ar", "annual-report",
++                                    "2026-03-01", b"{}")
++            db.save_source(source, "ar", None)
++            db.publish(Fact("sa:TST", "revenue", Decimal("400"), "SAR", "SAR", "2025-01-01", "2025-12-31",
++                            PeriodKind.FY, 2025, None, source.source_key, source.source_url, source.filed_at))
++            db.publish_company_attribute("sa:TST", "auditor", "PwC", "2025-12-31", source.source_key)
++            CompanyDomainStore(db).publish_corporate_action(
++                "sa:TST:bonus:2023", "sa:TST", "bonus_shares", "bonus issue", "2023-05-08", source.source_key,
++                effective_date="2023-05-08", ratio_numerator=1, ratio_denominator=10, status="completed")
++            bundle = export_bundle(db, "sa:TST", label="t", contract_path=ROOT / "config/factory/18-category-contract.json",
++                                   sector_pack_dir=ROOT / "config/factory/sector-packs")
++            db.close()
++        records = {record["key"]: record for record in bundle["records"]}
++        self.assertEqual(records["revenue"]["observations"][0]["value"], "400")
++        self.assertEqual(records["auditor"]["observations"][0]["value"], '"PwC"')
++        action = records["bonus_shares"]["observations"][0]
++        self.assertEqual((action["period_end"], action["dimensions"]), ("2023-05-08", "sa:TST:bonus:2023"))
++        self.assertIn('"ratio_denominator": "10"', action["value"])
++        self.assertEqual(records["isin"]["observations"][0]["value"], "SA0000000001")
++        self.assertEqual(validate_bundle(bundle)["errors"], [])
++        self.assertEqual(contract_score(bundle, {k for k, r in records.items() if r["status"] == "closed"}),
++                         Decimal(bundle["engine_total_score"]))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+-- 
+2.43.0
+
+
+From 56522840e854bd09736797ae3d1cd013e91c930d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:30:58 +0000
+Subject: [PATCH 14/15] Compute balance growth on fiscal year ends only
+
+asset_growth and equity_growth compared any balance with the prior
+fiscal year's balance, so a 31 March balance against the previous year
+end was stored as annual growth while measuring three months: 397 such
+rows in the current imports. Balance growth now needs a fiscal year end
+(a date some FY flow ends on) and the exact prior year end, the day
+before that fiscal year starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 12 +++++++++++-
+ tests/test_contract_derivations.py | 14 ++++++++++++++
+ 2 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 3f95836..80c5822 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -96,6 +96,9 @@ class Calculator:
+                     quarterly[(fact.company_id, fact.period_end)][fact.metric] = fact
+                 elif fact.period_kind == PeriodKind.INSTANT:
+                     instants[(fact.company_id, fact.period_end)][fact.metric] = fact
++        # A balance date is a fiscal year end only if some fiscal-year flow ends on it.
++        fiscal_year_starts = {(fact.company_id, fact.period_end): fact.period_start for fact in all_facts
++                              if fact.period_kind == PeriodKind.FY and fact.period_start}
+ 
+         for (company_id, _, _, _, _), group in groups.items():
+             base = next(iter(group.values()))
+@@ -431,7 +434,14 @@ class Calculator:
+                                 f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
+                                 lookup[source_metric])
+             if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT}:
+-                prior = historical.get((company_id, base.fiscal_year - 1, base.period_kind), {})
++                if base.period_kind == PeriodKind.FY:
++                    prior = historical.get((company_id, base.fiscal_year - 1, PeriodKind.FY), {})
++                else:
++                    # Annual balance growth: a fiscal year end against the exact prior year end. An interim
++                    # balance compared with the last year end is a months-long change, not annual growth.
++                    fy_start = fiscal_year_starts.get((company_id, base.period_end))
++                    prior = instants.get((company_id, (date.fromisoformat(fy_start) - timedelta(days=1)).isoformat()),
++                                         {}) if fy_start else {}
+                 for source_metric, output_metric in self.GROWTH_METRICS.items():
+                     if source_metric in group and source_metric in prior and prior[source_metric].value:
+                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 46b4a1a..f4984a3 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -307,6 +307,20 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+         self.assertEqual(annual_out["dividend_cagr_3y", "2025-12-31"].value,
+                          (Decimal("1.3248") / Decimal("1.3112")) ** (Decimal(1) / Decimal(3)) - 1)
+ 
++    def test_balance_growth_is_annual_only(self):
++        history = [*balance(2024, total_equity="1000", total_assets="2000"),
++                   *annual(2024, revenue="500"), *annual(2025, revenue="550")]
++        year_end = balance(2025, total_equity="1100", total_assets="2100")
++        out = by_metric(Calculator().calculate(year_end, history, industry=INDUSTRY))
++        self.assertEqual(out["equity_growth", "2025-12-31"].value, Decimal("0.1"))
++        interim = balance(2026, end="2026-03-31", total_equity="1120", total_assets="2150")
++        out = by_metric(Calculator().calculate(interim, [*history, *year_end], industry=INDUSTRY))
++        self.assertNotIn(("equity_growth", "2026-03-31"), out)  # three months, not a year
++        self.assertNotIn(("asset_growth", "2026-03-31"), out)
++        # A year end with no fiscal-year flow ending on it cannot be told from an interim date.
++        out = by_metric(Calculator().calculate(year_end, history[:2], industry=INDUSTRY))
++        self.assertNotIn(("equity_growth", "2025-12-31"), out)
++
+     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+         self.assertIsNone(self.ttm(gap, "2026-03-31"))
+-- 
+2.43.0
+
+
+From 23176d52aebe0c35484c315fbab54747670d51e1 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:45:01 +0000
+Subject: [PATCH 15/15] Separate period differences from value conflicts in
+ contract-compare
+
+A key closed on both sides but exported without values on one side was
+reported as a period mismatch; it is now listed as not comparable.
+Periods one pipeline holds and the other does not are reported apart
+from value conflicts, flagged with any engine correction that touched
+the key, and limited to the common date range when an export truncated
+its observations, which exports now mark.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/contract_compare.py | 41 +++++++++++++++++++++++++------
+ tests/test_contract_compare.py    | 39 +++++++++++++++++++++++++++--
+ 2 files changed, 71 insertions(+), 9 deletions(-)
+
+diff --git a/src/finengine/contract_compare.py b/src/finengine/contract_compare.py
+index fded8ac..f6791fd 100644
+--- a/src/finengine/contract_compare.py
++++ b/src/finengine/contract_compare.py
+@@ -221,9 +221,6 @@ def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal
+                 for item in record.get("observations", [])}
+     a, b = index(left), index(right)
+     shared = sorted(set(a) & set(b), key=lambda item: tuple(str(part) for part in item))
+-    if (a or b) and not shared:
+-        return [{"key": key, "type": "period_mismatch", "a_periods": sorted(f"{k[0]}:{k[1]}" for k in a),
+-                 "b_periods": sorted(f"{k[0]}:{k[1]}" for k in b)}]
+     conflicts = []
+     for period in shared:
+         x, y = a[period], b[period]
+@@ -249,6 +246,23 @@ def _observation_conflicts(key: str, left: dict, right: dict, tolerance: Decimal
+     return conflicts
+ 
+ 
++def _period_difference(key: str, left: dict, right: dict) -> dict | None:
++    """Periods one pipeline holds and the other does not, within the range both exported."""
++    def periods(record):
++        return {(item.get("period_kind"), item.get("period_end"), item.get("dimensions", ""))
++                for item in record.get("observations", [])}
++    a, b = periods(left), periods(right)
++    if left.get("observations_truncated") or right.get("observations_truncated"):
++        low = max(min(end for _, end, _ in a), min(end for _, end, _ in b))
++        high = min(max(end for _, end, _ in a), max(end for _, end, _ in b))
++        a = {item for item in a if low <= item[1] <= high}
++        b = {item for item in b if low <= item[1] <= high}
++    if a == b:
++        return None
++    label = lambda items: sorted(f"{kind}:{end}" + (f":{dims}" if dims else "") for kind, end, dims in items)
++    return {"key": key, "only_in_a": label(a - b), "only_in_b": label(b - a)}
++
++
+ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001")) -> dict:
+     a, b = checked_bundle(a), checked_bundle(b)
+     if a.get("company_id") != b.get("company_id"):
+@@ -287,12 +301,22 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         for correction in bundle.get("engine_corrections") or []:
+             for key in correction["keys"]:
+                 corrections.setdefault(key, []).append(f"{side}:{correction['id']}")
++    period_differences, not_comparable = [], []
+     for key in sorted(closed_a & closed_b):
+-        for item in _observation_conflicts(key, records_a[key], records_b[key], tolerance):
++        if not records_a[key].get("observations") or not records_b[key].get("observations"):
++            not_comparable.append(key)  # closed on both sides, but one side exported no values
++            continue
++        found = _observation_conflicts(key, records_a[key], records_b[key], tolerance)
++        difference = _period_difference(key, records_a[key], records_b[key])
++        if difference:
++            found.append(difference)
++        for item in found:
+             if key in corrections:
+                 # One pipeline's engine changed this key; the gap may be that correction, not a data dispute.
+                 item["engine_corrections"] = sorted(corrections[key])
+-            conflicts.append(item)
++        conflicts.extend(item for item in found if "type" in item)
++        if difference:
++            period_differences.append(difference)
+ 
+     def closure(slots):
+         expected = {key for _, key in slots}
+@@ -312,7 +336,7 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+                  "only_in_b": sorted(keys_b - keys_a)},
+         "weight_diffs": weight_diffs, "category_placement_diffs": placement,
+         "definition_diffs": definition_diffs, "definition_not_provided": definition_not_provided,
+-        "conflicts": conflicts,
++        "conflicts": conflicts, "period_differences": period_differences, "not_comparable": not_comparable,
+         "closure": {"on_contract_a": closure(slots_a), "on_contract_b": closure(slots_b)},
+         "scores": {
+             "a_on_a": str(contract_score(a, closed_a)), "b_on_b": str(contract_score(b, closed_b)),
+@@ -320,7 +344,7 @@ def compare_bundles(a: dict, b: dict, *, tolerance: Decimal = Decimal("0.000001"
+         },
+         "conflicted_keys": sorted({item["key"] for item in conflicts
+                                    if item["type"] not in ("source_differs_same_value",)}),
+-        "conflicts_touched_by_engine_corrections": sorted({item["key"] for item in conflicts
++        "conflicts_touched_by_engine_corrections": sorted({item["key"] for item in [*conflicts, *period_differences]
+                                                           if item.get("engine_corrections")}),
+     }
+ 
+@@ -465,6 +489,9 @@ def export_bundle(db, company_id: str, *, label: str, engine_sha: str = "",
+                 } for item in db.conn.execute(
+                     """SELECT * FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1
+                     ORDER BY period_end DESC LIMIT ?""", (company_id, key, observations_per_key))]
++                total = db.conn.execute("SELECT count(*) FROM data_points WHERE company_id=? AND metric_key=? AND is_current=1",
++                                        (company_id, key)).fetchone()[0]
++                record["observations_truncated"] = total > len(record["observations"])
+     bundle = {"bundle_version": BUNDLE_VERSION, "label": label, "engine_sha": engine_sha, "company_id": company_id,
+               "engine_total_score": result["total_score"],
+               "contract": {"version": result.get("contract_version"), "categories": categories},
+diff --git a/tests/test_contract_compare.py b/tests/test_contract_compare.py
+index 8d3124e..5ad31c8 100644
+--- a/tests/test_contract_compare.py
++++ b/tests/test_contract_compare.py
+@@ -77,9 +77,11 @@ class ContractCompareTests(unittest.TestCase):
+         conflicts = {(row["key"], row["type"]) for row in self.compare()["conflicts"]}
+         self.assertIn(("ebit", "value"), conflicts)
+         self.assertIn(("revenue", "source_differs_same_value"), conflicts)
+-        self.assertIn(("segment_revenue", "period_mismatch"), conflicts)
++        differences = {row["key"]: row for row in self.compare()["period_differences"]}
++        self.assertEqual(differences["segment_revenue"],
++                         {"key": "segment_revenue", "only_in_a": ["fy:2025-12-31"], "only_in_b": ["quarter:2025-12-31"]})
+         self.assertNotIn(("capex", "value"), conflicts)  # closed only in b: nothing to compare
+-        self.assertEqual(self.compare()["conflicted_keys"], ["ebit", "segment_revenue"])
++        self.assertEqual(self.compare()["conflicted_keys"], ["ebit"])
+ 
+     def test_unit_conflict_is_not_reported_as_a_value_conflict(self):
+         self.b["records"][1]["observations"] = [observation("40000", unit="SAR_thousands")]
+@@ -247,5 +249,38 @@ class ExportTests(unittest.TestCase):
+                          Decimal(bundle["engine_total_score"]))
+ 
+ 
++class PeriodComparisonTests(unittest.TestCase):
++    def pair(self, a_obs, b_obs, truncated=False):
++        def make(label, observations):
++            made = bundle(label, [{"key": "growth", "weight": "100", "fields": [field("equity_growth")]}],
++                          {"equity_growth": ("closed", observations)})
++            made["records"][0]["observations_truncated"] = truncated
++            return made
++        return compare_bundles(make("a", a_obs), make("b", b_obs))
++
++    def test_one_side_without_values_is_not_comparable_rather_than_a_conflict(self):
++        result = self.pair([], [observation("0.1", kind="instant")])
++        self.assertEqual((result["conflicts"], result["not_comparable"]), ([], ["equity_growth"]))
++
++    def test_periods_held_by_one_side_are_listed_separately(self):
++        a = [observation("0.1", kind="instant"), observation("0.02", kind="instant", end="2026-03-31")]
++        result = self.pair(a, [observation("0.1", kind="instant")])
++        self.assertEqual(result["conflicts"], [])
++        self.assertEqual(result["period_differences"],
++                         [{"key": "equity_growth", "only_in_a": ["instant:2026-03-31"], "only_in_b": []}])
++
++    def test_truncated_exports_compare_only_their_common_date_range(self):
++        # a exported its two newest periods only; b also holds 2023, which a may hold but did not export.
++        a = [observation("0.1", kind="instant", end="2025-12-31"), observation("0.2", kind="instant", end="2024-12-31")]
++        b = [*a, observation("0.3", kind="instant", end="2023-12-31")]
++        self.assertEqual(self.pair(a, b, truncated=True)["period_differences"], [])
++        self.assertEqual(self.pair(a, b)["period_differences"],
++                         [{"key": "equity_growth", "only_in_a": [], "only_in_b": ["instant:2023-12-31"]}])
++        # Inside the common range a missing period is a real difference.
++        gap = [b[0], b[2]]
++        self.assertEqual(self.pair(gap, b, truncated=True)["period_differences"],
++                         [{"key": "equity_growth", "only_in_a": [], "only_in_b": ["instant:2024-12-31"]}])
++
++
+ if __name__ == "__main__":
+     unittest.main()
+-- 
+2.43.0
+

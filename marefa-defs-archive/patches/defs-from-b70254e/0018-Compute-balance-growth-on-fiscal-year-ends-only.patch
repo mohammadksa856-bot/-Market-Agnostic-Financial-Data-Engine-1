@@ -1,0 +1,77 @@
+From 56522840e854bd09736797ae3d1cd013e91c930d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 15:30:58 +0000
+Subject: [PATCH 18/21] Compute balance growth on fiscal year ends only
+
+asset_growth and equity_growth compared any balance with the prior
+fiscal year's balance, so a 31 March balance against the previous year
+end was stored as annual growth while measuring three months: 397 such
+rows in the current imports. Balance growth now needs a fiscal year end
+(a date some FY flow ends on) and the exact prior year end, the day
+before that fiscal year starts.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      | 12 +++++++++++-
+ tests/test_contract_derivations.py | 14 ++++++++++++++
+ 2 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index 3f95836..80c5822 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -96,6 +96,9 @@ class Calculator:
+                     quarterly[(fact.company_id, fact.period_end)][fact.metric] = fact
+                 elif fact.period_kind == PeriodKind.INSTANT:
+                     instants[(fact.company_id, fact.period_end)][fact.metric] = fact
++        # A balance date is a fiscal year end only if some fiscal-year flow ends on it.
++        fiscal_year_starts = {(fact.company_id, fact.period_end): fact.period_start for fact in all_facts
++                              if fact.period_kind == PeriodKind.FY and fact.period_start}
+ 
+         for (company_id, _, _, _, _), group in groups.items():
+             base = next(iter(group.values()))
+@@ -431,7 +434,14 @@ class Calculator:
+                                 f"({source_metric} / prior_{years}y({source_metric})) ^ (1/{years}) - 1",
+                                 lookup[source_metric])
+             if base.period_kind in {PeriodKind.FY, PeriodKind.INSTANT}:
+-                prior = historical.get((company_id, base.fiscal_year - 1, base.period_kind), {})
++                if base.period_kind == PeriodKind.FY:
++                    prior = historical.get((company_id, base.fiscal_year - 1, PeriodKind.FY), {})
++                else:
++                    # Annual balance growth: a fiscal year end against the exact prior year end. An interim
++                    # balance compared with the last year end is a months-long change, not annual growth.
++                    fy_start = fiscal_year_starts.get((company_id, base.period_end))
++                    prior = instants.get((company_id, (date.fromisoformat(fy_start) - timedelta(days=1)).isoformat()),
++                                         {}) if fy_start else {}
+                 for source_metric, output_metric in self.GROWTH_METRICS.items():
+                     if source_metric in group and source_metric in prior and prior[source_metric].value:
+                         add(output_metric, group[source_metric].value / prior[source_metric].value - 1,
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 46b4a1a..f4984a3 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -307,6 +307,20 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+         self.assertEqual(annual_out["dividend_cagr_3y", "2025-12-31"].value,
+                          (Decimal("1.3248") / Decimal("1.3112")) ** (Decimal(1) / Decimal(3)) - 1)
+ 
++    def test_balance_growth_is_annual_only(self):
++        history = [*balance(2024, total_equity="1000", total_assets="2000"),
++                   *annual(2024, revenue="500"), *annual(2025, revenue="550")]
++        year_end = balance(2025, total_equity="1100", total_assets="2100")
++        out = by_metric(Calculator().calculate(year_end, history, industry=INDUSTRY))
++        self.assertEqual(out["equity_growth", "2025-12-31"].value, Decimal("0.1"))
++        interim = balance(2026, end="2026-03-31", total_equity="1120", total_assets="2150")
++        out = by_metric(Calculator().calculate(interim, [*history, *year_end], industry=INDUSTRY))
++        self.assertNotIn(("equity_growth", "2026-03-31"), out)  # three months, not a year
++        self.assertNotIn(("asset_growth", "2026-03-31"), out)
++        # A year end with no fiscal-year flow ending on it cannot be told from an interim date.
++        out = by_metric(Calculator().calculate(year_end, history[:2], industry=INDUSTRY))
++        self.assertNotIn(("equity_growth", "2025-12-31"), out)
++
+     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+         self.assertIsNone(self.ttm(gap, "2026-03-31"))
+-- 
+2.43.0
+

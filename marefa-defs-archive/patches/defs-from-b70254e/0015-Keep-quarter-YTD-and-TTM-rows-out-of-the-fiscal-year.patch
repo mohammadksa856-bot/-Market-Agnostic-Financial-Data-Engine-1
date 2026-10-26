@@ -1,0 +1,77 @@
+From 80dea999b6942245618b0be7f5c06985902a8705 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 14:37:54 +0000
+Subject: [PATCH 15/21] Keep quarter, YTD and TTM rows out of the fiscal-year
+ lookup
+
+The annual lookup was keyed by period end alone, so a Q4 row ending on
+the fiscal year end replaced the FY value of the same metric. Annual
+formulas then mixed one quarter with a full year: a payout ratio of Q4
+dividends over annual net income, and a three-year CAGR of one quarter's
+DPS against an annual DPS. The fiscal-year view now holds only FY flows,
+year-end balances and point-in-time values such as a reported year-end
+market cap.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/calculations.py      |  9 +++++++--
+ tests/test_contract_derivations.py | 15 +++++++++++++++
+ 2 files changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/src/finengine/calculations.py b/src/finengine/calculations.py
+index c4199fc..ba18837 100644
+--- a/src/finengine/calculations.py
++++ b/src/finengine/calculations.py
+@@ -70,15 +70,20 @@ class Calculator:
+         all_facts = [*(history or []), *facts]
+         out: list[Fact] = []
+         groups = defaultdict(dict)
++        # `combined` is the fiscal-year view of a period end: FY flows with year-end balances and
++        # point-in-time values (e.g. a reported year-end market cap). A quarter, YTD or TTM row ending
++        # on the same date is a different quantity and never stands in for them.
++        annual_view = {PeriodKind.FY, PeriodKind.INSTANT, PeriodKind.AS_OF}
+         combined = defaultdict(dict)
+         for fact in all_facts:
+-            if fact.scope == "consolidated" and not fact.dimensions:
++            if fact.scope == "consolidated" and not fact.dimensions and fact.period_kind in annual_view:
+                 combined[(fact.company_id, fact.period_end)].setdefault(fact.metric, fact)
+         for fact in facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+                 groups[(fact.company_id, fact.period_end, fact.period_kind,
+                         fact.fiscal_year, fact.fiscal_quarter)][fact.metric] = fact
+-                combined[(fact.company_id, fact.period_end)][fact.metric] = fact
++                if fact.period_kind in annual_view:
++                    combined[(fact.company_id, fact.period_end)][fact.metric] = fact
+         historical = defaultdict(dict)
+         for fact in all_facts:
+             if fact.scope == "consolidated" and not fact.dimensions:
+diff --git a/tests/test_contract_derivations.py b/tests/test_contract_derivations.py
+index 3a0beaa..44ef11d 100644
+--- a/tests/test_contract_derivations.py
++++ b/tests/test_contract_derivations.py
+@@ -276,6 +276,21 @@ class TrailingTwelveMonthTests(unittest.TestCase):
+         self.assertTrue(self.dividend_ttm(["0.33", "0.33", "0.33", "0.33"], annual="1.3248"))
+         self.assertTrue(self.dividend_ttm(["0", "0.48", "0", "0"]))
+ 
++    def test_a_fourth_quarter_never_stands_in_for_the_fiscal_year(self):
++        history = [fact("dividends_per_share", "1.3112", PeriodKind.FY, "2022-12-31", 2022, unit="SAR/share")]
++        batch = [*annual(2025, net_income="350210", dividends_paid="320447"),
++                 fact("dividends_per_share", "1.3248", PeriodKind.FY, "2025-12-31", 2025, unit="SAR/share"),
++                 quarter("dividends_paid", "80118", "2025-12-31", "2025-10-01", 2025, 4),
++                 quarter("dividends_per_share", "0.3312", "2025-12-31", "2025-10-01", 2025, 4, unit="SAR/share")]
++        out = Calculator().calculate(batch, history, industry=INDUSTRY)
++        mixed = [(item.metric, item.period_kind) for item in out
++                 if item.period_kind == PeriodKind.QUARTER and item.metric in ("payout_ratio", "dividend_cagr_3y")]
++        self.assertEqual(mixed, [])
++        annual_out = by_metric(item for item in out if item.period_kind == PeriodKind.FY)
++        self.assertEqual(annual_out["payout_ratio", "2025-12-31"].value, Decimal("320447") / Decimal("350210"))
++        self.assertEqual(annual_out["dividend_cagr_3y", "2025-12-31"].value,
++                         (Decimal("1.3248") / Decimal("1.3112")) ** (Decimal(1) / Decimal(3)) - 1)
++
+     def test_ttm_is_withheld_when_a_quarter_is_missing(self):
+         gap = [row for row in self.QUARTERS if row[1] != "2025-09-30"]
+         self.assertIsNone(self.ttm(gap, "2026-03-31"))
+-- 
+2.43.0
+

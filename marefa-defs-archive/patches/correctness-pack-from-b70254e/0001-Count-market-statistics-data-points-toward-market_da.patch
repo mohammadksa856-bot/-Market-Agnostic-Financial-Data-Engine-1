@@ -1,0 +1,73 @@
+From 537a8d0e97636df5f612b5c8745d814836e72606 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 24 Oct 2026 12:59:35 +0000
+Subject: [PATCH 1/6] Count market statistics data points toward market_data
+ completeness
+
+refresh_catalog_completeness only recognised vwap among the market
+statistics published as data points, so previous_close, returns and the
+other market_prices-domain fields stayed missing even when current.
+Count every catalogued market_prices field that has a current data point.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01CfTpoii6QDStyTPdotmEdY
+---
+ src/finengine/domains.py      | 12 ++++++++----
+ tests/test_company_domains.py | 18 ++++++++++++++++++
+ 2 files changed, 26 insertions(+), 4 deletions(-)
+
+diff --git a/src/finengine/domains.py b/src/finengine/domains.py
+index 98085a3..d455740 100644
+--- a/src/finengine/domains.py
++++ b/src/finengine/domains.py
+@@ -645,10 +645,14 @@ class CompanyDomainStore:
+                      "price_adjusted_close":"adjusted_close","trading_volume":"volume","trading_turnover":"turnover",
+                      "fifty_two_week_high":"high_52w","fifty_two_week_low":"low_52w"}
+         available["market_prices"].update(key for key, column in price_map.items() if price[column] is not None)
+-        available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
+-            """SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
+-            AND metric_key IN ('vwap')""", (company_id,)
+-        ))
++        # Market statistics (vwap, previous close, returns, moving averages, ...) are published as
++        # data points by refresh_market_statistics/valuations; count every market_prices field that is current.
++        market_keys = sorted({row["field_key"] for row in expected_rows if row["storage_domain"] == "market_prices"})
++        if market_keys:
++            available["market_prices"].update(row["metric_key"] for row in self.db.conn.execute(
++                f"""SELECT DISTINCT metric_key FROM data_points WHERE company_id=? AND is_current=1
++                AND metric_key IN ({",".join("?" for _ in market_keys)})""", (company_id, *market_keys)
++            ))
+         ownership_rows = self.db.conn.execute(
+             "SELECT * FROM ownership_positions WHERE company_id=? AND is_current=1", (company_id,)).fetchall()
+         if ownership_rows:
+diff --git a/tests/test_company_domains.py b/tests/test_company_domains.py
+index 69012ad..c9a69d8 100644
+--- a/tests/test_company_domains.py
++++ b/tests/test_company_domains.py
+@@ -242,6 +242,24 @@ class CompanyDomainTests(unittest.TestCase):
+         self.assertGreater(completeness["required_fields"], 0)
+         self.assertTrue(any(row["required_missing"] for row in completeness["categories"]))
+ 
++    def test_market_statistics_published_as_data_points_count_for_market_data(self):
++        def market_data_missing():
++            result = self.store.refresh_catalog_completeness("sa:TST")
++            return {key for row in result["categories"] if row["category"] == "market_data"
++                    for key in row["missing"]}
++        before = market_data_missing()
++        self.assertIn("previous_close", before)
++        self.assertIn("market_return_1m", before)
++        stat = Fact("sa:TST", "previous_close", Decimal("27.5"), "SAR", "SAR", "2026-06-30", "2026-06-30",
++                    PeriodKind.INSTANT, 2026, None, self.source.source_key, self.source.source_url,
++                    self.source.filed_at)
++        self.db.publish(stat)
++        after = market_data_missing()
++        self.assertNotIn("previous_close", after)
++        # Only fields catalogued in the market_prices domain change; others stay missing.
++        self.assertIn("market_return_1m", after)
++        self.assertEqual(before - after, {"previous_close"})
++
+     def test_sector_packs_are_explicit_and_apply_only_to_matching_industries(self):
+         counts = {row["pack_key"]: row["n"] for row in self.db.conn.execute(
+             "SELECT pack_key,count(*) n FROM data_catalog_fields WHERE enabled=1 GROUP BY pack_key")}
+-- 
+2.43.0
+

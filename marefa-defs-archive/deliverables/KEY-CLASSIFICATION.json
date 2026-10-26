@@ -1,0 +1,469 @@
+{
+ "basis": {
+  "engine": "54ef922 (defs/independent-validation, local)",
+  "contract_keys": "717 field slots",
+  "final_score": "65.3916"
+ },
+ "closed": [
+  {
+   "key": "ebitda_growth",
+   "set": "UNPROVEN",
+   "class": "derivable",
+   "points": "0.1429",
+   "evidence": "AR2025 p174/p178 D&A 2024 + note 34 EBIT 2024; engine formula ebit+|D&A|"
+  },
+  {
+   "key": "dividend_installments_count",
+   "set": "UNPROVEN",
+   "class": "exists",
+   "points": "0.2500",
+   "evidence": "AR2025 note 37 p235: four quarterly declarations"
+  },
+  {
+   "key": "adjusted_ebit",
+   "set": "DEF",
+   "class": "resolved_by_existing_decision",
+   "points": "0.0551",
+   "evidence": "config/supplements/2222.json maps issuer 'Adjusted EBIT'; AR2025 p47/p48"
+  }
+ ],
+ "unproven_open": [
+  {
+   "key": "dividend_payment_frequency",
+   "class": "exists_no_ingestion_path",
+   "points": "0.2500",
+   "reason": "AR2025 note 37: quarterly; text values have no manifest path"
+  },
+  {
+   "key": "eps_cagr_5y",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "EPS 2020 on the post-2023-bonus basis is not in the engine"
+  },
+  {
+   "key": "dividend_cagr_5y",
+   "class": "needs_period",
+   "points": "0.2500",
+   "reason": "DPS 2020 missing; DPS 2021-2022 are on the pre-2023-bonus basis"
+  },
+  {
+   "key": "years_consecutive_dividend_payments",
+   "class": "needs_period",
+   "points": "0.2500",
+   "reason": "dividend history before 2021 not ingested; start-year policy"
+  },
+  {
+   "key": "ebitda_qoq",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "no quarterly EBIT or D&A for Q1/Q2 2026"
+  },
+  {
+   "key": "operating_income_qoq",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "quarterly operating income not ingested (data book not loaded)"
+  },
+  {
+   "key": "eps_qoq",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "quarterly EPS not ingested"
+  },
+  {
+   "key": "revenue_ttm_growth",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "discrete Q3/Q4 2025 and prior-year quarters missing"
+  },
+  {
+   "key": "net_income_ttm_growth",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "eps_ttm_growth",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "ebitda_ttm_growth",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "free_cash_flow_ttm_growth",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "operating_cash_flow_ttm_growth",
+   "class": "needs_period",
+   "points": "0.1429",
+   "reason": "same"
+  },
+  {
+   "key": "historical_pe_percentile",
+   "class": "needs_period",
+   "points": "0.1935",
+   "reason": "one archived price day only"
+  },
+  {
+   "key": "historical_pb_percentile",
+   "class": "needs_period",
+   "points": "0.1935",
+   "reason": "one archived price day only"
+  },
+  {
+   "key": "segment_assets",
+   "class": "possibly_not_applicable",
+   "points": "0.3076",
+   "reason": "note 34 reports no segment assets"
+  },
+  {
+   "key": "segment_liabilities",
+   "class": "possibly_not_applicable",
+   "points": "0.3076",
+   "reason": "note 34 reports no segment liabilities"
+  },
+  {
+   "key": "segment_investments_associates",
+   "class": "possibly_not_applicable",
+   "points": "0.3076",
+   "reason": "not disclosed by segment"
+  },
+  {
+   "key": "customer_concentration",
+   "class": "insufficient_evidence",
+   "points": "0.0551",
+   "reason": "narrative only, no amount; correctly uncounted"
+  },
+  {
+   "key": "contingencies",
+   "class": "insufficient_evidence",
+   "points": "0.0551",
+   "reason": "narrative only, no amount; correctly uncounted"
+  }
+ ],
+ "definitions_open": [
+  {
+   "decision": "D01_gross_profit_nature_of_expense",
+   "keys": [
+    "gross_profit",
+    "cost_of_revenue",
+    "gross_margin",
+    "gross_profit_growth",
+    "gross_profit_qoq",
+    "days_inventory",
+    "inventory_turnover",
+    "days_payables",
+    "payables_turnover",
+    "cash_conversion_cycle",
+    "beneish_m_score"
+   ],
+   "points": "2.0000"
+  },
+  {
+   "decision": "D02_combined_sga",
+   "keys": [
+    "general_and_administrative_expense",
+    "selling_and_distribution_expense"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D03_adjusted_ebitda",
+   "keys": [
+    "adjusted_ebitda"
+   ],
+   "points": "0.0551"
+  },
+  {
+   "decision": "D04_continuing_discontinued",
+   "keys": [
+    "continuing_operations_income",
+    "discontinued_operations_income"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D05_interest_vs_finance_costs",
+   "keys": [
+    "interest_expense"
+   ],
+   "points": "0.0551"
+  },
+  {
+   "decision": "D06_cash_flow_subtotals",
+   "keys": [
+    "net_income_cash_flow",
+    "operating_profit_before_working_capital_changes"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D07_owner_and_discretionary_cash",
+   "keys": [
+    "owner_earnings",
+    "discretionary_cash_flow"
+   ],
+   "points": "0.1102"
+  },
+  {
+   "decision": "D08_pending_returns_and_wacc",
+   "keys": [
+    "fixed_charge_coverage",
+    "return_on_capital",
+    "economic_profit_proxy"
+   ],
+   "points": "0.7717"
+  },
+  {
+   "decision": "D09_book_value_basis",
+   "keys": [
+    "book_value_growth"
+   ],
+   "points": "0.1429"
+  },
+  {
+   "decision": "D10_segment_operating_income",
+   "keys": [
+    "upstream_operating_income",
+    "downstream_operating_income"
+   ],
+   "points": "0.6153"
+  },
+  {
+   "decision": "D11_upstream_downstream_kpis",
+   "keys": [
+    "refinery_utilization",
+    "spare_capacity",
+    "production_entitlement",
+    "lifting_volume"
+   ],
+   "points": "0.6087"
+  },
+  {
+   "decision": "D12_dividend_classes",
+   "keys": [
+    "ordinary_dividend",
+    "special_dividend",
+    "total_dividend_declared",
+    "dividend_stability_score"
+   ],
+   "points": "1.0000"
+  },
+  {
+   "decision": "D13_dividend_ttm_and_forward",
+   "keys": [
+    "dividend_per_share_ttm",
+    "trailing_twelve_month_dividend",
+    "total_dividend_paid_ttm",
+    "dividend_yield_ttm",
+    "payout_ratio_ttm",
+    "fcf_payout_ratio_ttm",
+    "forward_dividend_per_share",
+    "forward_dividend_run_rate"
+   ],
+   "points": "2.0000"
+  },
+  {
+   "decision": "D14_identity_and_sharia",
+   "keys": [
+    "cik",
+    "sharia_status"
+   ],
+   "points": "0.2759"
+  },
+  {
+   "decision": "D15_product_revenue_split",
+   "keys": [
+    "chemicals_revenue",
+    "refined_products_revenue",
+    "lng_revenue"
+   ],
+   "points": "0.9229"
+  },
+  {
+   "decision": "D16_commercial_pipeline_applicability",
+   "keys": [
+    "average_selling_price_by_product",
+    "book_to_bill_ratio",
+    "committed_offtake_volume",
+    "contract_renewal_profile",
+    "contracted_sales_value",
+    "contracted_sales_volume",
+    "minimum_volume_commitments",
+    "sales_contract_count",
+    "sales_order_backlog",
+    "sales_volume_by_geography",
+    "sales_volume_by_product",
+    "take_or_pay_commitments"
+   ],
+   "points": "1.0667"
+  },
+  {
+   "decision": "D17_corporate_actions_never_occurred",
+   "keys": [
+    "capital_reduction",
+    "delisting",
+    "merger",
+    "reverse_split",
+    "rights_issue",
+    "rights_offering_date",
+    "spin_off",
+    "stock_split",
+    "suspension",
+    "symbol_change",
+    "tender_offer",
+    "treasury_share_sale"
+   ],
+   "points": "2.2857"
+  }
+ ],
+ "outside_both_sets": {
+  "count": 126,
+  "points": "18.7687",
+  "note": "source/extraction keys (Codex scope) and market/consensus/ownership/announcement feeds; not researched here",
+  "keys": [
+   "accumulated_other_comprehensive_income",
+   "announcement_body",
+   "announcement_category",
+   "announcement_date",
+   "announcement_id",
+   "announcement_source_url",
+   "announcement_title_ar",
+   "announcement_title_en",
+   "average_realized_gas_price",
+   "average_realized_refined_product_price",
+   "average_volume_30d",
+   "benefit_obligation_by_geography",
+   "beta_1y",
+   "beta_5y",
+   "board_change",
+   "borrowings_by_currency",
+   "capital_increase_proceeds",
+   "cash_equivalents",
+   "cash_restricted",
+   "chemicals_production",
+   "chemicals_sales",
+   "condensate_production",
+   "contract_assets",
+   "contract_award",
+   "contract_flag",
+   "contract_liabilities",
+   "crude_oil_production",
+   "current_portion_long_term_debt",
+   "current_tax_assets",
+   "dividend_cagr_10y",
+   "dividend_eligibility",
+   "dividend_ex_date",
+   "dividend_flag",
+   "dividend_payment",
+   "earnings_flag",
+   "ebit_estimate",
+   "ebitda_estimate",
+   "employee_benefits_current",
+   "eps_cagr_10y",
+   "eps_estimate",
+   "fifty_two_week_high",
+   "fifty_two_week_low",
+   "finding_development_cost_per_boe",
+   "foreign_exchange_effect",
+   "foreign_investor_limit",
+   "foreign_ownership",
+   "forward_price_to_earnings",
+   "free_cash_flow_cagr_10y",
+   "free_float_market_cap",
+   "free_float_shares",
+   "gain_loss_asset_sales",
+   "governance_flag",
+   "industry_growth",
+   "industry_size",
+   "insider_ownership",
+   "institutional_ownership",
+   "institutional_shareholders_count",
+   "intangible_asset_purchases",
+   "investments_joint_ventures",
+   "investor_contact_email",
+   "joint_venture_investments",
+   "lei",
+   "loans_to_affiliates",
+   "long_term_securities",
+   "major_holder_change",
+   "management_change",
+   "market_return_1y",
+   "market_return_3m",
+   "market_return_3y",
+   "market_return_5y",
+   "market_return_6m",
+   "market_return_ytd",
+   "marketable_securities",
+   "materiality_tag",
+   "merger_acquisition_flag",
+   "natural_gas_liquids_production",
+   "natural_gas_sales",
+   "net_income_cagr_10y",
+   "net_income_estimate",
+   "operating_cash_flow_cagr_10y",
+   "other_expense",
+   "other_financing_cash_flow",
+   "other_income",
+   "other_nonoperating_expense",
+   "other_nonoperating_income",
+   "other_receivables",
+   "ownership_concentration",
+   "peg_ratio",
+   "percent_from_52w_high",
+   "percent_from_52w_low",
+   "ppe_purchases",
+   "prepayments",
+   "price_adjusted_close",
+   "price_to_sma_200d",
+   "price_to_sma_50d",
+   "proceeds_investments",
+   "purchases_investments",
+   "refinery_throughput",
+   "regulatory_action",
+   "related_financial_period",
+   "related_party_transaction",
+   "remaining_performance_obligations",
+   "reserve_replacement_ratio",
+   "retail_ownership",
+   "retail_shareholders_count",
+   "revenue_by_customer_type",
+   "revenue_cagr_10y",
+   "revenue_estimate",
+   "securities_purchases",
+   "securities_sales",
+   "selling_general_administrative_expense_estimate",
+   "simple_moving_average_200d",
+   "simple_moving_average_50d",
+   "strategic_ownership",
+   "top_10_shareholder_concentration",
+   "top_5_shareholder_concentration",
+   "total_return_10y",
+   "total_return_1y",
+   "total_return_3y",
+   "total_return_5y",
+   "unsecured_borrowings",
+   "variable_lease_expense",
+   "volatility_30d",
+   "weighted_average_borrowing_rate",
+   "zakat_paid",
+   "zakat_payable"
+  ]
+ },
+ "summary": {
+  "def_set": 73,
+  "def_closed": 1,
+  "unproven_set": 22,
+  "unproven_closed": 2,
+  "def_open_points": "12.2409",
+  "unproven_open_points": "3.5988"
+ }
+}
